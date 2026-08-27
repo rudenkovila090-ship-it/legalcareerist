@@ -110,3 +110,37 @@ body {
     transform: none;
   }
 }
+
+/* Орбита каналов поиска кандидатов («Как мы находим вам сотрудников»):
+   .orbit-ring вращается по часовой стрелке, .orbit-label вращается в обратную
+   сторону с той же длительностью — суммарно текст на карточках остаётся
+   прямым, а сами карточки обходят круг. */
+@keyframes orbit-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes orbit-counter {
+  from {
+    transform: translate(-50%, -50%) rotate(var(--orbit-start, 0deg));
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(calc(var(--orbit-start, 0deg) - 360deg));
+  }
+}
+.orbit-ring {
+  animation: orbit-spin 36s linear infinite;
+}
+/* --orbit-start должен равняться минус собственному углу узла на круге
+   (например, у узла на 90° это -90deg) — иначе компенсация вращения
+   ring'а не отменяет ещё и статический сдвиг самого узла, и подпись
+   на карточке уезжает боком/вверх ногами. Передаётся инлайн-стилем. */
+.orbit-label {
+  animation: orbit-counter 36s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .orbit-ring,
+  .orbit-label {
+    animation: none;
+  }
+}

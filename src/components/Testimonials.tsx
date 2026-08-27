@@ -16,18 +16,22 @@ function DotGrid({ className }: { className?: string }) {
   )
 }
 
-function TestimonialCard({ t }: { t: Testimonial }) {
+function TestimonialCard({ t, compact }: { t: Testimonial; compact?: boolean }) {
   return (
-    <figure className="relative overflow-hidden rounded-2xl bg-[#dbe4f5] p-6">
-      <DotGrid className="absolute -left-2 -top-2 h-14 w-14 text-ink/15" />
-      <DotGrid className="absolute -bottom-2 -right-2 h-14 w-14 text-ink/15" />
+    <figure className={`relative overflow-hidden rounded-2xl bg-[#dbe4f5] ${compact ? 'p-4' : 'p-6'}`}>
+      <DotGrid className={`absolute -left-2 -top-2 text-ink/15 ${compact ? 'h-10 w-10' : 'h-14 w-14'}`} />
+      <DotGrid className={`absolute -bottom-2 -right-2 text-ink/15 ${compact ? 'h-10 w-10' : 'h-14 w-14'}`} />
       <div className="relative flex justify-end">
         <div className="rounded-full bg-white/70 px-4 py-2 text-right">
           <div className="text-sm font-semibold text-ink">{t.author}</div>
           <div className="text-xs text-ink/50">{t.role}</div>
         </div>
       </div>
-      <blockquote className="relative mt-5 whitespace-pre-line text-sm leading-relaxed text-ink/80">
+      <blockquote
+        className={`relative whitespace-pre-line leading-relaxed text-ink/80 ${
+          compact ? 'mt-3 line-clamp-6 text-xs' : 'mt-5 text-sm'
+        }`}
+      >
         {t.text}
       </blockquote>
     </figure>
@@ -36,8 +40,9 @@ function TestimonialCard({ t }: { t: Testimonial }) {
 
 // Раздел «Отзывы». Если реальных цитат ещё нет — честная заглушка вместо
 // придуманных отзывов. Как только появятся тексты от клиентов и резидентов,
-// передайте их массивом `items`.
-export default function Testimonials({ items }: { items?: Testimonial[] }) {
+// передайте их массивом `items`. `compact` — уменьшенная версия карточек
+// (используется на подстраницах, где отзывы не главный фокус).
+export default function Testimonials({ items, compact }: { items?: Testimonial[]; compact?: boolean }) {
   return (
     <section className="border-y border-ink/10 bg-white py-14">
       <div className="container-page">
@@ -47,7 +52,7 @@ export default function Testimonials({ items }: { items?: Testimonial[] }) {
         {items && items.length > 0 ? (
           <div className="grid gap-4 md:grid-cols-2">
             {items.map((t) => (
-              <TestimonialCard key={t.author + t.role} t={t} />
+              <TestimonialCard key={t.author + t.role} t={t} compact={compact} />
             ))}
           </div>
         ) : (
