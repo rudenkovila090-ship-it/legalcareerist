@@ -12,7 +12,7 @@ export default function FAQSection({
 }: {
   items: FAQItem[]
   title?: string
-  /** Тёмный вариант — для страниц с фирменной синей заливкой на всю страницу. */
+  /** Темный вариант — для страниц с фирменной синей заливкой на всю страницу. */
   dark?: boolean
 }) {
   return (

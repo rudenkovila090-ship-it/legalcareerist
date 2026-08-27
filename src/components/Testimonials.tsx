@@ -18,7 +18,7 @@ function DotGrid({ className }: { className?: string }) {
 
 function TestimonialCard({ t, compact }: { t: Testimonial; compact?: boolean }) {
   return (
-    <figure className={`relative overflow-hidden rounded-2xl bg-[#dbe4f5] ${compact ? 'p-4' : 'p-6'}`}>
+    <figure className={`relative h-full overflow-hidden rounded-2xl bg-[#dbe4f5] ${compact ? 'p-4' : 'p-6'}`}>
       <DotGrid className={`absolute -left-2 -top-2 text-ink/15 ${compact ? 'h-10 w-10' : 'h-14 w-14'}`} />
       <DotGrid className={`absolute -bottom-2 -right-2 text-ink/15 ${compact ? 'h-10 w-10' : 'h-14 w-14'}`} />
       <div className="relative flex justify-end">
@@ -38,7 +38,7 @@ function TestimonialCard({ t, compact }: { t: Testimonial; compact?: boolean }) 
   )
 }
 
-// Раздел «Отзывы». Если реальных цитат ещё нет — честная заглушка вместо
+// Раздел «Отзывы». Если реальных цитат еще нет — честная заглушка вместо
 // придуманных отзывов. Как только появятся тексты от клиентов и резидентов,
 // передайте их массивом `items`. `compact` — уменьшенная версия карточек
 // (используется на подстраницах, где отзывы не главный фокус).
@@ -49,7 +49,7 @@ export default function Testimonials({
 }: {
   items?: Testimonial[]
   compact?: boolean
-  /** Тёмный вариант — для страниц с фирменной синей заливкой на всю страницу. */
+  /** Темный вариант — для страниц с фирменной синей заливкой на всю страницу. */
   dark?: boolean
 }) {
   return (
@@ -63,7 +63,7 @@ export default function Testimonials({
             <div className="overflow-hidden">
               <div className="animate-marquee flex w-max gap-4">
                 {[...items, ...items].map((t, i) => (
-                  <div key={t.author + t.role + i} className="w-72 shrink-0 sm:w-80">
+                  <div key={t.author + t.role + i} className="h-56 w-72 shrink-0 sm:w-80">
                     <TestimonialCard t={t} compact />
                   </div>
                 ))}

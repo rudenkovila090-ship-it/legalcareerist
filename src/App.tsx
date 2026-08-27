@@ -73,7 +73,7 @@ export default function App() {
             <KnowledgeList
               audience="events"
               eyebrow="Мероприятия · База знаний"
-              title="Отчёты и гайды по мероприятиям"
+              title="Отчеты и гайды по мероприятиям"
             />
           }
         />
@@ -81,7 +81,7 @@ export default function App() {
         <Route path="/materials/:slug" element={<MaterialDetail />} />
         <Route path="/events/contacts" element={<Contacts eyebrow="Мероприятия" sourceBlock="events" />} />
 
-        {/* Общая статья Базы знаний (единая сущность для всех трёх разделов) */}
+        {/* Общая статья Базы знаний (единая сущность для всех трех разделов) */}
         <Route path="/knowledge/:slug" element={<ArticleDetail />} />
 
         {/* Сквозной личный кабинет */}

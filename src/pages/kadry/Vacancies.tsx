@@ -7,7 +7,7 @@ import { SPECIALIZATIONS, type Specialization, type WorkFormat } from '../../typ
 const formats: { id: WorkFormat | 'any'; label: string }[] = [
   { id: 'any', label: 'Любой формат' },
   { id: 'office', label: 'Офис' },
-  { id: 'remote', label: 'Удалённо' },
+  { id: 'remote', label: 'Удаленно' },
   { id: 'hybrid', label: 'Гибрид' },
 ]
 

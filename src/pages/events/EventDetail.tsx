@@ -13,8 +13,8 @@ const eventTypeLabel = { webinar: 'Вебинар', breakfast: 'Бизнес-з�
 
 const steps = [
   { title: 'Регистрация', description: 'Оставляете заявку на участие на этой странице.' },
-  { title: 'Оплата', description: 'Если мероприятие платное — оплачиваете счёт или применяете промокод.' },
-  { title: 'Напоминание', description: 'За день и за час до старта пришлём напоминание на email/Telegram.' },
+  { title: 'Оплата', description: 'Если мероприятие платное — оплачиваете счет или применяете промокод.' },
+  { title: 'Напоминание', description: 'За день и за час до старта пришлем напоминание на email/Telegram.' },
   { title: 'Участие', description: 'Подключаетесь по ссылке (онлайн) или приходите по адресу (офлайн).' },
   { title: 'Материалы после', description: 'Запись и презентация публикуются в разделе «Полезные материалы».' },
 ]
@@ -115,7 +115,7 @@ export default function EventDetail() {
                 Мероприятие завершено. Запись — в разделе «Полезные материалы».
               </div>
             ) : registered ? (
-              <div className="mt-4 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">Вы зарегистрированы. Напоминание придёт заранее.</div>
+              <div className="mt-4 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">Вы зарегистрированы. Напоминание придет заранее.</div>
             ) : (
               <button
                 onClick={handleRegister}

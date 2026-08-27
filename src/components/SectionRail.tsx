@@ -48,7 +48,7 @@ export default function SectionRail({ items, dark }: { items: SectionRailItem[];
                 e.preventDefault()
                 const el = document.getElementById(item.id)
                 if (!el) return
-                // Учитываем высоту закреплённой шапки (+подкадровой панели
+                // Учитываем высоту закрепленной шапки (+подкадровой панели
                 // аудитории) — иначе scrollIntoView прячет начало раздела под
                 // ней, и кажется, что открылся более нижний блок страницы.
                 const headerHeight = document.querySelector('header')?.getBoundingClientRect().height ?? 0

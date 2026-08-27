@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 // ctaTo, начинающийся с "#", — это плавная прокрутка к блоку на текущей странице
 // (через scrollIntoView, а не href="#…" — так якорь не конфликтует с роутером,
 // в том числе с HashRouter, который сам использует URL-хэш для навигации между
-// страницами); всё остальное — переход между страницами через react-router <Link>.
+// страницами); все остальное — переход между страницами через react-router <Link>.
 export default function CTASection({
   title,
   description,

@@ -1,11 +1,12 @@
 import { Link } from 'react-router-dom'
 import PageHero from '../../components/PageHero'
 import Testimonials from '../../components/Testimonials'
+import { consultationTestimonials } from '../../data/testimonials'
 import FAQSection from '../../components/FAQSection'
 import SectionRail from '../../components/SectionRail'
 
 const benefits = [
-  { title: 'Подбор работы без лишних хлопот', text: 'Берём переговоры с работодателем на себя и сопровождаем вас от заявки до выхода на позицию.' },
+  { title: 'Подбор работы без лишних хлопот', text: 'Берем переговоры с работодателем на себя и сопровождаем вас от заявки до выхода на позицию.' },
   { title: 'Только юридический рынок', text: 'Понимаем специфику профессии — говорим с вами на одном языке с первого дня.' },
   { title: 'Поддержка на каждом этапе', text: 'От первой заявки до выхода на позицию — или от разбора карьерной ситуации до плана действий.' },
 ]
@@ -15,7 +16,7 @@ const services = [
     to: '/kadry/candidates/reserve',
     tag: 'Кадровый резерв',
     title: 'Кадровый резерв',
-    text: 'Подайте заявку один раз — будем предлагать релевантные вакансии, пока не найдётся подходящая.',
+    text: 'Подайте заявку один раз — будем предлагать релевантные вакансии, пока не найдется подходящая.',
     cta: 'Подать заявку',
   },
   {
@@ -28,7 +29,7 @@ const services = [
 ]
 
 const faqItems = [
-  { q: 'В чём разница между кадровым резервом и консультацией?', a: 'Кадровый резерв — подбор вакансий под ваш профиль. Консультация — работа с карьерным консультантом: резюме, собеседования, стратегия поиска, карьерные кризисы.' },
+  { q: 'В чем разница между кадровым резервом и консультацией?', a: 'Кадровый резерв — подбор вакансий под ваш профиль. Консультация — работа с карьерным консультантом: резюме, собеседования, стратегия поиска, карьерные кризисы.' },
   { q: 'Можно воспользоваться и тем, и другим?', a: 'Да, это независимые услуги — можно подать заявку в резерв и отдельно записаться на консультацию.' },
   { q: 'Как быстрее получить доступ к вакансиям?', a: 'Резиденты Сообщества видят новые вакансии первыми — раньше кадрового резерва и открытого рынка.' },
 ]
@@ -75,13 +76,13 @@ export default function Candidates() {
         <h2 className="mb-6 text-2xl font-semibold">Выберите, что нужно именно вам</h2>
         <div className="grid gap-6 sm:grid-cols-2">
           {services.map((s) => (
-            <Link key={s.to} to={s.to} className="glass block rounded-2xl p-6">
-              <span className="inline-block rounded-full bg-gold-light/25 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-ink">
+            <Link key={s.to} to={s.to} className="glass flex h-full flex-col rounded-2xl p-6">
+              <span className="inline-block w-fit rounded-full bg-gold-light/25 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-ink">
                 {s.tag}
               </span>
               <h3 className="mt-4 text-xl font-semibold">{s.title}</h3>
               <p className="mt-2 text-sm text-ink/60">{s.text}</p>
-              <span className="mt-5 inline-block rounded-full bg-ink px-5 py-2 text-sm font-semibold text-white">{s.cta} →</span>
+              <span className="mt-5 inline-block w-fit rounded-full bg-ink px-5 py-2 text-sm font-semibold text-white sm:mt-auto">{s.cta} →</span>
             </Link>
           ))}
         </div>
@@ -89,7 +90,7 @@ export default function Candidates() {
 
       {/* Отзывы */}
       <div id="reviews">
-        <Testimonials />
+        <Testimonials items={consultationTestimonials} compact />
       </div>
 
       {/* FAQ */}
@@ -102,7 +103,7 @@ export default function Candidates() {
         <div className="rounded-2xl bg-ink px-6 py-10 text-center text-white sm:px-10">
           <div className="text-xl font-semibold">Не знаете, с чего начать?</div>
           <p className="mx-auto mt-2 max-w-lg text-sm text-white/70">
-            Напишите в Telegram — подскажем, какая услуга подойдёт именно вам.
+            Напишите в Telegram — подскажем, какая услуга подойдет именно вам.
           </p>
           <a
             href="https://t.me/legalcareerst_support"

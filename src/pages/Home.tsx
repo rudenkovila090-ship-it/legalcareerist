@@ -1,10 +1,9 @@
 import { Link } from 'react-router-dom'
-import Testimonials from '../components/Testimonials'
-import { homeTestimonials } from '../data/testimonials'
 import FAQSection from '../components/FAQSection'
+import ilyaPhoto from '../assets/ilya-rudenkov.jpg'
 
 const kadryStats = [
-  { value: '3 200+', label: 'потенциальных кандидатов' },
+  { value: '8 000+', label: 'потенциальных кандидатов' },
   { value: '20+', label: 'позиций закрыто' },
   { value: '5–7', label: 'дней на закрытие' },
   { value: '30%', label: 'оплата от 1 зарплаты' },
@@ -17,42 +16,72 @@ const communityStats = [
   { value: '2 города', label: 'офлайн-встреч' },
 ]
 
+function IconClock() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3.5 2" />
+    </svg>
+  )
+}
+function IconNetwork() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <circle cx="6" cy="6" r="2.3" />
+      <circle cx="18" cy="6" r="2.3" />
+      <circle cx="12" cy="18" r="2.3" />
+      <path d="M7.7 7.3L10.5 16M16.3 7.3L13.5 16M8.3 6h7.4" />
+    </svg>
+  )
+}
+function IconShieldCheck() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <path d="M12 3.5l7 2.5v6c0 4.5-3 7.5-7 8.5-4-1-7-4-7-8.5v-6l7-2.5z" />
+      <path d="M9 12l2 2 4-4" />
+    </svg>
+  )
+}
+
 const valueProps = [
   {
+    icon: IconClock,
     title: 'Экономия времени',
-    text: 'Работодателю не нужно самому публиковать вакансию, отсеивать отклики и проводить десятки собеседований — эту работу берём на себя.',
+    text: 'Работодателю не нужно самому публиковать вакансию, отсеивать отклики и проводить десятки собеседований — эту работу берем на себя.',
   },
   {
+    icon: IconNetwork,
     title: 'Карьера без связей',
     text: 'Студенту не нужно надеяться на случайные знакомства: закрытые вакансии и живое сообщество работают на вашу карьеру с первого курса.',
   },
   {
+    icon: IconShieldCheck,
     title: 'Прозрачность рынка',
-    text: 'Открытая модель оплаты, документы на каждом этапе, честная отчётность — вместо расплывчатых обещаний, привычных для рынка.',
+    text: 'Открытая модель оплаты, документы на каждом этапе, честная отчетность — вместо расплывчатых обещаний, привычных для рынка.',
   },
 ]
 
 const kadryAdvantages = [
   { title: 'Только юридический рынок', text: 'Специализируемся на начинающих и средних специалистах — понимаем их уровень, мотивацию и ожидания.' },
-  { title: 'Собственная база 3 200+', text: 'Активное сообщество студентов и выпускников — кандидаты уже мотивированы и готовы к работе.' },
+  { title: 'Собственная база 8 000+', text: 'Активное сообщество студентов и выпускников — кандидаты уже мотивированы и готовы к работе.' },
   { title: 'Оплата за результат', text: '30% от одного оклада кандидата: 75% предоплата до начала работ, 25% — после прохождения испытательного срока.' },
   { title: 'Бесплатная замена', text: 'Если кандидат не проходит испытательный срок — подбираем замену бесплатно в согласованные сроки.' },
 ]
 
-const communityBenefits = [
-  { title: 'Закрытые вакансии', text: 'Помощники, младшие юристы, секретари, офис-менеджеры — вакансий нет в открытом доступе.' },
-  { title: 'Скидки на мероприятия', text: '30–50% на офлайн-встречи и участие в событиях сообщества.' },
-  { title: 'Закрытые вебинары', text: 'С приглашёнными экспертами — доступны только резидентам.' },
-  { title: 'База знаний', text: 'Юридическая литература, психология, soft skills, legal design & writing и многое другое.' },
+// Соответствует реальным услугам соискателям (см. /kadry/candidates) —
+// не сообщество, а кадровый резерв и карьерные консультации.
+const candidateBenefits = [
+  { title: 'Подбор работы без лишних хлопот', text: 'Берем переговоры с работодателем на себя и сопровождаем от заявки до выхода на позицию.' },
+  { title: 'Карьерные консультации', text: 'Резюме, подготовка к собеседованию, стратегия поиска — соберите свой набор услуг под задачу.' },
+  { title: 'Только юридический рынок', text: 'Понимаем специфику профессии — говорим с вами на одном языке с первого дня.' },
+  { title: 'Приоритет резидентам', text: 'Резиденты Сообщества видят новые вакансии первыми — раньше кадрового резерва и открытого рынка.' },
 ]
 
 const faqItems = [
-  { q: 'Как быстро вы закрываете вакансию?', a: 'В среднем за 5–7 дней (Time to Hire — 5,5 дней), есть кейсы закрытия за 1–3 дня.' },
-  { q: 'Что если кандидат не пройдёт испытательный срок?', a: 'Бесплатно подберём замену в согласованные сроки — это часть гарантии, а не платная опция.' },
-  { q: 'Как устроена оплата подбора?', a: '30% от одного месячного оклада кандидата: 75% предоплата до начала работ, 25% — после прохождения испытательного срока.' },
-  { q: 'Кто может вступить в сообщество?', a: 'Студенты и начинающие юристы из любого города и вуза — специализация или курс обучения не ограничивают вступление.' },
-  { q: 'Что будет после оплаты подписки на сообщество?', a: 'Бот @legalcareerist_bot сам напишет вам в Telegram и пришлёт ссылку на вступление в закрытое сообщество.' },
-  { q: 'Можно ли попробовать сообщество бесплатно?', a: 'Да, демодоступ на 7 дней — без оплаты, чтобы оценить формат перед подпиской.' },
+  { q: 'Что такое Карьерный юрист?', a: 'Кадровое агентство и сообщество для юридического рынка под одним брендом — под ним объединены подбор персонала для юридических фирм и закрытое сообщество студентов-юристов.' },
+  { q: 'Чем вы занимаетесь?', a: 'Находим сотрудников для юридических фирм, помогаем соискателям с подбором работы и карьерными консультациями, объединяем студентов-юристов в закрытом сообществе.' },
+  { q: 'Как заказать услугу?', a: 'Оставьте заявку удобным для вас способом, мы уточним детали задачи и подберем подходящий формат и специалиста.' },
+  { q: 'Как понять, какая услуга мне нужна?', a: 'Опишите свою ситуацию при обращении — мы поможем определить, что решит вашу задачу быстрее всего: разовая консультация или комплексное сопровождение.' },
 ]
 
 export default function Home() {
@@ -70,13 +99,13 @@ export default function Home() {
             специалистов для юридических фирм и объединяем студентов-юристов, которые растят
             карьеру вместе.
           </p>
-          <div className="mx-auto mt-8 grid max-w-xl gap-3 sm:grid-cols-2">
-            <Link to="/kadry" className="glass rounded-xl p-4 text-left">
-              <div className="font-semibold">Кадры</div>
-              <div className="mt-1 text-sm text-ink/60">Ищете сотрудника в юридическую фирму?</div>
+          <div className="mx-auto mt-8 grid max-w-xl gap-4 sm:grid-cols-2">
+            <Link to="/kadry/employers" className="rounded-2xl bg-ink p-5 text-left text-white shadow-lg transition-transform hover:-translate-y-0.5">
+              <div className="text-lg font-semibold">Кадры</div>
+              <div className="mt-1 text-sm text-white/70">Ищете сотрудника в юридическую фирму?</div>
             </Link>
-            <Link to="/community" className="glass rounded-xl p-4 text-left">
-              <div className="font-semibold">Сообщество</div>
+            <Link to="/community" className="rounded-2xl border-2 border-ink bg-white p-5 text-left shadow-lg transition-transform hover:-translate-y-0.5">
+              <div className="text-lg font-semibold">Сообщество</div>
               <div className="mt-1 text-sm text-ink/60">Студент или начинающий юрист?</div>
             </Link>
           </div>
@@ -101,32 +130,44 @@ export default function Home() {
             <ul className="mt-6 space-y-3 text-sm text-ink/70">
               <li className="flex gap-2"><span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-gold" /><span>Основатель — практикующий юрист по персональным данным и карьерный консультант, изнутри понимающий и рынок труда, и профессию.</span></li>
               <li className="flex gap-2"><span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-gold" /><span>Работаем только с юридическим рынком — не универсальный рекрутинг, а понимание специфики профессии.</span></li>
-              <li className="flex gap-2"><span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-gold" /><span>Прозрачные условия: документы на каждом этапе подбора, открытая модель оплаты, честная отчётность.</span></li>
+              <li className="flex gap-2"><span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-gold" /><span>Прозрачные условия: документы на каждом этапе подбора, открытая модель оплаты, честная отчетность.</span></li>
             </ul>
           </div>
-          <div className="glass rounded-xl p-6">
-            <div className="text-sm font-medium uppercase tracking-wide text-gold">Основатель</div>
-            <div className="mt-1 text-xl font-semibold">Илья Руденков</div>
-            <ul className="mt-3 space-y-1.5 text-sm text-ink/60">
-              <li>Основатель «Карьерного юриста»</li>
-              <li>Юрист по персональным данным</li>
-              <li>Карьерный консультант для студентов и юристов</li>
-              <li>Студент НИУ ВШЭ по программе Legal Tech</li>
-            </ul>
+          <div className="glass flex gap-5 rounded-xl p-6">
+            <img
+              src={ilyaPhoto}
+              alt="Илья Руденков"
+              className="h-20 w-20 shrink-0 rounded-full object-cover shadow-md ring-4 ring-white"
+            />
+            <div>
+              <div className="text-sm font-medium uppercase tracking-wide text-gold">Основатель</div>
+              <div className="mt-1 text-xl font-semibold">Илья Руденков</div>
+              <ul className="mt-3 space-y-1.5 text-sm text-ink/60">
+                <li>Основатель «Карьерного юриста»</li>
+                <li>Юрист по персональным данным</li>
+                <li>Карьерный консультант для студентов и юристов</li>
+                <li>Студент НИУ ВШЭ по программе Legal Tech</li>
+              </ul>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* В чём наша польза */}
+      {/* В чем наша польза */}
       <section className="border-y border-ink/10 bg-white py-14">
         <div className="container-page">
-          <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">В чём наша польза</div>
-          <h2 className="mb-6 text-2xl font-semibold">Решаем задачу, а не продаём услугу</h2>
+          <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">В чем наша польза</div>
+          <h2 className="mb-6 text-2xl font-semibold">Решаем задачу, а не продаем услугу</h2>
           <div className="grid gap-4 sm:grid-cols-3">
             {valueProps.map((v) => (
-              <div key={v.title} className="glass rounded-xl p-5">
-                <div className="font-semibold">{v.title}</div>
-                <p className="mt-1 text-sm text-ink/60">{v.text}</p>
+              <div key={v.title} className="glass flex gap-3 rounded-xl p-5">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ink text-white">
+                  <v.icon />
+                </div>
+                <div>
+                  <div className="font-semibold">{v.title}</div>
+                  <p className="mt-1 text-sm text-ink/60">{v.text}</p>
+                </div>
               </div>
             ))}
           </div>
@@ -146,12 +187,12 @@ export default function Home() {
             </p>
           </div>
           <div className="glass rounded-xl p-5">
-            <div className="font-semibold">5 место в номинации «Самые вовлечённые юридические клубы»</div>
+            <div className="font-semibold">5 место в номинации «Самые вовлеченные юридические клубы»</div>
             <p className="mt-1 text-sm text-ink/60">Рейтинг юридических Telegram-каналов, 2025.</p>
           </div>
         </div>
         <div className="mt-8 grid gap-4 sm:grid-cols-2">
-          <Link to="/kadry" className="glass rounded-xl p-5">
+          <Link to="/kadry/employers" className="glass rounded-xl p-5">
             <div className="grid grid-cols-2 gap-3">
               {kadryStats.map((s) => (
                 <div key={s.label}>
@@ -194,9 +235,9 @@ export default function Home() {
               </div>
             </div>
             <div>
-              <div className="mb-3 font-semibold text-ink">Студентам (Сообщество)</div>
+              <div className="mb-3 font-semibold text-ink">Соискателям (Кадры)</div>
               <div className="grid gap-3 sm:grid-cols-2">
-                {communityBenefits.map((b) => (
+                {candidateBenefits.map((b) => (
                   <div key={b.title} className="glass rounded-xl p-4">
                     <div className="font-medium">{b.title}</div>
                     <p className="mt-1 text-sm text-ink/60">{b.text}</p>
@@ -207,9 +248,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-
-      {/* Отзывы */}
-      <Testimonials items={homeTestimonials} />
 
       {/* Что мы предлагаем */}
       <section id="kadry" className="scroll-mt-16 border-b border-ink/10 bg-ink py-16 text-white">
@@ -226,12 +264,12 @@ export default function Home() {
             <div>
               <div className="font-semibold">Как мы ищем кандидата</div>
               <p className="mt-1 text-sm text-white/60">
-                Сначала вакансию видят резиденты нашего Сообщества → затем кадровый резерв (3 200+
+                Сначала вакансию видят резиденты нашего Сообщества → затем кадровый резерв (8 000+
                 контактов) → и только потом открытый доступ.
               </p>
             </div>
             <Link
-              to="/kadry"
+              to="/kadry/employers"
               className="shrink-0 rounded-lg bg-gold-light px-6 py-2.5 text-sm font-semibold text-ink hover:opacity-90"
             >
               Подробнее и оставить заявку
@@ -254,7 +292,7 @@ export default function Home() {
             <div>
               <div className="font-semibold">От 690 ₽/мес · демодоступ 7 дней</div>
               <p className="mt-1 text-sm text-white/60">
-                Выберите тариф, оплатите и укажите ник в Telegram — бот сам напишет вам и пришлёт
+                Выберите тариф, оплатите и укажите ник в Telegram — бот сам напишет вам и пришлет
                 ссылку на вступление.
               </p>
             </div>
@@ -265,29 +303,6 @@ export default function Home() {
               Вступить в сообщество
             </Link>
           </div>
-        </div>
-      </section>
-
-      {/* Цены */}
-      <section className="container-page py-14">
-        <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Цены</div>
-        <h2 className="mb-6 text-2xl font-semibold">Прозрачно, без скрытых условий</h2>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Link to="/kadry" className="glass rounded-xl p-6">
-            <div className="font-semibold">Кадры</div>
-            <div className="mt-2 text-3xl font-semibold">30%</div>
-            <p className="mt-1 text-sm text-ink/60">
-              от одного оклада кандидата: 75% предоплата, 25% после испытательного срока. Гарантия
-              бесплатной замены.
-            </p>
-          </Link>
-          <Link to="/community" className="glass rounded-xl p-6">
-            <div className="font-semibold">Сообщество</div>
-            <div className="mt-2 text-3xl font-semibold">от 530 ₽/мес</div>
-            <p className="mt-1 text-sm text-ink/60">
-              690 ₽ за 1 месяц, 590 ₽/мес за 3 месяца, 530 ₽/мес за 6 месяцев. Демодоступ — 7 дней бесплатно.
-            </p>
-          </Link>
         </div>
       </section>
 
@@ -304,7 +319,7 @@ export default function Home() {
             </p>
           </div>
           <div className="flex shrink-0 flex-wrap gap-3">
-            <Link to="/kadry" className="rounded-lg bg-gold-light px-6 py-3 text-sm font-semibold text-ink hover:opacity-90">
+            <Link to="/kadry/employers" className="rounded-lg bg-gold-light px-6 py-3 text-sm font-semibold text-ink hover:opacity-90">
               Найти сотрудника
             </Link>
             <Link to="/community" className="rounded-lg border border-white/30 px-6 py-3 text-sm font-semibold text-white hover:bg-white/10">
@@ -326,7 +341,7 @@ export default function Home() {
           <p className="mt-6 text-xs text-ink/40">
             Отправляя заявку через формы на сайте, вы соглашаетесь с{' '}
             <Link className="underline" to="/legal/privacy">Политикой обработки персональных данных</Link>{' '}
-            и даёте <Link className="underline" to="/legal/consent">согласие на обработку персональных данных</Link>.
+            и даете <Link className="underline" to="/legal/consent">согласие на обработку персональных данных</Link>.
           </p>
         </div>
       </section>

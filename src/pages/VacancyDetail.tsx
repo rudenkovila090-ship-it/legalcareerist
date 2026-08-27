@@ -36,7 +36,7 @@ export default function VacancyDetail() {
           </div>
 
           <div className="mt-6 text-lg font-medium">
-            {vacancy.salaryFrom ? `от ${money.format(vacancy.salaryFrom)} ₽` : 'По договорённости'}
+            {vacancy.salaryFrom ? `от ${money.format(vacancy.salaryFrom)} ₽` : 'По договоренности'}
             {vacancy.salaryTo ? ` до ${money.format(vacancy.salaryTo)} ₽` : ''}
           </div>
 

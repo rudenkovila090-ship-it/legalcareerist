@@ -61,7 +61,7 @@ export default function Salary() {
                   <div className="mt-1 text-xs text-ink/40">По {sample.length} открытым вакансиям в выборке</div>
                 </>
               ) : (
-                <p className="text-sm text-ink/50">Недостаточно данных по выбранным параметрам — оставьте заявку, пришлём точный отчёт.</p>
+                <p className="text-sm text-ink/50">Недостаточно данных по выбранным параметрам — оставьте заявку, пришлем точный отчет.</p>
               )}
             </div>
           </div>
@@ -74,8 +74,8 @@ export default function Salary() {
         <LeadForm
           sourceBlock="kadry"
           formType="salary_report_request"
-          title="Получить точный отчёт по вашей специализации"
-          description="Пришлём развёрнутый отчёт на email с разбивкой по грейдам."
+          title="Получить точный отчет по вашей специализации"
+          description="Пришлем развернутый отчет на email с разбивкой по грейдам."
         />
       </div>
     </div>

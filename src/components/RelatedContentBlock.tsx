@@ -23,7 +23,7 @@ const typeColor: Record<ContentType, string> = {
 /**
  * <RelatedContent> — переиспользуемый блок «Связанное» (раздел 3.4 ТЗ).
  * Рендерится на любой детальной странице: вакансия, статья, мероприятие,
- * материал, клуб. Клик по элементу шлёт аналитическое событие
+ * материал, клуб. Клик по элементу шлет аналитическое событие
  * related_content_click (раздел 8) — так измеряется, работает ли связность.
  */
 export default function RelatedContentBlock({ items, title = 'Связанное' }: { items: RelatedItem[]; title?: string }) {

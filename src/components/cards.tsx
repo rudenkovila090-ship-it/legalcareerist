@@ -13,7 +13,7 @@ export function VacancyCard({ v }: { v: Vacancy }) {
       </div>
       <div className="mt-1 text-sm text-ink/60">{v.anonymous ? 'Компания скрыта' : v.company} · {v.city}</div>
       <div className="mt-2 text-sm font-medium text-ink">
-        {v.salaryFrom ? `от ${money.format(v.salaryFrom)} ₽` : 'По договорённости'}
+        {v.salaryFrom ? `от ${money.format(v.salaryFrom)} ₽` : 'По договоренности'}
         {v.salaryTo ? ` до ${money.format(v.salaryTo)} ₽` : ''}
       </div>
       <div className="mt-3">
@@ -50,7 +50,7 @@ export function EventCard({ e }: { e: EventItem }) {
     <Link to={`/events/${e.slug}`} className="glass block rounded-xl p-5">
       <div className="flex items-center justify-between">
         <span className="text-xs font-medium uppercase tracking-wide text-gold">{eventTypeLabel[e.type]}</span>
-        <span className="text-xs text-ink/50">{e.status === 'completed' ? 'Завершено' : 'Идёт набор'}</span>
+        <span className="text-xs text-ink/50">{e.status === 'completed' ? 'Завершено' : 'Идет набор'}</span>
       </div>
       <h3 className="mt-1 font-semibold leading-snug">{e.title}</h3>
       <div className="mt-2 text-sm text-ink/60">

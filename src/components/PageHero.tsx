@@ -10,7 +10,7 @@ export default function PageHero({
   description?: string
   /** Показать пометку, что раздел — демо-каркас со старым ТЗ, не отражает актуальную модель бизнеса. */
   prototype?: boolean
-  /** Тёмный вариант шапки (bg-ink/white text) — для страниц с фирменной синей заливкой на всю страницу. */
+  /** Темный вариант шапки (bg-ink/white text) — для страниц с фирменной синей заливкой на всю страницу. */
   dark?: boolean
 }) {
   return (
@@ -23,7 +23,7 @@ export default function PageHero({
         {description && <p className={`mt-3 max-w-3xl ${dark ? 'text-white/60' : 'text-ink/60'}`}>{description}</p>}
         {prototype && (
           <div className="mt-4 inline-block rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-            Каркас раздела с демо-данными по прежнему ТЗ — контент и логика ещё не сверены с
+            Каркас раздела с демо-данными по прежнему ТЗ — контент и логика еще не сверены с
             актуальной моделью бизнеса «Карьерного юриста».
           </div>
         )}

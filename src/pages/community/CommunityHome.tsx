@@ -22,14 +22,14 @@ const valueProps = [
 const benefits = [
   { title: 'Закрытые вакансии', text: 'Помощники, младшие юристы, секретари, офис-менеджеры — вакансий нет в открытом доступе. Резиденты получают предложения о работе в приоритетном порядке.' },
   { title: 'Скидки на мероприятия', text: '30–50% на офлайн-встречи и участие в событиях сообщества.' },
-  { title: 'Закрытые вебинары', text: 'С приглашёнными экспертами — доступны только резидентам.' },
+  { title: 'Закрытые вебинары', text: 'С приглашенными экспертами — доступны только резидентам.' },
   { title: 'База знаний', text: 'Юридическая литература, психология, soft skills, юридический мир, legal design & writing и многое другое.' },
   { title: 'Скидка на консультации', text: 'Льготная цена на консультацию психолога и карьерного консультанта для резидентов.' },
   { title: 'Личный бренд', text: 'Записываем подкасты с резидентами, публикуем статьи.' },
 ]
 
 const faqItems = [
-  { q: 'Что я получу сразу после оплаты?', a: 'Бот @legalcareerist_bot сам напишет вам в Telegram в течение нескольких минут и пришлёт ссылку на вступление в закрытое сообщество.' },
+  { q: 'Что я получу сразу после оплаты?', a: 'Бот @legalcareerist_bot сам напишет вам в Telegram в течение нескольких минут и пришлет ссылку на вступление в закрытое сообщество.' },
   { q: 'Можно попробовать бесплатно?', a: 'Да, есть демодоступ на 7 дней — чтобы оценить формат перед оплатой.' },
   { q: 'Что если я передумаю?', a: 'Подписка действует на выбранный срок (1, 3 или 6 месяцев) без автопродления — можно просто не продлевать дальше.' },
   { q: 'Нужна ли специализация или опыт?', a: 'Нет — сообщество открыто студентам и начинающим юристам из любого города, вуза и колледжа, независимо от специализации.' },
@@ -108,7 +108,7 @@ export default function CommunityHome() {
 
       {/* Польза */}
       <section className="container-page py-12">
-        <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">В чём наша польза</div>
+        <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">В чем наша польза</div>
         <h2 className="mb-6 text-2xl font-semibold">Зачем вступать</h2>
         <div className="grid gap-4 sm:grid-cols-3">
           {valueProps.map((v) => (
@@ -139,7 +139,7 @@ export default function CommunityHome() {
               <div className="font-semibold">Признание на рынке</div>
               <ul className="mt-2 space-y-1 text-sm text-ink/60">
                 <li>· 3-я группа в номинации «Профессиональные сообщества» (РАСО и Legal Business Forum, 2026)</li>
-                <li>· 5 место в номинации «Самые вовлечённые юридические клубы» (рейтинг Telegram-каналов, 2025)</li>
+                <li>· 5 место в номинации «Самые вовлеченные юридические клубы» (рейтинг Telegram-каналов, 2025)</li>
               </ul>
             </div>
           </div>
@@ -170,7 +170,7 @@ export default function CommunityHome() {
           <h2 className="mb-4 text-2xl font-semibold">Резидентство «Карьерного юриста»</h2>
           <p className="max-w-2xl text-sm text-ink/60">
             Мы объединяемся не городом и не университетом, а одной целью. Понимаем специфику
-            профессии и разницу между направлениями практики, даём доступ к закрытым вакансиям и
+            профессии и разницу между направлениями практики, даем доступ к закрытым вакансиям и
             живому общению — 4 клуба, встречи, обсуждения, челленджи.
           </p>
         </div>
@@ -219,7 +219,7 @@ export default function CommunityHome() {
               </div>
 
               <div className="mt-6 flex flex-wrap gap-3 text-xs text-white/50">
-                <span className="rounded-full bg-white/10 px-3 py-1.5">Оплата на стороне платёжной системы</span>
+                <span className="rounded-full bg-white/10 px-3 py-1.5">Оплата на стороне платежной системы</span>
                 <span className="rounded-full bg-white/10 px-3 py-1.5">Без автопродления</span>
                 <span className="rounded-full bg-white/10 px-3 py-1.5">Бот пишет вам сам после оплаты</span>
               </div>
@@ -273,7 +273,7 @@ export default function CommunityHome() {
                 <a className="underline" href="https://t.me/legalcareerist_bot" target="_blank" rel="noreferrer">
                   @legalcareerist_bot
                 </a>{' '}
-                напишет вам в Telegram и пришлёт ссылку на вступление в сообщество.
+                напишет вам в Telegram и пришлет ссылку на вступление в сообщество.
               </p>
             </div>
           )}

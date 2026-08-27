@@ -98,7 +98,7 @@ function IconBriefcase() {
 }
 
 const valueProps = [
-  { icon: IconClock, title: 'Не тратите время на поиск', text: 'Размещение вакансии, отсев нерелевантных откликов, десятки собеседований — берём на себя.' },
+  { icon: IconClock, title: 'Не тратите время на поиск', text: 'Размещение вакансии, отсев нерелевантных откликов, десятки собеседований — берем на себя.' },
   { icon: IconUserCheck, title: 'Кандидаты уже мотивированы', text: 'Наша база — активное сообщество студентов и выпускников, а не случайные отклики с job-бордов.' },
   { icon: IconTag, title: 'Фиксированная стоимость заранее', text: 'Процент от оклада известен до старта поиска — без скрытых доплат и пересмотра условий на середине пути.' },
 ]
@@ -120,11 +120,11 @@ const kadryAdvantages = [
 // объединены в одну карточку на этап, чтобы не листать вверх-вниз между
 // процессом и документами.
 const processWithDocs = [
-  { title: 'Формирование заказа', description: 'Приём заявки, формирование заказа.', docs: ['Бриф'] },
-  { title: 'Согласование работ', description: 'Подписание договора, оплата, согласование вакансии.', docs: ['Договор', 'Счёт на оплату', 'Сформированный заказ', 'Вакансия'] },
+  { title: 'Формирование заказа', description: 'Прием заявки, формирование заказа.', docs: ['Бриф'] },
+  { title: 'Согласование работ', description: 'Подписание договора, оплата, согласование вакансии.', docs: ['Договор', 'Счет на оплату', 'Сформированный заказ', 'Вакансия'] },
   { title: 'Представление плана работы', description: 'Аналитика рынка, поиск, скрининг, собеседование — план действий.', docs: ['План работ по поиску сотрудника'] },
-  { title: 'Поиск кандидатов', description: 'Закрытое сообщество, кадровый резерв, соцсети, рекомендации, чаты.', docs: ['Еженедельная отчётность'] },
-  { title: 'Скрининг и интервью', description: 'Первичный звонок с кандидатом, формирование списка кандидатов.', docs: ['Еженедельная отчётность'] },
+  { title: 'Поиск кандидатов', description: 'Закрытое сообщество, кадровый резерв, соцсети, рекомендации, чаты.', docs: ['Еженедельная отчетность'] },
+  { title: 'Скрининг и интервью', description: 'Первичный звонок с кандидатом, формирование списка кандидатов.', docs: ['Еженедельная отчетность'] },
   { title: 'Передача кандидата', description: 'В виде карточек с рекомендациями.', docs: ['Кандидаты с резюме'] },
   { title: 'Собеседование', description: 'Ваш финальный выбор — собираем обратную связь, формируем оффер.', docs: ['Рекомендации по собеседованию', 'Оффер и/или отказ кандидату'] },
   { title: 'Испытательный срок', description: '1 месяц, гарантия 1 замены, обратная связь через месяц.', docs: ['План адаптации нового сотрудника', 'Рекомендации по коммуникации', 'Форма обратной связи'] },
@@ -134,7 +134,7 @@ const marketingChannels = [
   { icon: IconContent, title: 'Контент-маркетинг', text: 'Telegram-канал, YouTube, подкаст, ВК и другие соцсети.' },
   { icon: IconNetwork, title: 'Нетворкинг', text: 'Юридические мероприятия, конференции, форумы, рекомендации коллег и соискателей.' },
   { icon: IconDatabase, title: 'Своя база', text: 'Более 8 000 контактов, кадровый резерв.' },
-  { icon: IconHandshake, title: 'Партнёрства', text: 'Юридические сообщества и организации, блогеры.' },
+  { icon: IconHandshake, title: 'Партнерства', text: 'Юридические сообщества и организации, блогеры.' },
 ]
 
 const positions = [
@@ -165,11 +165,11 @@ const cases = [
 
 const faqItems = [
   { q: 'Сколько это стоит?', a: '30% от одного месячного оклада кандидата: 75% предоплата до начала работ, 25% — после прохождения испытательного срока.' },
-  { q: 'Что если кандидат не подойдёт?', a: 'Бесплатно подберём замену в согласованные сроки — это часть условий сотрудничества, а не платная опция.' },
+  { q: 'Что если кандидат не подойдет?', a: 'Бесплатно подберем замену в согласованные сроки — это часть условий сотрудничества, а не платная опция.' },
   { q: 'Сколько ждать первых кандидатов?', a: 'В среднем вакансия закрывается за 5–7 дней (Time to Hire — 5,5 дней). Есть кейсы закрытия за 1–3 дня.' },
   { q: 'Кого вы подбираете?', a: 'Помощников юристов и адвокатов, младших юристов, секретарей, офис-менеджеров и смежные административные позиции на юридическом рынке.' },
-  { q: 'Где вы берёте кандидатов?', a: 'Сначала предлагаем вакансию резидентам нашего Сообщества, затем — кадровому резерву (8 000+ контактов), и только потом размещаем в открытом доступе.' },
-  { q: 'Какие документы я получу?', a: 'Договор, план работ, еженедельную отчётность, карточки кандидатов с рекомендациями и план адаптации нового сотрудника — на каждом этапе своя подтверждающая документация.' },
+  { q: 'Где вы берете кандидатов?', a: 'Сначала предлагаем вакансию резидентам нашего Сообщества, затем — кадровому резерву (8 000+ контактов), и только потом размещаем в открытом доступе.' },
+  { q: 'Какие документы я получу?', a: 'Договор, план работ, еженедельную отчетность, карточки кандидатов с рекомендациями и план адаптации нового сотрудника — на каждом этапе своя подтверждающая документация.' },
 ]
 
 export default function KadryHome() {
@@ -207,14 +207,34 @@ export default function KadryHome() {
         />
       </div>
 
-      <section className="container-page py-12">
-        <div className="grid gap-3 sm:grid-cols-4">
-          {stats.map((s) => (
-            <div key={s.label} className="glass-dark rounded-xl p-4">
-              <div className="text-2xl font-semibold text-white">{s.value}</div>
-              <div className="mt-1 text-sm text-white/60">{s.label}</div>
-            </div>
-          ))}
+      {/* Декоративные линии маршрута — оживляют верхнюю треть страницы тем же
+          приемом, что и диаграмма поиска ниже, но приглушенно и на фоне. */}
+      <section className="relative overflow-hidden py-12">
+        <svg viewBox="0 0 100 30" preserveAspectRatio="none" className="pointer-events-none absolute inset-0 h-full w-full opacity-40" aria-hidden="true">
+          <defs>
+            <filter id="hero-line-glow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="1" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+          <path id="hero-line-1" d="M -5 22 L 30 16 L 60 24 L 105 10" fill="none" stroke="transparent" />
+          <path className="route-build" style={{ animationDuration: '9s' }} d="M -5 22 L 30 16 L 60 24 L 105 10" pathLength={100} fill="none" stroke="#5ea1ff" strokeWidth="0.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" filter="url(#hero-line-glow)" />
+          <path id="hero-line-2" d="M -5 6 L 40 12 L 70 2 L 105 14" fill="none" stroke="transparent" />
+          <path className="route-build" style={{ animationDuration: '11s', animationDelay: '-3s' }} d="M -5 6 L 40 12 L 70 2 L 105 14" pathLength={100} fill="none" stroke="#5ea1ff" strokeWidth="0.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" filter="url(#hero-line-glow)" />
+        </svg>
+
+        <div className="container-page relative">
+          <div className="grid gap-3 sm:grid-cols-4">
+            {stats.map((s) => (
+              <div key={s.label} className="glass-dark rounded-xl p-4">
+                <div className="text-2xl font-semibold text-white">{s.value}</div>
+                <div className="mt-1 text-sm text-white/60">{s.label}</div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -232,7 +252,7 @@ export default function KadryHome() {
             <p className="text-white/60">
               За кандидатами не нужно идти на открытый рынок: у нас собственная база из 8 000+
               контактов и активное сообщество студентов-юристов, из которого вакансия закрывается в
-              среднем за 5–7 дней — с гарантией бесплатной замены, если кандидат не пройдёт
+              среднем за 5–7 дней — с гарантией бесплатной замены, если кандидат не пройдет
               испытательный срок.
             </p>
           </div>
@@ -241,7 +261,7 @@ export default function KadryHome() {
 
       {/* Польза */}
       <section id="value" className="container-page py-12">
-        <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold-light">В чём наша польза</div>
+        <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold-light">В чем наша польза</div>
         <h2 className="mb-6 text-2xl font-semibold text-white">Что вы получаете, работая с нами</h2>
         <div className="grid gap-4 sm:grid-cols-3">
           {valueProps.map((v) => (
@@ -270,20 +290,20 @@ export default function KadryHome() {
                   <span className="font-semibold text-white">{c.title}</span>
                   <span className="shrink-0 rounded-full bg-emerald-400/15 px-2 py-0.5 text-xs font-medium text-emerald-300">Закрыто</span>
                 </div>
-                <div className="mt-1 text-sm text-white/50">{c.city ?? 'Удалённо / любой город'} · {c.salary}</div>
-                <div className="mt-2 text-sm text-white/60">
-                  <span className="font-medium text-white">{c.days}</span> срок закрытия вакансии
+                <div className="mt-1 text-sm text-white/50">{c.city ?? 'Удаленно / любой город'} · {c.salary}</div>
+                <div className="mt-2 text-xs text-white/50">
+                  <span className="text-sm font-medium text-white">{c.days}</span> срок закрытия вакансии
                   {c.note && <span className="text-gold-light"> · {c.note}</span>}
                 </div>
               </div>
             ))}
           </div>
 
-          <div className="mt-8">
+          <div className="mx-auto mt-8 max-w-3xl text-center">
             <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-white/50">Ключевые показатели (KPI)</div>
-            <div className="mx-auto grid max-w-3xl gap-3 sm:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-3">
               {kpis.map((k) => (
-                <div key={k.label} className="glass-dark rounded-xl p-5 text-white">
+                <div key={k.label} className="glass-dark rounded-xl p-5 text-center text-white">
                   <div className="text-xs uppercase tracking-wide text-white/40">{k.group}</div>
                   <div className="mt-1 text-2xl font-semibold text-gold-light">{k.value}</div>
                   <div className="mt-1 text-sm text-white/60">{k.label}</div>
@@ -441,7 +461,7 @@ export default function KadryHome() {
             <ul className="space-y-3 pt-1 text-sm text-white/70">
               <li><strong className="text-white">Оплата за результат</strong> — 30% от одного месячного оклада кандидата: 75% предоплата до начала работ, 25% после прохождения испытательного срока.</li>
               <li><strong className="text-white">Бесплатная замена</strong> — если кандидат не проходит испытательный срок, подбираем замену бесплатно в согласованные сроки.</li>
-              <li><strong className="text-white">Прозрачная отчётность</strong> — регулярно сообщаем о ходе поиска; если подходящих кандидатов нет — честно предупреждаем.</li>
+              <li><strong className="text-white">Прозрачная отчетность</strong> — регулярно сообщаем о ходе поиска; если подходящих кандидатов нет — честно предупреждаем.</li>
             </ul>
 
             <div className="glass-dark rounded-2xl p-8 lg:-mt-1">
@@ -471,8 +491,8 @@ export default function KadryHome() {
                       <path d="M0,0 L10,5 L0,10 z" fill="rgba(255,255,255,0.4)" />
                     </marker>
                   </defs>
-                  <path d="M72 2 L40 32" stroke="rgba(255,255,255,0.4)" strokeWidth="2.5" strokeLinecap="round" fill="none" markerEnd="url(#calc-arrow)" />
-                  <path d="M128 2 L160 32" stroke="rgba(255,255,255,0.4)" strokeWidth="2.5" strokeLinecap="round" fill="none" markerEnd="url(#calc-arrow)" />
+                  <path d="M14 4 L40 32" stroke="rgba(255,255,255,0.4)" strokeWidth="2.5" strokeLinecap="round" fill="none" markerEnd="url(#calc-arrow)" />
+                  <path d="M186 4 L160 32" stroke="rgba(255,255,255,0.4)" strokeWidth="2.5" strokeLinecap="round" fill="none" markerEnd="url(#calc-arrow)" />
                 </svg>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -496,7 +516,7 @@ export default function KadryHome() {
         <FAQSection items={faqItems} dark />
       </div>
 
-      {/* Найти сотрудника — объединённый яркий CTA-блок с формой */}
+      {/* Найти сотрудника — объединенный яркий CTA-блок с формой */}
       <section id="lead-form" className="scroll-mt-16 bg-ink py-16 text-white">
         <div className="container-page grid gap-10 lg:grid-cols-[1fr_1.1fr] lg:items-center">
           <div>

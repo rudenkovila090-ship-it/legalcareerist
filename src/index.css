@@ -122,18 +122,13 @@ body {
     stroke-dasharray: 100;
     stroke-dashoffset: 100;
   }
-  85%,
-  92% {
+  100% {
     stroke-dasharray: 100;
     stroke-dashoffset: 0;
   }
-  100% {
-    stroke-dasharray: 100;
-    stroke-dashoffset: -100;
-  }
 }
 .route-build {
-  animation: route-build 7s ease-in-out infinite;
+  animation: route-build 7s linear infinite;
 }
 @keyframes route-pulse-anim {
   0%,

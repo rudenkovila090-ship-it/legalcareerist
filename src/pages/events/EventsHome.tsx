@@ -31,7 +31,7 @@ export default function EventsHome() {
           </select>
           <label className="flex items-center gap-2 text-sm text-ink/60">
             <input type="checkbox" checked={onlyOpen} onChange={(e) => setOnlyOpen(e.target.checked)} />
-            Только идёт набор
+            Только идет набор
           </label>
         </div>
 

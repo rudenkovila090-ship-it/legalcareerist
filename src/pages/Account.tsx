@@ -12,7 +12,7 @@ const applicationStatusLabel = { new: 'Новый', in_review: 'На рассм�
 const roleLabel = { candidate: 'Кандидат', employer: 'Работодатель', community_member: 'Участник сообщества', admin: 'Админ' }
 const registrationStatusLabel = { registered: 'Зарегистрирован', paid: 'Оплачено', attended: 'Посетил' }
 
-// /account — единый личный кабинет вне зависимости от роли (раздел 5, критерий приёмки раздел 10):
+// /account — единый личный кабинет вне зависимости от роли (раздел 5, критерий приемки раздел 10):
 // один и тот же пользователь видит отклики, покупки материалов и членство в клубе в одном месте.
 export default function Account() {
   return (
