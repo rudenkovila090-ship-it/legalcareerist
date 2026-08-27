@@ -33,7 +33,7 @@ export default function KnowledgeList({
 
   return (
     <div>
-      <PageHero eyebrow={eyebrow} title={title} description={description} />
+      <PageHero eyebrow={eyebrow} title={title} description={description} prototype />
       <div className="container-page py-10">
         <div className="mb-8 flex flex-wrap gap-2">
           <button

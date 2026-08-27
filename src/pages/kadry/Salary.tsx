@@ -33,6 +33,7 @@ export default function Salary() {
         eyebrow="Кадры"
         title="Зарплатный навигатор"
         description="Узнайте актуальный диапазон дохода по специализации, отрасли и городу."
+        prototype
       />
       <div className="container-page grid gap-8 py-10 lg:grid-cols-[1fr_1fr]">
         <div>

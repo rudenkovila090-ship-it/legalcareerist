@@ -3,7 +3,6 @@ import { NavLink } from 'react-router-dom'
 const nav = [
   { to: '/kadry', label: 'Кадры' },
   { to: '/community', label: 'Сообщество' },
-  { to: '/events', label: 'Мероприятия' },
 ]
 
 function linkClass({ isActive }: { isActive: boolean }) {
@@ -35,16 +34,10 @@ export default function Header() {
 
         <div className="flex items-center gap-3">
           <NavLink
-            to="/kadry/salary"
-            className="hidden text-sm font-medium text-ink/60 hover:text-ink sm:inline"
-          >
-            Зарплатный навигатор
-          </NavLink>
-          <NavLink
-            to="/account"
+            to="/community"
             className="rounded-full bg-ink px-4 py-2 text-sm font-medium text-white hover:bg-ink/90"
           >
-            Личный кабинет
+            Вступить в сообщество
           </NavLink>
         </div>
       </div>

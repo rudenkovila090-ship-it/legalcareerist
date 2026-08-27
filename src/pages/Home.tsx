@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom'
-import LeadForm from '../components/LeadForm'
 
 const kadryStats = [
   { value: '3 200+', label: 'потенциальных кандидатов' },
@@ -20,13 +19,6 @@ const kadryAdvantages = [
   { title: 'Собственная база 3 200+', text: 'Активное сообщество студентов и выпускников — кандидаты уже мотивированы и готовы к работе.' },
   { title: 'Оплата за результат', text: '30% от одного оклада кандидата: 75% предоплата до начала работ, 25% — после прохождения испытательного срока.' },
   { title: 'Бесплатная замена', text: 'Если кандидат не проходит испытательный срок — подбираем замену бесплатно в согласованные сроки.' },
-]
-
-const kadryPositions = [
-  'Помощник юриста', 'Младший юрист', 'Помощник адвоката',
-  'Секретарь судебного заседания', 'Секретарь нотариальной конторы', 'Делопроизводитель',
-  'Офис-менеджер', 'Бизнес-ассистент', 'Помощник арбитражного управляющего',
-  'Помощник патентного поверенного', 'Юридический блок Секретарь', 'SMM-специалист',
 ]
 
 const communityBenefits = [
@@ -54,14 +46,14 @@ export default function Home() {
             карьеру вместе.
           </p>
           <div className="mx-auto mt-8 grid max-w-xl gap-3 sm:grid-cols-2">
-            <a href="#kadry" className="rounded-xl border border-ink/10 bg-paper p-4 text-left transition-shadow hover:shadow-md">
+            <Link to="/kadry" className="rounded-xl border border-ink/10 bg-paper p-4 text-left transition-shadow hover:shadow-md">
               <div className="font-semibold">Кадры</div>
               <div className="mt-1 text-sm text-ink/60">Ищете сотрудника в юридическую фирму?</div>
-            </a>
-            <a href="#community" className="rounded-xl border border-ink/10 bg-paper p-4 text-left transition-shadow hover:shadow-md">
+            </Link>
+            <Link to="/community" className="rounded-xl border border-ink/10 bg-paper p-4 text-left transition-shadow hover:shadow-md">
               <div className="font-semibold">Сообщество</div>
               <div className="mt-1 text-sm text-ink/60">Студент или начинающий юрист?</div>
-            </a>
+            </Link>
           </div>
         </div>
       </section>
@@ -95,41 +87,21 @@ export default function Home() {
             ))}
           </div>
 
-          <div className="mt-10">
-            <div className="mb-3 font-semibold">Закрываем позиции</div>
-            <div className="flex flex-wrap gap-2">
-              {kadryPositions.map((p) => (
-                <span key={p} className="rounded-full bg-white/10 px-3 py-1.5 text-sm text-white/80">{p}</span>
-              ))}
-            </div>
-          </div>
-
-          <div className="mt-8 rounded-xl bg-white/5 p-5">
-            <div className="font-semibold text-white">Как мы ищем кандидата</div>
-            <p className="mt-1 text-sm text-white/60">
-              Сначала вакансию видят резиденты нашего Сообщества — если среди них нет подходящего
-              кандидата, подключаем кадровый резерв (базу 3 200+ контактов), и только если это не
-              дало результата — публикуем вакансию в открытом доступе.
-            </p>
-          </div>
-
-          <div className="mt-10 grid gap-8 lg:grid-cols-[1.1fr_1fr] lg:items-start">
+          <div className="mt-10 flex flex-col items-start gap-4 rounded-xl bg-white/5 p-6 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-sm text-white/50">
-                Мы работаем исключительно с юридическим рынком на уровне начинающих специалистов.
-                Time to Hire — 5,5 дней в среднем, конверсия интервью в оффер — 89%, доля кандидатов,
-                прошедших испытательный срок — 100%.
+              <div className="font-semibold">Как мы ищем кандидата</div>
+              <p className="mt-1 text-sm text-white/60">
+                Сначала вакансию видят резиденты нашего Сообщества → затем кадровый резерв (3 200+
+                контактов) → и только потом открытый доступ. Оплата — 30% от оклада, с гарантией
+                бесплатной замены.
               </p>
             </div>
-            <div id="kadry-form">
-              <LeadForm
-                sourceBlock="kadry"
-                formType="employer_request"
-                title="Расскажите о вакансии"
-                description="Обсудим задачу и запустим поиск уже сегодня."
-                contactLabel="Телефон / email компании"
-              />
-            </div>
+            <Link
+              to="/kadry"
+              className="shrink-0 rounded-lg bg-gold-light px-6 py-2.5 text-sm font-semibold text-ink hover:opacity-90"
+            >
+              Подробнее и оставить заявку
+            </Link>
           </div>
         </div>
       </section>

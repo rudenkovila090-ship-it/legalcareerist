@@ -17,7 +17,7 @@ const registrationStatusLabel = { registered: 'Зарегистрирован', 
 export default function Account() {
   return (
     <div>
-      <PageHero eyebrow="Личный кабинет" title={demoUser.name} description="Демонстрационные данные — показывают связность разделов внутри единого аккаунта." />
+      <PageHero eyebrow="Личный кабинет" title={demoUser.name} description="Демонстрационные данные — показывают связность разделов внутри единого аккаунта." prototype />
 
       <div className="container-page grid gap-8 py-10 lg:grid-cols-[1fr_2fr]">
         <aside className="space-y-4">
