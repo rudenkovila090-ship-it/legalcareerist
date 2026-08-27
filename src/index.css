@@ -111,19 +111,29 @@ body {
   }
 }
 
-/* Маршрут «Как мы находим вам сотрудников»: линия из точки заявки к точке
-   найденного кандидата бежит пунктиром, как строящийся маршрут навигатора,
-   а бегущая точка (SVG animateMotion) проходит его за 7с. Карточки каналов
-   поиска подсвечиваются по очереди (.route-pulse), с задержкой i * 1.75с —
-   так, чтобы огонёк на карточке совпадал с прохождением точки мимо неё. */
-@keyframes route-flow {
-  to {
-    stroke-dashoffset: -20;
+/* Маршрут «Как мы находим вам сотрудников»: линия «строится» от точки заявки
+   к точке найденного кандидата (stroke-dasharray/dashoffset по pathLength=100)
+   синхронно с бегущей точкой (SVG animateMotion, 7с) — как навигатор
+   прокладывает маршрут. Карточки каналов поиска подсвечиваются по очереди
+   (.route-pulse), с задержкой i * 1.75с — так, чтобы огонёк на карточке
+   совпадал с прохождением точки мимо неё. */
+@keyframes route-build {
+  0% {
+    stroke-dasharray: 100;
+    stroke-dashoffset: 100;
+  }
+  85%,
+  92% {
+    stroke-dasharray: 100;
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dasharray: 100;
+    stroke-dashoffset: -100;
   }
 }
-.route-line {
-  stroke-dasharray: 3 3;
-  animation: route-flow 1.4s linear infinite;
+.route-build {
+  animation: route-build 7s ease-in-out infinite;
 }
 @keyframes route-pulse-anim {
   0%,
@@ -145,7 +155,7 @@ body {
   animation: route-pulse-anim 7s ease-in-out infinite;
 }
 @media (prefers-reduced-motion: reduce) {
-  .route-line,
+  .route-build,
   .route-pulse {
     animation: none;
   }

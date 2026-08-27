@@ -1,8 +1,13 @@
-import { NavLink } from 'react-router-dom'
+import { NavLink, useLocation } from 'react-router-dom'
 
 const nav = [
   { to: '/kadry', label: 'Кадры' },
   { to: '/community', label: 'Сообщество' },
+]
+
+const kadryAudience = [
+  { to: '/kadry/employers', label: 'Работодателям' },
+  { to: '/kadry/candidates', label: 'Соискателям' },
 ]
 
 function linkClass({ isActive }: { isActive: boolean }) {
@@ -12,6 +17,12 @@ function linkClass({ isActive }: { isActive: boolean }) {
 }
 
 export default function Header() {
+  const { pathname } = useLocation()
+  const onKadry = pathname.startsWith('/kadry')
+  // Фон подкадровой панели меняется по аудитории: синий для работодателей,
+  // белый для соискателей — визуально разводит два сценария подбора.
+  const isCandidates = pathname.startsWith('/kadry/candidates')
+
   return (
     <header className="sticky top-0 z-40 border-b border-ink/10 bg-white/70 backdrop-blur-xl">
       <div className="container-page flex h-16 items-center justify-between">
@@ -48,6 +59,32 @@ export default function Header() {
           </NavLink>
         ))}
       </nav>
+
+      {onKadry && (
+        <div className={`border-t transition-colors ${isCandidates ? 'border-ink/10 bg-white' : 'border-white/10 bg-ink'}`}>
+          <div className="container-page flex gap-3 py-4">
+            {kadryAudience.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={({ isActive }) =>
+                  `rounded-full px-6 py-2.5 text-base font-semibold transition-colors ${
+                    isActive
+                      ? isCandidates
+                        ? 'bg-ink text-white'
+                        : 'bg-white text-ink'
+                      : isCandidates
+                        ? 'border border-ink/15 text-ink/60 hover:text-ink'
+                        : 'border border-white/25 text-white/70 hover:text-white'
+                  }`
+                }
+              >
+                {item.label}
+              </NavLink>
+            ))}
+          </div>
+        </div>
+      )}
     </header>
   )
 }

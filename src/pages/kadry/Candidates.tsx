@@ -5,9 +5,9 @@ import FAQSection from '../../components/FAQSection'
 import { submitLead } from '../../lib/leads'
 
 const steps = [
-  { title: 'Оставляете анкету', text: 'Специализация, опыт, ожидания по зарплате и формату работы — 2 минуты.' },
+  { title: 'Подаёте заявку на вступление в кадровый резерв', text: 'Специализация, опыт, ожидания по зарплате и формату работы — 2 минуты.' },
   { title: 'Попадаете в кадровый резерв', text: 'Мы держим связь и предлагаем вакансии, которые реально подходят — без спама нерелевантными офферами.' },
-  { title: 'Проходите короткий скрининг', text: 'Звонок с нами перед тем, как знакомить с работодателем — чтобы не тратить ваше время на несовпадения.' },
+  { title: 'Скрининг по релевантной вакансии', text: 'Проводим короткий созвон, если появляется подходящая вакансия и вы отметили, что хотите на неё откликнуться.' },
   { title: 'Собеседование и оффер', text: 'Мы готовим вас к встрече с работодателем и сопровождаем до выхода на позицию.' },
 ]
 
@@ -15,6 +15,34 @@ const cascade = [
   { title: 'Резиденты Сообщества', text: 'Видят новые вакансии первыми — иногда за несколько дней до открытого рынка.' },
   { title: 'Кадровый резерв', text: 'Следующими получают предложение те, кто уже в нашей базе 8 000+ кандидатов.' },
   { title: 'Открытый рынок', text: 'Если позиция не закрылась резидентами или резервом — публикуем её в открытом доступе.' },
+]
+
+const consultHelp = [
+  'Резюме и сопроводительное письмо',
+  'Подготовка к собеседованию',
+  'Выбор специализации',
+  'Поиск первой работы',
+  'Карьерный кризис: выгорание, тупик, потеря интереса к рутине',
+  'Карьерный переход в другое направление',
+  'Составление стратегии поиска работы',
+]
+
+const consultProcess = [
+  'Узнаём ваш запрос и текущую ситуацию',
+  'Объясняем, какой формат подойдёт именно вам',
+  'Выбираем удобную дату и время',
+  'На созвоне подробно разбираем вашу ситуацию в формате открытого диалога',
+  'Отвечаем на дополнительные вопросы',
+  'После консультации у вас остаётся план действий',
+]
+
+const consultOutcomes = [
+  'Понимание, что делать дальше',
+  'Уверенность в своих сильных сторонах',
+  'Ответы на вопросы по поиску работы и собеседованиям',
+  'Конкретный план действий',
+  'Понимание, как презентовать себя работодателю',
+  'Ощущение, что вы не один на один со своей карьерной ситуацией',
 ]
 
 const positions = [
@@ -56,13 +84,6 @@ export default function Candidates() {
         description="Помогаем начинающим и средним специалистам юридического рынка найти работу — бесплатно для соискателя."
       />
 
-      <div className="container-page flex gap-3 pt-8">
-        <span className="rounded-full bg-ink px-4 py-1.5 text-sm font-medium text-white">Соискателям</span>
-        <Link to="/kadry/employers" className="rounded-full border border-ink/15 px-4 py-1.5 text-sm font-medium text-ink/60 hover:text-ink">
-          Работодателям
-        </Link>
-      </div>
-
       {/* Как это работает */}
       <section className="container-page py-12">
         <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Как это работает</div>
@@ -85,24 +106,31 @@ export default function Candidates() {
         <div className="container-page">
           <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Доступ к вакансиям</div>
           <h2 className="mb-2 text-2xl font-semibold">Кто узнаёт о новых вакансиях первым</h2>
-          <p className="mb-6 max-w-2xl text-sm text-ink/60">
-            Вакансия проходит три круга, прежде чем попасть в открытый доступ — чем раньше вы в нашей базе, тем выше шанс успеть.
+          <p className="mb-6 text-sm text-ink/60">
+            Вакансия открывается по приоритету, прежде чем попасть в открытый доступ — чем раньше вы в нашей базе, тем выше шанс успеть.
           </p>
           <div className="grid gap-4 sm:grid-cols-3">
             {cascade.map((c, i) => (
               <div key={c.title} className="glass rounded-xl p-5">
-                <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink/40">Круг {i + 1}</div>
+                <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink/40">Приоритет {i + 1}</div>
                 <div className="font-semibold">{c.title}</div>
                 <p className="mt-2 text-sm text-ink/60">{c.text}</p>
               </div>
             ))}
           </div>
-          <p className="mt-5 text-sm text-ink/60">
-            Хотите видеть вакансии первыми?{' '}
-            <Link to="/community" className="font-medium text-ink underline underline-offset-2">
-              Вступите в Сообщество
-            </Link>.
-          </p>
+
+          <div className="mt-8 rounded-2xl bg-ink px-6 py-8 text-center text-white sm:px-10">
+            <div className="text-xl font-semibold">Хотите видеть вакансии первыми?</div>
+            <p className="mx-auto mt-2 max-w-lg text-sm text-white/70">
+              Резиденты Сообщества получают доступ к вакансиям раньше кадрового резерва и открытого рынка.
+            </p>
+            <Link
+              to="/community"
+              className="mt-5 inline-block rounded-full bg-gold-light px-6 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-white"
+            >
+              Вступить в Сообщество
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -114,6 +142,82 @@ export default function Candidates() {
           {positions.map((p) => (
             <div key={p} className="rounded-lg bg-ink/[0.04] px-4 py-3 text-sm font-medium">{p}</div>
           ))}
+        </div>
+      </section>
+
+      {/* Карьерные консультации */}
+      <section className="border-y border-ink/10 bg-white py-14">
+        <div className="container-page">
+          <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Формат работы</div>
+          <h2 className="mb-6 max-w-2xl text-2xl font-semibold">
+            Карьерная консультация, подготовка к собеседованию и поддержка при поиске работы
+          </h2>
+
+          <div className="max-w-2xl space-y-3 text-sm leading-relaxed text-ink/70">
+            <p>Чувствуете, что застряли в поиске работы, потеряли уверенность или не понимаете, куда двигаться дальше в карьере юриста?</p>
+            <p>Мы помогаем юристам и студентам-юристам разобраться в карьерной ситуации, подготовиться к собеседованиям, выстроить стратегию поиска работы и снова почувствовать опору в себе.</p>
+            <p>С нами можно прийти не только за «советом», а за понятным планом действий: что делать, куда откликаться, как говорить о себе, как проходить интервью и как не теряться в процессе поиска.</p>
+          </div>
+
+          <div className="mt-10 grid gap-8 lg:grid-cols-2">
+            <div>
+              <h3 className="mb-3 text-lg font-semibold">С чем помогаем</h3>
+              <ul className="space-y-2 text-sm text-ink/70">
+                {consultHelp.map((item) => (
+                  <li key={item} className="flex gap-2">
+                    <span className="text-gold">·</span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h3 className="mb-3 text-lg font-semibold">Что вы получите</h3>
+              <ul className="space-y-2 text-sm text-ink/70">
+                {consultOutcomes.map((item) => (
+                  <li key={item} className="flex gap-2">
+                    <span className="text-ink">✓</span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          <h3 className="mb-4 mt-12 text-lg font-semibold">Как проходит работа</h3>
+          <ol className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {consultProcess.map((item, i) => (
+              <li key={item} className="glass rounded-xl p-4 text-sm">
+                <span className="mr-2 font-semibold text-gold">{i + 1}.</span>
+                {item}
+              </li>
+            ))}
+          </ol>
+
+          <div className="mt-12 grid gap-6 rounded-2xl border border-ink/10 p-6 sm:grid-cols-[auto_1fr] sm:items-center sm:p-8">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-ink text-lg font-semibold text-white">РИ</div>
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-wide text-ink/40">Проводит консультацию</div>
+              <div className="text-lg font-semibold">Руденков Илья — основатель «Карьерного юриста»</div>
+              <p className="mt-2 text-sm text-ink/60">
+                Больше 2 лет работает в сфере Legal HR, провёл более 50 карьерных консультаций. Юрист по персональным данным
+                и рекламному праву, студент магистратуры Legal Tech в НИУ ВШЭ, карьерный консультант.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-8 text-center">
+            <a
+              href="#lead-form"
+              onClick={(e) => {
+                e.preventDefault()
+                document.getElementById('lead-form')?.scrollIntoView({ behavior: 'smooth' })
+              }}
+              className="inline-block rounded-full bg-ink px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-ink/90"
+            >
+              Записаться на консультацию
+            </a>
+          </div>
         </div>
       </section>
 

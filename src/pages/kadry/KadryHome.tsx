@@ -1,5 +1,4 @@
 import { useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
 import PageHero from '../../components/PageHero'
 import Testimonials from '../../components/Testimonials'
 import { kadryTestimonials } from '../../data/testimonials'
@@ -189,13 +188,6 @@ export default function KadryHome() {
         description="Подбор помощников, младших юристов, офис-менеджеров — быстро и точно."
       />
 
-      <div className="container-page flex gap-3 pt-8">
-        <span className="rounded-full bg-ink px-4 py-1.5 text-sm font-medium text-white">Работодателям</span>
-        <Link to="/kadry/candidates" className="rounded-full border border-ink/15 px-4 py-1.5 text-sm font-medium text-ink/60 hover:text-ink">
-          Соискателям
-        </Link>
-      </div>
-
       <section className="container-page py-12">
         <div className="grid gap-3 sm:grid-cols-4">
           {stats.map((s) => (
@@ -362,11 +354,18 @@ export default function KadryHome() {
                 />
                 <path
                   id="route-path"
-                  className="route-line"
                   d="M 4 36 L 24 29 L 44 21 L 64 13 L 84 7 L 96 4"
                   fill="none"
+                  stroke="transparent"
+                  strokeWidth="1.4"
+                />
+                <path
+                  className="route-build"
+                  d="M 4 36 L 24 29 L 44 21 L 64 13 L 84 7 L 96 4"
+                  pathLength={100}
+                  fill="none"
                   stroke="#5ea1ff"
-                  strokeWidth="1"
+                  strokeWidth="1.4"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   vectorEffect="non-scaling-stroke"
@@ -447,12 +446,12 @@ export default function KadryHome() {
 
                 <svg viewBox="0 0 200 36" className="mx-auto block h-9 w-56" aria-hidden="true">
                   <defs>
-                    <marker id="calc-arrow" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
-                      <path d="M0,0 L10,5 L0,10 z" fill="rgba(40,57,83,0.35)" />
+                    <marker id="calc-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                      <path d="M0,0 L10,5 L0,10 z" fill="rgba(40,57,83,0.55)" />
                     </marker>
                   </defs>
-                  <path d="M100 0 L40 32" stroke="rgba(40,57,83,0.35)" strokeWidth="1.5" fill="none" markerEnd="url(#calc-arrow)" />
-                  <path d="M100 0 L160 32" stroke="rgba(40,57,83,0.35)" strokeWidth="1.5" fill="none" markerEnd="url(#calc-arrow)" />
+                  <path d="M72 2 L40 32" stroke="rgba(40,57,83,0.55)" strokeWidth="2.5" strokeLinecap="round" fill="none" markerEnd="url(#calc-arrow)" />
+                  <path d="M128 2 L160 32" stroke="rgba(40,57,83,0.55)" strokeWidth="2.5" strokeLinecap="round" fill="none" markerEnd="url(#calc-arrow)" />
                 </svg>
 
                 <div className="grid grid-cols-2 gap-3">
