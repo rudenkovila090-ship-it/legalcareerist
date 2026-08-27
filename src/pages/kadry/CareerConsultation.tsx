@@ -6,6 +6,8 @@ import FAQSection from '../../components/FAQSection'
 import SectionRail from '../../components/SectionRail'
 import { submitLead } from '../../lib/leads'
 import { consultationCategories, allConsultationServices, tierDiscountPct } from '../../data/consultationServices'
+import { consultationTestimonials } from '../../data/testimonials'
+import ilyaPhoto from '../../assets/ilya-rudenkov.jpg'
 
 const proof = [
   { value: '50+', label: 'проведённых консультаций' },
@@ -13,55 +15,157 @@ const proof = [
   { value: 'Legal Tech', label: 'магистратура НИУ ВШЭ' },
 ]
 
-// Минималистичные иконки для категорий услуг конструктора — по одной на
-// категорию, без внешних библиотек.
-function IconDoc() {
+// Минималистичные иконки — своя на каждую услугу конструктора, без внешних
+// библиотек, без повторов.
+function IconDocPlus() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
       <rect x="4.5" y="3.5" width="15" height="17" rx="1.5" />
-      <path d="M8 8h8M8 12h8M8 16h5" />
+      <path d="M8 8h8M8 12h3M14.5 18.5v-4M12.5 16.5h4" />
     </svg>
   )
 }
-function IconTarget() {
+function IconDocEdit() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
-      <circle cx="12" cy="12" r="8" />
-      <circle cx="12" cy="12" r="4" />
-      <circle cx="12" cy="12" r="0.6" fill="currentColor" />
+      <rect x="4.5" y="3.5" width="15" height="17" rx="1.5" />
+      <path d="M8 8h8M8 12h5" />
+      <path d="M13.5 19l1-3 3.3-3.3a1.2 1.2 0 0 1 1.7 1.7L16.5 17.7l-3 1z" />
     </svg>
   )
 }
-function IconCompass() {
+function IconEnvelope() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <rect x="3.5" y="5.5" width="17" height="13" rx="1.5" />
+      <path d="M4.5 6.5l7.5 6.5 7.5-6.5" />
+    </svg>
+  )
+}
+function IconChatCheck() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <path d="M4 5.5h16v10H9l-4 3.5v-3.5H4z" />
+      <path d="M8.5 10.5l2 2 4-4" />
+    </svg>
+  )
+}
+function IconRoute() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <circle cx="5.5" cy="18.5" r="2" />
+      <circle cx="18.5" cy="5.5" r="2" />
+      <path d="M7 17.5C11 13 9 9 13 7c2-1 4-1 5.5-1.5" strokeDasharray="1.5 2.2" />
+    </svg>
+  )
+}
+function IconFlag() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <path d="M6 21V4" />
+      <path d="M6 4.5h12l-3 3.5 3 3.5H6" />
+    </svg>
+  )
+}
+function IconDialogue() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <path d="M3.5 5.5h11v7h-7l-4 3v-3h0z" />
+      <path d="M11 16.5h1.5l3.5 2.5v-2.5h4.5v-6h-3" />
+    </svg>
+  )
+}
+function IconFork() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <path d="M12 21V11" />
+      <path d="M5 3c0 4 3 6.5 7 8 4-1.5 7-4 7-8" />
+      <circle cx="5" cy="3" r="0.6" fill="currentColor" />
+      <circle cx="19" cy="3" r="0.6" fill="currentColor" />
+    </svg>
+  )
+}
+function IconBulb() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <path d="M9 18h6M10 21h4" />
+      <path d="M12 3a6 6 0 0 0-3.5 10.9c.6.45 1 1.15 1 1.9v.2h5v-.2c0-.75.4-1.45 1-1.9A6 6 0 0 0 12 3z" />
+    </svg>
+  )
+}
+function IconMap() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <path d="M9 4.5L4 6.5v13l5-2 6 2 5-2v-13l-5 2-6-2z" />
+      <path d="M9 4.5v13M15 6.5v13" />
+    </svg>
+  )
+}
+function IconLifebuoy() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
       <circle cx="12" cy="12" r="8.5" />
-      <path d="M15 9l-2 6-6 2 2-6 6-2z" />
+      <circle cx="12" cy="12" r="3.5" />
+      <path d="M6 6l3.5 3.5M18 6l-3.5 3.5M6 18l3.5-3.5M18 18l-3.5-3.5" />
     </svg>
   )
 }
-function IconRefresh() {
+function IconBattery() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
-      <path d="M4.5 12a7.5 7.5 0 0 1 12.6-5.5M19.5 12a7.5 7.5 0 0 1-12.6 5.5" />
-      <path d="M17 3.5v3.5h-3.5M7 20.5V17h3.5" />
+      <rect x="2.5" y="8" width="16" height="8" rx="1.5" />
+      <path d="M21 10.5v3" />
+      <path d="M11.5 9.5l-2.7 3.5h3l-2.3 3" />
     </svg>
   )
 }
-function IconStar() {
+function IconSwap() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
-      <path d="M12 3.5l2.4 5.1 5.6.6-4.2 3.8 1.2 5.5L12 15.7l-5 2.8 1.2-5.5-4.2-3.8 5.6-.6L12 3.5z" />
+      <path d="M4 8h13.5M14 4.5L17.5 8 14 11.5" />
+      <path d="M20 16H6.5M10 12.5L6.5 16 10 19.5" />
+    </svg>
+  )
+}
+function IconBadge() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <circle cx="12" cy="9" r="5.5" />
+      <path d="M9 13.5L7.5 21l4.5-2.5 4.5 2.5-1.5-7.5" />
     </svg>
   )
 }
 
-const categoryIcons: Record<string, typeof IconDoc> = {
-  'Резюме и сопроводительное письмо': IconDoc,
-  'Подготовка к трудоустройству': IconTarget,
-  'Карьерное консультирование': IconCompass,
-  'Карьерные переходы и кризисы': IconRefresh,
-  'Личный бренд': IconStar,
+const serviceIcons: Record<string, typeof IconDocPlus> = {
+  'resume-write': IconDocPlus,
+  'resume-fix': IconDocEdit,
+  'cover-letter': IconEnvelope,
+  'interview-prep': IconChatCheck,
+  'job-search-support': IconRoute,
+  'job-search-strategy': IconFlag,
+  'career-consult': IconDialogue,
+  'specialization-choice': IconFork,
+  'self-determination': IconBulb,
+  'career-scenario': IconMap,
+  'career-crisis': IconLifebuoy,
+  burnout: IconBattery,
+  'career-transition': IconSwap,
+  'personal-brand': IconBadge,
+}
+
+// Расширенное описание «что получаете» — показывается при наведении на
+// карточку услуги. Заполнено только там, где есть готовый текст от клиента;
+// остальные карточки работают как обычно, без всплывающей подсказки.
+const serviceDetails: Record<string, string> = {
+  'resume-write': 'Получаете готовое резюме с нуля, которое понятно презентует ваш опыт и выделяет вас среди других кандидатов.',
+  'resume-fix': 'Получаете усиленную версию своего резюме, адаптированную под конкретную вакансию или отклик.',
+  'cover-letter': 'Получаете написанное с нуля сопроводительное письмо, которое повышает шансы дойти до собеседования.',
+  'interview-prep': 'Получаете уверенность на собеседовании за счёт отработанных ответов и понимания, как себя вести.',
+  'job-search-support': 'Получаете пошаговое сопровождение на старте карьеры и первую работу без лишних потерь времени.',
+  'job-search-strategy': 'Получаете структурированный план действий, который экономит время и увеличивает эффективность поиска работы.',
+  'specialization-choice': 'Получаете ясность, какое направление права подходит именно вам, вместо метода проб и ошибок.',
+  'career-crisis': 'Получаете выход из состояния выгорания или тупика и понимание, что делать дальше.',
+  'career-transition': 'Получаете чёткий план смены направления или сферы деятельности без потери накопленного опыта.',
 }
 
 const benefits = [
@@ -219,25 +323,26 @@ export default function CareerConsultation() {
         <div className="container-page">
           <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Услуги</div>
           <h2 className="mb-2 text-2xl font-semibold">Соберите свою консультацию</h2>
-          <p className="mb-8 max-w-2xl text-sm text-ink/60">
+          <p className="mb-8 text-sm text-ink/60">
             Выбирайте нужные услуги — заказ и стоимость собираются внизу справа. От 2 услуг — скидка 5%, от 3 — 10%.
           </p>
 
           <div className="space-y-8">
             {consultationCategories.map((cat) => {
-              const CatIcon = categoryIcons[cat.title]
               return (
                 <div key={cat.title}>
                   <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink/50">{cat.title}</h3>
                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     {cat.services.map((s) => {
                       const isSelected = !!selected[s.id]
+                      const ServiceIcon = serviceIcons[s.id]
+                      const detail = serviceDetails[s.id]
                       return (
                         <button
                           key={s.id}
                           type="button"
                           onClick={() => toggle(s.id)}
-                          className={`flex flex-col items-start gap-3 rounded-xl border p-4 text-left text-sm transition-colors ${
+                          className={`group relative flex flex-col items-start gap-3 rounded-xl border p-4 text-left text-sm transition-colors ${
                             isSelected ? 'border-ink bg-ink text-white' : 'border-ink/10 bg-white hover:border-ink/30'
                           }`}
                         >
@@ -246,7 +351,7 @@ export default function CareerConsultation() {
                               isSelected ? 'bg-white/15 text-white' : 'bg-gold-light/20 text-ink'
                             }`}
                           >
-                            <CatIcon />
+                            <ServiceIcon />
                           </span>
                           <span className="font-medium">{s.title}</span>
                           <span className="flex w-full items-center justify-between">
@@ -259,6 +364,11 @@ export default function CareerConsultation() {
                               {isSelected ? '✓' : '+'}
                             </span>
                           </span>
+                          {detail && (
+                            <span className="pointer-events-none absolute inset-x-0 top-full z-20 mt-2 rounded-lg bg-ink p-3 text-xs leading-relaxed text-white opacity-0 shadow-xl transition-opacity duration-200 group-hover:opacity-100">
+                              {detail}
+                            </span>
+                          )}
                         </button>
                       )
                     })}
@@ -294,21 +404,70 @@ export default function CareerConsultation() {
         </ol>
 
         <div className="mt-12 grid gap-6 rounded-2xl border border-ink/10 p-6 sm:grid-cols-[auto_1fr] sm:items-center sm:p-8">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-ink text-lg font-semibold text-white">РИ</div>
+          <img
+            src={ilyaPhoto}
+            alt="Илья Руденков"
+            className="h-20 w-20 rounded-full object-cover shadow-md ring-4 ring-white sm:h-24 sm:w-24"
+          />
           <div>
             <div className="text-xs font-semibold uppercase tracking-wide text-ink/40">Проводит консультацию</div>
             <div className="text-lg font-semibold">Руденков Илья — основатель «Карьерного юриста»</div>
-            <p className="mt-2 text-sm text-ink/60">
-              Больше 2 лет работает в сфере Legal HR, провёл более 50 карьерных консультаций. Юрист по персональным данным
-              и рекламному праву, студент магистратуры Legal Tech в НИУ ВШЭ, карьерный консультант.
-            </p>
+            <ul className="mt-2 space-y-1 text-sm text-ink/60">
+              <li>Больше 2 лет работает в сфере Legal HR</li>
+              <li>Провёл более 50 карьерных консультаций</li>
+              <li>Юрист по персональным данным и рекламному праву</li>
+              <li>Студент магистратуры Legal Tech в НИУ ВШЭ</li>
+              <li>Карьерный консультант</li>
+            </ul>
           </div>
         </div>
       </section>
 
+      {/* Итог заказа — появляется после блока о консультанте, если есть выбранные услуги */}
+      {count > 0 && (
+        <section className="border-y border-ink/10 bg-white py-10">
+          <div className="container-page">
+            <div className="mx-auto max-w-xl rounded-2xl border border-ink/10 p-6 sm:p-8">
+              <h3 className="mb-4 text-lg font-semibold">Ваш заказ на данный момент</h3>
+              <ul className="mb-4 space-y-2 text-sm">
+                {selectedServices.map((s) => (
+                  <li key={s.id} className="flex items-center justify-between">
+                    <span className="text-ink/70">{s.title}</span>
+                    <span>{s.price.toLocaleString('ru-RU')} ₽</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="space-y-1 border-t border-ink/10 pt-3 text-sm">
+                <div className="flex justify-between text-ink/60">
+                  <span>Сумма</span>
+                  <span>{subtotal.toLocaleString('ru-RU')} ₽</span>
+                </div>
+                {tierDiscount > 0 && (
+                  <div className="flex justify-between text-ink/60">
+                    <span>Скидка за количество ({tierPct}%)</span>
+                    <span>−{tierDiscount.toLocaleString('ru-RU')} ₽</span>
+                  </div>
+                )}
+                <div className="flex justify-between pt-1 text-base font-semibold text-ink">
+                  <span>Итого</span>
+                  <span>{total.toLocaleString('ru-RU')} ₽</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setModalOpen(true)}
+                className="mt-5 w-full rounded-full bg-ink py-3 text-sm font-semibold text-white transition-colors hover:bg-ink/90"
+              >
+                Оформить заявку
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Отзывы */}
       <div id="reviews">
-        <Testimonials />
+        <Testimonials items={consultationTestimonials} compact />
       </div>
 
       {/* FAQ */}
@@ -339,10 +498,10 @@ export default function CareerConsultation() {
         <button
           type="button"
           onClick={() => setModalOpen(true)}
-          className="glass-dark fixed bottom-6 right-6 z-40 flex items-center gap-3 rounded-full bg-ink px-5 py-3 text-white shadow-xl"
+          className="glass-dark fixed bottom-6 right-6 z-40 flex items-center gap-4 rounded-full bg-ink px-7 py-4 text-white shadow-xl"
         >
-          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gold-light text-xs font-bold text-ink">{count}</span>
-          <span className="text-sm font-semibold">{total.toLocaleString('ru-RU')} ₽</span>
+          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gold-light text-sm font-bold text-ink">{count}</span>
+          <span className="text-base font-semibold">{total.toLocaleString('ru-RU')} ₽</span>
         </button>
       )}
 

@@ -46,7 +46,14 @@ export default function SectionRail({ items, dark }: { items: SectionRailItem[];
               href={`#${item.id}`}
               onClick={(e) => {
                 e.preventDefault()
-                document.getElementById(item.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                const el = document.getElementById(item.id)
+                if (!el) return
+                // Учитываем высоту закреплённой шапки (+подкадровой панели
+                // аудитории) — иначе scrollIntoView прячет начало раздела под
+                // ней, и кажется, что открылся более нижний блок страницы.
+                const headerHeight = document.querySelector('header')?.getBoundingClientRect().height ?? 0
+                const top = el.getBoundingClientRect().top + window.scrollY - headerHeight - 16
+                window.scrollTo({ top, behavior: 'smooth' })
               }}
               className={`block whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
                 active === item.id

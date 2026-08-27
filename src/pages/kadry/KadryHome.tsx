@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import PageHero from '../../components/PageHero'
 import Testimonials from '../../components/Testimonials'
-import { kadryTestimonials } from '../../data/testimonials'
+import { employerTestimonials } from '../../data/testimonials'
 import FAQSection from '../../components/FAQSection'
 import SectionRail from '../../components/SectionRail'
 import { submitLead } from '../../lib/leads'
@@ -310,7 +310,7 @@ export default function KadryHome() {
 
       {/* Отзывы (компактнее, чем на других страницах) */}
       <div id="reviews">
-        <Testimonials items={kadryTestimonials} compact dark />
+        <Testimonials items={employerTestimonials} compact dark />
       </div>
 
       {/* Что мы предлагаем */}
@@ -365,7 +365,7 @@ export default function KadryHome() {
                   </filter>
                 </defs>
                 <path
-                  d="M 4 36 L 24 29 L 44 21 L 64 13 L 84 7 L 96 4"
+                  d="M 4 20 L 24 11 L 44 27 L 64 13 L 84 25 L 96 20"
                   fill="none"
                   stroke="rgba(111,147,196,0.18)"
                   strokeWidth="3"
@@ -375,14 +375,14 @@ export default function KadryHome() {
                 />
                 <path
                   id="route-path"
-                  d="M 4 36 L 24 29 L 44 21 L 64 13 L 84 7 L 96 4"
+                  d="M 4 20 L 24 11 L 44 27 L 64 13 L 84 25 L 96 20"
                   fill="none"
                   stroke="transparent"
                   strokeWidth="1.4"
                 />
                 <path
                   className="route-build"
-                  d="M 4 36 L 24 29 L 44 21 L 64 13 L 84 7 L 96 4"
+                  d="M 4 20 L 24 11 L 44 27 L 64 13 L 84 25 L 96 20"
                   pathLength={100}
                   fill="none"
                   stroke="#5ea1ff"
@@ -399,10 +399,10 @@ export default function KadryHome() {
                 </circle>
               </svg>
 
-              <div className="glass-dark absolute flex h-10 w-10 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-ink text-white" style={{ left: '4%', top: '90%' }}>
+              <div className="glass-dark absolute flex h-10 w-10 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-ink text-white" style={{ left: '4%', top: '50%' }}>
                 <IconBriefcase />
               </div>
-              <div className="glass-dark absolute flex h-10 w-10 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-ink text-white" style={{ left: '96%', top: '10%' }}>
+              <div className="glass-dark absolute flex h-10 w-10 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-ink text-white" style={{ left: '96%', top: '50%' }}>
                 <IconUserCheck />
               </div>
             </div>
