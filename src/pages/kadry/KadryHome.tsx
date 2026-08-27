@@ -207,34 +207,14 @@ export default function KadryHome() {
         />
       </div>
 
-      {/* Декоративные линии маршрута — оживляют верхнюю треть страницы тем же
-          приемом, что и диаграмма поиска ниже, но приглушенно и на фоне. */}
-      <section className="relative overflow-hidden py-12">
-        <svg viewBox="0 0 100 30" preserveAspectRatio="none" className="pointer-events-none absolute inset-0 h-full w-full opacity-40" aria-hidden="true">
-          <defs>
-            <filter id="hero-line-glow" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur stdDeviation="1" result="blur" />
-              <feMerge>
-                <feMergeNode in="blur" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-          </defs>
-          <path id="hero-line-1" d="M -5 22 L 30 16 L 60 24 L 105 10" fill="none" stroke="transparent" />
-          <path className="route-build" style={{ animationDuration: '9s' }} d="M -5 22 L 30 16 L 60 24 L 105 10" pathLength={100} fill="none" stroke="#5ea1ff" strokeWidth="0.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" filter="url(#hero-line-glow)" />
-          <path id="hero-line-2" d="M -5 6 L 40 12 L 70 2 L 105 14" fill="none" stroke="transparent" />
-          <path className="route-build" style={{ animationDuration: '11s', animationDelay: '-3s' }} d="M -5 6 L 40 12 L 70 2 L 105 14" pathLength={100} fill="none" stroke="#5ea1ff" strokeWidth="0.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" filter="url(#hero-line-glow)" />
-        </svg>
-
-        <div className="container-page relative">
-          <div className="grid gap-3 sm:grid-cols-4">
-            {stats.map((s) => (
-              <div key={s.label} className="glass-dark rounded-xl p-4">
-                <div className="text-2xl font-semibold text-white">{s.value}</div>
-                <div className="mt-1 text-sm text-white/60">{s.label}</div>
-              </div>
-            ))}
-          </div>
+      <section className="container-page py-12">
+        <div className="grid gap-3 sm:grid-cols-4">
+          {stats.map((s) => (
+            <div key={s.label} className="glass-dark rounded-xl p-4">
+              <div className="text-2xl font-semibold text-white">{s.value}</div>
+              <div className="mt-1 text-sm text-white/60">{s.label}</div>
+            </div>
+          ))}
         </div>
       </section>
 
@@ -291,9 +271,9 @@ export default function KadryHome() {
                   <span className="shrink-0 rounded-full bg-emerald-400/15 px-2 py-0.5 text-xs font-medium text-emerald-300">Закрыто</span>
                 </div>
                 <div className="mt-1 text-sm text-white/50">{c.city ?? 'Удаленно / любой город'} · {c.salary}</div>
-                <div className="mt-2 text-xs text-white/50">
-                  <span className="text-sm font-medium text-white">{c.days}</span> срок закрытия вакансии
-                  {c.note && <span className="text-gold-light"> · {c.note}</span>}
+                <div className="mt-2 text-[11px] text-white/35">
+                  закрыто за {c.days}
+                  {c.note && <span className="text-gold-light/80"> · {c.note}</span>}
                 </div>
               </div>
             ))}
@@ -486,13 +466,13 @@ export default function KadryHome() {
                 </div>
 
                 <svg viewBox="0 0 200 36" className="mx-auto block h-9 w-56" aria-hidden="true">
-                  <defs>
-                    <marker id="calc-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-                      <path d="M0,0 L10,5 L0,10 z" fill="rgba(255,255,255,0.4)" />
-                    </marker>
-                  </defs>
-                  <path d="M14 4 L40 32" stroke="rgba(255,255,255,0.4)" strokeWidth="2.5" strokeLinecap="round" fill="none" markerEnd="url(#calc-arrow)" />
-                  <path d="M186 4 L160 32" stroke="rgba(255,255,255,0.4)" strokeWidth="2.5" strokeLinecap="round" fill="none" markerEnd="url(#calc-arrow)" />
+                  <path
+                    d="M100 0 V16 M100 16 H40 M100 16 H160 M40 16 V32 M160 16 V32"
+                    stroke="rgba(255,255,255,0.4)"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    fill="none"
+                  />
                 </svg>
 
                 <div className="grid grid-cols-2 gap-3">

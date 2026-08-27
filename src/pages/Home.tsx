@@ -5,15 +5,10 @@ import ilyaPhoto from '../assets/ilya-rudenkov.jpg'
 const kadryStats = [
   { value: '8 000+', label: 'потенциальных кандидатов' },
   { value: '20+', label: 'позиций закрыто' },
-  { value: '5–7', label: 'дней на закрытие' },
-  { value: '30%', label: 'оплата от 1 зарплаты' },
 ]
 
 const communityStats = [
-  { value: '70+', label: 'резидентов' },
-  { value: '4', label: 'клуба' },
-  { value: '690 ₽', label: 'подписка на 1 месяц' },
-  { value: '2 города', label: 'офлайн-встреч' },
+  { value: '80+', label: 'резидентов' },
 ]
 
 function IconClock() {
@@ -95,16 +90,15 @@ export default function Home() {
             Карьера в праве строится легче — рядом со своими людьми
           </h1>
           <p className="mx-auto mt-4 max-w-xl text-ink/60">
-            Кадровое агентство и сообщество для юридического рынка под одним брендом: находим
-            специалистов для юридических фирм и объединяем студентов-юристов, которые растят
-            карьеру вместе.
+            Карьерный юрист — это кадровое агентство, которое помогает студентам и юристам расти,
+            находить работу и строить карьеру через сообщества, мероприятия и консультации.
           </p>
           <div className="mx-auto mt-8 grid max-w-xl gap-4 sm:grid-cols-2">
-            <Link to="/kadry/employers" className="rounded-2xl bg-ink p-5 text-left text-white shadow-lg transition-transform hover:-translate-y-0.5">
+            <Link to="/kadry/employers" className="rounded-2xl bg-ink p-5 text-center text-white shadow-lg transition-transform hover:-translate-y-0.5">
               <div className="text-lg font-semibold">Кадры</div>
-              <div className="mt-1 text-sm text-white/70">Ищете сотрудника в юридическую фирму?</div>
+              <div className="mt-1 text-sm text-white/70">Найдем сотрудника</div>
             </Link>
-            <Link to="/community" className="rounded-2xl border-2 border-ink bg-white p-5 text-left shadow-lg transition-transform hover:-translate-y-0.5">
+            <Link to="/community" className="rounded-2xl border-2 border-ink bg-white p-5 text-center shadow-lg transition-transform hover:-translate-y-0.5">
               <div className="text-lg font-semibold">Сообщество</div>
               <div className="mt-1 text-sm text-ink/60">Студент или начинающий юрист?</div>
             </Link>
@@ -123,32 +117,76 @@ export default function Home() {
               студентам, начинающим юристам, а также юридическим фирмам и инхаус-командам, которым
               нужен сотрудник, но некому и некогда его искать.
             </p>
-            <p className="mt-3 text-ink/60">
-              Наша миссия — помогать находить квалифицированные кадры, создавая прозрачный,
-              уважительный и современный рынок юридического труда.
-            </p>
             <ul className="mt-6 space-y-3 text-sm text-ink/70">
               <li className="flex gap-2"><span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-gold" /><span>Основатель — практикующий юрист по персональным данным и карьерный консультант, изнутри понимающий и рынок труда, и профессию.</span></li>
               <li className="flex gap-2"><span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-gold" /><span>Работаем только с юридическим рынком — не универсальный рекрутинг, а понимание специфики профессии.</span></li>
-              <li className="flex gap-2"><span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-gold" /><span>Прозрачные условия: документы на каждом этапе подбора, открытая модель оплаты, честная отчетность.</span></li>
             </ul>
           </div>
           <div className="glass flex gap-5 rounded-xl p-6">
             <img
               src={ilyaPhoto}
               alt="Илья Руденков"
+              style={{ objectPosition: '50% 22%' }}
               className="h-20 w-20 shrink-0 rounded-full object-cover shadow-md ring-4 ring-white"
             />
             <div>
               <div className="text-sm font-medium uppercase tracking-wide text-gold">Основатель</div>
               <div className="mt-1 text-xl font-semibold">Илья Руденков</div>
               <ul className="mt-3 space-y-1.5 text-sm text-ink/60">
-                <li>Основатель «Карьерного юриста»</li>
-                <li>Юрист по персональным данным</li>
-                <li>Карьерный консультант для студентов и юристов</li>
-                <li>Студент НИУ ВШЭ по программе Legal Tech</li>
+                <li className="flex gap-2"><span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-gold" /><span>Основатель «Карьерного юриста»</span></li>
+                <li className="flex gap-2"><span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-gold" /><span>Юрист по персональным данным</span></li>
+                <li className="flex gap-2"><span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-gold" /><span>Карьерный консультант для студентов и юристов</span></li>
+                <li className="flex gap-2"><span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-gold" /><span>Студент НИУ ВШЭ по программе Legal Tech</span></li>
               </ul>
             </div>
+          </div>
+        </div>
+
+        <div className="mt-14 grid gap-8 border-t border-ink/10 pt-14 lg:grid-cols-2">
+          <div className="space-y-4 text-ink/60">
+            <p>
+              Карьерный юрист — это пространство возможностей для юридического рынка, где каждая
+              аудитория находит свое.
+            </p>
+            <p>
+              <strong className="font-semibold text-ink">Кадровое агентство</strong> — это основа
+              нашей деятельности. Мы помогаем юридическим фирмам, адвокатским образованиям, юристам,
+              адвокатам, нотариусам, арбитражным управляющим и другим юридическим профессиям
+              находить себе сотрудников — таких как помощники, младшие юристы, офис-менеджеры и
+              другие специалисты, без которых не работает ни одна практика.
+            </p>
+            <p>
+              Другое направление — <strong className="font-semibold text-ink">сообщество</strong>{' '}
+              для студентов-юристов. Это более тесный круг, где мы обмениваемся знаниями и опытом.
+              Резиденты получают вакансии в приоритетном порядке — часто раньше, чем они появляются
+              в открытом доступе, а иногда такие предложения вообще не выходят за пределы
+              сообщества.
+            </p>
+            <p>
+              Третье направление — <strong className="font-semibold text-ink">ивент-агентство</strong>.
+              Мы создаем и организовываем мероприятия для студентов и собственные события. Сейчас к
+              нам все чаще приходят запросы от юридических компаний, которые хотят организовать
+              встречи со студентами, найти точки соприкосновения с будущими сотрудниками.
+            </p>
+          </div>
+          <div className="space-y-4 text-ink/60">
+            <div className="text-sm font-medium uppercase tracking-wide text-gold">Миссия</div>
+            <p>
+              Миссия «Карьерного юриста» — не просто помочь человеку найти работу, определиться с
+              направлением или найти себе сотрудника. Гораздо важнее — помочь осознанно выбрать
+              профессию, подготовиться к выбору области профессиональной деятельности, построить
+              успешную карьеру, найти амбициозных и перспективных сотрудников, у которых сочетаются
+              профессиональная реализация, удовольствие от работы и понимание собственной ценности.
+            </p>
+            <p>
+              Наша цель гораздо шире, чем проведение отдельных мероприятий и закрытие вакансий. Мы
+              стремимся развивать юридическое сообщество, в котором студентам и молодым юристам
+              доступны реальные возможности для роста. Мы хотим помогать строить карьеру через
+              развитие soft skills, психологическую устойчивость, понимание современного
+              юридического рынка — создавая новые проекты, организуя мероприятия, объединяя людей
+              для обмена опытом и взаимной поддержки, формируя среду, где профессиональный рост
+              становится естественным процессом.
+            </p>
           </div>
         </div>
       </section>
@@ -178,17 +216,29 @@ export default function Home() {
       <section className="container-page py-14">
         <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Кейсы и результаты</div>
         <h2 className="mb-6 text-2xl font-semibold">Признание на рынке и цифры за нами</h2>
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-3">
           <div className="glass rounded-xl p-5">
             <div className="font-semibold">3-я группа в номинации «Профессиональные сообщества»</div>
             <p className="mt-1 text-sm text-ink/60">
               Консолидированный рейтинг репутационного капитала участников юридического рынка Москвы
-              и Санкт-Петербурга (РАСО и Legal Business Forum, 2026).
+              и Санкт-Петербурга от комитета РАСО и Legal Business Forum. Также отдельно отмечены в
+              номинациях «Персональный бренд» и «Интегральные оценки» этого рейтинга.
             </p>
           </div>
           <div className="glass rounded-xl p-5">
-            <div className="font-semibold">5 место в номинации «Самые вовлеченные юридические клубы»</div>
-            <p className="mt-1 text-sm text-ink/60">Рейтинг юридических Telegram-каналов, 2025.</p>
+            <div className="font-semibold">Рейтинг юридических Telegram-каналов</div>
+            <p className="mt-1 text-sm text-ink/60">
+              Юридические клубы: 5 место «самый вовлеченный», 12 место «индекс качества», 8 место
+              «самый большой».
+            </p>
+          </div>
+          <div className="glass rounded-xl p-5">
+            <div className="font-semibold">Ещё две номинации того же рейтинга</div>
+            <p className="mt-1 text-sm text-ink/60">
+              HR-направление: 5 место «самый вовлеченный», 26 место «индекс качества», 31 место
+              «самый большой». Каналы студентов: 11 место «самый вовлеченный», 15 место «индекс
+              качества», 11 место «самый большой».
+            </p>
           </div>
         </div>
         <div className="mt-8 grid gap-4 sm:grid-cols-2">
@@ -308,43 +358,6 @@ export default function Home() {
 
       {/* FAQ */}
       <FAQSection items={faqItems} />
-
-      {/* CTA */}
-      <section className="border-t border-ink/10 bg-ink py-14 text-white">
-        <div className="container-page flex flex-col items-start gap-6 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2 className="text-2xl font-semibold">Готовы начать?</h2>
-            <p className="mt-2 max-w-xl text-white/60">
-              Ищете сотрудника или хотите вступить в сообщество — выберите свой путь.
-            </p>
-          </div>
-          <div className="flex shrink-0 flex-wrap gap-3">
-            <Link to="/kadry/employers" className="rounded-lg bg-gold-light px-6 py-3 text-sm font-semibold text-ink hover:opacity-90">
-              Найти сотрудника
-            </Link>
-            <Link to="/community" className="rounded-lg border border-white/30 px-6 py-3 text-sm font-semibold text-white hover:bg-white/10">
-              Вступить в сообщество
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Контакты */}
-      <section className="border-t border-ink/10 bg-white py-14">
-        <div className="container-page">
-          <h2 className="text-2xl font-semibold">Связаться с нами</h2>
-          <div className="mt-4 space-y-2 text-sm text-ink/70">
-            <div>Email: <a className="underline" href="mailto:info@legalcareerist.ru">info@legalcareerist.ru</a></div>
-            <div>Телефон: <a className="underline" href="tel:+79214397031">8 (921) 439-70-31</a></div>
-            <div>Telegram: <a className="underline" href="https://t.me/rudenkovrd" target="_blank" rel="noreferrer">@rudenkovrd</a> · <a className="underline" href="https://t.me/legalcareerst_support" target="_blank" rel="noreferrer">@legalcareerst_support</a></div>
-          </div>
-          <p className="mt-6 text-xs text-ink/40">
-            Отправляя заявку через формы на сайте, вы соглашаетесь с{' '}
-            <Link className="underline" to="/legal/privacy">Политикой обработки персональных данных</Link>{' '}
-            и даете <Link className="underline" to="/legal/consent">согласие на обработку персональных данных</Link>.
-          </p>
-        </div>
-      </section>
     </div>
   )
 }

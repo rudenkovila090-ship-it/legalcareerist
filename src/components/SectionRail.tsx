@@ -14,6 +14,12 @@ export interface SectionRailItem {
 export default function SectionRail({ items, dark }: { items: SectionRailItem[]; dark?: boolean }) {
   const [active, setActive] = useState(items[0]?.id)
   const ref = useRef<HTMLElement[]>([])
+  // Пока идет программный смус-скролл после клика по пункту меню,
+  // IntersectionObserver может успеть отдать промежуточное, «пролетное»
+  // состояние (сразу несколько секций частично видимы) и перебить
+  // выделение на не тот пункт. Блокируем наблюдатель на время скролла и
+  // снимаем блокировку только когда позиция страницы стабилизируется.
+  const suppressUntilRef = useRef(0)
 
   useEffect(() => {
     ref.current = items
@@ -22,6 +28,7 @@ export default function SectionRail({ items, dark }: { items: SectionRailItem[];
 
     const observer = new IntersectionObserver(
       (entries) => {
+        if (Date.now() < suppressUntilRef.current) return
         const visible = entries.filter((e) => e.isIntersecting)
         if (visible.length > 0) {
           const top = visible.reduce((a, b) => (a.boundingClientRect.top < b.boundingClientRect.top ? a : b))
@@ -48,6 +55,11 @@ export default function SectionRail({ items, dark }: { items: SectionRailItem[];
                 e.preventDefault()
                 const el = document.getElementById(item.id)
                 if (!el) return
+                // Выделяем нажатый пункт сразу (не ждем наблюдатель) и
+                // глушим его на время анимации скролла, чтобы он не перебил
+                // выбор промежуточным состоянием.
+                setActive(item.id)
+                suppressUntilRef.current = Date.now() + 900
                 // Учитываем высоту закрепленной шапки (+подкадровой панели
                 // аудитории) — иначе scrollIntoView прячет начало раздела под
                 // ней, и кажется, что открылся более нижний блок страницы.

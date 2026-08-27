@@ -36,7 +36,7 @@ export default function Footer() {
           <div className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">Контакты</div>
           <ul className="space-y-2 text-sm text-white/60">
             <li><a className="hover:text-white" href="mailto:info@legalcareerist.ru">info@legalcareerist.ru</a></li>
-            <li><a className="hover:text-white" href="tel:+79214397031">8 (921) 439-70-31</a></li>
+            <li><a className="hover:text-white" href="tel:+79322621344">+7 932 262-13-44</a></li>
             <li><a className="hover:text-white" href="https://t.me/legalcareerst_support" target="_blank" rel="noreferrer">Telegram: @legalcareerst_support</a></li>
           </ul>
         </div>

@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import PageHero from '../../components/PageHero'
 import Testimonials from '../../components/Testimonials'
@@ -8,12 +8,6 @@ import { submitLead } from '../../lib/leads'
 import { consultationCategories, allConsultationServices, tierDiscountPct } from '../../data/consultationServices'
 import { consultationTestimonials } from '../../data/testimonials'
 import ilyaPhoto from '../../assets/ilya-rudenkov.jpg'
-
-const proof = [
-  { value: '50+', label: 'проведенных консультаций' },
-  { value: '2+ года', label: 'в сфере Legal HR' },
-  { value: 'Legal Tech', label: 'магистратура НИУ ВШЭ' },
-]
 
 // Минималистичные иконки — своя на каждую услугу конструктора, без внешних
 // библиотек, без повторов.
@@ -174,9 +168,9 @@ const serviceDetails: Record<string, string> = {
 }
 
 const benefits = [
-  { title: 'Конкретный план, а не общие слова', text: 'Уходите с созвона со списком следующих шагов, а не с абстрактной мотивацией.' },
-  { title: 'Понимание рынка изнутри', text: 'Ведет консультант, который сам подбирает юристов и знает, на что смотрят работодатели.' },
-  { title: 'Свой набор услуг', text: 'Берете только то, что нужно именно вам — от разбора резюме до полного сопровождения поиска.' },
+  { icon: IconFlag, title: 'Конкретный план, а не общие слова', text: 'Уходите с созвона со списком следующих шагов, а не с абстрактной мотивацией.' },
+  { icon: IconRoute, title: 'Понимание рынка изнутри', text: 'Ведет консультант, который сам подбирает юристов и знает, на что смотрят работодатели.' },
+  { icon: IconBadge, title: 'Свой набор услуг', text: 'Берете только то, что нужно именно вам — от разбора резюме до полного сопровождения поиска.' },
 ]
 
 const who = [
@@ -228,6 +222,28 @@ export default function CareerConsultation() {
   const [form, setForm] = useState({ name: '', email: '', telegram: '', phone: '' })
   const [sent, setSent] = useState(false)
 
+  const [activeStep, setActiveStep] = useState(0)
+  useEffect(() => {
+    const id = setInterval(() => setActiveStep((s) => (s + 1) % process.length), 2600)
+    return () => clearInterval(id)
+  }, [])
+
+  const [helpForm, setHelpForm] = useState({ name: '', email: '', phone: '', telegram: '', question: '' })
+  const [helpSent, setHelpSent] = useState(false)
+
+  function handleHelpSubmit(e: FormEvent) {
+    e.preventDefault()
+    if (!helpForm.name.trim() || !helpForm.question.trim()) return
+    submitLead({
+      sourceBlock: 'kadry',
+      formType: 'consultation_help_request',
+      name: helpForm.name,
+      contact: [helpForm.email, helpForm.phone, helpForm.telegram].filter(Boolean).join(' / '),
+      interest: [helpForm.question],
+    })
+    setHelpSent(true)
+  }
+
   const selectedServices = useMemo(() => allConsultationServices.filter((s) => selected[s.id]), [selected])
   const count = selectedServices.length
   const subtotal = selectedServices.reduce((sum, s) => sum + s.price, 0)
@@ -275,21 +291,32 @@ export default function CareerConsultation() {
         <Link to="/kadry/candidates" className="rounded-full border border-ink/15 px-4 py-1.5 text-sm font-medium text-ink/60 hover:text-ink">
           ← Соискателям
         </Link>
-        <span className="rounded-full bg-ink px-4 py-1.5 text-sm font-medium text-white">Карьерная консультация</span>
         <Link to="/kadry/candidates/reserve" className="rounded-full border border-ink/15 px-4 py-1.5 text-sm font-medium text-ink/60 hover:text-ink">
           Кадровый резерв
         </Link>
+        <span className="rounded-full bg-ink px-4 py-1.5 text-sm font-medium text-white">Карьерная консультация</span>
       </div>
 
-      {/* Соц. доказательства */}
+      {/* Проводит консультацию — первым делом знакомим с консультантом */}
       <section className="container-page py-12">
-        <div className="grid gap-3 sm:grid-cols-3">
-          {proof.map((p) => (
-            <div key={p.label} className="rounded-xl border border-ink/10 bg-white p-4">
-              <div className="text-2xl font-semibold text-ink">{p.value}</div>
-              <div className="mt-1 text-sm text-ink/60">{p.label}</div>
-            </div>
-          ))}
+        <div className="grid gap-6 rounded-2xl border border-ink/10 p-6 sm:grid-cols-[auto_1fr] sm:items-center sm:p-8">
+          <img
+            src={ilyaPhoto}
+            alt="Илья Руденков"
+            style={{ objectPosition: '50% 22%' }}
+            className="h-20 w-20 rounded-full object-cover shadow-md ring-4 ring-white sm:h-24 sm:w-24"
+          />
+          <div>
+            <div className="text-xs font-semibold uppercase tracking-wide text-ink/40">Проводит консультацию</div>
+            <div className="text-lg font-semibold">Руденков Илья — основатель «Карьерного юриста»</div>
+            <ul className="mt-2 space-y-1.5 text-sm text-ink/60">
+              <li className="flex gap-2"><span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-gold" /><span>Больше 2 лет работает в сфере Legal HR</span></li>
+              <li className="flex gap-2"><span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-gold" /><span>Провел более 50 карьерных консультаций</span></li>
+              <li className="flex gap-2"><span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-gold" /><span>Юрист по персональным данным и рекламному праву</span></li>
+              <li className="flex gap-2"><span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-gold" /><span>Студент магистратуры Legal Tech в НИУ ВШЭ</span></li>
+              <li className="flex gap-2"><span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-gold" /><span>Карьерный консультант</span></li>
+            </ul>
+          </div>
         </div>
       </section>
 
@@ -301,6 +328,9 @@ export default function CareerConsultation() {
           <div className="grid gap-4 sm:grid-cols-3">
             {benefits.map((b) => (
               <div key={b.title} className="glass rounded-xl p-5">
+                <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-full bg-gold-light/25 text-ink">
+                  <b.icon />
+                </div>
                 <div className="font-semibold">{b.title}</div>
                 <p className="mt-2 text-sm text-ink/60">{b.text}</p>
               </div>
@@ -316,6 +346,20 @@ export default function CareerConsultation() {
         <ul className="grid gap-3 sm:grid-cols-2">
           {who.map((item) => (
             <li key={item} className="flex gap-2 rounded-lg bg-ink/[0.04] p-4 text-sm">
+              <span className="text-ink">✓</span>
+              {item}
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      {/* Что вы получите */}
+      <section id="outcomes" className="container-page pb-12">
+        <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Что вы получите</div>
+        <h2 className="mb-6 text-2xl font-semibold">После консультации у вас будет</h2>
+        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {outcomes.map((item) => (
+            <li key={item} className="flex gap-2 text-sm text-ink/70">
               <span className="text-ink">✓</span>
               {item}
             </li>
@@ -385,46 +429,36 @@ export default function CareerConsultation() {
         </div>
       </section>
 
-      {/* Что вы получите */}
-      <section id="outcomes" className="container-page py-12">
-        <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Что вы получите</div>
-        <h2 className="mb-6 text-2xl font-semibold">После консультации у вас будет</h2>
-        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {outcomes.map((item) => (
-            <li key={item} className="flex gap-2 text-sm text-ink/70">
-              <span className="text-ink">✓</span>
-              {item}
-            </li>
-          ))}
-        </ul>
+      {/* Как проходит работа — плавная автоматическая подсветка шагов, как загрузка */}
+      <section className="container-page py-12">
+        <h3 className="mb-1 text-sm font-medium uppercase tracking-wide text-gold">Как проходит работа</h3>
+        <h2 className="mb-8 text-2xl font-semibold">6 шагов от заявки до плана действий</h2>
 
-        <h3 className="mb-4 mt-12 text-lg font-semibold">Как проходит работа</h3>
-        <ol className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {process.map((item, i) => (
-            <li key={item} className="glass rounded-xl p-4 text-sm">
-              <span className="mr-2 font-semibold text-gold">{i + 1}.</span>
-              {item}
-            </li>
-          ))}
-        </ol>
-
-        <div className="mt-12 grid gap-6 rounded-2xl border border-ink/10 p-6 sm:grid-cols-[auto_1fr] sm:items-center sm:p-8">
-          <img
-            src={ilyaPhoto}
-            alt="Илья Руденков"
-            className="h-20 w-20 rounded-full object-cover shadow-md ring-4 ring-white sm:h-24 sm:w-24"
-          />
-          <div>
-            <div className="text-xs font-semibold uppercase tracking-wide text-ink/40">Проводит консультацию</div>
-            <div className="text-lg font-semibold">Руденков Илья — основатель «Карьерного юриста»</div>
-            <ul className="mt-2 space-y-1 text-sm text-ink/60">
-              <li>Больше 2 лет работает в сфере Legal HR</li>
-              <li>Провел более 50 карьерных консультаций</li>
-              <li>Юрист по персональным данным и рекламному праву</li>
-              <li>Студент магистратуры Legal Tech в НИУ ВШЭ</li>
-              <li>Карьерный консультант</li>
-            </ul>
+        <div className="mx-auto max-w-3xl">
+          <div className="h-1 w-full overflow-hidden rounded-full bg-ink/10">
+            <div
+              className="h-full rounded-full bg-gold transition-all duration-[2400ms] ease-in-out"
+              style={{ width: `${((activeStep + 1) / process.length) * 100}%` }}
+            />
           </div>
+
+          <ol className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {process.map((item, i) => (
+              <li
+                key={item}
+                className={`rounded-xl border p-4 text-sm transition-all duration-[1200ms] ease-in-out ${
+                  i === activeStep
+                    ? 'border-ink bg-ink text-white shadow-md'
+                    : i < activeStep
+                      ? 'border-ink/10 bg-ink/[0.04] text-ink/50'
+                      : 'border-ink/10 bg-white text-ink/70'
+                }`}
+              >
+                <span className={`mr-2 font-semibold ${i === activeStep ? 'text-gold-light' : 'text-gold'}`}>{i + 1}.</span>
+                {item}
+              </li>
+            ))}
+          </ol>
         </div>
       </section>
 
@@ -480,21 +514,66 @@ export default function CareerConsultation() {
         <FAQSection items={faqItems} title="Вопросы о консультациях" />
       </div>
 
-      {/* Доп. призыв к действию */}
+      {/* Доп. призыв к действию — лид-форма для тех, кто не определился с услугой */}
       <section className="container-page pb-16">
-        <div className="rounded-2xl bg-ink px-6 py-10 text-center text-white sm:px-10">
-          <div className="text-xl font-semibold">Не уверены, какая услуга нужна?</div>
-          <p className="mx-auto mt-2 max-w-lg text-sm text-white/70">
-            Напишите в Telegram — подскажем, с чего лучше начать, и поможем собрать заказ.
-          </p>
-          <a
-            href="https://t.me/legalcareerst_support"
-            target="_blank"
-            rel="noreferrer"
-            className="mt-5 inline-block rounded-full bg-gold-light px-6 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-white"
-          >
-            Написать в Telegram
-          </a>
+        <div className="mx-auto max-w-xl rounded-2xl bg-ink px-6 py-10 text-white sm:px-10">
+          <div className="text-center">
+            <div className="text-xl font-semibold">Не уверены, какая услуга нужна?</div>
+            <p className="mx-auto mt-2 max-w-lg text-sm text-white/70">
+              Опишите свою ситуацию — подскажем, с чего лучше начать, и поможем собрать заказ.
+            </p>
+          </div>
+
+          {helpSent ? (
+            <div className="mx-auto mt-6 max-w-md rounded-xl bg-white/10 p-6 text-center">
+              <div className="font-semibold">Заявка отправлена</div>
+              <p className="mt-1 text-sm text-white/70">Мы свяжемся с вами и поможем определиться с услугой.</p>
+            </div>
+          ) : (
+            <form className="mx-auto mt-6 grid max-w-md gap-3" onSubmit={handleHelpSubmit}>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <input
+                  className="rounded-lg border border-white/15 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
+                  placeholder="Имя"
+                  value={helpForm.name}
+                  onChange={(e) => setHelpForm((f) => ({ ...f, name: e.target.value }))}
+                />
+                <input
+                  className="rounded-lg border border-white/15 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
+                  placeholder="Почта"
+                  value={helpForm.email}
+                  onChange={(e) => setHelpForm((f) => ({ ...f, email: e.target.value }))}
+                />
+                <input
+                  className="rounded-lg border border-white/15 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
+                  placeholder="Номер телефона"
+                  value={helpForm.phone}
+                  onChange={(e) => setHelpForm((f) => ({ ...f, phone: e.target.value }))}
+                />
+                <input
+                  className="rounded-lg border border-white/15 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
+                  placeholder="Telegram"
+                  value={helpForm.telegram}
+                  onChange={(e) => setHelpForm((f) => ({ ...f, telegram: e.target.value }))}
+                />
+              </div>
+              <textarea
+                className="min-h-24 rounded-lg border border-white/15 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
+                placeholder="Опишите свой вопрос"
+                value={helpForm.question}
+                onChange={(e) => setHelpForm((f) => ({ ...f, question: e.target.value }))}
+              />
+              <button
+                type="submit"
+                className="rounded-full bg-gold-light py-3 text-sm font-semibold text-ink transition-colors hover:bg-white"
+              >
+                Отправить вопрос
+              </button>
+              <p className="text-center text-xs text-white/50">
+                Нажимая «Отправить вопрос», вы соглашаетесь на обработку персональных данных.
+              </p>
+            </form>
+          )}
         </div>
       </section>
 

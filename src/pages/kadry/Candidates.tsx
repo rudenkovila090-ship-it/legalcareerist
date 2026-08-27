@@ -48,9 +48,10 @@ export default function Candidates() {
 
       <div id="hero">
         <PageHero
+          wide
           eyebrow="Кадровое юридическое агентство"
           title="Ищете работу или карьерный ориентир? Мы рядом на каждом шаге"
-          description="Подбор вакансий и карьерные консультации — для студентов-юристов, помощников и начинающих специалистов юридического рынка."
+          description="Подбор вакансий, карьерные консультации — для студентов, юристов и начинающих специалистов юридического рынка."
         />
       </div>
 
@@ -82,7 +83,7 @@ export default function Candidates() {
               </span>
               <h3 className="mt-4 text-xl font-semibold">{s.title}</h3>
               <p className="mt-2 text-sm text-ink/60">{s.text}</p>
-              <span className="mt-5 inline-block w-fit rounded-full bg-ink px-5 py-2 text-sm font-semibold text-white sm:mt-auto">{s.cta} →</span>
+              <span className="mt-8 inline-block w-fit rounded-full bg-ink px-5 py-2 text-sm font-semibold text-white sm:mt-auto sm:pt-0">{s.cta} →</span>
             </Link>
           ))}
         </div>

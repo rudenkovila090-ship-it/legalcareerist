@@ -12,10 +12,36 @@ const proof = [
   { value: '2 мин', label: 'чтобы подать заявку' },
 ]
 
+function IconHandshake() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <path d="M3.5 12.5l3.7-3.7a2 2 0 0 1 2.83 0l1.47 1.47M20.5 12.5l-3.7-3.7a2 2 0 0 0-2.83 0L12.5 10.3" />
+      <path d="M7.2 10.8l-3.7 3.7 3 3a2 2 0 0 0 2.83 0l.5-.5M16.8 10.8l3.7 3.7-3 3a2 2 0 0 1-2.83 0l-3.37-3.37a1.5 1.5 0 0 1 0-2.12v0a1.5 1.5 0 0 1 2.12 0l1.25 1.25" />
+    </svg>
+  )
+}
+function IconTarget() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <circle cx="12" cy="12" r="8.5" />
+      <circle cx="12" cy="12" r="4.5" />
+      <circle cx="12" cy="12" r="1" fill="currentColor" />
+    </svg>
+  )
+}
+function IconFlagCheck() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <path d="M6 21V4" />
+      <path d="M6 4.5h12l-3 3.5 3 3.5H6" />
+    </svg>
+  )
+}
+
 const benefits = [
-  { title: 'Подбор без лишних хлопот', text: 'Берем переговоры с работодателем на себя — вам не нужно самим искать вакансии и откликаться.' },
-  { title: 'Только релевантные вакансии', text: 'Предлагаем позиции, которые реально подходят под ваш опыт и ожидания — без спама.' },
-  { title: 'Сопровождение до оффера', text: 'Готовим к встрече с работодателем и на связи до самого выхода на позицию.' },
+  { icon: IconHandshake, title: 'Подбор без лишних хлопот', text: 'Берем переговоры с работодателем на себя — вам не нужно самим искать вакансии и откликаться.' },
+  { icon: IconTarget, title: 'Только релевантные вакансии', text: 'Предлагаем позиции, которые реально подходят под ваш опыт и ожидания — без спама.' },
+  { icon: IconFlagCheck, title: 'Сопровождение до оффера', text: 'Готовим к встрече с работодателем и на связи до самого выхода на позицию.' },
 ]
 
 const steps = [
@@ -55,7 +81,8 @@ const railItems = [
 ]
 
 export default function CareerReserve() {
-  const [form, setForm] = useState({ name: '', email: '', phone: '', position: '' })
+  const [form, setForm] = useState({ name: '', email: '', phone: '', telegram: '', position: '' })
+  const [resumeFile, setResumeFile] = useState<File | null>(null)
   const [sent, setSent] = useState(false)
 
   function handleSubmit(e: FormEvent) {
@@ -65,8 +92,8 @@ export default function CareerReserve() {
       sourceBlock: 'kadry',
       formType: 'candidate_application',
       name: form.name,
-      contact: [form.email, form.phone].filter(Boolean).join(' / '),
-      interest: form.position ? [form.position] : [],
+      contact: [form.email, form.phone, form.telegram].filter(Boolean).join(' / '),
+      interest: [form.position, resumeFile ? `Резюме: ${resumeFile.name}` : ''].filter(Boolean),
     })
     setSent(true)
   }
@@ -78,11 +105,11 @@ export default function CareerReserve() {
     e.preventDefault()
     if (!priorityForm.name.trim() || !priorityForm.phone.trim()) return
     submitLead({
-      sourceBlock: 'community',
-      formType: 'priority_access_request',
+      sourceBlock: 'kadry',
+      formType: 'reserve_join_request',
       name: priorityForm.name,
       contact: [priorityForm.phone, priorityForm.email, priorityForm.telegram].filter(Boolean).join(' / '),
-      interest: ['Приоритетный доступ к вакансиям — вступление в Сообщество'],
+      interest: ['Вступление в кадровый резерв'],
     })
     setPrioritySent(true)
   }
@@ -129,6 +156,9 @@ export default function CareerReserve() {
           <div className="grid gap-4 sm:grid-cols-3">
             {benefits.map((b) => (
               <div key={b.title} className="glass rounded-xl p-5">
+                <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-full bg-gold-light/25 text-ink">
+                  <b.icon />
+                </div>
                 <div className="font-semibold">{b.title}</div>
                 <p className="mt-2 text-sm text-ink/60">{b.text}</p>
               </div>
@@ -174,16 +204,17 @@ export default function CareerReserve() {
 
           <div className="mt-8 rounded-2xl bg-ink px-6 py-8 text-white sm:px-10 sm:py-10">
             <div className="text-center">
-              <div className="text-xl font-semibold">Хотите видеть вакансии первыми?</div>
+              <div className="text-xl font-semibold">Хотите попасть в кадровый резерв?</div>
               <p className="mx-auto mt-2 max-w-lg text-sm text-white/70">
-                Резиденты Сообщества получают доступ к вакансиям раньше кадрового резерва и открытого рынка.
+                Оставьте контакты — добавим вас в кадровый резерв и будем предлагать релевантные
+                вакансии по приоритету, до того как они попадут в открытый доступ.
               </p>
             </div>
 
             {prioritySent ? (
               <div className="mx-auto mt-6 max-w-md rounded-xl bg-white/10 p-6 text-center">
                 <div className="font-semibold">Заявка отправлена</div>
-                <p className="mt-1 text-sm text-white/70">Мы свяжемся с вами, чтобы оформить вступление в Сообщество.</p>
+                <p className="mt-1 text-sm text-white/70">Мы свяжемся с вами, чтобы оформить вступление в кадровый резерв.</p>
               </div>
             ) : (
               <form className="mx-auto mt-6 grid max-w-2xl gap-3 sm:grid-cols-2" onSubmit={handlePrioritySubmit}>
@@ -215,10 +246,10 @@ export default function CareerReserve() {
                   type="submit"
                   className="col-span-full rounded-full bg-gold-light py-3 text-sm font-semibold text-ink transition-colors hover:bg-white"
                 >
-                  Вступить в Сообщество
+                  Вступить в кадровый резерв
                 </button>
                 <p className="col-span-full text-center text-xs text-white/50">
-                  Нажимая «Вступить в Сообщество», вы соглашаетесь на обработку персональных данных.
+                  Нажимая «Вступить в кадровый резерв», вы соглашаетесь на обработку персональных данных.
                 </p>
               </form>
             )}
@@ -290,6 +321,22 @@ export default function CareerReserve() {
                   value={form.phone}
                   onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
                 />
+                <input
+                  className="rounded-lg border border-white/15 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
+                  placeholder="Telegram"
+                  value={form.telegram}
+                  onChange={(e) => setForm((f) => ({ ...f, telegram: e.target.value }))}
+                />
+                <label className="col-span-full flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-dashed border-white/25 bg-white/5 px-4 py-3 text-sm text-white/60 hover:border-white/40">
+                  <span>{resumeFile ? resumeFile.name : 'Загрузить резюме (PDF, DOCX)'}</span>
+                  <span className="shrink-0 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white">Выбрать файл</span>
+                  <input
+                    type="file"
+                    accept=".pdf,.doc,.docx"
+                    className="hidden"
+                    onChange={(e) => setResumeFile(e.target.files?.[0] ?? null)}
+                  />
+                </label>
                 <button
                   type="submit"
                   className="col-span-full rounded-lg bg-gold-light py-3 text-sm font-semibold text-ink transition-colors hover:bg-white"
