@@ -2,6 +2,9 @@ import { useState } from 'react'
 import PageHero from '../../components/PageHero'
 import ProcessSteps from '../../components/ProcessSteps'
 import LeadForm from '../../components/LeadForm'
+import Testimonials from '../../components/Testimonials'
+import FAQSection from '../../components/FAQSection'
+import CTASection from '../../components/CTASection'
 
 const stats = [
   { value: '3 200+', label: 'потенциальных кандидатов' },
@@ -10,10 +13,23 @@ const stats = [
   { value: '30%', label: 'оплата от 1 зарплаты' },
 ]
 
+const valueProps = [
+  { title: 'Не тратите время на поиск', text: 'Размещение вакансии, отсев нерелевантных откликов, десятки собеседований — берём на себя.' },
+  { title: 'Кандидаты уже мотивированы', text: 'Наша база — активное сообщество студентов и выпускников, а не случайные отклики с job-бордов.' },
+  { title: 'Фиксированная стоимость заранее', text: 'Процент от оклада известен до старта поиска — без скрытых доплат и пересмотра условий на середине пути.' },
+]
+
 const kpis = [
   { value: '5,5 дней', label: 'Time to Hire (среднее время закрытия вакансии)' },
   { value: '89%', label: 'конверсия интервью в оффер' },
   { value: '100%', label: 'доля кандидатов, прошедших испытательный срок' },
+]
+
+const kadryAdvantages = [
+  { title: 'Только юридический рынок', text: 'Специализируемся на начинающих и средних специалистах — понимаем их уровень, мотивацию и ожидания.' },
+  { title: 'Собственная база 3 200+', text: 'Активное сообщество студентов и выпускников — кандидаты уже мотивированы и готовы к работе.' },
+  { title: 'Оплата за результат', text: '30% от одного оклада кандидата: 75% предоплата до начала работ, 25% — после прохождения испытательного срока.' },
+  { title: 'Бесплатная замена', text: 'Если кандидат не проходит испытательный срок — подбираем замену бесплатно в согласованные сроки.' },
 ]
 
 const processSteps = [
@@ -66,6 +82,15 @@ const cases = [
   { title: 'Помощник юридического маркетолога', days: '3 дня' },
 ]
 
+const faqItems = [
+  { q: 'Сколько это стоит?', a: '30% от одного месячного оклада кандидата: 75% предоплата до начала работ, 25% — после прохождения испытательного срока.' },
+  { q: 'Что если кандидат не подойдёт?', a: 'Бесплатно подберём замену в согласованные сроки — это часть условий сотрудничества, а не платная опция.' },
+  { q: 'Сколько ждать первых кандидатов?', a: 'В среднем вакансия закрывается за 5–7 дней (Time to Hire — 5,5 дней). Есть кейсы закрытия за 1–3 дня.' },
+  { q: 'Кого вы подбираете?', a: 'Помощников юристов и адвокатов, младших юристов, секретарей, офис-менеджеров и смежные административные позиции на юридическом рынке.' },
+  { q: 'Где вы берёте кандидатов?', a: 'Сначала предлагаем вакансию резидентам нашего Сообщества, затем — кадровому резерву (3 200+ контактов), и только потом размещаем в открытом доступе.' },
+  { q: 'Какие документы я получу?', a: 'Договор, план работ, еженедельную отчётность, карточки кандидатов с рекомендациями и план адаптации нового сотрудника — на каждом этапе своя подтверждающая документация.' },
+]
+
 export default function KadryHome() {
   const [salary, setSalary] = useState(50000)
   const fee = Math.round(salary * 0.3)
@@ -91,65 +116,37 @@ export default function KadryHome() {
         </div>
       </section>
 
+      {/* О компании */}
       <section className="border-y border-ink/10 bg-white py-12">
         <div className="container-page">
-          <h2 className="mb-6 text-2xl font-semibold">Закрываем следующие позиции</h2>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {positions.map((p) => (
-              <div key={p.title} className="flex items-center justify-between rounded-lg bg-paper px-4 py-3 text-sm">
-                <span className="font-medium">{p.title}</span>
-                <span className="text-ink/50">{p.salary}</span>
-              </div>
-            ))}
-          </div>
+          <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">О компании</div>
+          <h2 className="mb-4 text-2xl font-semibold">Почему работодатели выбирают нас</h2>
+          <p className="max-w-2xl text-ink/60">
+            Мы работаем исключительно с юридическим рынком на уровне начинающих специалистов. Мы не
+            универсальный рекрутер, случайно попавший в юридическую нишу — знаем рынок изнутри,
+            понимаем специфику профессии и говорим с кандидатами на одном языке с первого дня.
+          </p>
         </div>
       </section>
 
+      {/* Польза */}
       <section className="container-page py-12">
-        <h2 className="mb-2 text-2xl font-semibold">Как мы работаем</h2>
-        <p className="mb-6 text-sm text-ink/60">8 этапов от заявки до выхода сотрудника.</p>
-        <ProcessSteps steps={processSteps} />
-
-        <div className="mt-8 grid gap-3 sm:grid-cols-3">
-          {kpis.map((k) => (
-            <div key={k.label} className="rounded-xl bg-ink p-5 text-white">
-              <div className="text-2xl font-semibold text-gold-light">{k.value}</div>
-              <div className="mt-1 text-sm text-white/60">{k.label}</div>
+        <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">В чём наша польза</div>
+        <h2 className="mb-6 text-2xl font-semibold">Что вы получаете, работая с нами</h2>
+        <div className="grid gap-4 sm:grid-cols-3">
+          {valueProps.map((v) => (
+            <div key={v.title} className="rounded-xl bg-white border border-ink/10 p-5">
+              <div className="font-semibold">{v.title}</div>
+              <p className="mt-1 text-sm text-ink/60">{v.text}</p>
             </div>
           ))}
         </div>
       </section>
 
+      {/* Кейсы и результаты */}
       <section className="border-y border-ink/10 bg-white py-12">
         <div className="container-page">
-          <h2 className="mb-6 text-2xl font-semibold">Какие документы вы получаете</h2>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {documentsByStage.map((d) => (
-              <div key={d.stage} className="rounded-xl border border-ink/10 p-4">
-                <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-gold">{d.stage}</div>
-                <ul className="space-y-1 text-sm text-ink/70">
-                  {d.items.map((i) => <li key={i}>· {i}</li>)}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="container-page py-12">
-        <h2 className="mb-6 text-2xl font-semibold">Как мы находим вам сотрудников</h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {marketingChannels.map((m) => (
-            <div key={m.title} className="rounded-xl border border-ink/10 bg-white p-5">
-              <div className="font-semibold">{m.title}</div>
-              <p className="mt-1 text-sm text-ink/60">{m.text}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="border-y border-ink/10 bg-white py-12">
-        <div className="container-page">
+          <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Кейсы и результаты</div>
           <h2 className="mb-6 text-2xl font-semibold">Наши закрытые вакансии</h2>
           <div className="grid gap-4 sm:grid-cols-2">
             {cases.map((c) => (
@@ -165,20 +162,88 @@ export default function KadryHome() {
               </div>
             ))}
           </div>
+
+          <div className="mt-8 grid gap-3 sm:grid-cols-3">
+            {kpis.map((k) => (
+              <div key={k.label} className="rounded-xl bg-ink p-5 text-white">
+                <div className="text-2xl font-semibold text-gold-light">{k.value}</div>
+                <div className="mt-1 text-sm text-white/60">{k.label}</div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
+      {/* Преимущества и выгоды */}
       <section className="container-page py-12">
-        <div className="grid gap-8 lg:grid-cols-2">
-          <div>
-            <h2 className="text-2xl font-semibold">Прозрачная система оплаты и гарантий</h2>
-            <ul className="mt-4 space-y-3 text-sm text-ink/70">
+        <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Преимущества и выгоды</div>
+        <h2 className="mb-6 text-2xl font-semibold">Чем мы отличаемся</h2>
+        <div className="grid gap-4 sm:grid-cols-2">
+          {kadryAdvantages.map((a) => (
+            <div key={a.title} className="rounded-xl border border-ink/10 bg-white p-5">
+              <div className="font-semibold">{a.title}</div>
+              <p className="mt-1 text-sm text-ink/60">{a.text}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Отзывы */}
+      <Testimonials />
+
+      {/* Что мы предлагаем */}
+      <section className="container-page py-12">
+        <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Что мы предлагаем</div>
+        <h2 className="mb-6 text-2xl font-semibold">Закрываем следующие позиции</h2>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {positions.map((p) => (
+            <div key={p.title} className="flex items-center justify-between rounded-lg bg-paper px-4 py-3 text-sm">
+              <span className="font-medium">{p.title}</span>
+              <span className="text-ink/50">{p.salary}</span>
+            </div>
+          ))}
+        </div>
+
+        <h3 className="mb-2 mt-12 text-xl font-semibold">Как мы работаем</h3>
+        <p className="mb-6 text-sm text-ink/60">8 этапов от заявки до выхода сотрудника.</p>
+        <ProcessSteps steps={processSteps} />
+
+        <h3 className="mb-6 mt-12 text-xl font-semibold">Какие документы вы получаете</h3>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {documentsByStage.map((d) => (
+            <div key={d.stage} className="rounded-xl border border-ink/10 p-4">
+              <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-gold">{d.stage}</div>
+              <ul className="space-y-1 text-sm text-ink/70">
+                {d.items.map((i) => <li key={i}>· {i}</li>)}
+              </ul>
+            </div>
+          ))}
+        </div>
+
+        <h3 className="mb-6 mt-12 text-xl font-semibold">Как мы находим вам сотрудников</h3>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {marketingChannels.map((m) => (
+            <div key={m.title} className="rounded-xl border border-ink/10 bg-white p-5">
+              <div className="font-semibold">{m.title}</div>
+              <p className="mt-1 text-sm text-ink/60">{m.text}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Цены */}
+      <section className="border-y border-ink/10 bg-white py-12">
+        <div className="container-page">
+          <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Цены</div>
+          <h2 className="mb-6 text-2xl font-semibold">Прозрачная система оплаты и гарантий</h2>
+          <div className="grid gap-8 lg:grid-cols-2">
+            <ul className="space-y-3 text-sm text-ink/70">
               <li><strong className="text-ink">Оплата за результат</strong> — 30% от одного месячного оклада кандидата: 75% предоплата до начала работ, 25% после прохождения испытательного срока.</li>
               <li><strong className="text-ink">Бесплатная замена</strong> — если кандидат не проходит испытательный срок, подбираем замену бесплатно в согласованные сроки.</li>
               <li><strong className="text-ink">Прозрачная отчётность</strong> — регулярно сообщаем о ходе поиска; если подходящих кандидатов нет — честно предупреждаем.</li>
             </ul>
 
-            <div className="mt-6 rounded-xl border border-ink/10 bg-white p-5">
+            <div className="rounded-xl border border-ink/10 bg-paper p-5">
               <label className="text-sm font-medium text-ink/70">
                 Оклад кандидата, ₽/мес
                 <input
@@ -193,22 +258,37 @@ export default function KadryHome() {
               </label>
               <div className="mt-1 text-sm text-ink/60">{salary.toLocaleString('ru-RU')} ₽/мес</div>
               <div className="mt-4 grid grid-cols-3 gap-3 text-center">
-                <div className="rounded-lg bg-paper p-3">
+                <div className="rounded-lg bg-white p-3">
                   <div className="text-xs text-ink/50">Комиссия 30%</div>
                   <div className="mt-1 font-semibold">{fee.toLocaleString('ru-RU')} ₽</div>
                 </div>
-                <div className="rounded-lg bg-paper p-3">
+                <div className="rounded-lg bg-white p-3">
                   <div className="text-xs text-ink/50">75% предоплата</div>
                   <div className="mt-1 font-semibold">{prepay.toLocaleString('ru-RU')} ₽</div>
                 </div>
-                <div className="rounded-lg bg-paper p-3">
+                <div className="rounded-lg bg-white p-3">
                   <div className="text-xs text-ink/50">25% после срока</div>
                   <div className="mt-1 font-semibold">{afterProbation.toLocaleString('ru-RU')} ₽</div>
                 </div>
               </div>
             </div>
           </div>
+        </div>
+      </section>
 
+      {/* FAQ */}
+      <FAQSection items={faqItems} />
+
+      {/* CTA */}
+      <CTASection
+        title="Расскажите о вакансии"
+        description="Обсудим задачу и запустим поиск уже сегодня."
+        ctaLabel="Оставить заявку"
+        ctaTo="#lead-form"
+      />
+
+      <section id="lead-form" className="container-page scroll-mt-16 py-12">
+        <div className="mx-auto max-w-xl">
           <LeadForm
             sourceBlock="kadry"
             formType="employer_request"
