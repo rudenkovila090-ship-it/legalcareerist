@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { Link } from 'react-router-dom'
 import PageHero from '../../components/PageHero'
 import Testimonials from '../../components/Testimonials'
 import { employerTestimonials } from '../../data/testimonials'
@@ -96,6 +97,48 @@ function IconBriefcase() {
     </svg>
   )
 }
+function IconUsers() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <circle cx="9" cy="8" r="3" />
+      <path d="M2.5 19c0-3.3 2.9-5.5 6.5-5.5S15.5 15.7 15.5 19" />
+      <circle cx="17" cy="8.5" r="2.3" />
+      <path d="M16 13.6c2.7.4 4.5 2.3 4.5 5.4" />
+    </svg>
+  )
+}
+function IconBook() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <path d="M4 5.5c1.5-1 4-1.3 6-.5v14c-2-.8-4.5-.5-6 .5v-14z" />
+      <path d="M20 5.5c-1.5-1-4-1.3-6-.5v14c2-.8 4.5-.5 6 .5v-14z" />
+    </svg>
+  )
+}
+function IconAccountCircle() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <circle cx="12" cy="12" r="9" />
+      <circle cx="12" cy="10" r="3" />
+      <path d="M6 18.5c1.2-2.3 3.4-3.5 6-3.5s4.8 1.2 6 3.5" />
+    </svg>
+  )
+}
+
+const employerTabs = [
+  { id: 'recruiting', label: 'Рекрутинг', icon: IconBriefcase },
+  { id: 'candidates', label: 'Кандидаты', icon: IconUsers },
+  { id: 'knowledge', label: 'База знаний', icon: IconBook },
+  { id: 'account', label: 'Личный кабинет', icon: IconAccountCircle },
+] as const
+
+// Демо-профили кандидатов для вкладки «Кандидаты» — обезличенные карточки,
+// контакт открывается за отдельную плату (демо: лид с интересом к анкете).
+const demoCandidates = [
+  { id: 1, title: 'Помощник юриста', spec: 'Корпоративное право', exp: '1 год опыта', city: 'Москва', salary: 'от 45 000 ₽', tags: ['Диплом бакалавра', 'Готов к офису'] },
+  { id: 2, title: 'Младший юрист', spec: 'Банкротство', exp: '2 года опыта', city: 'Санкт-Петербург', salary: 'от 70 000 ₽', tags: ['Опыт в арбитраже', 'Готов к разъездам'] },
+  { id: 3, title: 'Секретарь судебного заседания', spec: 'Процессуальное право', exp: 'без опыта', city: 'Москва', salary: 'от 40 000 ₽', tags: ['Выпускник 2026', 'Готов к обучению'] },
+]
 
 const valueProps = [
   { icon: IconClock, title: 'Не тратите время на поиск', text: 'Размещение вакансии, отсев нерелевантных откликов, десятки собеседований — берем на себя.' },
@@ -194,6 +237,21 @@ export default function KadryHome() {
     setSent(true)
   }
 
+  const [tab, setTab] = useState<(typeof employerTabs)[number]['id']>('recruiting')
+  const [openCandidate, setOpenCandidate] = useState<number | null>(null)
+  const [unlocked, setUnlocked] = useState<Record<number, boolean>>({})
+
+  function handleUnlock(id: number) {
+    submitLead({
+      sourceBlock: 'kadry',
+      formType: 'candidate_contact_unlock',
+      name: 'Работодатель',
+      contact: '—',
+      interest: [`Открыть контакт кандидата #${id} — 500 ₽`],
+    })
+    setUnlocked((u) => ({ ...u, [id]: true }))
+  }
+
   return (
     <div className="bg-ink text-white">
       <SectionRail items={railItems} dark />
@@ -206,6 +264,112 @@ export default function KadryHome() {
           description="Подбор помощников, младших юристов, офис-менеджеров — быстро и точно."
         />
       </div>
+
+      {/* Вкладки раздела: рекрутинг / кандидаты / база знаний / личный кабинет */}
+      <div className="container-page py-8">
+        <div className="flex flex-wrap gap-3">
+          {employerTabs.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => setTab(t.id)}
+              className={`flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition-colors ${
+                tab === t.id ? 'bg-white text-ink' : 'border border-white/25 text-white/70 hover:text-white'
+              }`}
+            >
+              <t.icon />
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {tab === 'candidates' && (
+        <section className="container-page pb-16">
+          <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold-light">Кандидаты</div>
+          <h2 className="mb-6 text-2xl font-semibold text-white">Свежие анкеты из кадрового резерва</h2>
+          <div className="grid gap-4 sm:grid-cols-3">
+            {demoCandidates.map((c) => {
+              const isOpen = openCandidate === c.id
+              const isUnlocked = unlocked[c.id]
+              return (
+                <div key={c.id} className="glass-dark flex flex-col rounded-xl p-5">
+                  <div className="font-semibold text-white">{c.title}</div>
+                  <div className="mt-1 text-sm text-white/60">{c.spec} · {c.exp}</div>
+                  <div className="mt-1 text-sm text-white/40">{c.city} · {c.salary}</div>
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {c.tags.map((tag) => (
+                      <span key={tag} className="rounded-full bg-white/10 px-2.5 py-1 text-xs text-white/70">{tag}</span>
+                    ))}
+                  </div>
+
+                  {isOpen && (
+                    <div className="mt-4 border-t border-white/10 pt-4">
+                      {isUnlocked ? (
+                        <div className="rounded-lg bg-emerald-400/10 p-3 text-sm text-emerald-200">
+                          Заявка на контакт отправлена — свяжемся для оплаты и передачи анкеты.
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleUnlock(c.id)}
+                          className="w-full rounded-full bg-gold-light py-2.5 text-sm font-semibold text-ink hover:opacity-90"
+                        >
+                          Открыть контакт — 500 ₽
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => setOpenCandidate(isOpen ? null : c.id)}
+                    className="mt-4 text-sm font-medium text-gold-light hover:text-white"
+                  >
+                    {isOpen ? 'Свернуть' : 'Посмотреть еще'}
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+          <p className="mt-6 text-sm text-white/40">
+            Показаны 3 анкеты из кадрового резерва — полная база доступна после оставленной заявки.
+          </p>
+        </section>
+      )}
+
+      {tab === 'knowledge' && (
+        <section className="container-page pb-16">
+          <div className="glass-dark rounded-2xl p-8 text-center">
+            <div className="text-sm font-medium uppercase tracking-wide text-gold-light">База знаний</div>
+            <h2 className="mt-2 text-2xl font-semibold text-white">Статьи, FAQ и чек-листы по подбору</h2>
+            <p className="mx-auto mt-2 max-w-md text-sm text-white/60">
+              Материалы для работодателей и соискателей юридического рынка.
+            </p>
+            <Link to="/kadry/knowledge" className="mt-5 inline-block rounded-full bg-gold-light px-6 py-2.5 text-sm font-semibold text-ink hover:opacity-90">
+              Перейти в базу знаний
+            </Link>
+          </div>
+        </section>
+      )}
+
+      {tab === 'account' && (
+        <section className="container-page pb-16">
+          <div className="glass-dark rounded-2xl p-8 text-center">
+            <div className="text-sm font-medium uppercase tracking-wide text-gold-light">Личный кабинет</div>
+            <h2 className="mt-2 text-2xl font-semibold text-white">Заявки, статусы и документы в одном месте</h2>
+            <p className="mx-auto mt-2 max-w-md text-sm text-white/60">
+              Сквозной личный кабинет для работодателей и соискателей — демо-каркас раздела.
+            </p>
+            <Link to="/account" className="mt-5 inline-block rounded-full bg-gold-light px-6 py-2.5 text-sm font-semibold text-ink hover:opacity-90">
+              Перейти в личный кабинет
+            </Link>
+          </div>
+        </section>
+      )}
+
+      {tab === 'recruiting' && (
+      <>
 
       <section className="container-page py-12">
         <div className="grid gap-3 sm:grid-cols-4">
@@ -557,6 +721,8 @@ export default function KadryHome() {
           </div>
         </div>
       </section>
+      </>
+      )}
     </div>
   )
 }

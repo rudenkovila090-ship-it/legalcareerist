@@ -3,7 +3,17 @@ import { NavLink, useLocation } from 'react-router-dom'
 const nav = [
   { to: '/kadry/employers', label: 'Кадры' },
   { to: '/community', label: 'Сообщество' },
+  { to: '/events', label: 'Мероприятия' },
 ]
+
+function IconAccount() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+      <circle cx="12" cy="8" r="3.5" />
+      <path d="M4.5 20c0-3.9 3.4-6.5 7.5-6.5s7.5 2.6 7.5 6.5" />
+    </svg>
+  )
+}
 
 const kadryAudience = [
   { to: '/kadry/employers', label: 'Работодателям' },
@@ -45,10 +55,11 @@ export default function Header() {
 
         <div className="flex items-center gap-3">
           <NavLink
-            to="/community"
-            className="rounded-full bg-ink px-4 py-2 text-sm font-medium text-white hover:bg-ink/90"
+            to="/account"
+            className="flex items-center gap-2 rounded-full bg-ink px-4 py-2 text-sm font-medium text-white hover:bg-ink/90"
           >
-            Вступить в сообщество
+            <IconAccount />
+            Личный кабинет
           </NavLink>
         </div>
       </div>

@@ -41,6 +41,48 @@ const railItems = [
   { id: 'faq', label: 'FAQ' },
 ]
 
+function IconList() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+      <path d="M8 6.5h12M8 12h12M8 17.5h12" />
+      <circle cx="3.5" cy="6.5" r="1" fill="currentColor" stroke="none" />
+      <circle cx="3.5" cy="12" r="1" fill="currentColor" stroke="none" />
+      <circle cx="3.5" cy="17.5" r="1" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
+function IconStar() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+      <path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.9-5.2-2.8-5.2 2.8 1-5.9-4.3-4.1 5.9-.8z" />
+    </svg>
+  )
+}
+function IconArchive() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+      <rect x="3.5" y="4.5" width="17" height="4.5" rx="1" />
+      <path d="M4.5 9v9a1.5 1.5 0 0 0 1.5 1.5h12A1.5 1.5 0 0 0 19.5 18V9" />
+      <path d="M10 13h4" />
+    </svg>
+  )
+}
+function IconBook2() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+      <path d="M4 5.5c1.5-1 4-1.3 6-.5v14c-2-.8-4.5-.5-6 .5v-14z" />
+      <path d="M20 5.5c-1.5-1-4-1.3-6-.5v14c2-.8 4.5-.5 6 .5v-14z" />
+    </svg>
+  )
+}
+
+const quickLinks = [
+  { to: '/kadry/vacancies', label: 'Вакансии', icon: IconList },
+  { to: '#services', label: 'Услуги', icon: IconStar },
+  { to: '/kadry/candidates/reserve', label: 'Кадровый резерв', icon: IconArchive },
+  { to: '/kadry/knowledge', label: 'База знаний', icon: IconBook2 },
+]
+
 export default function Candidates() {
   return (
     <div>
@@ -53,6 +95,20 @@ export default function Candidates() {
           title="Ищете работу или карьерный ориентир? Мы рядом на каждом шаге"
           description="Подбор вакансий, карьерные консультации — для студентов, юристов и начинающих специалистов юридического рынка."
         />
+      </div>
+
+      {/* Быстрые переходы по разделу */}
+      <div className="container-page flex flex-wrap gap-3 py-8">
+        {quickLinks.map((l) => (
+          <Link
+            key={l.label}
+            to={l.to}
+            className="flex items-center gap-2 rounded-full border border-ink/15 px-4 py-2 text-sm font-medium text-ink/70 hover:border-ink/30 hover:text-ink"
+          >
+            <l.icon />
+            {l.label}
+          </Link>
+        ))}
       </div>
 
       {/* Преимущества */}
