@@ -17,6 +17,8 @@ import Materials from './pages/events/Materials'
 import MaterialDetail from './pages/events/MaterialDetail'
 import Account from './pages/Account'
 import Contacts from './pages/Contacts'
+import Privacy from './pages/legal/Privacy'
+import Consent from './pages/legal/Consent'
 
 export default function App() {
   return (
@@ -81,6 +83,10 @@ export default function App() {
 
         {/* Сквозной личный кабинет */}
         <Route path="/account" element={<Account />} />
+
+        {/* Юридические документы */}
+        <Route path="/legal/privacy" element={<Privacy />} />
+        <Route path="/legal/consent" element={<Consent />} />
       </Route>
     </Routes>
   )

@@ -8,41 +8,45 @@ export default function Footer() {
         <div>
           <div className="mb-3 text-lg font-semibold text-white">Карьерный Юрист</div>
           <p className="text-sm leading-relaxed text-white/60">
-            Кадры, сообщество и мероприятия для юридического рынка — под одним брендом.
+            Кадровое агентство и сообщество для юридического рынка — под одним брендом.
           </p>
         </div>
 
         <div>
           <div className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">Кадры</div>
           <ul className="space-y-2 text-sm">
-            <li><Link className="hover:text-white" to="/kadry/vacancies">Вакансии</Link></li>
-            <li><Link className="hover:text-white" to="/kadry/candidates">Соискателям</Link></li>
-            <li><Link className="hover:text-white" to="/kadry/employers">Работодателям</Link></li>
-            <li><Link className="hover:text-white" to="/kadry/salary">Зарплатный навигатор</Link></li>
-            <li><Link className="hover:text-white" to="/kadry/knowledge">База знаний</Link></li>
+            <li><Link className="hover:text-white" to="/#kadry">Найти сотрудника</Link></li>
+            <li><Link className="hover:text-white" to="/kadry/vacancies">Вакансии (прототип)</Link></li>
+            <li><Link className="hover:text-white" to="/kadry/salary">Зарплатный навигатор (прототип)</Link></li>
           </ul>
         </div>
 
         <div>
-          <div className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">Сообщество и мероприятия</div>
+          <div className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">Сообщество</div>
           <ul className="space-y-2 text-sm">
-            <li><Link className="hover:text-white" to="/community">Клубы сообщества</Link></li>
-            <li><Link className="hover:text-white" to="/events">Все мероприятия</Link></li>
-            <li><Link className="hover:text-white" to="/events/materials">Полезные материалы</Link></li>
+            <li><Link className="hover:text-white" to="/#community">Вступить в сообщество</Link></li>
+            <li><Link className="hover:text-white" to="/community">Клубы (прототип)</Link></li>
+            <li><Link className="hover:text-white" to="/events">Мероприятия (прототип)</Link></li>
           </ul>
         </div>
 
         <div>
           <div className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">Контакты</div>
           <ul className="space-y-2 text-sm text-white/60">
-            <li>hello@career-lawyer.example</li>
-            <li>+7 495 000-00-00</li>
-            <li>Telegram: @career_lawyer_bot</li>
+            <li><a className="hover:text-white" href="mailto:info@legalcareerist.ru">info@legalcareerist.ru</a></li>
+            <li><a className="hover:text-white" href="tel:+79214397031">8 (921) 439-70-31</a></li>
+            <li><a className="hover:text-white" href="https://t.me/legalcareerst_support" target="_blank" rel="noreferrer">Telegram: @legalcareerst_support</a></li>
           </ul>
         </div>
       </div>
-      <div className="border-t border-white/10 py-5 text-center text-xs text-white/40">
-        © {new Date().getFullYear()} Карьерный Юрист. Демонстрационный макет.
+      <div className="border-t border-white/10 py-5">
+        <div className="container-page flex flex-col items-center justify-between gap-3 text-xs text-white/40 sm:flex-row">
+          <span>© {new Date().getFullYear()} ИП Руденков И.В. Карьерный Юрист.</span>
+          <span className="flex gap-4">
+            <Link className="hover:text-white/70" to="/legal/privacy">Политика обработки персональных данных</Link>
+            <Link className="hover:text-white/70" to="/legal/consent">Согласия на обработку данных</Link>
+          </span>
+        </div>
       </div>
     </footer>
   )
