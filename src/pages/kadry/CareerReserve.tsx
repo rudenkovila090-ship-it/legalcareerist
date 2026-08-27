@@ -80,7 +80,7 @@ const railItems = [
   { id: 'faq', label: 'FAQ' },
 ]
 
-export default function CareerReserve() {
+export default function CareerReserve({ embedded = false }: { embedded?: boolean }) {
   const [form, setForm] = useState({ name: '', email: '', phone: '', telegram: '', position: '' })
   const [resumeFile, setResumeFile] = useState<File | null>(null)
   const [sent, setSent] = useState(false)
@@ -117,25 +117,29 @@ export default function CareerReserve() {
 
   return (
     <div>
-      <SectionRail items={railItems} />
+      {!embedded && <SectionRail items={railItems} />}
 
-      <div id="hero">
-        <PageHero
-          eyebrow="Кадры · Соискателям"
-          title="Кадровый резерв: бесплатный подбор работы для юристов"
-          description="Подайте заявку один раз — мы будем предлагать вам релевантные вакансии, пока не найдется подходящая."
-        />
-      </div>
+      {!embedded && (
+        <div id="hero">
+          <PageHero
+            eyebrow="Кадры · Соискателям"
+            title="Кадровый резерв: бесплатный подбор работы для юристов"
+            description="Подайте заявку один раз — мы будем предлагать вам релевантные вакансии, пока не найдется подходящая."
+          />
+        </div>
+      )}
 
-      <div className="container-page flex flex-wrap gap-3 pt-8">
-        <Link to="/kadry/candidates" className="rounded-full border border-ink/15 px-4 py-1.5 text-sm font-medium text-ink/60 hover:text-ink">
-          ← Соискателям
-        </Link>
-        <span className="rounded-full bg-ink px-4 py-1.5 text-sm font-medium text-white">Кадровый резерв</span>
-        <Link to="/kadry/candidates/consultation" className="rounded-full border border-ink/15 px-4 py-1.5 text-sm font-medium text-ink/60 hover:text-ink">
-          Карьерная консультация
-        </Link>
-      </div>
+      {!embedded && (
+        <div className="container-page flex flex-wrap gap-3 pt-8">
+          <Link to="/kadry/candidates" className="rounded-full border border-ink/15 px-4 py-1.5 text-sm font-medium text-ink/60 hover:text-ink">
+            ← Соискателям
+          </Link>
+          <span className="rounded-full bg-ink px-4 py-1.5 text-sm font-medium text-white">Кадровый резерв</span>
+          <Link to="/kadry/candidates/consultation" className="rounded-full border border-ink/15 px-4 py-1.5 text-sm font-medium text-ink/60 hover:text-ink">
+            Карьерная консультация
+          </Link>
+        </div>
+      )}
 
       {/* Соц. доказательства */}
       <section className="container-page py-12">

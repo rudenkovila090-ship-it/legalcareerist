@@ -85,19 +85,19 @@ export default function Home() {
             находить работу и строить карьеру через сообщества, мероприятия и консультации.
           </p>
           <div className="mx-auto mt-8 grid max-w-3xl gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Link to="/kadry/employers" className="rounded-2xl border-2 border-ink bg-white p-5 text-center shadow-lg transition-all hover:-translate-y-0.5 hover:bg-[#eef2f8]">
+            <Link to="/kadry/employers" className="rounded-2xl border-2 border-ink bg-white p-5 text-center shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-[0_0_0_8px_rgba(111,147,196,0.18)]">
               <div className="text-lg font-semibold">Кадры</div>
               <div className="mt-1 text-sm text-ink/60">Найдем сотрудника</div>
             </Link>
-            <Link to="/community" className="rounded-2xl border-2 border-ink bg-white p-5 text-center shadow-lg transition-all hover:-translate-y-0.5 hover:bg-[#eef2f8]">
+            <Link to="/community" className="rounded-2xl border-2 border-ink bg-white p-5 text-center shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-[0_0_0_8px_rgba(111,147,196,0.18)]">
               <div className="text-lg font-semibold">Сообщество</div>
               <div className="mt-1 text-sm text-ink/60">Студент или начинающий юрист?</div>
             </Link>
-            <Link to="/events" className="rounded-2xl border-2 border-ink bg-white p-5 text-center shadow-lg transition-all hover:-translate-y-0.5 hover:bg-[#eef2f8]">
+            <Link to="/events" className="rounded-2xl border-2 border-ink bg-white p-5 text-center shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-[0_0_0_8px_rgba(111,147,196,0.18)]">
               <div className="text-lg font-semibold">Мероприятия</div>
               <div className="mt-1 text-sm text-ink/60">События для студентов-юристов</div>
             </Link>
-            <Link to="/marketplace" className="rounded-2xl border-2 border-ink bg-white p-5 text-center shadow-lg transition-all hover:-translate-y-0.5 hover:bg-[#eef2f8]">
+            <Link to="/marketplace" className="rounded-2xl border-2 border-ink bg-white p-5 text-center shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-[0_0_0_8px_rgba(111,147,196,0.18)]">
               <div className="text-lg font-semibold">Marketplace</div>
               <div className="mt-1 text-sm text-ink/60">Каталог полезных материалов</div>
             </Link>
@@ -179,7 +179,7 @@ export default function Home() {
               <p className="mt-2 font-medium text-ink">
                 Помочь не просто найти работу или сотрудника, а осознанно построить карьеру.
               </p>
-              <div className="pointer-events-none absolute inset-0 overflow-y-auto bg-ink/95 p-5 text-sm leading-relaxed text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+              <div className="pointer-events-none absolute inset-0 overflow-y-auto bg-ink/95 p-5 text-sm leading-relaxed text-white opacity-0 transition-opacity duration-200 group-hover:pointer-events-auto group-hover:opacity-100">
                 Миссия «Карьерного юриста» — не просто помочь человеку найти работу, определиться с
                 направлением или найти себе сотрудника. Гораздо важнее — помочь осознанно выбрать
                 профессию, подготовиться к выбору области профессиональной деятельности, построить
@@ -192,7 +192,7 @@ export default function Home() {
               <p className="mt-2 font-medium text-ink">
                 Развивать юридическое сообщество, где профессиональный рост — естественный процесс.
               </p>
-              <div className="pointer-events-none absolute inset-0 overflow-y-auto bg-ink/95 p-5 text-sm leading-relaxed text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+              <div className="pointer-events-none absolute inset-0 overflow-y-auto bg-ink/95 p-5 text-sm leading-relaxed text-white opacity-0 transition-opacity duration-200 group-hover:pointer-events-auto group-hover:opacity-100">
                 Наша цель гораздо шире, чем проведение отдельных мероприятий и закрытие вакансий. Мы
                 стремимся развивать юридическое сообщество, в котором студентам и молодым юристам
                 доступны реальные возможности для роста. Мы хотим помогать строить карьеру через

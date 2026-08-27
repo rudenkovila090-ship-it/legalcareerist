@@ -215,7 +215,7 @@ const railItems = [
   { id: 'faq', label: 'FAQ' },
 ]
 
-export default function CareerConsultation() {
+export default function CareerConsultation({ embedded = false }: { embedded?: boolean }) {
   const [selected, setSelected] = useState<Record<string, boolean>>({})
   const [promo, setPromo] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
@@ -277,25 +277,29 @@ export default function CareerConsultation() {
 
   return (
     <div>
-      <SectionRail items={railItems} />
+      {!embedded && <SectionRail items={railItems} />}
 
-      <div id="hero">
-        <PageHero
-          eyebrow="Кадры · Соискателям"
-          title="Карьерная консультация: понятный план вместо общих советов"
-          description="Разбираем вашу карьерную ситуацию, готовим к собеседованиям и помогаем выстроить стратегию поиска работы — соберите свой набор услуг под задачу."
-        />
-      </div>
+      {!embedded && (
+        <div id="hero">
+          <PageHero
+            eyebrow="Кадры · Соискателям"
+            title="Карьерная консультация: понятный план вместо общих советов"
+            description="Разбираем вашу карьерную ситуацию, готовим к собеседованиям и помогаем выстроить стратегию поиска работы — соберите свой набор услуг под задачу."
+          />
+        </div>
+      )}
 
-      <div className="container-page flex flex-wrap gap-3 pt-8">
-        <Link to="/kadry/candidates" className="rounded-full border border-ink/15 px-4 py-1.5 text-sm font-medium text-ink/60 hover:text-ink">
-          ← Соискателям
-        </Link>
-        <Link to="/kadry/candidates/reserve" className="rounded-full border border-ink/15 px-4 py-1.5 text-sm font-medium text-ink/60 hover:text-ink">
-          Кадровый резерв
-        </Link>
-        <span className="rounded-full bg-ink px-4 py-1.5 text-sm font-medium text-white">Карьерная консультация</span>
-      </div>
+      {!embedded && (
+        <div className="container-page flex flex-wrap gap-3 pt-8">
+          <Link to="/kadry/candidates" className="rounded-full border border-ink/15 px-4 py-1.5 text-sm font-medium text-ink/60 hover:text-ink">
+            ← Соискателям
+          </Link>
+          <Link to="/kadry/candidates/reserve" className="rounded-full border border-ink/15 px-4 py-1.5 text-sm font-medium text-ink/60 hover:text-ink">
+            Кадровый резерв
+          </Link>
+          <span className="rounded-full bg-ink px-4 py-1.5 text-sm font-medium text-white">Карьерная консультация</span>
+        </div>
+      )}
 
       {/* Проводит консультацию — первым делом знакомим с консультантом */}
       <section className="container-page py-12">

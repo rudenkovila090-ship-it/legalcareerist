@@ -1,24 +1,20 @@
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import PageHero from '../../components/PageHero'
 import Testimonials from '../../components/Testimonials'
 import { consultationTestimonials } from '../../data/testimonials'
 import FAQSection from '../../components/FAQSection'
-import SectionRail from '../../components/SectionRail'
+import { VacancyCard } from '../../components/cards'
+import { vacancies } from '../../data/vacancies'
+import { SPECIALIZATIONS, type Specialization, type WorkFormat } from '../../types'
+import KnowledgeList from '../KnowledgeList'
+import CareerReserve from './CareerReserve'
+import CareerConsultation from './CareerConsultation'
 
 const benefits = [
   { title: 'Подбор работы без лишних хлопот', text: 'Берем переговоры с работодателем на себя и сопровождаем вас от заявки до выхода на позицию.' },
   { title: 'Только юридический рынок', text: 'Понимаем специфику профессии — говорим с вами на одном языке с первого дня.' },
   { title: 'Поддержка на каждом этапе', text: 'От первой заявки до выхода на позицию — или от разбора карьерной ситуации до плана действий.' },
-]
-
-const services = [
-  {
-    to: '/kadry/candidates/consultation',
-    tag: 'От 1 500 ₽',
-    title: 'Карьерная консультация',
-    text: 'Разбор карьерной ситуации, подготовка к собеседованию, аудит резюме и другие услуги — соберите свой набор под задачу.',
-    cta: 'Выбрать консультацию',
-  },
 ]
 
 const faqItems = [
@@ -27,13 +23,14 @@ const faqItems = [
   { q: 'Как быстрее получить доступ к вакансиям?', a: 'Резиденты Сообщества видят новые вакансии первыми — раньше кадрового резерва и открытого рынка.' },
 ]
 
-const railItems = [
-  { id: 'hero', label: 'Соискателям' },
-  { id: 'services', label: 'Карьерная консультация' },
-  { id: 'reviews', label: 'Отзывы' },
-  { id: 'faq', label: 'FAQ' },
-]
-
+function IconHome() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+      <path d="M4 11.5L12 4l8 7.5" />
+      <path d="M6 10v9h12v-9" />
+    </svg>
+  )
+}
 function IconList() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
@@ -68,113 +65,201 @@ function IconBook2() {
     </svg>
   )
 }
-function IconWallet() {
+function IconAccountCircle() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
-      <rect x="3" y="6" width="18" height="13" rx="2" />
-      <path d="M3 10h18" />
-      <circle cx="16.5" cy="14" r="1" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="12" r="9" />
+      <circle cx="12" cy="10" r="3" />
+      <path d="M6 18.5c1.2-2.3 3.4-3.5 6-3.5s4.8 1.2 6 3.5" />
     </svg>
   )
 }
 
-const quickLinks = [
-  { to: '/kadry/vacancies', label: 'Вакансии', icon: IconList },
-  { to: '#services', label: 'Карьерная консультация', icon: IconStar },
-  { to: '/kadry/candidates/reserve', label: 'Кадровый резерв', icon: IconArchive },
-  { to: '/kadry/knowledge', label: 'База знаний', icon: IconBook2 },
-  { to: '/kadry/salary', label: 'Зарплатный навигатор', icon: IconWallet },
+const candidateTabs = [
+  { id: 'overview', label: 'Обзор', icon: IconHome },
+  { id: 'vacancies', label: 'Вакансии', icon: IconList },
+  { id: 'consultation', label: 'Карьерная консультация', icon: IconStar },
+  { id: 'reserve', label: 'Кадровый резерв', icon: IconArchive },
+  { id: 'knowledge', label: 'База знаний', icon: IconBook2 },
+  { id: 'account', label: 'Личный кабинет', icon: IconAccountCircle },
+] as const
+
+const formats: { id: WorkFormat | 'any'; label: string }[] = [
+  { id: 'any', label: 'Любой формат' },
+  { id: 'office', label: 'Офис' },
+  { id: 'remote', label: 'Удаленно' },
+  { id: 'hybrid', label: 'Гибрид' },
 ]
 
 export default function Candidates() {
+  const [tab, setTab] = useState<(typeof candidateTabs)[number]['id']>('overview')
+
+  const [spec, setSpec] = useState<Specialization | 'all'>('all')
+  const [format, setFormat] = useState<WorkFormat | 'any'>('any')
+  const [city, setCity] = useState('')
+
+  const filteredVacancies = useMemo(() => {
+    return vacancies.filter((v) => {
+      if (v.status !== 'open') return false
+      if (spec !== 'all' && !v.specialization.includes(spec)) return false
+      if (format !== 'any' && v.format !== format) return false
+      if (city && !v.city.toLowerCase().includes(city.toLowerCase())) return false
+      return true
+    })
+  }, [spec, format, city])
+
   return (
     <div>
-      <SectionRail items={railItems} />
-
-      <div id="hero">
-        <PageHero
-          wide
-          eyebrow="Кадровое юридическое агентство"
-          title="Ищете работу или карьерный ориентир? Мы рядом на каждом шаге"
-          description="Подбор вакансий, карьерные консультации — для студентов, юристов и начинающих специалистов юридического рынка."
-        />
-      </div>
-
-      {/* Быстрые переходы по разделу */}
-      <div className="container-page flex flex-wrap gap-3 py-8">
-        {quickLinks.map((l) => (
-          <Link
-            key={l.label}
-            to={l.to}
-            className="flex items-center gap-2 rounded-full border border-ink/15 px-4 py-2 text-sm font-medium text-ink/70 hover:border-ink/30 hover:text-ink"
-          >
-            <l.icon />
-            {l.label}
-          </Link>
-        ))}
-      </div>
-
-      {/* Преимущества */}
-      <section className="border-y border-ink/10 bg-white py-12">
-        <div className="container-page">
-          <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Преимущества</div>
-          <h2 className="mb-6 text-2xl font-semibold">Почему соискатели обращаются к нам</h2>
-          <div className="grid gap-4 sm:grid-cols-3">
-            {benefits.map((b) => (
-              <div key={b.title} className="glass rounded-xl p-5">
-                <div className="font-semibold">{b.title}</div>
-                <p className="mt-2 text-sm text-ink/60">{b.text}</p>
-              </div>
-            ))}
-          </div>
+      {tab === 'overview' && (
+        <div id="hero">
+          <PageHero
+            wide
+            eyebrow="Кадровое юридическое агентство"
+            title="Ищете работу или карьерный ориентир? Мы рядом на каждом шаге"
+            description="Подбор вакансий, карьерные консультации — для студентов, юристов и начинающих специалистов юридического рынка."
+          />
         </div>
-      </section>
+      )}
 
-      {/* Карьерная консультация */}
-      <section id="services" className="container-page py-12">
-        <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Карьерная консультация</div>
-        <h2 className="mb-6 text-2xl font-semibold">Разбор ситуации и понятный план действий</h2>
-        <div className="mx-auto max-w-md">
-          {services.map((s) => (
-            <Link key={s.to} to={s.to} className="glass flex h-full flex-col rounded-2xl p-6">
-              <span className="inline-block w-fit rounded-full bg-gold-light/25 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-ink">
-                {s.tag}
-              </span>
-              <h3 className="mt-4 text-xl font-semibold">{s.title}</h3>
-              <p className="mt-2 text-sm text-ink/60">{s.text}</p>
-              <span className="mt-8 inline-block w-fit rounded-full bg-ink px-5 py-2 text-sm font-semibold text-white sm:mt-auto sm:pt-0">{s.cta} →</span>
-            </Link>
+      {/* Вкладки раздела — сразу под панелью аудитории «Работодателям / Соискателям» из шапки. */}
+      <div className="container-page py-8">
+        <div className="flex flex-wrap justify-end gap-3">
+          {candidateTabs.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => setTab(t.id)}
+              className={`flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition-colors ${
+                tab === t.id ? 'bg-ink text-white' : 'border border-ink/15 text-ink/60 hover:text-ink'
+              }`}
+            >
+              <t.icon />
+              {t.label}
+            </button>
           ))}
         </div>
-      </section>
-
-      {/* Отзывы */}
-      <div id="reviews">
-        <Testimonials items={consultationTestimonials} compact />
       </div>
 
-      {/* FAQ */}
-      <div id="faq">
-        <FAQSection items={faqItems} title="Частые вопросы" />
-      </div>
+      {tab === 'overview' && (
+        <>
+          {/* Преимущества */}
+          <section className="border-y border-ink/10 bg-white py-12">
+            <div className="container-page">
+              <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Преимущества</div>
+              <h2 className="mb-6 text-2xl font-semibold">Почему соискатели обращаются к нам</h2>
+              <div className="grid gap-4 sm:grid-cols-3">
+                {benefits.map((b) => (
+                  <div key={b.title} className="glass rounded-xl p-5">
+                    <div className="font-semibold">{b.title}</div>
+                    <p className="mt-2 text-sm text-ink/60">{b.text}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
 
-      {/* Доп. призыв к действию */}
-      <section className="container-page pb-16">
-        <div className="rounded-2xl bg-ink px-6 py-10 text-center text-white sm:px-10">
-          <div className="text-xl font-semibold">Не знаете, с чего начать?</div>
-          <p className="mx-auto mt-2 max-w-lg text-sm text-white/70">
-            Напишите в Telegram — подскажем, какая услуга подойдет именно вам.
-          </p>
-          <a
-            href="https://t.me/legalcareerst_support"
-            target="_blank"
-            rel="noreferrer"
-            className="mt-5 inline-block rounded-full bg-gold-light px-6 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-white"
-          >
-            Написать в Telegram
-          </a>
-        </div>
-      </section>
+          {/* Отзывы */}
+          <Testimonials items={consultationTestimonials} compact />
+
+          {/* FAQ */}
+          <FAQSection items={faqItems} title="Частые вопросы" />
+
+          {/* Доп. призыв к действию */}
+          <section className="container-page pb-16">
+            <div className="rounded-2xl bg-ink px-6 py-10 text-center text-white sm:px-10">
+              <div className="text-xl font-semibold">Не знаете, с чего начать?</div>
+              <p className="mx-auto mt-2 max-w-lg text-sm text-white/70">
+                Напишите в Telegram — подскажем, какая услуга подойдет именно вам.
+              </p>
+              <a
+                href="https://t.me/legalcareerst_support"
+                target="_blank"
+                rel="noreferrer"
+                className="mt-5 inline-block rounded-full bg-gold-light px-6 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-white"
+              >
+                Написать в Telegram
+              </a>
+            </div>
+          </section>
+        </>
+      )}
+
+      {tab === 'vacancies' && (
+        <section className="container-page pb-16">
+          <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Вакансии</div>
+          <h2 className="mb-6 text-2xl font-semibold">Доска вакансий</h2>
+          <div className="mb-6 rounded-lg bg-ink/[0.04] p-4 text-sm text-ink/60">
+            Вакансии открываются по приоритету: сначала их видят резиденты Сообщества, затем — кадровый
+            резерв, и только после этого — открытый доступ (см. вкладку «Кадровый резерв»).
+          </div>
+          <div className="glass mb-8 flex flex-wrap items-center gap-3 rounded-xl p-4">
+            <select
+              value={spec}
+              onChange={(e) => setSpec(e.target.value as Specialization | 'all')}
+              className="rounded-lg border border-ink/15 px-3 py-2 text-sm"
+            >
+              <option value="all">Все специализации</option>
+              {SPECIALIZATIONS.map((s) => (
+                <option key={s.id} value={s.id}>{s.label}</option>
+              ))}
+            </select>
+            <select
+              value={format}
+              onChange={(e) => setFormat(e.target.value as WorkFormat | 'any')}
+              className="rounded-lg border border-ink/15 px-3 py-2 text-sm"
+            >
+              {formats.map((f) => (
+                <option key={f.id} value={f.id}>{f.label}</option>
+              ))}
+            </select>
+            <input
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              placeholder="Город"
+              className="rounded-lg border border-ink/15 px-3 py-2 text-sm"
+            />
+            <div className="ml-auto text-sm text-ink/50">{filteredVacancies.length} вакансий</div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {filteredVacancies.map((v) => (
+              <VacancyCard key={v.id} v={v} />
+            ))}
+            {filteredVacancies.length === 0 && <p className="text-ink/50">По заданным фильтрам вакансий не найдено.</p>}
+          </div>
+        </section>
+      )}
+
+      {tab === 'consultation' && <CareerConsultation embedded />}
+      {tab === 'reserve' && <CareerReserve embedded />}
+
+      {tab === 'knowledge' && (
+        <section className="container-page pb-16">
+          <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">База знаний</div>
+          <h2 className="mb-6 text-2xl font-semibold">Статьи, чек-листы и глоссарий для соискателей</h2>
+          <KnowledgeList
+            audience="candidates"
+            eyebrow="Кадры · Соискателям"
+            title="База знаний"
+            compact
+          />
+        </section>
+      )}
+
+      {tab === 'account' && (
+        <section className="container-page pb-16">
+          <div className="rounded-2xl bg-ink px-6 py-10 text-center text-white sm:px-10">
+            <div className="text-sm font-medium uppercase tracking-wide text-gold-light">Личный кабинет</div>
+            <h2 className="mt-2 text-2xl font-semibold">Заявки, статусы и документы в одном месте</h2>
+            <p className="mx-auto mt-2 max-w-md text-sm text-white/70">
+              Сквозной личный кабинет для работодателей и соискателей — демо-каркас раздела.
+            </p>
+            <Link to="/account" className="mt-5 inline-block rounded-full bg-gold-light px-6 py-2.5 text-sm font-semibold text-ink hover:opacity-90">
+              Перейти в личный кабинет
+            </Link>
+          </div>
+        </section>
+      )}
     </div>
   )
 }

@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 export default function Footer() {
   return (
     <footer className="border-t border-white/10 bg-ink text-white/80">
-      <div className="container-page grid gap-10 py-14 md:grid-cols-4">
+      <div className="container-page grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-4">
         <div>
           <div className="mb-3 text-lg font-semibold text-white">Карьерный Юрист</div>
           <p className="text-sm leading-relaxed text-white/60">
@@ -17,7 +17,6 @@ export default function Footer() {
           <ul className="space-y-2 text-sm">
             <li><Link className="hover:text-white" to="/kadry/employers">Работодателям</Link></li>
             <li><Link className="hover:text-white" to="/kadry/candidates">Соискателям</Link></li>
-            <li><Link className="hover:text-white" to="/kadry/salary">Зарплатный навигатор (демо-каркас)</Link></li>
           </ul>
         </div>
 
@@ -26,8 +25,22 @@ export default function Footer() {
           <ul className="space-y-2 text-sm">
             <li><Link className="hover:text-white" to="/community">Вступить в сообщество</Link></li>
             <li><Link className="hover:text-white" to="/community/clubs/klub-korporativnogo-prava">Клубы (демо-каркас)</Link></li>
-            <li><Link className="hover:text-white" to="/events">Мероприятия (демо-каркас)</Link></li>
             <li><Link className="hover:text-white" to="/account">Личный кабинет (демо-каркас)</Link></li>
+          </ul>
+        </div>
+
+        <div>
+          <div className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">Мероприятия</div>
+          <ul className="space-y-2 text-sm">
+            <li><Link className="hover:text-white" to="/events">Все мероприятия</Link></li>
+            <li><Link className="hover:text-white" to="/events/materials">Материалы (демо-каркас)</Link></li>
+          </ul>
+        </div>
+
+        <div>
+          <div className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">Маркетплейс</div>
+          <ul className="space-y-2 text-sm">
+            <li><Link className="hover:text-white" to="/marketplace">Каталог полезных материалов</Link></li>
           </ul>
         </div>
 

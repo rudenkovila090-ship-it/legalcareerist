@@ -5,6 +5,7 @@ import Testimonials from '../../components/Testimonials'
 import { employerTestimonials } from '../../data/testimonials'
 import FAQSection from '../../components/FAQSection'
 import SectionRail from '../../components/SectionRail'
+import KnowledgeList from '../KnowledgeList'
 import { submitLead } from '../../lib/leads'
 
 const railItems = [
@@ -134,98 +135,86 @@ const employerTabs = [
 
 // Демо-профили кандидатов для вкладки «Кандидаты» — обезличенные карточки,
 // контакт открывается за отдельную плату (демо: лид с интересом к анкете).
-const demoCandidates = [
+// Опыт работы — структурированно: место работы + 2-3 обязанности; образование — место обучения + курс.
+const candidateTemplates = [
   {
-    id: 1,
-    position: 'Помощник юриста',
-    sphere: 'Корпоративное право',
-    exp: '1 год опыта',
-    city: 'Москва',
-    salaryFrom: '45 000 ₽',
-    school: 'МГУ',
-    schedule: 'Гибкий график',
-    employment: 'Частичная занятость',
-    format: 'Офис',
-    workExp: 'Год работал помощником юриста в корпоративной практике: готовил проекты договоров, вел реестр документов, сопровождал due diligence.',
-    education: 'МГУ, юридический факультет — специалитет, 4 курс.',
-    skills: ['Договорная работа', 'КонсультантПлюс', 'Deal-менеджмент', 'Английский B2'],
+    position: 'Помощник юриста', sphere: 'Корпоративное право', exp: '1 год опыта', salaryFrom: '45 000 ₽',
+    workplace: 'ООО «Правовой партнер»', duties: ['Готовил проекты договоров', 'Вел реестр документов', 'Сопровождал due diligence'],
+    school: 'МГУ', course: '4 курс',
+    skills: ['Договорная работа', 'КонсультантПлюс', 'Английский B2'],
   },
   {
-    id: 2,
-    position: 'Младший юрист',
-    sphere: 'Банкротство',
-    exp: '2 года опыта',
-    city: 'Санкт-Петербург',
-    salaryFrom: '70 000 ₽',
-    school: 'СПбГУ',
-    schedule: 'Полный день',
-    employment: 'Полная занятость',
-    format: 'Гибрид',
-    workExp: '2 года в банкротной практике: сопровождал процедуры наблюдения и конкурсного производства, готовил заявления о включении в реестр.',
-    education: 'СПбГУ, юридический факультет — бакалавриат, выпуск 2024.',
-    skills: ['Банкротное право', 'Арбитражный процесс', 'Kad.Arbitr', 'Подготовка процессуальных документов'],
+    position: 'Младший юрист', sphere: 'Банкротство', exp: '2 года опыта', salaryFrom: '70 000 ₽',
+    workplace: 'АБ «Северная коллегия»', duties: ['Сопровождал процедуры наблюдения', 'Готовил заявления о включении в реестр', 'Взаимодействовал с арбитражным управляющим'],
+    school: 'СПбГУ', course: 'выпускник 2024',
+    skills: ['Банкротное право', 'Арбитражный процесс', 'Kad.Arbitr'],
   },
   {
-    id: 3,
-    position: 'Секретарь судебного заседания',
-    sphere: 'Процессуальное право',
-    exp: 'без опыта',
-    city: 'Москва',
-    salaryFrom: '40 000 ₽',
-    school: 'МГЮА',
-    schedule: 'Полный день',
-    employment: 'Полная занятость',
-    format: 'Офис',
-    workExp: 'Опыта работы пока нет — проходил учебную практику в районном суде, участвовал в подготовке протоколов заседаний.',
-    education: 'МГЮА, юридический факультет — 4 курс.',
+    position: 'Секретарь судебного заседания', sphere: 'Процессуальное право', exp: 'без опыта', salaryFrom: '40 000 ₽',
+    workplace: 'учебная практика в районном суде', duties: ['Готовил протоколы заседаний', 'Вел делопроизводство'],
+    school: 'МГЮА', course: '4 курс',
     skills: ['Делопроизводство', 'ГПК РФ', 'Внимательность к деталям'],
   },
   {
-    id: 4,
-    position: 'Офис-менеджер',
-    sphere: 'Административная поддержка',
-    exp: '3 года опыта',
-    city: 'Москва',
-    salaryFrom: '55 000 ₽',
-    school: 'МГЮА',
-    schedule: 'Полный день',
-    employment: 'Полная занятость',
-    format: 'Офис',
-    workExp: '3 года administrирует работу небольшой юридической фирмы: документооборот, взаимодействие с клиентами, организация встреч.',
-    education: 'МГЮА, юридический факультет — бакалавриат, выпуск 2022.',
+    position: 'Офис-менеджер', sphere: 'Административная поддержка', exp: '3 года опыта', salaryFrom: '55 000 ₽',
+    workplace: 'Юридическая фирма «Гарант-Право»', duties: ['Вел документооборот', 'Организовывал встречи', 'Взаимодействовал с клиентами'],
+    school: 'МГЮА', course: 'выпускник 2022',
     skills: ['Документооборот', 'MS Office', 'Организация процессов'],
   },
   {
-    id: 5,
-    position: 'Помощник адвоката',
-    sphere: 'Уголовное право',
-    exp: '1 год опыта',
-    city: 'Санкт-Петербург',
-    salaryFrom: '35 000 ₽',
-    school: 'СПбГУ',
-    schedule: 'Гибкий график',
-    employment: 'Частичная занятость',
-    format: 'Гибрид',
-    workExp: 'Год ассистировал адвокату по уголовным делам: готовил ходатайства, изучал материалы дел, сопровождал на следственных действиях.',
-    education: 'СПбГУ, юридический факультет — 3 курс.',
+    position: 'Помощник адвоката', sphere: 'Уголовное право', exp: '1 год опыта', salaryFrom: '35 000 ₽',
+    workplace: 'Адвокатский кабинет', duties: ['Готовил ходатайства', 'Изучал материалы дел', 'Сопровождал на следственных действиях'],
+    school: 'СПбГУ', course: '3 курс',
     skills: ['Уголовный процесс', 'Работа с материалами дела', 'Стрессоустойчивость'],
   },
   {
-    id: 6,
-    position: 'Помощник арбитражного управляющего',
-    sphere: 'Банкротство',
-    exp: '2 года опыта',
-    city: 'Москва',
-    salaryFrom: '60 000 ₽',
-    school: 'МГУ',
-    schedule: 'Полный день',
-    employment: 'Полная занятость',
-    format: 'Дистанционно',
-    workExp: '2 года сопровождал процедуры банкротства физлиц и юрлиц: инвентаризация имущества, торги, отчетность перед кредиторами.',
-    education: 'МГУ, юридический факультет — бакалавриат, выпуск 2023.',
+    position: 'Помощник арбитражного управляющего', sphere: 'Банкротство', exp: '2 года опыта', salaryFrom: '60 000 ₽',
+    workplace: 'ООО «Финанс-Право»', duties: ['Вел инвентаризацию имущества', 'Готовил отчетность перед кредиторами', 'Сопровождал торги'],
+    school: 'МГУ', course: 'выпускник 2023',
     skills: ['Банкротное право', 'ЕФРСБ', 'Работа с реестром кредиторов'],
   },
+  {
+    position: 'Помощник нотариуса', sphere: 'Нотариат', exp: '1 год опыта', salaryFrom: '50 000 ₽',
+    workplace: 'Нотариальная контора', duties: ['Готовил проекты документов', 'Вел прием посетителей', 'Работал с реестром'],
+    school: 'МГЮА', course: '3 курс',
+    skills: ['Нотариат', 'Делопроизводство', 'Внимательность'],
+  },
+  {
+    position: 'Бизнес-ассистент', sphere: 'Юридический консалтинг', exp: '2 года опыта', salaryFrom: '55 000 ₽',
+    workplace: 'Консалтинговое бюро', duties: ['Организовывал встречи руководителя', 'Готовил отчеты', 'Вел переписку с клиентами'],
+    school: 'СПбГУ', course: 'выпускник 2023',
+    skills: ['Тайм-менеджмент', 'MS Office', 'Деловая переписка'],
+  },
+  {
+    position: 'Помощник патентного поверенного', sphere: 'Интеллектуальная собственность', exp: '1 год опыта', salaryFrom: '50 000 ₽',
+    workplace: 'Патентное бюро', duties: ['Готовил заявки на регистрацию товарных знаков', 'Вел переписку с Роспатентом'],
+    school: 'МГУ', course: '4 курс',
+    skills: ['Интеллектуальная собственность', 'Роспатент', 'Английский B2'],
+  },
+  {
+    position: 'SMM-специалист', sphere: 'Юридический маркетинг', exp: '1 год опыта', salaryFrom: '45 000 ₽',
+    workplace: 'Юридическая фирма «Гарант-Право»', duties: ['Вел социальные сети компании', 'Готовил контент-план', 'Анализировал охваты'],
+    school: 'МГЮА', course: '3 курс',
+    skills: ['SMM', 'Контент-маркетинг', 'Аналитика'],
+  },
 ]
+
+const cities = ['Москва', 'Санкт-Петербург']
+const schedules = ['Гибкий график', 'Полный день']
+const employments = ['Частичная занятость', 'Полная занятость']
+const formats: string[] = ['Офис', 'Гибрид', 'Дистанционно']
+
+const demoCandidates = Array.from({ length: 30 }, (_, i) => {
+  const t = candidateTemplates[i % candidateTemplates.length]
+  return {
+    id: i + 1,
+    ...t,
+    city: cities[i % cities.length],
+    schedule: schedules[i % schedules.length],
+    employment: employments[(i + 1) % employments.length],
+    format: formats[i % formats.length],
+  }
+})
 
 const valueProps = [
   { icon: IconClock, title: 'Не тратите время на поиск', text: 'Размещение вакансии, отсев нерелевантных откликов, десятки собеседований — берем на себя.' },
@@ -325,9 +314,13 @@ export default function KadryHome() {
   }
 
   const [tab, setTab] = useState<(typeof employerTabs)[number]['id']>('recruiting')
-  const [openCandidate, setOpenCandidate] = useState<number | null>(null)
+  const [openCandidates, setOpenCandidates] = useState<Record<number, boolean>>({})
   const [unlocked, setUnlocked] = useState<Record<number, boolean>>({})
   const [visibleCandidates, setVisibleCandidates] = useState(3)
+
+  function toggleCandidate(id: number) {
+    setOpenCandidates((s) => ({ ...s, [id]: !s[id] }))
+  }
 
   function handleUnlock(id: number) {
     submitLead({
@@ -347,7 +340,7 @@ export default function KadryHome() {
       {/* Вкладки раздела: рекрутинг / кандидаты / база знаний / личный кабинет —
           сразу под панелью аудитории «Работодателям / Соискателям» из шапки. */}
       <div className="container-page py-8">
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap justify-end gap-3">
           {employerTabs.map((t) => (
             <button
               key={t.id}
@@ -381,7 +374,7 @@ export default function KadryHome() {
           <h2 className="mb-6 text-2xl font-semibold text-white">Свежие анкеты из кадрового резерва</h2>
           <div className="grid gap-4 sm:grid-cols-3">
             {demoCandidates.slice(0, visibleCandidates).map((c, i) => {
-              const isOpen = openCandidate === c.id
+              const isOpen = !!openCandidates[c.id]
               const isUnlocked = unlocked[c.id]
               return (
                 <div key={c.id} className="glass-dark flex flex-col rounded-xl p-5">
@@ -401,11 +394,14 @@ export default function KadryHome() {
                     <div className="mt-4 space-y-3 border-t border-white/10 pt-4 text-sm">
                       <div>
                         <div className="text-xs font-semibold uppercase tracking-wide text-white/40">Опыт работы</div>
-                        <p className="mt-1 text-white/70">{c.workExp}</p>
+                        <p className="mt-1 text-white/70">{c.workplace}</p>
+                        <ul className="mt-1 space-y-0.5 text-white/60">
+                          {c.duties.map((d) => <li key={d}>· {d}</li>)}
+                        </ul>
                       </div>
                       <div>
                         <div className="text-xs font-semibold uppercase tracking-wide text-white/40">Образование</div>
-                        <p className="mt-1 text-white/70">{c.education}</p>
+                        <p className="mt-1 text-white/70">{c.school}, {c.course}</p>
                       </div>
                       <div>
                         <div className="text-xs font-semibold uppercase tracking-wide text-white/40">Навыки</div>
@@ -433,7 +429,7 @@ export default function KadryHome() {
 
                   <button
                     type="button"
-                    onClick={() => setOpenCandidate(isOpen ? null : c.id)}
+                    onClick={() => toggleCandidate(c.id)}
                     className="mt-4 text-sm font-medium text-gold-light hover:text-white"
                   >
                     {isOpen ? 'Свернуть' : 'Подробнее'}
@@ -456,20 +452,15 @@ export default function KadryHome() {
 
       {tab === 'knowledge' && (
         <section className="container-page pb-16">
-          <div className="glass-dark rounded-2xl p-8">
-            <div className="text-sm font-medium uppercase tracking-wide text-gold-light">База знаний</div>
-            <h2 className="mt-2 text-2xl font-semibold text-white">Гайды, чек-листы, инструкции и статьи по подбору</h2>
-            <p className="mt-2 max-w-md text-sm text-white/60">
-              Материалы для работодателей и соискателей юридического рынка.
-            </p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              {['Гайды', 'Чек-листы', 'Инструкции', 'Статьи'].map((k) => (
-                <span key={k} className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-medium text-white/70">{k}</span>
-              ))}
-            </div>
-            <Link to="/kadry/knowledge" className="mt-5 inline-block rounded-full bg-gold-light px-6 py-2.5 text-sm font-semibold text-ink hover:opacity-90">
-              Перейти в базу знаний
-            </Link>
+          <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold-light">База знаний</div>
+          <h2 className="mb-6 text-2xl font-semibold text-white">Гайды, чек-листы, инструкции и статьи по подбору</h2>
+          <div className="rounded-2xl bg-white p-2 text-ink">
+            <KnowledgeList
+              audience="employers"
+              eyebrow="Кадры · Работодателям"
+              title="База знаний"
+              compact
+            />
           </div>
         </section>
       )}

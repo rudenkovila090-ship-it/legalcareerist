@@ -17,11 +17,14 @@ export default function KnowledgeList({
   eyebrow,
   title,
   description,
+  compact = false,
 }: {
   audience: Audience
   eyebrow: string
   title: string
   description?: string
+  /** Без собственного PageHero — для встраивания внутрь вкладки другой страницы. */
+  compact?: boolean
 }) {
   const [kind, setKind] = useState<ArticleKind | 'all'>('all')
 
@@ -32,8 +35,8 @@ export default function KnowledgeList({
 
   return (
     <div>
-      <PageHero eyebrow={eyebrow} title={title} description={description} prototype />
-      <div className="container-page py-10">
+      {!compact && <PageHero eyebrow={eyebrow} title={title} description={description} prototype />}
+      <div className={compact ? '' : 'container-page py-10'}>
         <div className="mb-8 flex flex-wrap gap-2">
           <button
             onClick={() => setKind('all')}
