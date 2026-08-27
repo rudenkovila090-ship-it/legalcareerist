@@ -15,12 +15,12 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-40 border-b border-ink/10 bg-white/70 backdrop-blur-xl">
       <div className="container-page flex h-16 items-center justify-between">
-        <NavLink to="/" className="flex items-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-md bg-ink text-gold-light">
-            <svg viewBox="0 0 32 32" className="h-5 w-5" fill="currentColor" aria-hidden="true">
-              <path d="M16 4l9 4v7c0 6.5-3.8 10.8-9 13-5.2-2.2-9-6.5-9-13v-7l9-4z" />
-            </svg>
-          </span>
+        <NavLink to="/" className="flex items-center gap-2.5">
+          <svg viewBox="0 0 26 24" className="h-6 w-6 text-ink" fill="currentColor" aria-hidden="true">
+            <rect x="0" y="9" width="4" height="15" rx="1" />
+            <rect x="9" y="4" width="4" height="20" rx="1" />
+            <rect x="18" y="0" width="4" height="24" rx="1" />
+          </svg>
           <span className="font-semibold tracking-tight">Карьерный Юрист</span>
         </NavLink>
 

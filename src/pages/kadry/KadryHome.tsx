@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { Link } from 'react-router-dom'
 import PageHero from '../../components/PageHero'
 import Testimonials from '../../components/Testimonials'
 import { kadryTestimonials } from '../../data/testimonials'
@@ -188,6 +189,13 @@ export default function KadryHome() {
         description="Подбор помощников, младших юристов, офис-менеджеров — быстро и точно."
       />
 
+      <div className="container-page flex gap-3 pt-8">
+        <span className="rounded-full bg-ink px-4 py-1.5 text-sm font-medium text-white">Работодателям</span>
+        <Link to="/kadry/candidates" className="rounded-full border border-ink/15 px-4 py-1.5 text-sm font-medium text-ink/60 hover:text-ink">
+          Соискателям
+        </Link>
+      </div>
+
       <section className="container-page py-12">
         <div className="grid gap-3 sm:grid-cols-4">
           {stats.map((s) => (
@@ -333,12 +341,21 @@ export default function KadryHome() {
 
           <div className="mx-auto max-w-3xl">
             <div className="relative h-28 w-full sm:h-36">
-              <svg viewBox="0 0 100 40" preserveAspectRatio="none" className="absolute inset-0 h-full w-full" aria-hidden="true">
+              <svg viewBox="0 0 100 40" preserveAspectRatio="none" className="absolute inset-0 h-full w-full overflow-visible" aria-hidden="true">
+                <defs>
+                  <filter id="route-glow" x="-50%" y="-50%" width="200%" height="200%">
+                    <feGaussianBlur stdDeviation="1.6" result="blur" />
+                    <feMerge>
+                      <feMergeNode in="blur" />
+                      <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                  </filter>
+                </defs>
                 <path
                   d="M 4 36 L 24 29 L 44 21 L 64 13 L 84 7 L 96 4"
                   fill="none"
-                  stroke="rgba(255,255,255,0.15)"
-                  strokeWidth="1"
+                  stroke="rgba(111,147,196,0.18)"
+                  strokeWidth="3"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   vectorEffect="non-scaling-stroke"
@@ -348,13 +365,14 @@ export default function KadryHome() {
                   className="route-line"
                   d="M 4 36 L 24 29 L 44 21 L 64 13 L 84 7 L 96 4"
                   fill="none"
-                  stroke="#6f93c4"
+                  stroke="#5ea1ff"
                   strokeWidth="1"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   vectorEffect="non-scaling-stroke"
+                  filter="url(#route-glow)"
                 />
-                <circle r="1.4" fill="#ffffff">
+                <circle r="1.6" fill="#eaf2ff" filter="url(#route-glow)">
                   <animateMotion dur="7s" repeatCount="indefinite">
                     <mpath href="#route-path" />
                   </animateMotion>
@@ -420,18 +438,32 @@ export default function KadryHome() {
                 />
               </label>
               <div className="mt-1 text-lg font-medium text-ink/70">{salary.toLocaleString('ru-RU')} ₽/мес</div>
-              <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                <div className="rounded-xl bg-ink p-4 text-center text-white">
+
+              <div className="mt-8">
+                <div className="mx-auto w-fit rounded-xl bg-ink px-6 py-4 text-center text-white">
                   <div className="text-xs text-white/60">Комиссия 30%</div>
                   <div className="mt-1 text-2xl font-semibold text-gold-light">{fee.toLocaleString('ru-RU')} ₽</div>
                 </div>
-                <div className="rounded-xl bg-ink p-4 text-center text-white">
-                  <div className="text-xs text-white/60">75% предоплата</div>
-                  <div className="mt-1 text-2xl font-semibold text-gold-light">{prepay.toLocaleString('ru-RU')} ₽</div>
-                </div>
-                <div className="rounded-xl bg-ink p-4 text-center text-white">
-                  <div className="text-xs text-white/60">25% после срока</div>
-                  <div className="mt-1 text-2xl font-semibold text-gold-light">{afterProbation.toLocaleString('ru-RU')} ₽</div>
+
+                <svg viewBox="0 0 200 36" className="mx-auto block h-9 w-56" aria-hidden="true">
+                  <defs>
+                    <marker id="calc-arrow" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+                      <path d="M0,0 L10,5 L0,10 z" fill="rgba(40,57,83,0.35)" />
+                    </marker>
+                  </defs>
+                  <path d="M100 0 L40 32" stroke="rgba(40,57,83,0.35)" strokeWidth="1.5" fill="none" markerEnd="url(#calc-arrow)" />
+                  <path d="M100 0 L160 32" stroke="rgba(40,57,83,0.35)" strokeWidth="1.5" fill="none" markerEnd="url(#calc-arrow)" />
+                </svg>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-xl bg-ink p-4 text-center text-white">
+                    <div className="text-xs text-white/60">75% предоплата</div>
+                    <div className="mt-1 text-2xl font-semibold text-gold-light">{prepay.toLocaleString('ru-RU')} ₽</div>
+                  </div>
+                  <div className="rounded-xl bg-ink p-4 text-center text-white">
+                    <div className="text-xs text-white/60">25% после срока</div>
+                    <div className="mt-1 text-2xl font-semibold text-gold-light">{afterProbation.toLocaleString('ru-RU')} ₽</div>
+                  </div>
                 </div>
               </div>
             </div>

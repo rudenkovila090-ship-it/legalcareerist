@@ -2,6 +2,7 @@ import { Route, Routes } from 'react-router-dom'
 import Layout from './components/Layout'
 import Home from './pages/Home'
 import KadryHome from './pages/kadry/KadryHome'
+import Candidates from './pages/kadry/Candidates'
 import Vacancies from './pages/kadry/Vacancies'
 import Salary from './pages/kadry/Salary'
 import VacancyDetail from './pages/VacancyDetail'
@@ -26,6 +27,8 @@ export default function App() {
 
         {/* Кадры */}
         <Route path="/kadry" element={<KadryHome />} />
+        <Route path="/kadry/employers" element={<KadryHome />} />
+        <Route path="/kadry/candidates" element={<Candidates />} />
         <Route path="/kadry/vacancies" element={<Vacancies />} />
         <Route path="/kadry/salary" element={<Salary />} />
         <Route
