@@ -1,4 +1,4 @@
-import { useState, type CSSProperties, type FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import PageHero from '../../components/PageHero'
 import Testimonials from '../../components/Testimonials'
 import { kadryTestimonials } from '../../data/testimonials'
@@ -73,6 +73,15 @@ function IconHandshake() {
     </svg>
   )
 }
+function IconBriefcase() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <rect x="3" y="7.5" width="18" height="12" rx="1.8" />
+      <path d="M8.5 7.5V6a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v1.5" />
+      <path d="M3 12.5h18M10.5 12.5v1.6h3v-1.6" />
+    </svg>
+  )
+}
 
 const valueProps = [
   { icon: IconClock, title: 'Не тратите время на поиск', text: 'Размещение вакансии, отсев нерелевантных откликов, десятки собеседований — берём на себя.' },
@@ -80,11 +89,11 @@ const valueProps = [
   { icon: IconTag, title: 'Фиксированная стоимость заранее', text: 'Процент от оклада известен до старта поиска — без скрытых доплат и пересмотра условий на середине пути.' },
 ]
 
-const operationalKpis = [
-  { value: '5,5 дней', label: 'Time to Hire — среднее время закрытия вакансии' },
-  { value: '89%', label: 'Конверсия интервью в оффер' },
+const kpis = [
+  { value: '5,5 дней', label: 'Time to Hire — среднее время закрытия вакансии', group: 'Операционный' },
+  { value: '89%', label: 'Конверсия интервью в оффер', group: 'Операционный' },
+  { value: '100%', label: 'Доля кандидатов, прошедших испытательный срок', group: 'Качественный' },
 ]
-const qualityKpis = [{ value: '100%', label: 'Доля кандидатов, прошедших испытательный срок' }]
 
 const kadryAdvantages = [
   { title: 'Только юридический рынок', text: 'Специализируемся на начинающих и средних специалистах — понимаем их уровень, мотивацию и ожидания.' },
@@ -251,28 +260,16 @@ export default function KadryHome() {
             ))}
           </div>
 
-          <div className="mt-8 grid gap-6 sm:grid-cols-2">
-            <div>
-              <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink/50">Операционные KPI</div>
-              <div className="grid gap-3 sm:grid-cols-2">
-                {operationalKpis.map((k) => (
-                  <div key={k.label} className="glass-dark rounded-xl bg-ink p-5 text-white">
-                    <div className="text-2xl font-semibold text-gold-light">{k.value}</div>
-                    <div className="mt-1 text-sm text-white/60">{k.label}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div>
-              <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink/50">Качественные KPI</div>
-              <div className="grid gap-3 sm:grid-cols-2">
-                {qualityKpis.map((k) => (
-                  <div key={k.label} className="glass-dark rounded-xl bg-ink p-5 text-white">
-                    <div className="text-2xl font-semibold text-gold-light">{k.value}</div>
-                    <div className="mt-1 text-sm text-white/60">{k.label}</div>
-                  </div>
-                ))}
-              </div>
+          <div className="mt-8">
+            <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink/50">Ключевые показатели (KPI)</div>
+            <div className="mx-auto grid max-w-3xl gap-3 sm:grid-cols-3">
+              {kpis.map((k) => (
+                <div key={k.label} className="glass-dark rounded-xl bg-ink p-5 text-white">
+                  <div className="text-xs uppercase tracking-wide text-white/40">{k.group}</div>
+                  <div className="mt-1 text-2xl font-semibold text-gold-light">{k.value}</div>
+                  <div className="mt-1 text-sm text-white/60">{k.label}</div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -296,68 +293,102 @@ export default function KadryHome() {
       <Testimonials items={kadryTestimonials} compact />
 
       {/* Что мы предлагаем */}
-      <section className="container-page py-12">
-        <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Что мы предлагаем</div>
-        <h2 className="mb-6 text-2xl font-semibold">Закрываем следующие позиции</h2>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {positions.map((p) => (
-            <div key={p.title} className="flex items-center justify-between rounded-lg bg-ink/[0.04] px-4 py-3 text-sm">
-              <span className="font-medium">{p.title}</span>
-              <span className="text-ink/50">{p.salary}</span>
-            </div>
-          ))}
-        </div>
-
-        <h3 className="mb-2 mt-12 text-xl font-semibold">Как мы работаем</h3>
-        <p className="mb-6 text-sm text-ink/60">8 этапов от заявки до выхода сотрудника — с документами, которые вы получаете на каждом из них.</p>
-        <ol className="grid gap-4 sm:grid-cols-2">
-          {processWithDocs.map((step, i) => (
-            <li key={step.title} className="glass rounded-xl p-5">
-              <div className="flex items-center gap-3">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gold-light/30 text-sm font-semibold text-ink">
-                  {i + 1}
-                </div>
-                <div className="font-semibold">{step.title}</div>
-              </div>
-              <p className="mt-2 text-sm text-ink/60">{step.description}</p>
-              <div className="mt-3 border-t border-ink/10 pt-3">
-                <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-ink/40">Документы</div>
-                <ul className="space-y-0.5 text-sm text-ink/70">
-                  {step.docs.map((d) => <li key={d}>· {d}</li>)}
-                </ul>
-              </div>
-            </li>
-          ))}
-        </ol>
-
-        <h3 className="mb-8 mt-14 text-xl font-semibold">Как мы находим вам сотрудников</h3>
-        <div className="relative mx-auto h-[22rem] w-[22rem] max-w-full sm:h-[26rem] sm:w-[26rem]">
-          <div className="absolute inset-6 rounded-full border border-dashed border-ink/15" />
-          <div className="orbit-ring absolute inset-0">
-            {marketingChannels.map((m, i) => (
-              <div
-                key={m.title}
-                className="absolute left-1/2 top-1/2 h-0 w-0"
-                style={{ transform: `rotate(${i * 90}deg) translate(min(11rem, 42vw))` }}
-              >
-                <div
-                  className="orbit-label absolute w-36 sm:w-40"
-                  style={{ '--orbit-start': `${-i * 90}deg` } as CSSProperties}
-                >
-                  <div className="glass rounded-xl p-3 text-center">
-                    <div className="mx-auto mb-1.5 flex h-8 w-8 items-center justify-center rounded-full bg-ink text-white">
-                      <m.icon />
-                    </div>
-                    <div className="text-sm font-semibold">{m.title}</div>
-                    <p className="mt-1 text-xs leading-snug text-ink/60">{m.text}</p>
-                  </div>
-                </div>
+      <section className="bg-ink py-12 text-white">
+        <div className="container-page">
+          <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold-light">Что мы предлагаем</div>
+          <h2 className="mb-6 text-2xl font-semibold text-white">Закрываем следующие позиции</h2>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {positions.map((p) => (
+              <div key={p.title} className="flex items-center justify-between rounded-lg bg-white/10 px-4 py-3 text-sm">
+                <span className="font-medium text-white">{p.title}</span>
+                <span className="text-white/50">{p.salary}</span>
               </div>
             ))}
           </div>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="glass-dark flex h-28 w-28 items-center justify-center rounded-full bg-ink p-3 text-center text-xs font-semibold text-white sm:h-32 sm:w-32">
-              Каналы поиска кандидатов
+
+          <h3 className="mb-2 mt-12 text-xl font-semibold text-white">Как мы работаем</h3>
+          <p className="mb-6 text-sm text-white/60">8 этапов от заявки до выхода сотрудника — с документами, которые вы получаете на каждом из них.</p>
+          <ol className="grid gap-4 sm:grid-cols-2">
+            {processWithDocs.map((step, i) => (
+              <li key={step.title} className="glass-dark rounded-xl p-5">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gold-light/30 text-sm font-semibold text-white">
+                    {i + 1}
+                  </div>
+                  <div className="font-semibold text-white">{step.title}</div>
+                </div>
+                <p className="mt-2 text-sm text-white/60">{step.description}</p>
+                <div className="mt-3 border-t border-white/10 pt-3">
+                  <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-white/40">Документы</div>
+                  <ul className="space-y-0.5 text-sm text-white/70">
+                    {step.docs.map((d) => <li key={d}>· {d}</li>)}
+                  </ul>
+                </div>
+              </li>
+            ))}
+          </ol>
+
+          <h3 className="mb-2 mt-14 text-xl font-semibold text-white">Как мы находим вам сотрудников</h3>
+          <p className="mb-8 text-sm text-white/60">От заявки работодателя до найденного кандидата — как маршрут, который выстраивает навигатор, подсвечивая каналы поиска один за другим.</p>
+
+          <div className="mx-auto max-w-3xl">
+            <div className="relative h-28 w-full sm:h-36">
+              <svg viewBox="0 0 100 40" preserveAspectRatio="none" className="absolute inset-0 h-full w-full" aria-hidden="true">
+                <path
+                  d="M 4 36 L 24 29 L 44 21 L 64 13 L 84 7 L 96 4"
+                  fill="none"
+                  stroke="rgba(255,255,255,0.15)"
+                  strokeWidth="1"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  vectorEffect="non-scaling-stroke"
+                />
+                <path
+                  id="route-path"
+                  className="route-line"
+                  d="M 4 36 L 24 29 L 44 21 L 64 13 L 84 7 L 96 4"
+                  fill="none"
+                  stroke="#6f93c4"
+                  strokeWidth="1"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  vectorEffect="non-scaling-stroke"
+                />
+                <circle r="1.4" fill="#ffffff">
+                  <animateMotion dur="7s" repeatCount="indefinite">
+                    <mpath href="#route-path" />
+                  </animateMotion>
+                </circle>
+              </svg>
+
+              <div className="glass-dark absolute flex h-10 w-10 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-ink text-white" style={{ left: '4%', top: '90%' }}>
+                <IconBriefcase />
+              </div>
+              <div className="glass-dark absolute flex h-10 w-10 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-ink text-white" style={{ left: '96%', top: '10%' }}>
+                <IconUserCheck />
+              </div>
+            </div>
+            <div className="mb-8 flex justify-between text-[11px] text-white/50">
+              <span>Заявка от работодателя</span>
+              <span>Кандидат найден</span>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-4">
+              {marketingChannels.map((m, i) => (
+                <div key={m.title} className="text-center">
+                  <div className="mx-auto mb-2 h-1.5 w-1.5 rounded-full bg-gold-light" />
+                  <div
+                    className="route-pulse glass-dark h-full rounded-xl p-3 text-center"
+                    style={{ animationDelay: `${i * 1.75}s` }}
+                  >
+                    <div className="mx-auto mb-1.5 flex h-8 w-8 items-center justify-center rounded-full bg-gold-light/30 text-white">
+                      <m.icon />
+                    </div>
+                    <div className="text-xs font-semibold text-white">{m.title}</div>
+                    <p className="mt-1 text-[11px] leading-snug text-white/50">{m.text}</p>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -368,14 +399,14 @@ export default function KadryHome() {
         <div className="container-page">
           <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Цены</div>
           <h2 className="mb-6 text-2xl font-semibold">Прозрачная система оплаты и гарантий</h2>
-          <div className="grid gap-8 lg:grid-cols-2">
-            <ul className="space-y-3 text-sm text-ink/70">
+          <div className="grid gap-8 lg:grid-cols-2 lg:items-start">
+            <ul className="space-y-3 pt-1 text-sm text-ink/70">
               <li><strong className="text-ink">Оплата за результат</strong> — 30% от одного месячного оклада кандидата: 75% предоплата до начала работ, 25% после прохождения испытательного срока.</li>
               <li><strong className="text-ink">Бесплатная замена</strong> — если кандидат не проходит испытательный срок, подбираем замену бесплатно в согласованные сроки.</li>
               <li><strong className="text-ink">Прозрачная отчётность</strong> — регулярно сообщаем о ходе поиска; если подходящих кандидатов нет — честно предупреждаем.</li>
             </ul>
 
-            <div className="glass rounded-2xl p-8">
+            <div className="glass rounded-2xl p-8 lg:-mt-1">
               <label className="text-base font-semibold text-ink">
                 Оклад кандидата, ₽/мес
                 <input

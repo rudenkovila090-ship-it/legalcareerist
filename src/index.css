@@ -111,36 +111,65 @@ body {
   }
 }
 
-/* Орбита каналов поиска кандидатов («Как мы находим вам сотрудников»):
-   .orbit-ring вращается по часовой стрелке, .orbit-label вращается в обратную
-   сторону с той же длительностью — суммарно текст на карточках остаётся
-   прямым, а сами карточки обходят круг. */
-@keyframes orbit-spin {
+/* Маршрут «Как мы находим вам сотрудников»: линия из точки заявки к точке
+   найденного кандидата бежит пунктиром, как строящийся маршрут навигатора,
+   а бегущая точка (SVG animateMotion) проходит его за 7с. Карточки каналов
+   поиска подсвечиваются по очереди (.route-pulse), с задержкой i * 1.75с —
+   так, чтобы огонёк на карточке совпадал с прохождением точки мимо неё. */
+@keyframes route-flow {
   to {
-    transform: rotate(360deg);
+    stroke-dashoffset: -20;
   }
 }
-@keyframes orbit-counter {
-  from {
-    transform: translate(-50%, -50%) rotate(var(--orbit-start, 0deg));
+.route-line {
+  stroke-dasharray: 3 3;
+  animation: route-flow 1.4s linear infinite;
+}
+@keyframes route-pulse-anim {
+  0%,
+  82%,
+  100% {
+    border-color: rgba(255, 255, 255, 0.14);
+    box-shadow: none;
   }
-  to {
-    transform: translate(-50%, -50%) rotate(calc(var(--orbit-start, 0deg) - 360deg));
+  8% {
+    border-color: rgba(111, 147, 196, 0.7);
+    box-shadow: 0 0 0 6px rgba(111, 147, 196, 0.2);
+  }
+  22% {
+    border-color: rgba(255, 255, 255, 0.14);
+    box-shadow: none;
   }
 }
-.orbit-ring {
-  animation: orbit-spin 36s linear infinite;
-}
-/* --orbit-start должен равняться минус собственному углу узла на круге
-   (например, у узла на 90° это -90deg) — иначе компенсация вращения
-   ring'а не отменяет ещё и статический сдвиг самого узла, и подпись
-   на карточке уезжает боком/вверх ногами. Передаётся инлайн-стилем. */
-.orbit-label {
-  animation: orbit-counter 36s linear infinite;
+.route-pulse {
+  animation: route-pulse-anim 7s ease-in-out infinite;
 }
 @media (prefers-reduced-motion: reduce) {
-  .orbit-ring,
-  .orbit-label {
+  .route-line,
+  .route-pulse {
+    animation: none;
+  }
+}
+
+/* Карусель отзывов (компактный режим, /kadry): список отзывов удвоен в
+   разметке, дорожка едет справа налево и на удвоении (-50%) бесшовно
+   уходит в начало. Останавливается при наведении и prefers-reduced-motion. */
+@keyframes marquee-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+.animate-marquee {
+  animation: marquee-scroll 24s linear infinite;
+}
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee {
     animation: none;
   }
 }

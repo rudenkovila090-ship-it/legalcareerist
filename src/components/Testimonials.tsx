@@ -50,11 +50,23 @@ export default function Testimonials({ items, compact }: { items?: Testimonial[]
         <h2 className="mb-6 text-2xl font-semibold">Что говорят о нас</h2>
 
         {items && items.length > 0 ? (
-          <div className="grid gap-4 md:grid-cols-2">
-            {items.map((t) => (
-              <TestimonialCard key={t.author + t.role} t={t} compact={compact} />
-            ))}
-          </div>
+          compact ? (
+            <div className="overflow-hidden">
+              <div className="animate-marquee flex w-max gap-4">
+                {[...items, ...items].map((t, i) => (
+                  <div key={t.author + t.role + i} className="w-72 shrink-0 sm:w-80">
+                    <TestimonialCard t={t} compact />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2">
+              {items.map((t) => (
+                <TestimonialCard key={t.author + t.role} t={t} compact={compact} />
+              ))}
+            </div>
+          )
         ) : (
           <div className="rounded-xl border border-dashed border-ink/20 bg-ink/[0.03] p-6 text-sm text-ink/50">
             Раздел готов к наполнению — как только появятся отзывы клиентов и резидентов, разместим их здесь.

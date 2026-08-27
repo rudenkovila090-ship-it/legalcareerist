@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 // Единый футер по всему сайту (раздел 5 карты сайта).
 export default function Footer() {
   return (
-    <footer className="border-t border-ink/10 bg-ink text-white/80">
+    <footer className="border-t border-white/10 bg-ink text-white/80">
       <div className="container-page grid gap-10 py-14 md:grid-cols-4">
         <div>
           <div className="mb-3 text-lg font-semibold text-white">Карьерный Юрист</div>
