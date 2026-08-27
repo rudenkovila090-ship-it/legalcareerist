@@ -42,12 +42,21 @@ function TestimonialCard({ t, compact }: { t: Testimonial; compact?: boolean }) 
 // придуманных отзывов. Как только появятся тексты от клиентов и резидентов,
 // передайте их массивом `items`. `compact` — уменьшенная версия карточек
 // (используется на подстраницах, где отзывы не главный фокус).
-export default function Testimonials({ items, compact }: { items?: Testimonial[]; compact?: boolean }) {
+export default function Testimonials({
+  items,
+  compact,
+  dark,
+}: {
+  items?: Testimonial[]
+  compact?: boolean
+  /** Тёмный вариант — для страниц с фирменной синей заливкой на всю страницу. */
+  dark?: boolean
+}) {
   return (
-    <section className="border-y border-ink/10 bg-white py-14">
+    <section className={dark ? 'border-y border-white/10 bg-ink py-14' : 'border-y border-ink/10 bg-white py-14'}>
       <div className="container-page">
-        <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Отзывы</div>
-        <h2 className="mb-6 text-2xl font-semibold">Что говорят о нас</h2>
+        <div className={`mb-2 text-sm font-medium uppercase tracking-wide ${dark ? 'text-gold-light' : 'text-gold'}`}>Отзывы</div>
+        <h2 className={`mb-6 text-2xl font-semibold ${dark ? 'text-white' : ''}`}>Что говорят о нас</h2>
 
         {items && items.length > 0 ? (
           compact ? (
@@ -68,7 +77,13 @@ export default function Testimonials({ items, compact }: { items?: Testimonial[]
             </div>
           )
         ) : (
-          <div className="rounded-xl border border-dashed border-ink/20 bg-ink/[0.03] p-6 text-sm text-ink/50">
+          <div
+            className={
+              dark
+                ? 'rounded-xl border border-dashed border-white/20 bg-white/5 p-6 text-sm text-white/50'
+                : 'rounded-xl border border-dashed border-ink/20 bg-ink/[0.03] p-6 text-sm text-ink/50'
+            }
+          >
             Раздел готов к наполнению — как только появятся отзывы клиентов и резидентов, разместим их здесь.
           </div>
         )}

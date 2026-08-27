@@ -34,9 +34,11 @@ body {
    должна остаться сплошной bg-ink, но получить блик и подъём при наведении. */
 @layer base {
   .glass {
+    position: relative;
     background: rgba(255, 255, 255, 0.55);
   }
   .glass-dark {
+    position: relative;
     background: rgba(255, 255, 255, 0.06);
   }
 }
@@ -45,7 +47,6 @@ body {
    вынесенные за край (например, «Популярный выбор» на тарифе). Вместо этого
    у ::before свой border-radius: inherit, так блик остаётся внутри скруглений. */
 .glass {
-  position: relative;
   isolation: isolate;
   backdrop-filter: blur(20px) saturate(160%);
   -webkit-backdrop-filter: blur(20px) saturate(160%);
@@ -73,7 +74,6 @@ body {
 }
 
 .glass-dark {
-  position: relative;
   isolation: isolate;
   backdrop-filter: blur(20px) saturate(160%);
   -webkit-backdrop-filter: blur(20px) saturate(160%);

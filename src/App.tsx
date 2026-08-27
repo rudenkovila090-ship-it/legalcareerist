@@ -3,6 +3,8 @@ import Layout from './components/Layout'
 import Home from './pages/Home'
 import KadryHome from './pages/kadry/KadryHome'
 import Candidates from './pages/kadry/Candidates'
+import CareerReserve from './pages/kadry/CareerReserve'
+import CareerConsultation from './pages/kadry/CareerConsultation'
 import Vacancies from './pages/kadry/Vacancies'
 import Salary from './pages/kadry/Salary'
 import VacancyDetail from './pages/VacancyDetail'
@@ -29,6 +31,8 @@ export default function App() {
         <Route path="/kadry" element={<KadryHome />} />
         <Route path="/kadry/employers" element={<KadryHome />} />
         <Route path="/kadry/candidates" element={<Candidates />} />
+        <Route path="/kadry/candidates/reserve" element={<CareerReserve />} />
+        <Route path="/kadry/candidates/consultation" element={<CareerConsultation />} />
         <Route path="/kadry/vacancies" element={<Vacancies />} />
         <Route path="/kadry/salary" element={<Salary />} />
         <Route

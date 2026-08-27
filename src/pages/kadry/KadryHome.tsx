@@ -3,7 +3,21 @@ import PageHero from '../../components/PageHero'
 import Testimonials from '../../components/Testimonials'
 import { kadryTestimonials } from '../../data/testimonials'
 import FAQSection from '../../components/FAQSection'
+import SectionRail from '../../components/SectionRail'
 import { submitLead } from '../../lib/leads'
+
+const railItems = [
+  { id: 'hero', label: 'Обзор' },
+  { id: 'about', label: 'О компании' },
+  { id: 'value', label: 'Польза' },
+  { id: 'cases', label: 'Кейсы' },
+  { id: 'advantages', label: 'Преимущества' },
+  { id: 'reviews', label: 'Отзывы' },
+  { id: 'offer', label: 'Предложение' },
+  { id: 'pricing', label: 'Цены' },
+  { id: 'faq', label: 'FAQ' },
+  { id: 'lead-form', label: 'Заявка' },
+]
 
 const stats = [
   { value: '8 000+', label: 'потенциальных кандидатов' },
@@ -181,36 +195,41 @@ export default function KadryHome() {
   }
 
   return (
-    <div>
-      <PageHero
-        eyebrow="Кадровое юридическое агентство"
-        title="Находим сотрудников для юридических фирм — без лишних собеседований и потраченного времени"
-        description="Подбор помощников, младших юристов, офис-менеджеров — быстро и точно."
-      />
+    <div className="bg-ink text-white">
+      <SectionRail items={railItems} dark />
+
+      <div id="hero">
+        <PageHero
+          dark
+          eyebrow="Кадровое юридическое агентство"
+          title="Находим сотрудников для юридических фирм — без лишних собеседований и потраченного времени"
+          description="Подбор помощников, младших юристов, офис-менеджеров — быстро и точно."
+        />
+      </div>
 
       <section className="container-page py-12">
         <div className="grid gap-3 sm:grid-cols-4">
           {stats.map((s) => (
-            <div key={s.label} className="rounded-xl border border-ink/10 bg-white p-4">
-              <div className="text-2xl font-semibold text-ink">{s.value}</div>
-              <div className="mt-1 text-sm text-ink/60">{s.label}</div>
+            <div key={s.label} className="glass-dark rounded-xl p-4">
+              <div className="text-2xl font-semibold text-white">{s.value}</div>
+              <div className="mt-1 text-sm text-white/60">{s.label}</div>
             </div>
           ))}
         </div>
       </section>
 
       {/* О компании */}
-      <section className="border-y border-ink/10 bg-white py-12">
+      <section id="about" className="border-y border-white/10 py-12">
         <div className="container-page">
-          <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">О компании</div>
-          <h2 className="mb-6 text-2xl font-semibold">Почему работодатели выбирают нас</h2>
+          <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold-light">О компании</div>
+          <h2 className="mb-6 text-2xl font-semibold text-white">Почему работодатели выбирают нас</h2>
           <div className="grid gap-8 lg:grid-cols-2">
-            <p className="text-ink/60">
+            <p className="text-white/60">
               Мы работаем исключительно с юридическим рынком на уровне начинающих специалистов. Мы не
               универсальный рекрутер, случайно попавший в юридическую нишу — знаем рынок изнутри,
               понимаем специфику профессии и говорим с кандидатами на одном языке с первого дня.
             </p>
-            <p className="text-ink/60">
+            <p className="text-white/60">
               За кандидатами не нужно идти на открытый рынок: у нас собственная база из 8 000+
               контактов и активное сообщество студентов-юристов, из которого вакансия закрывается в
               среднем за 5–7 дней — с гарантией бесплатной замены, если кандидат не пройдёт
@@ -221,18 +240,18 @@ export default function KadryHome() {
       </section>
 
       {/* Польза */}
-      <section className="container-page py-12">
-        <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">В чём наша польза</div>
-        <h2 className="mb-6 text-2xl font-semibold">Что вы получаете, работая с нами</h2>
+      <section id="value" className="container-page py-12">
+        <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold-light">В чём наша польза</div>
+        <h2 className="mb-6 text-2xl font-semibold text-white">Что вы получаете, работая с нами</h2>
         <div className="grid gap-4 sm:grid-cols-3">
           {valueProps.map((v) => (
-            <div key={v.title} className="glass flex gap-3 rounded-xl p-5">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ink text-white">
+            <div key={v.title} className="glass-dark flex gap-3 rounded-xl p-5">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gold-light/30 text-white">
                 <v.icon />
               </div>
               <div>
-                <div className="font-semibold">{v.title}</div>
-                <p className="mt-1 text-sm text-ink/60">{v.text}</p>
+                <div className="font-semibold text-white">{v.title}</div>
+                <p className="mt-1 text-sm text-white/60">{v.text}</p>
               </div>
             </div>
           ))}
@@ -240,31 +259,31 @@ export default function KadryHome() {
       </section>
 
       {/* Кейсы и результаты */}
-      <section className="border-y border-ink/10 bg-white py-12">
+      <section id="cases" className="border-y border-white/10 py-12">
         <div className="container-page">
-          <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Кейсы и результаты</div>
-          <h2 className="mb-6 text-2xl font-semibold">Наши закрытые вакансии</h2>
+          <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold-light">Кейсы и результаты</div>
+          <h2 className="mb-6 text-2xl font-semibold text-white">Наши закрытые вакансии</h2>
           <div className="grid gap-4 sm:grid-cols-2">
             {cases.map((c, i) => (
-              <div key={`${c.title}-${i}`} className="glass rounded-xl p-5">
+              <div key={`${c.title}-${i}`} className="glass-dark rounded-xl p-5">
                 <div className="flex items-start justify-between gap-3">
-                  <span className="font-semibold">{c.title}</span>
-                  <span className="shrink-0 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">Закрыто</span>
+                  <span className="font-semibold text-white">{c.title}</span>
+                  <span className="shrink-0 rounded-full bg-emerald-400/15 px-2 py-0.5 text-xs font-medium text-emerald-300">Закрыто</span>
                 </div>
-                <div className="mt-1 text-sm text-ink/50">{c.city ?? 'Удалённо / любой город'} · {c.salary}</div>
-                <div className="mt-2 text-sm text-ink/60">
-                  <span className="font-medium text-ink">{c.days}</span> срок закрытия вакансии
-                  {c.note && <span className="text-gold"> · {c.note}</span>}
+                <div className="mt-1 text-sm text-white/50">{c.city ?? 'Удалённо / любой город'} · {c.salary}</div>
+                <div className="mt-2 text-sm text-white/60">
+                  <span className="font-medium text-white">{c.days}</span> срок закрытия вакансии
+                  {c.note && <span className="text-gold-light"> · {c.note}</span>}
                 </div>
               </div>
             ))}
           </div>
 
           <div className="mt-8">
-            <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink/50">Ключевые показатели (KPI)</div>
+            <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-white/50">Ключевые показатели (KPI)</div>
             <div className="mx-auto grid max-w-3xl gap-3 sm:grid-cols-3">
               {kpis.map((k) => (
-                <div key={k.label} className="glass-dark rounded-xl bg-ink p-5 text-white">
+                <div key={k.label} className="glass-dark rounded-xl p-5 text-white">
                   <div className="text-xs uppercase tracking-wide text-white/40">{k.group}</div>
                   <div className="mt-1 text-2xl font-semibold text-gold-light">{k.value}</div>
                   <div className="mt-1 text-sm text-white/60">{k.label}</div>
@@ -276,24 +295,26 @@ export default function KadryHome() {
       </section>
 
       {/* Преимущества и выгоды */}
-      <section className="container-page py-12">
-        <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Преимущества и выгоды</div>
-        <h2 className="mb-6 text-2xl font-semibold">Чем мы отличаемся</h2>
+      <section id="advantages" className="container-page py-12">
+        <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold-light">Преимущества и выгоды</div>
+        <h2 className="mb-6 text-2xl font-semibold text-white">Чем мы отличаемся</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           {kadryAdvantages.map((a) => (
-            <div key={a.title} className="glass rounded-xl p-5">
-              <div className="font-semibold">{a.title}</div>
-              <p className="mt-1 text-sm text-ink/60">{a.text}</p>
+            <div key={a.title} className="glass-dark rounded-xl p-5">
+              <div className="font-semibold text-white">{a.title}</div>
+              <p className="mt-1 text-sm text-white/60">{a.text}</p>
             </div>
           ))}
         </div>
       </section>
 
       {/* Отзывы (компактнее, чем на других страницах) */}
-      <Testimonials items={kadryTestimonials} compact />
+      <div id="reviews">
+        <Testimonials items={kadryTestimonials} compact dark />
+      </div>
 
       {/* Что мы предлагаем */}
-      <section className="bg-ink py-12 text-white">
+      <section id="offer" className="py-12">
         <div className="container-page">
           <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold-light">Что мы предлагаем</div>
           <h2 className="mb-6 text-2xl font-semibold text-white">Закрываем следующие позиции</h2>
@@ -412,19 +433,19 @@ export default function KadryHome() {
       </section>
 
       {/* Цены */}
-      <section className="border-y border-ink/10 bg-white py-12">
+      <section id="pricing" className="border-y border-white/10 py-12">
         <div className="container-page">
-          <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Цены</div>
-          <h2 className="mb-6 text-2xl font-semibold">Прозрачная система оплаты и гарантий</h2>
+          <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold-light">Цены</div>
+          <h2 className="mb-6 text-2xl font-semibold text-white">Прозрачная система оплаты и гарантий</h2>
           <div className="grid gap-8 lg:grid-cols-2 lg:items-start">
-            <ul className="space-y-3 pt-1 text-sm text-ink/70">
-              <li><strong className="text-ink">Оплата за результат</strong> — 30% от одного месячного оклада кандидата: 75% предоплата до начала работ, 25% после прохождения испытательного срока.</li>
-              <li><strong className="text-ink">Бесплатная замена</strong> — если кандидат не проходит испытательный срок, подбираем замену бесплатно в согласованные сроки.</li>
-              <li><strong className="text-ink">Прозрачная отчётность</strong> — регулярно сообщаем о ходе поиска; если подходящих кандидатов нет — честно предупреждаем.</li>
+            <ul className="space-y-3 pt-1 text-sm text-white/70">
+              <li><strong className="text-white">Оплата за результат</strong> — 30% от одного месячного оклада кандидата: 75% предоплата до начала работ, 25% после прохождения испытательного срока.</li>
+              <li><strong className="text-white">Бесплатная замена</strong> — если кандидат не проходит испытательный срок, подбираем замену бесплатно в согласованные сроки.</li>
+              <li><strong className="text-white">Прозрачная отчётность</strong> — регулярно сообщаем о ходе поиска; если подходящих кандидатов нет — честно предупреждаем.</li>
             </ul>
 
-            <div className="glass rounded-2xl p-8 lg:-mt-1">
-              <label className="text-base font-semibold text-ink">
+            <div className="glass-dark rounded-2xl p-8 lg:-mt-1">
+              <label className="text-base font-semibold text-white">
                 Оклад кандидата, ₽/мес
                 <input
                   type="range"
@@ -433,13 +454,13 @@ export default function KadryHome() {
                   step={5000}
                   value={salary}
                   onChange={(e) => setSalary(Number(e.target.value))}
-                  className="mt-4 w-full accent-ink"
+                  className="mt-4 w-full accent-gold-light"
                 />
               </label>
-              <div className="mt-1 text-lg font-medium text-ink/70">{salary.toLocaleString('ru-RU')} ₽/мес</div>
+              <div className="mt-1 text-lg font-medium text-white/70">{salary.toLocaleString('ru-RU')} ₽/мес</div>
 
               <div className="mt-8">
-                <div className="mx-auto w-fit rounded-xl bg-ink px-6 py-4 text-center text-white">
+                <div className="mx-auto w-fit rounded-xl border border-white/15 bg-white/10 px-6 py-4 text-center text-white">
                   <div className="text-xs text-white/60">Комиссия 30%</div>
                   <div className="mt-1 text-2xl font-semibold text-gold-light">{fee.toLocaleString('ru-RU')} ₽</div>
                 </div>
@@ -447,19 +468,19 @@ export default function KadryHome() {
                 <svg viewBox="0 0 200 36" className="mx-auto block h-9 w-56" aria-hidden="true">
                   <defs>
                     <marker id="calc-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-                      <path d="M0,0 L10,5 L0,10 z" fill="rgba(40,57,83,0.55)" />
+                      <path d="M0,0 L10,5 L0,10 z" fill="rgba(255,255,255,0.4)" />
                     </marker>
                   </defs>
-                  <path d="M72 2 L40 32" stroke="rgba(40,57,83,0.55)" strokeWidth="2.5" strokeLinecap="round" fill="none" markerEnd="url(#calc-arrow)" />
-                  <path d="M128 2 L160 32" stroke="rgba(40,57,83,0.55)" strokeWidth="2.5" strokeLinecap="round" fill="none" markerEnd="url(#calc-arrow)" />
+                  <path d="M72 2 L40 32" stroke="rgba(255,255,255,0.4)" strokeWidth="2.5" strokeLinecap="round" fill="none" markerEnd="url(#calc-arrow)" />
+                  <path d="M128 2 L160 32" stroke="rgba(255,255,255,0.4)" strokeWidth="2.5" strokeLinecap="round" fill="none" markerEnd="url(#calc-arrow)" />
                 </svg>
 
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="rounded-xl bg-ink p-4 text-center text-white">
+                  <div className="rounded-xl border border-white/15 bg-white/10 p-4 text-center text-white">
                     <div className="text-xs text-white/60">75% предоплата</div>
                     <div className="mt-1 text-2xl font-semibold text-gold-light">{prepay.toLocaleString('ru-RU')} ₽</div>
                   </div>
-                  <div className="rounded-xl bg-ink p-4 text-center text-white">
+                  <div className="rounded-xl border border-white/15 bg-white/10 p-4 text-center text-white">
                     <div className="text-xs text-white/60">25% после срока</div>
                     <div className="mt-1 text-2xl font-semibold text-gold-light">{afterProbation.toLocaleString('ru-RU')} ₽</div>
                   </div>
@@ -471,7 +492,9 @@ export default function KadryHome() {
       </section>
 
       {/* FAQ */}
-      <FAQSection items={faqItems} />
+      <div id="faq">
+        <FAQSection items={faqItems} dark />
+      </div>
 
       {/* Найти сотрудника — объединённый яркий CTA-блок с формой */}
       <section id="lead-form" className="scroll-mt-16 bg-ink py-16 text-white">
