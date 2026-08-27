@@ -4,9 +4,8 @@ import { ArticleCard } from '../components/cards'
 import { articles } from '../data/articles'
 import type { Audience, ArticleKind } from '../types'
 
-const kindLabel: Record<ArticleKind, string> = {
+const kindLabel: Partial<Record<ArticleKind, string>> = {
   article: 'Статьи',
-  faq: 'FAQ',
   glossary: 'Глоссарий',
   checklist: 'Чек-листы',
 }
@@ -27,7 +26,7 @@ export default function KnowledgeList({
   const [kind, setKind] = useState<ArticleKind | 'all'>('all')
 
   const filtered = useMemo(
-    () => articles.filter((a) => a.audience.includes(audience) && (kind === 'all' || a.kind === kind)),
+    () => articles.filter((a) => a.audience.includes(audience) && a.kind !== 'faq' && (kind === 'all' || a.kind === kind)),
     [audience, kind],
   )
 

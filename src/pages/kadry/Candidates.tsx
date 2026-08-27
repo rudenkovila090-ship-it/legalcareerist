@@ -13,13 +13,6 @@ const benefits = [
 
 const services = [
   {
-    to: '/kadry/candidates/reserve',
-    tag: 'Кадровый резерв',
-    title: 'Кадровый резерв',
-    text: 'Подайте заявку один раз — будем предлагать релевантные вакансии, пока не найдется подходящая.',
-    cta: 'Подать заявку',
-  },
-  {
     to: '/kadry/candidates/consultation',
     tag: 'От 1 500 ₽',
     title: 'Карьерная консультация',
@@ -36,7 +29,7 @@ const faqItems = [
 
 const railItems = [
   { id: 'hero', label: 'Соискателям' },
-  { id: 'services', label: 'Услуги' },
+  { id: 'services', label: 'Карьерная консультация' },
   { id: 'reviews', label: 'Отзывы' },
   { id: 'faq', label: 'FAQ' },
 ]
@@ -75,12 +68,22 @@ function IconBook2() {
     </svg>
   )
 }
+function IconWallet() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+      <rect x="3" y="6" width="18" height="13" rx="2" />
+      <path d="M3 10h18" />
+      <circle cx="16.5" cy="14" r="1" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
 
 const quickLinks = [
   { to: '/kadry/vacancies', label: 'Вакансии', icon: IconList },
-  { to: '#services', label: 'Услуги', icon: IconStar },
+  { to: '#services', label: 'Карьерная консультация', icon: IconStar },
   { to: '/kadry/candidates/reserve', label: 'Кадровый резерв', icon: IconArchive },
   { to: '/kadry/knowledge', label: 'База знаний', icon: IconBook2 },
+  { to: '/kadry/salary', label: 'Зарплатный навигатор', icon: IconWallet },
 ]
 
 export default function Candidates() {
@@ -127,11 +130,11 @@ export default function Candidates() {
         </div>
       </section>
 
-      {/* Услуги */}
+      {/* Карьерная консультация */}
       <section id="services" className="container-page py-12">
-        <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Услуги</div>
-        <h2 className="mb-6 text-2xl font-semibold">Выберите, что нужно именно вам</h2>
-        <div className="grid gap-6 sm:grid-cols-2">
+        <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Карьерная консультация</div>
+        <h2 className="mb-6 text-2xl font-semibold">Разбор ситуации и понятный план действий</h2>
+        <div className="mx-auto max-w-md">
           {services.map((s) => (
             <Link key={s.to} to={s.to} className="glass flex h-full flex-col rounded-2xl p-6">
               <span className="inline-block w-fit rounded-full bg-gold-light/25 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-ink">

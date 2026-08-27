@@ -74,6 +74,10 @@ export default function VacancyDetail() {
             formType="vacancy_application"
             title="Откликнуться на вакансию"
             description={`Заявка на позицию «${vacancy.title}»`}
+            contactLabel="Почта"
+            showPhone
+            showTelegram
+            showResumeUpload
           />
         </aside>
       </div>

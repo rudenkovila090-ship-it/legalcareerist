@@ -4,6 +4,7 @@ const nav = [
   { to: '/kadry/employers', label: 'Кадры' },
   { to: '/community', label: 'Сообщество' },
   { to: '/events', label: 'Мероприятия' },
+  { to: '/marketplace', label: 'Marketplace' },
 ]
 
 function IconAccount() {

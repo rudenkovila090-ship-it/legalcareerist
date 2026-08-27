@@ -135,9 +135,96 @@ const employerTabs = [
 // Демо-профили кандидатов для вкладки «Кандидаты» — обезличенные карточки,
 // контакт открывается за отдельную плату (демо: лид с интересом к анкете).
 const demoCandidates = [
-  { id: 1, title: 'Помощник юриста', spec: 'Корпоративное право', exp: '1 год опыта', city: 'Москва', salary: 'от 45 000 ₽', tags: ['Диплом бакалавра', 'Готов к офису'] },
-  { id: 2, title: 'Младший юрист', spec: 'Банкротство', exp: '2 года опыта', city: 'Санкт-Петербург', salary: 'от 70 000 ₽', tags: ['Опыт в арбитраже', 'Готов к разъездам'] },
-  { id: 3, title: 'Секретарь судебного заседания', spec: 'Процессуальное право', exp: 'без опыта', city: 'Москва', salary: 'от 40 000 ₽', tags: ['Выпускник 2026', 'Готов к обучению'] },
+  {
+    id: 1,
+    position: 'Помощник юриста',
+    sphere: 'Корпоративное право',
+    exp: '1 год опыта',
+    city: 'Москва',
+    salaryFrom: '45 000 ₽',
+    school: 'МГУ',
+    schedule: 'Гибкий график',
+    employment: 'Частичная занятость',
+    format: 'Офис',
+    workExp: 'Год работал помощником юриста в корпоративной практике: готовил проекты договоров, вел реестр документов, сопровождал due diligence.',
+    education: 'МГУ, юридический факультет — специалитет, 4 курс.',
+    skills: ['Договорная работа', 'КонсультантПлюс', 'Deal-менеджмент', 'Английский B2'],
+  },
+  {
+    id: 2,
+    position: 'Младший юрист',
+    sphere: 'Банкротство',
+    exp: '2 года опыта',
+    city: 'Санкт-Петербург',
+    salaryFrom: '70 000 ₽',
+    school: 'СПбГУ',
+    schedule: 'Полный день',
+    employment: 'Полная занятость',
+    format: 'Гибрид',
+    workExp: '2 года в банкротной практике: сопровождал процедуры наблюдения и конкурсного производства, готовил заявления о включении в реестр.',
+    education: 'СПбГУ, юридический факультет — бакалавриат, выпуск 2024.',
+    skills: ['Банкротное право', 'Арбитражный процесс', 'Kad.Arbitr', 'Подготовка процессуальных документов'],
+  },
+  {
+    id: 3,
+    position: 'Секретарь судебного заседания',
+    sphere: 'Процессуальное право',
+    exp: 'без опыта',
+    city: 'Москва',
+    salaryFrom: '40 000 ₽',
+    school: 'МГЮА',
+    schedule: 'Полный день',
+    employment: 'Полная занятость',
+    format: 'Офис',
+    workExp: 'Опыта работы пока нет — проходил учебную практику в районном суде, участвовал в подготовке протоколов заседаний.',
+    education: 'МГЮА, юридический факультет — 4 курс.',
+    skills: ['Делопроизводство', 'ГПК РФ', 'Внимательность к деталям'],
+  },
+  {
+    id: 4,
+    position: 'Офис-менеджер',
+    sphere: 'Административная поддержка',
+    exp: '3 года опыта',
+    city: 'Москва',
+    salaryFrom: '55 000 ₽',
+    school: 'МГЮА',
+    schedule: 'Полный день',
+    employment: 'Полная занятость',
+    format: 'Офис',
+    workExp: '3 года administrирует работу небольшой юридической фирмы: документооборот, взаимодействие с клиентами, организация встреч.',
+    education: 'МГЮА, юридический факультет — бакалавриат, выпуск 2022.',
+    skills: ['Документооборот', 'MS Office', 'Организация процессов'],
+  },
+  {
+    id: 5,
+    position: 'Помощник адвоката',
+    sphere: 'Уголовное право',
+    exp: '1 год опыта',
+    city: 'Санкт-Петербург',
+    salaryFrom: '35 000 ₽',
+    school: 'СПбГУ',
+    schedule: 'Гибкий график',
+    employment: 'Частичная занятость',
+    format: 'Гибрид',
+    workExp: 'Год ассистировал адвокату по уголовным делам: готовил ходатайства, изучал материалы дел, сопровождал на следственных действиях.',
+    education: 'СПбГУ, юридический факультет — 3 курс.',
+    skills: ['Уголовный процесс', 'Работа с материалами дела', 'Стрессоустойчивость'],
+  },
+  {
+    id: 6,
+    position: 'Помощник арбитражного управляющего',
+    sphere: 'Банкротство',
+    exp: '2 года опыта',
+    city: 'Москва',
+    salaryFrom: '60 000 ₽',
+    school: 'МГУ',
+    schedule: 'Полный день',
+    employment: 'Полная занятость',
+    format: 'Дистанционно',
+    workExp: '2 года сопровождал процедуры банкротства физлиц и юрлиц: инвентаризация имущества, торги, отчетность перед кредиторами.',
+    education: 'МГУ, юридический факультет — бакалавриат, выпуск 2023.',
+    skills: ['Банкротное право', 'ЕФРСБ', 'Работа с реестром кредиторов'],
+  },
 ]
 
 const valueProps = [
@@ -240,6 +327,7 @@ export default function KadryHome() {
   const [tab, setTab] = useState<(typeof employerTabs)[number]['id']>('recruiting')
   const [openCandidate, setOpenCandidate] = useState<number | null>(null)
   const [unlocked, setUnlocked] = useState<Record<number, boolean>>({})
+  const [visibleCandidates, setVisibleCandidates] = useState(3)
 
   function handleUnlock(id: number) {
     submitLead({
@@ -254,18 +342,10 @@ export default function KadryHome() {
 
   return (
     <div className="bg-ink text-white">
-      <SectionRail items={railItems} dark />
+      {tab === 'recruiting' && <SectionRail items={railItems} dark />}
 
-      <div id="hero">
-        <PageHero
-          dark
-          eyebrow="Кадровое юридическое агентство"
-          title="Находим сотрудников для юридических фирм — без лишних собеседований и потраченного времени"
-          description="Подбор помощников, младших юристов, офис-менеджеров — быстро и точно."
-        />
-      </div>
-
-      {/* Вкладки раздела: рекрутинг / кандидаты / база знаний / личный кабинет */}
+      {/* Вкладки раздела: рекрутинг / кандидаты / база знаний / личный кабинет —
+          сразу под панелью аудитории «Работодателям / Соискателям» из шапки. */}
       <div className="container-page py-8">
         <div className="flex flex-wrap gap-3">
           {employerTabs.map((t) => (
@@ -284,29 +364,59 @@ export default function KadryHome() {
         </div>
       </div>
 
+      {tab === 'recruiting' && (
+        <div id="hero">
+          <PageHero
+            dark
+            eyebrow="Кадровое юридическое агентство"
+            title="Находим сотрудников для юридических фирм — без лишних собеседований и потраченного времени"
+            description="Подбор помощников, младших юристов, офис-менеджеров — быстро и точно."
+          />
+        </div>
+      )}
+
       {tab === 'candidates' && (
         <section className="container-page pb-16">
           <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold-light">Кандидаты</div>
           <h2 className="mb-6 text-2xl font-semibold text-white">Свежие анкеты из кадрового резерва</h2>
           <div className="grid gap-4 sm:grid-cols-3">
-            {demoCandidates.map((c) => {
+            {demoCandidates.slice(0, visibleCandidates).map((c, i) => {
               const isOpen = openCandidate === c.id
               const isUnlocked = unlocked[c.id]
               return (
                 <div key={c.id} className="glass-dark flex flex-col rounded-xl p-5">
-                  <div className="font-semibold text-white">{c.title}</div>
-                  <div className="mt-1 text-sm text-white/60">{c.spec} · {c.exp}</div>
-                  <div className="mt-1 text-sm text-white/40">{c.city} · {c.salary}</div>
+                  <div className="text-xs font-semibold uppercase tracking-wide text-gold-light">Кандидат №{i + 1}</div>
+                  <div className="mt-1 font-semibold text-white">{c.position}</div>
+                  <div className="mt-1 text-sm text-white/60">Сфера: {c.sphere}</div>
+                  <div className="mt-1 text-sm text-white/60">Опыт: {c.exp}</div>
+                  <div className="mt-1 text-sm text-white/40">{c.city} · от {c.salaryFrom}</div>
+                  <div className="mt-1 text-sm text-white/40">{c.school}</div>
                   <div className="mt-3 flex flex-wrap gap-1.5">
-                    {c.tags.map((tag) => (
+                    {[c.schedule, c.employment, c.format].map((tag) => (
                       <span key={tag} className="rounded-full bg-white/10 px-2.5 py-1 text-xs text-white/70">{tag}</span>
                     ))}
                   </div>
 
                   {isOpen && (
-                    <div className="mt-4 border-t border-white/10 pt-4">
+                    <div className="mt-4 space-y-3 border-t border-white/10 pt-4 text-sm">
+                      <div>
+                        <div className="text-xs font-semibold uppercase tracking-wide text-white/40">Опыт работы</div>
+                        <p className="mt-1 text-white/70">{c.workExp}</p>
+                      </div>
+                      <div>
+                        <div className="text-xs font-semibold uppercase tracking-wide text-white/40">Образование</div>
+                        <p className="mt-1 text-white/70">{c.education}</p>
+                      </div>
+                      <div>
+                        <div className="text-xs font-semibold uppercase tracking-wide text-white/40">Навыки</div>
+                        <div className="mt-1 flex flex-wrap gap-1.5">
+                          {c.skills.map((s) => (
+                            <span key={s} className="rounded-full bg-white/10 px-2.5 py-1 text-xs text-white/70">{s}</span>
+                          ))}
+                        </div>
+                      </div>
                       {isUnlocked ? (
-                        <div className="rounded-lg bg-emerald-400/10 p-3 text-sm text-emerald-200">
+                        <div className="rounded-lg bg-emerald-400/10 p-3 text-emerald-200">
                           Заявка на контакт отправлена — свяжемся для оплаты и передачи анкеты.
                         </div>
                       ) : (
@@ -326,26 +436,37 @@ export default function KadryHome() {
                     onClick={() => setOpenCandidate(isOpen ? null : c.id)}
                     className="mt-4 text-sm font-medium text-gold-light hover:text-white"
                   >
-                    {isOpen ? 'Свернуть' : 'Посмотреть еще'}
+                    {isOpen ? 'Свернуть' : 'Подробнее'}
                   </button>
                 </div>
               )
             })}
           </div>
-          <p className="mt-6 text-sm text-white/40">
-            Показаны 3 анкеты из кадрового резерва — полная база доступна после оставленной заявки.
-          </p>
+          {visibleCandidates < demoCandidates.length && (
+            <button
+              type="button"
+              onClick={() => setVisibleCandidates((v) => Math.min(v + 3, demoCandidates.length))}
+              className="mt-6 rounded-full border border-white/25 px-6 py-2.5 text-sm font-semibold text-white/70 hover:text-white"
+            >
+              Посмотреть еще кандидатов
+            </button>
+          )}
         </section>
       )}
 
       {tab === 'knowledge' && (
         <section className="container-page pb-16">
-          <div className="glass-dark rounded-2xl p-8 text-center">
+          <div className="glass-dark rounded-2xl p-8">
             <div className="text-sm font-medium uppercase tracking-wide text-gold-light">База знаний</div>
-            <h2 className="mt-2 text-2xl font-semibold text-white">Статьи, FAQ и чек-листы по подбору</h2>
-            <p className="mx-auto mt-2 max-w-md text-sm text-white/60">
+            <h2 className="mt-2 text-2xl font-semibold text-white">Гайды, чек-листы, инструкции и статьи по подбору</h2>
+            <p className="mt-2 max-w-md text-sm text-white/60">
               Материалы для работодателей и соискателей юридического рынка.
             </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {['Гайды', 'Чек-листы', 'Инструкции', 'Статьи'].map((k) => (
+                <span key={k} className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-medium text-white/70">{k}</span>
+              ))}
+            </div>
             <Link to="/kadry/knowledge" className="mt-5 inline-block rounded-full bg-gold-light px-6 py-2.5 text-sm font-semibold text-ink hover:opacity-90">
               Перейти в базу знаний
             </Link>

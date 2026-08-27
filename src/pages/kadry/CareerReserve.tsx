@@ -99,6 +99,7 @@ export default function CareerReserve() {
   }
 
   const [priorityForm, setPriorityForm] = useState({ name: '', phone: '', email: '', telegram: '' })
+  const [priorityResumeFile, setPriorityResumeFile] = useState<File | null>(null)
   const [prioritySent, setPrioritySent] = useState(false)
 
   function handlePrioritySubmit(e: FormEvent) {
@@ -109,7 +110,7 @@ export default function CareerReserve() {
       formType: 'reserve_join_request',
       name: priorityForm.name,
       contact: [priorityForm.phone, priorityForm.email, priorityForm.telegram].filter(Boolean).join(' / '),
-      interest: ['Вступление в кадровый резерв'],
+      interest: ['Вступление в кадровый резерв', priorityResumeFile ? `Резюме: ${priorityResumeFile.name}` : ''].filter(Boolean),
     })
     setPrioritySent(true)
   }
@@ -242,6 +243,16 @@ export default function CareerReserve() {
                   value={priorityForm.telegram}
                   onChange={(e) => setPriorityForm((f) => ({ ...f, telegram: e.target.value }))}
                 />
+                <label className="col-span-full flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-dashed border-white/25 bg-white/5 px-4 py-3 text-sm text-white/60 hover:border-white/40">
+                  <span>{priorityResumeFile ? priorityResumeFile.name : 'Загрузить резюме (PDF)'}</span>
+                  <span className="shrink-0 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white">Выбрать файл</span>
+                  <input
+                    type="file"
+                    accept=".pdf"
+                    className="hidden"
+                    onChange={(e) => setPriorityResumeFile(e.target.files?.[0] ?? null)}
+                  />
+                </label>
                 <button
                   type="submit"
                   className="col-span-full rounded-full bg-gold-light py-3 text-sm font-semibold text-ink transition-colors hover:bg-white"
@@ -328,11 +339,11 @@ export default function CareerReserve() {
                   onChange={(e) => setForm((f) => ({ ...f, telegram: e.target.value }))}
                 />
                 <label className="col-span-full flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-dashed border-white/25 bg-white/5 px-4 py-3 text-sm text-white/60 hover:border-white/40">
-                  <span>{resumeFile ? resumeFile.name : 'Загрузить резюме (PDF, DOCX)'}</span>
+                  <span>{resumeFile ? resumeFile.name : 'Загрузить резюме (PDF)'}</span>
                   <span className="shrink-0 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white">Выбрать файл</span>
                   <input
                     type="file"
-                    accept=".pdf,.doc,.docx"
+                    accept=".pdf"
                     className="hidden"
                     onChange={(e) => setResumeFile(e.target.files?.[0] ?? null)}
                   />
