@@ -9,11 +9,11 @@ import { submitLead } from '../../lib/leads'
 const proof = [
   { value: '8 000+', label: 'кандидатов в кадровом резерве' },
   { value: '20+', label: 'позиций закрыто' },
-  { value: '5–7', label: 'дней — среднее Time to Hire' },
+  { value: '2 мин', label: 'чтобы подать заявку' },
 ]
 
 const benefits = [
-  { title: 'Бесплатно для соискателя', text: 'Комиссию платит работодатель — вы не платите ничего за подбор.' },
+  { title: 'Подбор без лишних хлопот', text: 'Берём переговоры с работодателем на себя — вам не нужно самим искать вакансии и откликаться.' },
   { title: 'Только релевантные вакансии', text: 'Предлагаем позиции, которые реально подходят под ваш опыт и ожидания — без спама.' },
   { title: 'Сопровождение до оффера', text: 'Готовим к встрече с работодателем и на связи до самого выхода на позицию.' },
 ]
@@ -39,7 +39,7 @@ const positions = [
 ]
 
 const faqItems = [
-  { q: 'Сколько это стоит для меня?', a: 'Нисколько — подбор для соискателей бесплатный. Комиссию платит работодатель.' },
+  { q: 'Сколько это стоит для меня?', a: 'Нисколько — расходы на подбор мы берём на себя.' },
   { q: 'Что если мне ничего не предложат сразу?', a: 'Заявка остаётся в кадровом резерве — мы возвращаемся к ней, как только появляется подходящая вакансия.' },
   { q: 'Как быстрее получить доступ к вакансиям?', a: 'Резиденты Сообщества видят новые вакансии первыми. Подробнее — на странице «Сообщество».' },
   { q: 'Какой опыт нужен?', a: 'Мы работаем с начинающими и средними специалистами — студентами последних курсов, выпускниками, помощниками с небольшим опытом.' },
@@ -69,6 +69,22 @@ export default function CareerReserve() {
       interest: form.position ? [form.position] : [],
     })
     setSent(true)
+  }
+
+  const [priorityForm, setPriorityForm] = useState({ name: '', phone: '', email: '', telegram: '' })
+  const [prioritySent, setPrioritySent] = useState(false)
+
+  function handlePrioritySubmit(e: FormEvent) {
+    e.preventDefault()
+    if (!priorityForm.name.trim() || !priorityForm.phone.trim()) return
+    submitLead({
+      sourceBlock: 'community',
+      formType: 'priority_access_request',
+      name: priorityForm.name,
+      contact: [priorityForm.phone, priorityForm.email, priorityForm.telegram].filter(Boolean).join(' / '),
+      interest: ['Приоритетный доступ к вакансиям — вступление в Сообщество'],
+    })
+    setPrioritySent(true)
   }
 
   return (
@@ -156,17 +172,56 @@ export default function CareerReserve() {
             ))}
           </div>
 
-          <div className="mt-8 rounded-2xl bg-ink px-6 py-8 text-center text-white sm:px-10">
-            <div className="text-xl font-semibold">Хотите видеть вакансии первыми?</div>
-            <p className="mx-auto mt-2 max-w-lg text-sm text-white/70">
-              Резиденты Сообщества получают доступ к вакансиям раньше кадрового резерва и открытого рынка.
-            </p>
-            <Link
-              to="/community"
-              className="mt-5 inline-block rounded-full bg-gold-light px-6 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-white"
-            >
-              Вступить в Сообщество
-            </Link>
+          <div className="mt-8 rounded-2xl bg-ink px-6 py-8 text-white sm:px-10 sm:py-10">
+            <div className="text-center">
+              <div className="text-xl font-semibold">Хотите видеть вакансии первыми?</div>
+              <p className="mx-auto mt-2 max-w-lg text-sm text-white/70">
+                Резиденты Сообщества получают доступ к вакансиям раньше кадрового резерва и открытого рынка.
+              </p>
+            </div>
+
+            {prioritySent ? (
+              <div className="mx-auto mt-6 max-w-md rounded-xl bg-white/10 p-6 text-center">
+                <div className="font-semibold">Заявка отправлена</div>
+                <p className="mt-1 text-sm text-white/70">Мы свяжемся с вами, чтобы оформить вступление в Сообщество.</p>
+              </div>
+            ) : (
+              <form className="mx-auto mt-6 grid max-w-2xl gap-3 sm:grid-cols-2" onSubmit={handlePrioritySubmit}>
+                <input
+                  className="rounded-lg border border-white/15 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
+                  placeholder="ФИО"
+                  value={priorityForm.name}
+                  onChange={(e) => setPriorityForm((f) => ({ ...f, name: e.target.value }))}
+                />
+                <input
+                  className="rounded-lg border border-white/15 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
+                  placeholder="Номер телефона"
+                  value={priorityForm.phone}
+                  onChange={(e) => setPriorityForm((f) => ({ ...f, phone: e.target.value }))}
+                />
+                <input
+                  className="rounded-lg border border-white/15 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
+                  placeholder="Почта"
+                  value={priorityForm.email}
+                  onChange={(e) => setPriorityForm((f) => ({ ...f, email: e.target.value }))}
+                />
+                <input
+                  className="rounded-lg border border-white/15 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
+                  placeholder="Telegram"
+                  value={priorityForm.telegram}
+                  onChange={(e) => setPriorityForm((f) => ({ ...f, telegram: e.target.value }))}
+                />
+                <button
+                  type="submit"
+                  className="col-span-full rounded-full bg-gold-light py-3 text-sm font-semibold text-ink transition-colors hover:bg-white"
+                >
+                  Вступить в Сообщество
+                </button>
+                <p className="col-span-full text-center text-xs text-white/50">
+                  Нажимая «Вступить в Сообщество», вы соглашаетесь на обработку персональных данных.
+                </p>
+              </form>
+            )}
           </div>
         </div>
       </section>

@@ -406,9 +406,9 @@ export default function KadryHome() {
                 <IconUserCheck />
               </div>
             </div>
-            <div className="mb-8 flex justify-between text-[11px] text-white/50">
-              <span>Заявка от работодателя</span>
-              <span>Кандидат найден</span>
+            <div className="relative mb-8 h-4 text-[11px] text-white/50">
+              <span className="absolute" style={{ left: '4%' }}>Заявка от работодателя</span>
+              <span className="absolute text-right" style={{ right: '4%' }}>Кандидат найден</span>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-4">
@@ -481,7 +481,7 @@ export default function KadryHome() {
                     <div className="mt-1 text-2xl font-semibold text-gold-light">{prepay.toLocaleString('ru-RU')} ₽</div>
                   </div>
                   <div className="rounded-xl border border-white/15 bg-white/10 p-4 text-center text-white">
-                    <div className="text-xs text-white/60">25% после срока</div>
+                    <div className="text-xs leading-snug text-white/60">25% после прохождения испытательного срока</div>
                     <div className="mt-1 text-2xl font-semibold text-gold-light">{afterProbation.toLocaleString('ru-RU')} ₽</div>
                   </div>
                 </div>

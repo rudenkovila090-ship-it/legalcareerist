@@ -62,7 +62,7 @@ export default function Header() {
 
       {onKadry && (
         <div className={`border-t transition-colors ${isCandidates ? 'border-ink/10 bg-white' : 'border-white/10 bg-ink'}`}>
-          <div className="container-page flex gap-3 py-4">
+          <div className="container-page flex justify-end gap-3 py-4">
             {kadryAudience.map((item) => (
               <NavLink
                 key={item.to}

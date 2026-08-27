@@ -13,6 +13,57 @@ const proof = [
   { value: 'Legal Tech', label: 'магистратура НИУ ВШЭ' },
 ]
 
+// Минималистичные иконки для категорий услуг конструктора — по одной на
+// категорию, без внешних библиотек.
+function IconDoc() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <rect x="4.5" y="3.5" width="15" height="17" rx="1.5" />
+      <path d="M8 8h8M8 12h8M8 16h5" />
+    </svg>
+  )
+}
+function IconTarget() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <circle cx="12" cy="12" r="8" />
+      <circle cx="12" cy="12" r="4" />
+      <circle cx="12" cy="12" r="0.6" fill="currentColor" />
+    </svg>
+  )
+}
+function IconCompass() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M15 9l-2 6-6 2 2-6 6-2z" />
+    </svg>
+  )
+}
+function IconRefresh() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <path d="M4.5 12a7.5 7.5 0 0 1 12.6-5.5M19.5 12a7.5 7.5 0 0 1-12.6 5.5" />
+      <path d="M17 3.5v3.5h-3.5M7 20.5V17h3.5" />
+    </svg>
+  )
+}
+function IconStar() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <path d="M12 3.5l2.4 5.1 5.6.6-4.2 3.8 1.2 5.5L12 15.7l-5 2.8 1.2-5.5-4.2-3.8 5.6-.6L12 3.5z" />
+    </svg>
+  )
+}
+
+const categoryIcons: Record<string, typeof IconDoc> = {
+  'Резюме и сопроводительное письмо': IconDoc,
+  'Подготовка к трудоустройству': IconTarget,
+  'Карьерное консультирование': IconCompass,
+  'Карьерные переходы и кризисы': IconRefresh,
+  'Личный бренд': IconStar,
+}
+
 const benefits = [
   { title: 'Конкретный план, а не общие слова', text: 'Уходите с созвона со списком следующих шагов, а не с абстрактной мотивацией.' },
   { title: 'Понимание рынка изнутри', text: 'Ведёт консультант, который сам подбирает юристов и знает, на что смотрят работодатели.' },
@@ -173,44 +224,49 @@ export default function CareerConsultation() {
           </p>
 
           <div className="space-y-8">
-            {consultationCategories.map((cat) => (
-              <div key={cat.title}>
-                <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink/50">{cat.title}</h3>
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {cat.services.map((s) => {
-                    const isSelected = !!selected[s.id]
-                    return (
-                      <button
-                        key={s.id}
-                        type="button"
-                        onClick={() => toggle(s.id)}
-                        className={`flex items-center justify-between rounded-xl border p-4 text-left text-sm transition-colors ${
-                          isSelected ? 'border-ink bg-ink text-white' : 'border-ink/10 bg-white hover:border-ink/30'
-                        }`}
-                      >
-                        <span className="font-medium">{s.title}</span>
-                        <span className="ml-3 flex shrink-0 items-center gap-2">
-                          <span className={isSelected ? 'text-white/70' : 'text-ink/50'}>{s.price.toLocaleString('ru-RU')} ₽</span>
+            {consultationCategories.map((cat) => {
+              const CatIcon = categoryIcons[cat.title]
+              return (
+                <div key={cat.title}>
+                  <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink/50">{cat.title}</h3>
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {cat.services.map((s) => {
+                      const isSelected = !!selected[s.id]
+                      return (
+                        <button
+                          key={s.id}
+                          type="button"
+                          onClick={() => toggle(s.id)}
+                          className={`flex flex-col items-start gap-3 rounded-xl border p-4 text-left text-sm transition-colors ${
+                            isSelected ? 'border-ink bg-ink text-white' : 'border-ink/10 bg-white hover:border-ink/30'
+                          }`}
+                        >
                           <span
-                            className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${
-                              isSelected ? 'bg-white text-ink' : 'bg-ink/10 text-ink'
+                            className={`flex h-9 w-9 items-center justify-center rounded-full ${
+                              isSelected ? 'bg-white/15 text-white' : 'bg-gold-light/20 text-ink'
                             }`}
                           >
-                            {isSelected ? '✓' : '+'}
+                            <CatIcon />
                           </span>
-                        </span>
-                      </button>
-                    )
-                  })}
+                          <span className="font-medium">{s.title}</span>
+                          <span className="flex w-full items-center justify-between">
+                            <span className={isSelected ? 'text-white/70' : 'text-ink/50'}>{s.price.toLocaleString('ru-RU')} ₽</span>
+                            <span
+                              className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${
+                                isSelected ? 'bg-white text-ink' : 'bg-ink/10 text-ink'
+                              }`}
+                            >
+                              {isSelected ? '✓' : '+'}
+                            </span>
+                          </span>
+                        </button>
+                      )
+                    })}
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
-
-          <p className="mt-8 text-xs text-ink/50">
-            Резидентам Сообщества — промокод <strong className="text-ink">KQresident</strong> на бесплатную услугу в заказе.
-            Персональные промокоды на скидку 15% на первую услугу проверяются менеджером при подтверждении заявки.
-          </p>
         </div>
       </section>
 
