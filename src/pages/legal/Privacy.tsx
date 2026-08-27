@@ -1,10 +1,6 @@
 import PageHero from '../../components/PageHero'
 
-// Текст загружен из присланного PDF практически без изменений.
-// ВНИМАНИЕ: в разделах 17.1 и 17.5 исходного документа сайт Оператора указан
-// как https://liugongrussia.ru/ — это, судя по всему, ошибка копирования из
-// чужого шаблона. Перед публикацией нужно заменить на legalcareerist.ru.
-// Баннер ниже держит это на виду, пока не подтверждено исправление.
+// Текст загружен из присланного PDF (уточнённая редакция с доменом legalcareerist.ru).
 export default function Privacy() {
   return (
     <div>
@@ -12,13 +8,6 @@ export default function Privacy() {
 
       <div className="container-page py-10">
         <div className="mx-auto max-w-3xl">
-          <div className="mb-8 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
-            <strong>Требует проверки перед публикацией:</strong> в разделах 17.1 и 17.5, а также в
-            реквизитах исходного документа сайт Оператора указан как <code>liugongrussia.ru</code>{' '}
-            вместо <code>legalcareerist.ru</code>. Похоже на ошибку копирования из чужого шаблона —
-            нужно подтвердить и исправить до того, как документ станет действующим.
-          </div>
-
           <div className="space-y-8 text-sm leading-relaxed text-ink/80">
             <section>
               <h2 className="mb-2 text-lg font-semibold text-ink">1. Общие положения</h2>

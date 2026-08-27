@@ -95,6 +95,12 @@ export interface EmployerProfile {
 
 export type VacancyStatus = 'open' | 'closed'
 
+// Каскад видимости вакансии (уточнено заказчиком): сначала предлагается
+// резидентам платного Сообщества → если отклика нет, направляется в
+// кадровый резерв (база 3200+ контактов) → и только если кандидат не
+// найден ни там, ни там, вакансия публикуется в открытом доступе на сайте.
+export type VacancyVisibilityStage = 'residents' | 'talent_pool' | 'public'
+
 export interface Vacancy extends Tagged {
   id: string
   slug: string
@@ -110,6 +116,7 @@ export interface Vacancy extends Tagged {
   requirements: string[]
   conditions: string[]
   status: VacancyStatus
+  visibilityStage: VacancyVisibilityStage
   publishedAt: string
   urgent: boolean
   employerId: string

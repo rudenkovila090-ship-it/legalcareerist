@@ -38,12 +38,6 @@ const communityBenefits = [
   { title: 'Личный бренд', text: 'Записываем подкасты с резидентами, публикуем статьи.' },
 ]
 
-const communityTariffs = [
-  { period: '1 месяц', price: '690 ₽', note: 'Стандартная' },
-  { period: '3 месяца', price: '590 ₽/мес', note: '1 770 ₽ · выгоднее на 14%' },
-  { period: '6 месяцев', price: '530 ₽/мес', note: '3 180 ₽ · выгоднее на 23%' },
-]
-
 export default function Home() {
   return (
     <div>
@@ -110,6 +104,15 @@ export default function Home() {
             </div>
           </div>
 
+          <div className="mt-8 rounded-xl bg-white/5 p-5">
+            <div className="font-semibold text-white">Как мы ищем кандидата</div>
+            <p className="mt-1 text-sm text-white/60">
+              Сначала вакансию видят резиденты нашего Сообщества — если среди них нет подходящего
+              кандидата, подключаем кадровый резерв (базу 3 200+ контактов), и только если это не
+              дало результата — публикуем вакансию в открытом доступе.
+            </p>
+          </div>
+
           <div className="mt-10 grid gap-8 lg:grid-cols-[1.1fr_1fr] lg:items-start">
             <div>
               <p className="text-sm text-white/50">
@@ -160,35 +163,20 @@ export default function Home() {
             ))}
           </div>
 
-          <div className="mt-10">
-            <div className="mb-4 font-semibold">Тарифы</div>
-            <div className="grid gap-4 sm:grid-cols-3">
-              {communityTariffs.map((t) => (
-                <div key={t.period} className="rounded-xl bg-ink p-5 text-white">
-                  <div className="text-sm text-white/60">Подписка · {t.period}</div>
-                  <div className="mt-1 text-3xl font-semibold text-gold-light">{t.price}</div>
-                  <div className="mt-2 text-xs text-white/50">{t.note}</div>
-                </div>
-              ))}
-            </div>
-            <p className="mt-3 text-sm text-ink/50">Демодоступ — 7 дней: попробовать формат перед оплатой.</p>
-          </div>
-
-          <div className="mt-10 grid gap-8 lg:grid-cols-[1.1fr_1fr] lg:items-start">
-            <div className="text-sm text-ink/60">
-              <p>
-                Мы объединяемся не городом и не университетом, а одной целью. Понимаем специфику
-                профессии и разницу между направлениями практики, даём доступ к закрытым вакансиям
-                и живому общению — 4 клуба, встречи, обсуждения, челленджи.
+          <div className="mt-10 flex flex-col items-start gap-4 rounded-xl bg-ink p-6 text-white sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="font-semibold">От 690 ₽/мес · демодоступ 7 дней</div>
+              <p className="mt-1 text-sm text-white/60">
+                Выберите тариф, оплатите и укажите ник в Telegram — бот сам напишет вам и пришлёт
+                ссылку на вступление.
               </p>
             </div>
-            <LeadForm
-              sourceBlock="community"
-              formType="community_join"
-              title="Вступить в сообщество"
-              description="Оставьте контакт — пришлём приглашение и расскажем про тарифы."
-              interestOptions={['1 месяц', '3 месяца', '6 месяцев', 'Демодоступ 7 дней']}
-            />
+            <Link
+              to="/community"
+              className="shrink-0 rounded-lg bg-gold-light px-6 py-2.5 text-sm font-semibold text-ink hover:opacity-90"
+            >
+              Вступить в сообщество
+            </Link>
           </div>
         </div>
       </section>
