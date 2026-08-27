@@ -110,17 +110,6 @@ export default function Candidates() {
 
   return (
     <div>
-      {tab === 'overview' && (
-        <div id="hero">
-          <PageHero
-            wide
-            eyebrow="Кадровое юридическое агентство"
-            title="Ищете работу или карьерный ориентир? Мы рядом на каждом шаге"
-            description="Подбор вакансий, карьерные консультации — для студентов, юристов и начинающих специалистов юридического рынка."
-          />
-        </div>
-      )}
-
       {/* Вкладки раздела — сразу под панелью аудитории «Работодателям / Соискателям» из шапки. */}
       <div className="container-page py-8">
         <div className="flex flex-wrap justify-end gap-3">
@@ -142,6 +131,15 @@ export default function Candidates() {
 
       {tab === 'overview' && (
         <>
+          <div id="hero">
+            <PageHero
+              wide
+              eyebrow="Кадровое юридическое агентство"
+              title="Ищете работу или карьерный ориентир? Мы рядом на каждом шаге"
+              description="Подбор вакансий, карьерные консультации — для студентов, юристов и начинающих специалистов юридического рынка."
+            />
+          </div>
+
           {/* Преимущества */}
           <section className="border-y border-ink/10 bg-white py-12">
             <div className="container-page">
