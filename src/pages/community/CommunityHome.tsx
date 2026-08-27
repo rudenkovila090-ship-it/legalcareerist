@@ -84,7 +84,7 @@ export default function CommunityHome() {
       <section className="container-page py-10">
         <div className="grid gap-3 sm:grid-cols-4">
           {stats.map((s) => (
-            <div key={s.label} className="rounded-xl border border-ink/10 bg-white p-4">
+            <div key={s.label} className="glass rounded-xl p-4">
               <div className="text-2xl font-semibold text-ink">{s.value}</div>
               <div className="mt-1 text-sm text-ink/60">{s.label}</div>
             </div>
@@ -112,7 +112,7 @@ export default function CommunityHome() {
         <h2 className="mb-6 text-2xl font-semibold">Зачем вступать</h2>
         <div className="grid gap-4 sm:grid-cols-3">
           {valueProps.map((v) => (
-            <div key={v.title} className="rounded-xl border border-ink/10 bg-white p-5">
+            <div key={v.title} className="glass rounded-xl p-5">
               <div className="font-semibold">{v.title}</div>
               <p className="mt-1 text-sm text-ink/60">{v.text}</p>
             </div>
@@ -126,7 +126,7 @@ export default function CommunityHome() {
           <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Кейсы и результаты</div>
           <h2 className="mb-6 text-2xl font-semibold">70+ резидентов из 4 городов</h2>
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="rounded-xl bg-paper p-5">
+            <div className="glass rounded-xl p-5">
               <div className="font-semibold">Что уже сделано</div>
               <ul className="mt-2 space-y-1 text-sm text-ink/60">
                 <li>· Открыли 4 клуба по интересам</li>
@@ -135,7 +135,7 @@ export default function CommunityHome() {
                 <li>· Создали базу знаний</li>
               </ul>
             </div>
-            <div className="rounded-xl bg-paper p-5">
+            <div className="glass rounded-xl p-5">
               <div className="font-semibold">Признание на рынке</div>
               <ul className="mt-2 space-y-1 text-sm text-ink/60">
                 <li>· 3-я группа в номинации «Профессиональные сообщества» (РАСО и Legal Business Forum, 2026)</li>
@@ -152,7 +152,7 @@ export default function CommunityHome() {
         <h2 className="mb-6 text-2xl font-semibold">Что входит в резидентство</h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {benefits.map((b) => (
-            <div key={b.title} className="rounded-xl border border-ink/10 bg-white p-5">
+            <div key={b.title} className="glass rounded-xl p-5">
               <div className="font-semibold">{b.title}</div>
               <p className="mt-1 text-sm text-ink/60">{b.text}</p>
             </div>
@@ -193,10 +193,8 @@ export default function CommunityHome() {
                       key={t.id}
                       type="button"
                       onClick={() => setTariffId(t.id)}
-                      className={`relative flex flex-col rounded-2xl border p-5 pt-7 text-left transition-colors ${
-                        selected
-                          ? 'border-gold-light bg-white/10'
-                          : 'border-white/10 bg-white/5 hover:border-white/25'
+                      className={`glass-dark relative flex flex-col rounded-2xl p-5 pt-7 text-left ${
+                        selected ? 'border-gold-light' : ''
                       }`}
                     >
                       {recommended && (
@@ -221,9 +219,9 @@ export default function CommunityHome() {
               </div>
 
               <div className="mt-6 flex flex-wrap gap-3 text-xs text-white/50">
-                <span className="rounded-full bg-white/5 px-3 py-1.5">Оплата на стороне платёжной системы</span>
-                <span className="rounded-full bg-white/5 px-3 py-1.5">Без автопродления</span>
-                <span className="rounded-full bg-white/5 px-3 py-1.5">Бот пишет вам сам после оплаты</span>
+                <span className="rounded-full bg-white/10 px-3 py-1.5">Оплата на стороне платёжной системы</span>
+                <span className="rounded-full bg-white/10 px-3 py-1.5">Без автопродления</span>
+                <span className="rounded-full bg-white/10 px-3 py-1.5">Бот пишет вам сам после оплаты</span>
               </div>
 
               <button
@@ -236,7 +234,7 @@ export default function CommunityHome() {
           )}
 
           {paid && !submitted && (
-            <form onSubmit={handleSubmit} className="max-w-md rounded-2xl border border-white/10 bg-white/5 p-6">
+            <form onSubmit={handleSubmit} className="glass-dark max-w-md rounded-2xl p-6">
               <div className="mb-1 font-semibold">Укажите ник в Telegram</div>
               <p className="mb-4 text-sm text-white/50">
                 Тариф «{tariff.period}» {tariff.price > 0 && `оплачен (${tariff.priceLabel.replace('/мес', '')})`}.
@@ -248,14 +246,14 @@ export default function CommunityHome() {
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Имя"
                   required
-                  className="rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-white outline-none placeholder:text-white/40 focus:border-white/40"
+                  className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white outline-none placeholder:text-white/40 focus:border-white/40"
                 />
                 <input
                   value={telegram}
                   onChange={(e) => setTelegram(e.target.value)}
                   placeholder="Ник в Telegram, например @ivanov"
                   required
-                  className="rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-white outline-none placeholder:text-white/40 focus:border-white/40"
+                  className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white outline-none placeholder:text-white/40 focus:border-white/40"
                 />
               </div>
               <button

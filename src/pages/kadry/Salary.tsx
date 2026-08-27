@@ -37,7 +37,7 @@ export default function Salary() {
       />
       <div className="container-page grid gap-8 py-10 lg:grid-cols-[1fr_1fr]">
         <div>
-          <div className="rounded-xl border border-ink/10 bg-white p-6">
+          <div className="glass rounded-xl p-6">
             <div className="grid gap-3 sm:grid-cols-2">
               <select value={spec} onChange={(e) => setSpec(e.target.value as Specialization)} className="rounded-lg border border-ink/15 px-3 py-2 text-sm">
                 {SPECIALIZATIONS.map((s) => (
@@ -51,7 +51,7 @@ export default function Salary() {
               </select>
             </div>
 
-            <div className="mt-6 rounded-lg bg-paper p-5">
+            <div className="mt-6 rounded-lg bg-ink/[0.04] p-5">
               {range ? (
                 <>
                   <div className="text-xs uppercase tracking-wide text-ink/50">Диапазон дохода</div>

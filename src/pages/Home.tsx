@@ -71,11 +71,11 @@ export default function Home() {
             карьеру вместе.
           </p>
           <div className="mx-auto mt-8 grid max-w-xl gap-3 sm:grid-cols-2">
-            <Link to="/kadry" className="rounded-xl border border-ink/10 bg-paper p-4 text-left transition-shadow hover:shadow-md">
+            <Link to="/kadry" className="glass rounded-xl p-4 text-left">
               <div className="font-semibold">Кадры</div>
               <div className="mt-1 text-sm text-ink/60">Ищете сотрудника в юридическую фирму?</div>
             </Link>
-            <Link to="/community" className="rounded-xl border border-ink/10 bg-paper p-4 text-left transition-shadow hover:shadow-md">
+            <Link to="/community" className="glass rounded-xl p-4 text-left">
               <div className="font-semibold">Сообщество</div>
               <div className="mt-1 text-sm text-ink/60">Студент или начинающий юрист?</div>
             </Link>
@@ -104,7 +104,7 @@ export default function Home() {
               <li className="flex gap-2"><span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-gold" /><span>Прозрачные условия: документы на каждом этапе подбора, открытая модель оплаты, честная отчётность.</span></li>
             </ul>
           </div>
-          <div className="rounded-xl border border-ink/10 bg-white p-6">
+          <div className="glass rounded-xl p-6">
             <div className="text-sm font-medium uppercase tracking-wide text-gold">Основатель</div>
             <div className="mt-1 text-xl font-semibold">Илья Руденков</div>
             <ul className="mt-3 space-y-1.5 text-sm text-ink/60">
@@ -124,7 +124,7 @@ export default function Home() {
           <h2 className="mb-6 text-2xl font-semibold">Решаем задачу, а не продаём услугу</h2>
           <div className="grid gap-4 sm:grid-cols-3">
             {valueProps.map((v) => (
-              <div key={v.title} className="rounded-xl bg-paper p-5">
+              <div key={v.title} className="glass rounded-xl p-5">
                 <div className="font-semibold">{v.title}</div>
                 <p className="mt-1 text-sm text-ink/60">{v.text}</p>
               </div>
@@ -138,20 +138,20 @@ export default function Home() {
         <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Кейсы и результаты</div>
         <h2 className="mb-6 text-2xl font-semibold">Признание на рынке и цифры за нами</h2>
         <div className="grid gap-4 sm:grid-cols-2">
-          <div className="rounded-xl bg-paper p-5">
+          <div className="glass rounded-xl p-5">
             <div className="font-semibold">3-я группа в номинации «Профессиональные сообщества»</div>
             <p className="mt-1 text-sm text-ink/60">
               Консолидированный рейтинг репутационного капитала участников юридического рынка Москвы
               и Санкт-Петербурга (РАСО и Legal Business Forum, 2026).
             </p>
           </div>
-          <div className="rounded-xl bg-paper p-5">
+          <div className="glass rounded-xl p-5">
             <div className="font-semibold">5 место в номинации «Самые вовлечённые юридические клубы»</div>
             <p className="mt-1 text-sm text-ink/60">Рейтинг юридических Telegram-каналов, 2025.</p>
           </div>
         </div>
         <div className="mt-8 grid gap-4 sm:grid-cols-2">
-          <Link to="/kadry" className="rounded-xl border border-ink/10 bg-white p-5 hover:shadow-md">
+          <Link to="/kadry" className="glass rounded-xl p-5">
             <div className="grid grid-cols-2 gap-3">
               {kadryStats.map((s) => (
                 <div key={s.label}>
@@ -162,7 +162,7 @@ export default function Home() {
             </div>
             <div className="mt-4 text-sm font-medium text-gold">Кейсы закрытия вакансий →</div>
           </Link>
-          <Link to="/community" className="rounded-xl border border-ink/10 bg-white p-5 hover:shadow-md">
+          <Link to="/community" className="glass rounded-xl p-5">
             <div className="grid grid-cols-2 gap-3">
               {communityStats.map((s) => (
                 <div key={s.label}>
@@ -186,7 +186,7 @@ export default function Home() {
               <div className="mb-3 font-semibold text-ink">Работодателям (Кадры)</div>
               <div className="grid gap-3 sm:grid-cols-2">
                 {kadryAdvantages.map((a) => (
-                  <div key={a.title} className="rounded-xl bg-paper p-4">
+                  <div key={a.title} className="glass rounded-xl p-4">
                     <div className="font-medium">{a.title}</div>
                     <p className="mt-1 text-sm text-ink/60">{a.text}</p>
                   </div>
@@ -197,7 +197,7 @@ export default function Home() {
               <div className="mb-3 font-semibold text-ink">Студентам (Сообщество)</div>
               <div className="grid gap-3 sm:grid-cols-2">
                 {communityBenefits.map((b) => (
-                  <div key={b.title} className="rounded-xl bg-paper p-4">
+                  <div key={b.title} className="glass rounded-xl p-4">
                     <div className="font-medium">{b.title}</div>
                     <p className="mt-1 text-sm text-ink/60">{b.text}</p>
                   </div>
@@ -222,7 +222,7 @@ export default function Home() {
             Подбор помощников, младших юристов, офис-менеджеров — быстро и точно.
           </p>
 
-          <div className="mt-10 flex flex-col items-start gap-4 rounded-xl bg-white/5 p-6 sm:flex-row sm:items-center sm:justify-between">
+          <div className="glass-dark mt-10 flex flex-col items-start gap-4 rounded-xl p-6 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <div className="font-semibold">Как мы ищем кандидата</div>
               <p className="mt-1 text-sm text-white/60">
@@ -250,7 +250,7 @@ export default function Home() {
             Объединяем студентов и начинающих юристов из разных городов и университетов.
           </p>
 
-          <div className="mt-10 flex flex-col items-start gap-4 rounded-xl bg-ink p-6 text-white sm:flex-row sm:items-center sm:justify-between">
+          <div className="glass-dark mt-10 flex flex-col items-start gap-4 rounded-xl bg-ink p-6 text-white sm:flex-row sm:items-center sm:justify-between">
             <div>
               <div className="font-semibold">От 690 ₽/мес · демодоступ 7 дней</div>
               <p className="mt-1 text-sm text-white/60">
@@ -273,7 +273,7 @@ export default function Home() {
         <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Цены</div>
         <h2 className="mb-6 text-2xl font-semibold">Прозрачно, без скрытых условий</h2>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Link to="/kadry" className="rounded-xl border border-ink/10 bg-white p-6 hover:shadow-md">
+          <Link to="/kadry" className="glass rounded-xl p-6">
             <div className="font-semibold">Кадры</div>
             <div className="mt-2 text-3xl font-semibold">30%</div>
             <p className="mt-1 text-sm text-ink/60">
@@ -281,7 +281,7 @@ export default function Home() {
               бесплатной замены.
             </p>
           </Link>
-          <Link to="/community" className="rounded-xl border border-ink/10 bg-white p-6 hover:shadow-md">
+          <Link to="/community" className="glass rounded-xl p-6">
             <div className="font-semibold">Сообщество</div>
             <div className="mt-2 text-3xl font-semibold">от 530 ₽/мес</div>
             <p className="mt-1 text-sm text-ink/60">

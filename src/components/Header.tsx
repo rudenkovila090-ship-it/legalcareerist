@@ -13,7 +13,7 @@ function linkClass({ isActive }: { isActive: boolean }) {
 
 export default function Header() {
   return (
-    <header className="sticky top-0 z-40 border-b border-ink/10 bg-paper/95 backdrop-blur">
+    <header className="sticky top-0 z-40 border-b border-ink/10 bg-white/70 backdrop-blur-xl">
       <div className="container-page flex h-16 items-center justify-between">
         <NavLink to="/" className="flex items-center gap-2">
           <span className="flex h-8 w-8 items-center justify-center rounded-md bg-ink text-gold-light">

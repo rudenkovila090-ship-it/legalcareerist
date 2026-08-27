@@ -51,7 +51,7 @@ export default function Testimonials({ items }: { items?: Testimonial[] }) {
             ))}
           </div>
         ) : (
-          <div className="rounded-xl border border-dashed border-ink/20 bg-paper p-6 text-sm text-ink/50">
+          <div className="rounded-xl border border-dashed border-ink/20 bg-ink/[0.03] p-6 text-sm text-ink/50">
             Раздел готов к наполнению — как только появятся отзывы клиентов и резидентов, разместим их здесь.
           </div>
         )}

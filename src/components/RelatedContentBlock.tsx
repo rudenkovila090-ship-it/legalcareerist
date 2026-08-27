@@ -10,12 +10,14 @@ const typeLabel: Record<ContentType, string> = {
   club: 'Клуб сообщества',
 }
 
+// Монохромная шкала — тип различается текстом лейбла, а не радугой цветов
+// (в палитре сайта только белый и фирменный синий).
 const typeColor: Record<ContentType, string> = {
-  vacancy: 'bg-blue-50 text-blue-700',
-  article: 'bg-emerald-50 text-emerald-700',
-  event: 'bg-amber-50 text-amber-700',
-  material: 'bg-violet-50 text-violet-700',
-  club: 'bg-rose-50 text-rose-700',
+  vacancy: 'bg-ink text-white',
+  article: 'bg-ink/70 text-white',
+  event: 'bg-ink/45 text-white',
+  material: 'bg-ink/[0.12] text-ink',
+  club: 'border border-ink/20 text-ink/70',
 }
 
 /**
@@ -41,7 +43,7 @@ export default function RelatedContentBlock({ items, title = 'Связанное
             onClick={() =>
               trackEvent('related_content_click', { type: item.type, id: item.id, target: item.href })
             }
-            className="group rounded-xl border border-ink/10 bg-white p-4 transition-shadow hover:shadow-md"
+            className="glass group rounded-xl p-4"
           >
             <span className={`mb-2 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${typeColor[item.type]}`}>
               {typeLabel[item.type]}

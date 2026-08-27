@@ -109,7 +109,7 @@ export default function KadryHome() {
       <section className="container-page py-12">
         <div className="grid gap-3 sm:grid-cols-4">
           {stats.map((s) => (
-            <div key={s.label} className="rounded-xl border border-ink/10 bg-white p-4">
+            <div key={s.label} className="glass rounded-xl p-4">
               <div className="text-2xl font-semibold text-ink">{s.value}</div>
               <div className="mt-1 text-sm text-ink/60">{s.label}</div>
             </div>
@@ -136,7 +136,7 @@ export default function KadryHome() {
         <h2 className="mb-6 text-2xl font-semibold">Что вы получаете, работая с нами</h2>
         <div className="grid gap-4 sm:grid-cols-3">
           {valueProps.map((v) => (
-            <div key={v.title} className="rounded-xl bg-white border border-ink/10 p-5">
+            <div key={v.title} className="glass rounded-xl p-5">
               <div className="font-semibold">{v.title}</div>
               <p className="mt-1 text-sm text-ink/60">{v.text}</p>
             </div>
@@ -151,7 +151,7 @@ export default function KadryHome() {
           <h2 className="mb-6 text-2xl font-semibold">Наши закрытые вакансии</h2>
           <div className="grid gap-4 sm:grid-cols-2">
             {cases.map((c) => (
-              <div key={c.title} className="rounded-xl border border-ink/10 p-5">
+              <div key={c.title} className="glass rounded-xl p-5">
                 <div className="flex items-center justify-between">
                   <span className="font-semibold">{c.title}</span>
                   <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">Закрыто</span>
@@ -166,7 +166,7 @@ export default function KadryHome() {
 
           <div className="mt-8 grid gap-3 sm:grid-cols-3">
             {kpis.map((k) => (
-              <div key={k.label} className="rounded-xl bg-ink p-5 text-white">
+              <div key={k.label} className="glass-dark rounded-xl bg-ink p-5 text-white">
                 <div className="text-2xl font-semibold text-gold-light">{k.value}</div>
                 <div className="mt-1 text-sm text-white/60">{k.label}</div>
               </div>
@@ -181,7 +181,7 @@ export default function KadryHome() {
         <h2 className="mb-6 text-2xl font-semibold">Чем мы отличаемся</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           {kadryAdvantages.map((a) => (
-            <div key={a.title} className="rounded-xl border border-ink/10 bg-white p-5">
+            <div key={a.title} className="glass rounded-xl p-5">
               <div className="font-semibold">{a.title}</div>
               <p className="mt-1 text-sm text-ink/60">{a.text}</p>
             </div>
@@ -198,7 +198,7 @@ export default function KadryHome() {
         <h2 className="mb-6 text-2xl font-semibold">Закрываем следующие позиции</h2>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {positions.map((p) => (
-            <div key={p.title} className="flex items-center justify-between rounded-lg bg-paper px-4 py-3 text-sm">
+            <div key={p.title} className="flex items-center justify-between rounded-lg bg-ink/[0.04] px-4 py-3 text-sm">
               <span className="font-medium">{p.title}</span>
               <span className="text-ink/50">{p.salary}</span>
             </div>
@@ -212,7 +212,7 @@ export default function KadryHome() {
         <h3 className="mb-6 mt-12 text-xl font-semibold">Какие документы вы получаете</h3>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {documentsByStage.map((d) => (
-            <div key={d.stage} className="rounded-xl border border-ink/10 p-4">
+            <div key={d.stage} className="glass rounded-xl p-4">
               <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-gold">{d.stage}</div>
               <ul className="space-y-1 text-sm text-ink/70">
                 {d.items.map((i) => <li key={i}>· {i}</li>)}
@@ -224,7 +224,7 @@ export default function KadryHome() {
         <h3 className="mb-6 mt-12 text-xl font-semibold">Как мы находим вам сотрудников</h3>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {marketingChannels.map((m) => (
-            <div key={m.title} className="rounded-xl border border-ink/10 bg-white p-5">
+            <div key={m.title} className="glass rounded-xl p-5">
               <div className="font-semibold">{m.title}</div>
               <p className="mt-1 text-sm text-ink/60">{m.text}</p>
             </div>
@@ -244,7 +244,7 @@ export default function KadryHome() {
               <li><strong className="text-ink">Прозрачная отчётность</strong> — регулярно сообщаем о ходе поиска; если подходящих кандидатов нет — честно предупреждаем.</li>
             </ul>
 
-            <div className="rounded-xl border border-ink/10 bg-paper p-5">
+            <div className="glass rounded-xl p-5">
               <label className="text-sm font-medium text-ink/70">
                 Оклад кандидата, ₽/мес
                 <input
@@ -259,15 +259,15 @@ export default function KadryHome() {
               </label>
               <div className="mt-1 text-sm text-ink/60">{salary.toLocaleString('ru-RU')} ₽/мес</div>
               <div className="mt-4 grid grid-cols-3 gap-3 text-center">
-                <div className="rounded-lg bg-white p-3">
+                <div className="rounded-lg bg-ink/[0.04] p-3">
                   <div className="text-xs text-ink/50">Комиссия 30%</div>
                   <div className="mt-1 font-semibold">{fee.toLocaleString('ru-RU')} ₽</div>
                 </div>
-                <div className="rounded-lg bg-white p-3">
+                <div className="rounded-lg bg-ink/[0.04] p-3">
                   <div className="text-xs text-ink/50">75% предоплата</div>
                   <div className="mt-1 font-semibold">{prepay.toLocaleString('ru-RU')} ₽</div>
                 </div>
-                <div className="rounded-lg bg-white p-3">
+                <div className="rounded-lg bg-ink/[0.04] p-3">
                   <div className="text-xs text-ink/50">25% после срока</div>
                   <div className="mt-1 font-semibold">{afterProbation.toLocaleString('ru-RU')} ₽</div>
                 </div>

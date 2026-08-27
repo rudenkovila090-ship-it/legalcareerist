@@ -6,7 +6,7 @@ const money = new Intl.NumberFormat('ru-RU')
 
 export function VacancyCard({ v }: { v: Vacancy }) {
   return (
-    <Link to={`/vacancies/${v.slug}`} className="block rounded-xl border border-ink/10 bg-white p-5 hover:shadow-md">
+    <Link to={`/vacancies/${v.slug}`} className="glass block rounded-xl p-5">
       <div className="flex items-start justify-between gap-3">
         <h3 className="font-semibold leading-snug">{v.title}</h3>
         {v.urgent && <span className="shrink-0 rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-600">Срочно</span>}
@@ -25,7 +25,7 @@ export function VacancyCard({ v }: { v: Vacancy }) {
 
 export function ArticleCard({ a }: { a: Article }) {
   return (
-    <Link to={`/knowledge/${a.slug}`} className="block rounded-xl border border-ink/10 bg-white p-5 hover:shadow-md">
+    <Link to={`/knowledge/${a.slug}`} className="glass block rounded-xl p-5">
       <span className="text-xs font-medium uppercase tracking-wide text-gold">{kindLabel(a.kind)}</span>
       <h3 className="mt-1 font-semibold leading-snug">{a.title}</h3>
       <p className="mt-2 text-sm text-ink/60">{a.excerpt}</p>
@@ -47,7 +47,7 @@ const eventTypeLabel: Record<EventItem['type'], string> = {
 export function EventCard({ e }: { e: EventItem }) {
   const date = new Date(e.dateTime)
   return (
-    <Link to={`/events/${e.slug}`} className="block rounded-xl border border-ink/10 bg-white p-5 hover:shadow-md">
+    <Link to={`/events/${e.slug}`} className="glass block rounded-xl p-5">
       <div className="flex items-center justify-between">
         <span className="text-xs font-medium uppercase tracking-wide text-gold">{eventTypeLabel[e.type]}</span>
         <span className="text-xs text-ink/50">{e.status === 'completed' ? 'Завершено' : 'Идёт набор'}</span>
@@ -63,7 +63,7 @@ export function EventCard({ e }: { e: EventItem }) {
 
 export function MaterialCard({ m }: { m: MaterialItem }) {
   return (
-    <Link to={`/materials/${m.slug}`} className="block rounded-xl border border-ink/10 bg-white p-5 hover:shadow-md">
+    <Link to={`/materials/${m.slug}`} className="glass block rounded-xl p-5">
       <span className="text-xs font-medium uppercase tracking-wide text-gold">
         {{ guide: 'Гайд', checklist: 'Чек-лист', recording: 'Запись' }[m.kind]}
       </span>
@@ -76,7 +76,7 @@ export function MaterialCard({ m }: { m: MaterialItem }) {
 
 export function ClubCard({ c }: { c: CommunityClub }) {
   return (
-    <Link to={`/community/clubs/${c.slug}`} className="block rounded-xl border border-ink/10 bg-white p-5 hover:shadow-md">
+    <Link to={`/community/clubs/${c.slug}`} className="glass block rounded-xl p-5">
       <h3 className="font-semibold leading-snug">{c.name}</h3>
       <p className="mt-2 text-sm text-ink/60">{c.description}</p>
       <div className="mt-3">

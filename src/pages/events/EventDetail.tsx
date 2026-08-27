@@ -96,7 +96,7 @@ export default function EventDetail() {
         </div>
 
         <aside>
-          <div className="rounded-xl border border-ink/10 bg-white p-6">
+          <div className="glass rounded-xl p-6">
             <div className="text-sm text-ink/50">Стоимость участия</div>
             <div className="mt-1 text-2xl font-semibold">
               {finalPrice === 0 ? 'Бесплатно' : `${finalPrice.toLocaleString('ru-RU')} ₽`}
@@ -111,7 +111,7 @@ export default function EventDetail() {
             )}
 
             {event.status === 'completed' ? (
-              <div className="mt-4 rounded-lg bg-paper p-3 text-sm text-ink/60">
+              <div className="mt-4 rounded-lg bg-ink/[0.04] p-3 text-sm text-ink/60">
                 Мероприятие завершено. Запись — в разделе «Полезные материалы».
               </div>
             ) : registered ? (

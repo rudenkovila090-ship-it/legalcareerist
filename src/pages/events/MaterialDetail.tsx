@@ -33,7 +33,7 @@ export default function MaterialDetail() {
         <p className="mt-6 leading-relaxed text-ink/80">{material.description}</p>
         <div className="mt-2 text-sm text-ink/50">Для кого: {material.forWhom}</div>
 
-        <div className="mt-6 rounded-xl border border-ink/10 bg-white p-6">
+        <div className="glass mt-6 rounded-xl p-6">
           <div className="text-2xl font-semibold">
             {material.price === 0 ? 'Бесплатно' : `${material.price.toLocaleString('ru-RU')} ₽`}
           </div>

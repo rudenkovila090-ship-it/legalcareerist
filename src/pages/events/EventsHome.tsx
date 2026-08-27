@@ -22,7 +22,7 @@ export default function EventsHome() {
     <div>
       <PageHero eyebrow="Мероприятия" title="Вебинары, бизнес-завтраки, интенсивы" description="Онлайн и офлайн события для карьерного роста в праве." prototype />
       <div className="container-page py-10">
-        <div className="mb-8 flex flex-wrap items-center gap-3 rounded-xl border border-ink/10 bg-white p-4">
+        <div className="glass mb-8 flex flex-wrap items-center gap-3 rounded-xl p-4">
           <select value={spec} onChange={(e) => setSpec(e.target.value as Specialization | 'all')} className="rounded-lg border border-ink/15 px-3 py-2 text-sm">
             <option value="all">Все специализации</option>
             {SPECIALIZATIONS.map((s) => (

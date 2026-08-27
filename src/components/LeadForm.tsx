@@ -48,7 +48,7 @@ export default function LeadForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-xl border border-ink/10 bg-white p-6">
+    <form onSubmit={handleSubmit} className="glass rounded-xl p-6">
       <div className="font-semibold">{title}</div>
       {description && <p className="mt-1 text-sm text-ink/60">{description}</p>}
 

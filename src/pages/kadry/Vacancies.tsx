@@ -35,12 +35,12 @@ export default function Vacancies() {
         prototype
       />
       <div className="container-page py-10">
-        <div className="mb-6 rounded-lg bg-paper p-4 text-sm text-ink/60">
+        <div className="mb-6 rounded-lg bg-ink/[0.04] p-4 text-sm text-ink/60">
           В реальном продукте вакансии не публикуются здесь открыто: сначала их видят резиденты
           Сообщества, затем — кадровый резерв, и только после этого — открытый доступ (см. главную,
           раздел «Кадры»). Доска ниже — демо-каркас со старыми тестовыми вакансиями.
         </div>
-        <div className="mb-8 flex flex-wrap items-center gap-3 rounded-xl border border-ink/10 bg-white p-4">
+        <div className="glass mb-8 flex flex-wrap items-center gap-3 rounded-xl p-4">
           <select
             value={spec}
             onChange={(e) => setSpec(e.target.value as Specialization | 'all')}
