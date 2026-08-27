@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import Testimonials from '../components/Testimonials'
+import { homeTestimonials } from '../data/testimonials'
 import FAQSection from '../components/FAQSection'
 
 const kadryStats = [
@@ -208,7 +209,7 @@ export default function Home() {
       </section>
 
       {/* Отзывы */}
-      <Testimonials />
+      <Testimonials items={homeTestimonials} />
 
       {/* Что мы предлагаем */}
       <section id="kadry" className="scroll-mt-16 border-b border-ink/10 bg-ink py-16 text-white">

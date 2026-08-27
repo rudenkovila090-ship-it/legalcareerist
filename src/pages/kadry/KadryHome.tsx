@@ -3,6 +3,7 @@ import PageHero from '../../components/PageHero'
 import ProcessSteps from '../../components/ProcessSteps'
 import LeadForm from '../../components/LeadForm'
 import Testimonials from '../../components/Testimonials'
+import { kadryTestimonials } from '../../data/testimonials'
 import FAQSection from '../../components/FAQSection'
 import CTASection from '../../components/CTASection'
 
@@ -189,7 +190,7 @@ export default function KadryHome() {
       </section>
 
       {/* Отзывы */}
-      <Testimonials />
+      <Testimonials items={kadryTestimonials} />
 
       {/* Что мы предлагаем */}
       <section className="container-page py-12">

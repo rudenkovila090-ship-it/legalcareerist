@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import PageHero from '../../components/PageHero'
 import Testimonials from '../../components/Testimonials'
+import { communityTestimonials } from '../../data/testimonials'
 import FAQSection from '../../components/FAQSection'
 import CTASection from '../../components/CTASection'
 import { submitLead } from '../../lib/leads'
@@ -160,7 +161,7 @@ export default function CommunityHome() {
       </section>
 
       {/* Отзывы */}
-      <Testimonials />
+      <Testimonials items={communityTestimonials} />
 
       {/* Что мы предлагаем */}
       <section className="border-y border-ink/10 bg-white py-12">
@@ -176,101 +177,108 @@ export default function CommunityHome() {
       </section>
 
       {/* Цены / вступление */}
-      <section id="join" className="container-page scroll-mt-16 py-12">
-        <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Цены</div>
-        <h2 className="mb-6 text-2xl font-semibold">Вступить в «Карьерный юрист»</h2>
-        <div className="grid gap-8 lg:grid-cols-[1fr_1fr]">
-          <div>
-            <div className="mb-3 font-semibold">Что входит в резидентство</div>
-            <ul className="space-y-2 text-sm text-ink/70">
-              {benefits.slice(0, 4).map((b) => (
-                <li key={b.title} className="flex gap-2">
-                  <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-gold" />
-                  <span>{b.title} — {b.text}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+      <section id="join" className="scroll-mt-16 bg-ink py-14 text-white">
+        <div className="container-page">
+          <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold-light">Цены</div>
+          <h2 className="mb-8 text-2xl font-semibold">Вступить в «Карьерный юрист»</h2>
 
-          <div className="rounded-xl border border-ink/10 bg-white p-6">
-            {submitted ? (
-              <div className="rounded-lg bg-emerald-50 p-4 text-sm text-emerald-800">
-                <div className="font-semibold">Готово!</div>
-                <p className="mt-1">
-                  В течение нескольких минут бот{' '}
-                  <a className="underline" href="https://t.me/legalcareerist_bot" target="_blank" rel="noreferrer">
-                    @legalcareerist_bot
-                  </a>{' '}
-                  напишет вам в Telegram и пришлёт ссылку на вступление в сообщество.
-                </p>
-              </div>
-            ) : !paid ? (
-              <>
-                <div className="mb-4 font-semibold">1. Выберите тариф</div>
-                <div className="space-y-2">
-                  {tariffs.map((t) => (
-                    <label
+          {!paid && !submitted && (
+            <>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {tariffs.map((t) => {
+                  const recommended = t.id === '3m'
+                  const selected = tariffId === t.id
+                  return (
+                    <button
                       key={t.id}
-                      className={`flex cursor-pointer items-center justify-between rounded-lg border p-3 text-sm transition-colors ${
-                        tariffId === t.id ? 'border-ink bg-paper' : 'border-ink/15'
+                      type="button"
+                      onClick={() => setTariffId(t.id)}
+                      className={`relative flex flex-col rounded-2xl border p-5 pt-7 text-left transition-colors ${
+                        selected
+                          ? 'border-gold-light bg-white/10'
+                          : 'border-white/10 bg-white/5 hover:border-white/25'
                       }`}
                     >
-                      <span className="flex items-center gap-3">
-                        <input
-                          type="radio"
-                          name="tariff"
-                          checked={tariffId === t.id}
-                          onChange={() => setTariffId(t.id)}
-                        />
-                        <span>
-                          <span className="block font-medium">{t.period}</span>
-                          <span className="block text-xs text-ink/50">{t.note}</span>
+                      {recommended && (
+                        <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-gold-light px-3 py-1 text-xs font-semibold text-ink">
+                          Популярный выбор
                         </span>
-                      </span>
-                      <span className="shrink-0 font-semibold">{t.priceLabel}</span>
-                    </label>
-                  ))}
-                </div>
-                <button
-                  onClick={handlePay}
-                  className="mt-5 w-full rounded-lg bg-ink py-2.5 text-sm font-semibold text-white hover:bg-ink/90"
-                >
-                  {tariff.price === 0 ? 'Активировать демодоступ' : `Оплатить ${tariff.priceLabel.replace('/мес', '')}`}
-                </button>
-                <p className="mt-2 text-xs text-ink/40">Оплата — на стороне платёжной системы, карту не запрашиваем.</p>
-              </>
-            ) : (
-              <form onSubmit={handleSubmit}>
-                <div className="mb-1 font-semibold">2. Укажите ник в Telegram</div>
-                <p className="mb-4 text-sm text-ink/50">
-                  Тариф «{tariff.period}» {tariff.price > 0 && `оплачен (${tariff.priceLabel.replace('/мес', '')})`}.
-                  Бот напишет вам первым — убедитесь, что можете получать сообщения от новых контактов.
-                </p>
-                <div className="grid gap-3">
-                  <input
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Имя"
-                    required
-                    className="rounded-lg border border-ink/15 px-3 py-2 text-sm outline-none focus:border-ink/40"
-                  />
-                  <input
-                    value={telegram}
-                    onChange={(e) => setTelegram(e.target.value)}
-                    placeholder="Ник в Telegram, например @ivanov"
-                    required
-                    className="rounded-lg border border-ink/15 px-3 py-2 text-sm outline-none focus:border-ink/40"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  className="mt-4 w-full rounded-lg bg-ink py-2.5 text-sm font-semibold text-white hover:bg-ink/90"
-                >
-                  Вступить в сообщество
-                </button>
-              </form>
-            )}
-          </div>
+                      )}
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium uppercase tracking-wide text-white/50">Подписка</span>
+                        <span
+                          className={`h-4 w-4 shrink-0 rounded-full border-2 ${
+                            selected ? 'border-gold-light bg-gold-light' : 'border-white/30'
+                          }`}
+                        />
+                      </div>
+                      <div className="mt-1 text-lg font-semibold">{t.period}</div>
+                      <div className="mt-3 text-3xl font-semibold text-gold-light">{t.priceLabel}</div>
+                      <p className="mt-3 text-xs leading-relaxed text-white/50">{t.note}</p>
+                    </button>
+                  )
+                })}
+              </div>
+
+              <div className="mt-6 flex flex-wrap gap-3 text-xs text-white/50">
+                <span className="rounded-full bg-white/5 px-3 py-1.5">Оплата на стороне платёжной системы</span>
+                <span className="rounded-full bg-white/5 px-3 py-1.5">Без автопродления</span>
+                <span className="rounded-full bg-white/5 px-3 py-1.5">Бот пишет вам сам после оплаты</span>
+              </div>
+
+              <button
+                onClick={handlePay}
+                className="mt-8 w-full rounded-lg bg-gold-light py-3 text-sm font-semibold text-ink hover:opacity-90 sm:w-auto sm:px-10"
+              >
+                {tariff.price === 0 ? 'Активировать демодоступ' : `Оплатить ${tariff.priceLabel.replace('/мес', '')}`}
+              </button>
+            </>
+          )}
+
+          {paid && !submitted && (
+            <form onSubmit={handleSubmit} className="max-w-md rounded-2xl border border-white/10 bg-white/5 p-6">
+              <div className="mb-1 font-semibold">Укажите ник в Telegram</div>
+              <p className="mb-4 text-sm text-white/50">
+                Тариф «{tariff.period}» {tariff.price > 0 && `оплачен (${tariff.priceLabel.replace('/мес', '')})`}.
+                Бот напишет вам первым — убедитесь, что можете получать сообщения от новых контактов.
+              </p>
+              <div className="grid gap-3">
+                <input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Имя"
+                  required
+                  className="rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-white outline-none placeholder:text-white/40 focus:border-white/40"
+                />
+                <input
+                  value={telegram}
+                  onChange={(e) => setTelegram(e.target.value)}
+                  placeholder="Ник в Telegram, например @ivanov"
+                  required
+                  className="rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-white outline-none placeholder:text-white/40 focus:border-white/40"
+                />
+              </div>
+              <button
+                type="submit"
+                className="mt-4 w-full rounded-lg bg-gold-light py-2.5 text-sm font-semibold text-ink hover:opacity-90"
+              >
+                Вступить в сообщество
+              </button>
+            </form>
+          )}
+
+          {submitted && (
+            <div className="max-w-md rounded-2xl border border-emerald-400/30 bg-emerald-400/10 p-6 text-sm text-emerald-200">
+              <div className="font-semibold">Готово!</div>
+              <p className="mt-1">
+                В течение нескольких минут бот{' '}
+                <a className="underline" href="https://t.me/legalcareerist_bot" target="_blank" rel="noreferrer">
+                  @legalcareerist_bot
+                </a>{' '}
+                напишет вам в Telegram и пришлёт ссылку на вступление в сообщество.
+              </p>
+            </div>
+          )}
         </div>
       </section>
 
