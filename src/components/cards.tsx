@@ -55,7 +55,7 @@ function kindLabel(kind: Article['kind']) {
 }
 
 const eventTypeLabel: Record<EventItem['type'], string> = {
-  conference: 'Большое мероприятие',
+  conference: 'Ключевое мероприятие',
   webinar: 'Вебинар',
   breakfast: 'Бизнес-завтрак',
   intensive: 'Интенсив',

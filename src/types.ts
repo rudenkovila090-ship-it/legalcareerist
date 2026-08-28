@@ -1,12 +1,37 @@
 // Единая таксономия и модель данных — раздел 3–4 ТЗ.
 // Ось 1: специализация — обязательна на вакансиях, статьях, мероприятиях, клубах.
-export type Specialization = 'advocacy' | 'consulting' | 'inhouse' | 'government'
+export type Specialization =
+  | 'advocacy'
+  | 'consulting'
+  | 'inhouse'
+  | 'law_enforcement'
+  | 'government'
+  | 'fns'
+  | 'fas'
+  | 'fssp'
+  | 'notary'
+  | 'prosecution'
+  | 'private_practice'
 
 export const SPECIALIZATIONS: { id: Specialization; label: string }[] = [
   { id: 'advocacy', label: 'Адвокатура' },
   { id: 'consulting', label: 'Консалтинг' },
   { id: 'inhouse', label: 'Инхаус' },
+  { id: 'law_enforcement', label: 'Правоохранительные органы' },
   { id: 'government', label: 'Государственная служба' },
+  { id: 'fns', label: 'ФНС' },
+  { id: 'fas', label: 'ФАС' },
+  { id: 'fssp', label: 'ФССП' },
+  { id: 'notary', label: 'Нотариат' },
+  { id: 'prosecution', label: 'Прокуратура' },
+  { id: 'private_practice', label: 'Частный юрист' },
+]
+
+export type EmploymentType = 'full' | 'part' | 'project'
+export const EMPLOYMENT_TYPES: { id: EmploymentType; label: string }[] = [
+  { id: 'full', label: 'Полная' },
+  { id: 'part', label: 'Частичная' },
+  { id: 'project', label: 'Проектная' },
 ]
 
 // Ось 2: отрасль/область права — множественный выбор, редактируется через админку.
@@ -109,6 +134,7 @@ export interface Vacancy extends Tagged {
   anonymous: boolean
   city: string
   format: WorkFormat
+  employment: EmploymentType
   level: CandidateLevel
   salaryFrom?: number
   salaryTo?: number

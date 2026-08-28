@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import PageHero from '../../components/PageHero'
 import Testimonials from '../../components/Testimonials'
@@ -203,7 +203,7 @@ function contactPrice(exp: string) {
 }
 
 const cities = ['Москва', 'Санкт-Петербург']
-const schedules = ['Гибкий график', 'Полный день']
+const schedules = ['Гибкий', 'Полный']
 const employments = ['Частичная занятость', 'Полная занятость']
 const formats: string[] = ['Офис', 'Гибрид', 'Дистанционно']
 
@@ -295,7 +295,7 @@ const faqItems = [
   { q: 'Сколько стоит подбор сотрудника?', a: '30% от одного месячного оклада кандидата: 75% предоплата до начала работ, 25% — после прохождения испытательного срока. Точную сумму под вашу вакансию покажет калькулятор выше.' },
   { q: 'Можно открыть контакты кандидатов самостоятельно, без заявки?', a: 'Да, во вкладке «Найти сотрудника» — там же фильтры по городу, вузу, занятости, графику, формату и зарплате. Стоимость открытия контакта растет с опытом кандидата: от 1000 ₽ (без опыта) до 2500 ₽ (от 3 лет), после короткой регистрации работодателя.' },
   { q: 'Что если кандидат не подойдет?', a: 'Бесплатно подберем замену в согласованные сроки — это часть условий сотрудничества, а не платная опция.' },
-  { q: 'Сколько ждать первых кандидатов?', a: 'В среднем вакансия закрывается за 5–7 дней (Time to Hire — 5,5 дней). Есть кейсы закрытия за 1–3 дня.' },
+  { q: 'Сколько ждать первых кандидатов?', a: 'Вакансия закрывается за 5–7 дней (Time to Hire — 5,5 дней). Есть кейсы закрытия за 1–3 дня.' },
   { q: 'Кого вы подбираете?', a: 'Помощников юристов и адвокатов, младших юристов, секретарей, офис-менеджеров и смежные административные позиции на юридическом рынке.' },
   { q: 'Где вы берете кандидатов?', a: 'Сначала предлагаем вакансию резидентам нашего Сообщества, затем — кадровому резерву (8 000+ контактов), и только потом размещаем в открытом доступе.' },
   { q: 'Какие документы я получу?', a: 'Договор, план работ, еженедельную отчетность, карточки кандидатов с рекомендациями и план адаптации нового сотрудника — на каждом этапе своя подтверждающая документация.' },
@@ -324,26 +324,33 @@ export default function KadryHome() {
   }
 
   const [tab, setTab] = useState<(typeof employerTabs)[number]['id']>('recruiting')
+  // При переключении подвкладки (Рекрутинг/Найти сотрудника/База знаний/Личный
+  // кабинет) страница должна показывать верх новой вкладки, а не оставаться
+  // на прежней позиции скролла — раньше при переходе снизу страницы вниз и
+  // оставалось.
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [tab])
   const [openCandidates, setOpenCandidates] = useState<Record<number, boolean>>({})
   const [unlocked, setUnlocked] = useState<Record<number, boolean>>({})
   const [visibleCandidates, setVisibleCandidates] = useState(3)
 
   // Фильтры вкладки «Найти сотрудника»
-  const [fCity, setFCity] = useState('Все города')
-  const [fSchool, setFSchool] = useState('Все вузы')
-  const [fEmployment, setFEmployment] = useState('Любая занятость')
-  const [fSchedule, setFSchedule] = useState('Любой график')
-  const [fFormat, setFFormat] = useState('Любой формат')
-  const [fPosition, setFPosition] = useState('Все должности')
+  const [fCity, setFCity] = useState('Города')
+  const [fSchool, setFSchool] = useState('Учебное заведение')
+  const [fEmployment, setFEmployment] = useState('Занятость')
+  const [fSchedule, setFSchedule] = useState('График')
+  const [fFormat, setFFormat] = useState('Формат')
+  const [fPosition, setFPosition] = useState('Должности')
   const [maxSalary, setMaxSalary] = useState(80000)
 
   const filteredCandidates = demoCandidates.filter((c) =>
-    (fCity === 'Все города' || c.city === fCity) &&
-    (fSchool === 'Все вузы' || c.school === fSchool) &&
-    (fEmployment === 'Любая занятость' || c.employment === fEmployment) &&
-    (fSchedule === 'Любой график' || c.schedule === fSchedule) &&
-    (fFormat === 'Любой формат' || c.format === fFormat) &&
-    (fPosition === 'Все должности' || c.position === fPosition) &&
+    (fCity === 'Города' || c.city === fCity) &&
+    (fSchool === 'Учебное заведение' || c.school === fSchool) &&
+    (fEmployment === 'Занятость' || c.employment === fEmployment) &&
+    (fSchedule === 'График' || c.schedule === fSchedule) &&
+    (fFormat === 'Формат' || c.format === fFormat) &&
+    (fPosition === 'Должности' || c.position === fPosition) &&
     parseSalary(c.salaryFrom) <= maxSalary,
   )
 
@@ -395,7 +402,7 @@ export default function KadryHome() {
       {/* Вкладки раздела: рекрутинг / кандидаты / база знаний / личный кабинет —
           сразу под панелью аудитории «Работодателям / Соискателям» из шапки.
           Закреплена (sticky) — остается на экране при скролле. */}
-      <div className="sticky top-[142px] z-20 border-b border-white/10 bg-ink/95 py-4 backdrop-blur-xl">
+      <div className="sticky top-[142px] z-20 border-b border-white/10 bg-ink/95 py-4 backdrop-blur-xl [transform:translateZ(0)] [will-change:transform]">
         <div className="container-page">
         <div className="flex flex-wrap justify-end gap-3">
           {employerTabs.map((t) => (
@@ -433,22 +440,22 @@ export default function KadryHome() {
 
           <div className="glass-dark mb-6 grid gap-3 rounded-xl p-5 sm:grid-cols-3 lg:grid-cols-6">
             <select value={fCity} onChange={(e) => setFCity(e.target.value)} className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white outline-none focus:border-white/40">
-              {['Все города', ...cities].map((v) => <option key={v} value={v} className="text-ink">{v}</option>)}
+              {['Города', ...cities].map((v) => <option key={v} value={v} className="text-ink">{v}</option>)}
             </select>
             <select value={fSchool} onChange={(e) => setFSchool(e.target.value)} className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white outline-none focus:border-white/40">
-              {['Все вузы', ...schools].map((v) => <option key={v} value={v} className="text-ink">{v}</option>)}
+              {['Учебное заведение', ...schools].map((v) => <option key={v} value={v} className="text-ink">{v}</option>)}
             </select>
             <select value={fEmployment} onChange={(e) => setFEmployment(e.target.value)} className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white outline-none focus:border-white/40">
-              {['Любая занятость', ...employments].map((v) => <option key={v} value={v} className="text-ink">{v}</option>)}
+              {['Занятость', ...employments].map((v) => <option key={v} value={v} className="text-ink">{v}</option>)}
             </select>
             <select value={fSchedule} onChange={(e) => setFSchedule(e.target.value)} className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white outline-none focus:border-white/40">
-              {['Любой график', ...schedules].map((v) => <option key={v} value={v} className="text-ink">{v}</option>)}
+              {['График', ...schedules].map((v) => <option key={v} value={v} className="text-ink">{v}</option>)}
             </select>
             <select value={fFormat} onChange={(e) => setFFormat(e.target.value)} className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white outline-none focus:border-white/40">
-              {['Любой формат', ...formats].map((v) => <option key={v} value={v} className="text-ink">{v}</option>)}
+              {['Формат', ...formats].map((v) => <option key={v} value={v} className="text-ink">{v}</option>)}
             </select>
             <select value={fPosition} onChange={(e) => setFPosition(e.target.value)} className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white outline-none focus:border-white/40">
-              {['Все должности', ...positionOptions].map((v) => <option key={v} value={v} className="text-ink">{v}</option>)}
+              {['Должности', ...positionOptions].map((v) => <option key={v} value={v} className="text-ink">{v}</option>)}
             </select>
             <label className="sm:col-span-3 lg:col-span-6 text-sm text-white/70">
               Зарплатные ожидания — до {maxSalary.toLocaleString('ru-RU')} ₽
@@ -469,12 +476,15 @@ export default function KadryHome() {
           </p>
 
           <div className="grid gap-4 sm:grid-cols-3">
-            {filteredCandidates.slice(0, visibleCandidates).map((c, i) => {
+            {filteredCandidates.slice(0, visibleCandidates).map((c) => {
               const isOpen = !!openCandidates[c.id]
               const isUnlocked = unlocked[c.id]
               return (
                 <div key={c.id} className="glass-dark flex flex-col rounded-xl p-5">
-                  <div className="text-xs font-semibold uppercase tracking-wide text-gold-light">Кандидат №{i + 1}</div>
+                  {/* Номер закреплен за id кандидата, а не за позицией в
+                      отфильтрованном списке — иначе при смене фильтров
+                      «Кандидат №2» указывал бы то на одного, то на другого. */}
+                  <div className="text-xs font-semibold uppercase tracking-wide text-gold-light">Кандидат №{c.id}</div>
                   <div className="mt-1 font-semibold text-white">{c.position}</div>
                   <div className="mt-1 text-sm text-white/60">Сфера: {c.sphere}</div>
                   <div className="mt-1 text-sm text-white/60">Опыт: {c.exp}</div>
@@ -634,8 +644,8 @@ export default function KadryHome() {
             {[
               ['Универсальный подбор на любом рынке', 'Только юридический рынок — знаем специфику профессии'],
               ['Кандидаты — отклики с открытых job-бордов', 'Собственная база 8 000+ и живое сообщество студентов-юристов'],
-              ['Закрытие вакансии — недели', 'В среднем 5–7 дней (Time to Hire — 5,5 дней)'],
-              ['Не отвечает за результат после найма', 'Бесплатная замена, если кандидат не прошел испытательный срок'],
+              ['Закрытие вакансии — недели', 'На это уходит неделя (Time to Hire — 5,5 дней)'],
+              ['Замена кандидата — платно и по отдельным договоренностям', 'Бесплатная замена в согласованные сроки, включена в стоимость'],
             ].map(([bad, good]) => (
               <div key={good} className="grid grid-cols-2 divide-x divide-white/10 border-t border-white/10 text-sm">
                 <div className="flex items-start gap-2 p-5 text-white/40">
@@ -676,18 +686,18 @@ export default function KadryHome() {
         <div className="container-page">
           <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold-light">Кейсы и результаты</div>
           <h2 className="mb-6 text-2xl font-semibold text-white">Наши закрытые вакансии</h2>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {cases.map((c, i) => (
-              <div key={`${c.title}-${i}`} className="glass-dark rounded-xl p-5">
-                <div className="flex items-start justify-between gap-3">
-                  <span className="font-semibold text-white">{c.title}</span>
-                  <span className="shrink-0 rounded-full bg-emerald-400/15 px-2 py-0.5 text-xs font-medium text-emerald-300">Закрыто</span>
+              <div key={`${c.title}-${i}`} className="glass-dark rounded-xl p-4">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="shrink-0 rounded-full bg-emerald-400/15 px-2 py-0.5 text-[11px] font-medium text-emerald-300">Закрыто</span>
+                  <span className="text-[11px] text-white/35">
+                    за {c.days}
+                    {c.note && <span className="text-gold-light/80"> · {c.note}</span>}
+                  </span>
                 </div>
-                <div className="mt-1 text-sm text-white/50">{c.city ?? 'Удаленно / любой город'} · {c.salary}</div>
-                <div className="mt-2 text-[11px] text-white/35">
-                  закрыто за {c.days}
-                  {c.note && <span className="text-gold-light/80"> · {c.note}</span>}
-                </div>
+                <div className="mt-2 text-sm font-semibold leading-snug text-white">{c.title}</div>
+                <div className="mt-1 text-xs text-white/50">{c.city ?? 'Удаленно / любой город'} · {c.salary}</div>
               </div>
             ))}
           </div>
@@ -858,13 +868,7 @@ export default function KadryHome() {
             </ul>
 
             <div className="glass-dark rounded-2xl p-8 lg:-mt-1">
-              <div className="text-xs uppercase tracking-wide text-white/50">Итого к оплате за подбор</div>
-              <div className="mt-1 text-4xl font-semibold text-white">{fee.toLocaleString('ru-RU')} ₽</div>
-              <div className="mt-1 text-sm text-white/50">
-                при рыночной комиссии 40–50% это было бы {Math.round(salary * 0.45).toLocaleString('ru-RU')} ₽ — экономия {Math.round(salary * 0.45 - fee).toLocaleString('ru-RU')} ₽
-              </div>
-
-              <label className="mt-6 block text-sm font-semibold text-white">
+              <label className="block text-sm font-semibold text-white">
                 Оклад кандидата, ₽/мес
                 <input
                   type="range"
@@ -906,9 +910,12 @@ export default function KadryHome() {
                 </div>
               </div>
 
-              <div className="mt-4 flex items-center justify-between rounded-xl border border-white/15 bg-white/10 px-5 py-3 text-sm">
-                <span className="text-white/60">Ожидаемый срок закрытия вакансии</span>
-                <span className="font-semibold text-white">5–7 дней</span>
+              <div className="mt-6 border-t border-white/10 pt-6">
+                <div className="text-xs uppercase tracking-wide text-white/50">Итого к оплате за подбор</div>
+                <div className="mt-1 text-4xl font-semibold text-white">{fee.toLocaleString('ru-RU')} ₽</div>
+                <div className="mt-1 text-sm text-white/50">
+                  при рыночной комиссии 40–50% это было бы {Math.round(salary * 0.45).toLocaleString('ru-RU')} ₽ — экономия {Math.round(salary * 0.45 - fee).toLocaleString('ru-RU')} ₽
+                </div>
               </div>
             </div>
           </div>

@@ -219,6 +219,7 @@ export default function CareerConsultation({ embedded = false }: { embedded?: bo
   const [selected, setSelected] = useState<Record<string, boolean>>({})
   const [promo, setPromo] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
+  const [cartOpen, setCartOpen] = useState(false)
   const [form, setForm] = useState({ name: '', email: '', telegram: '', phone: '' })
   const [sent, setSent] = useState(false)
 
@@ -597,16 +598,76 @@ export default function CareerConsultation({ embedded = false }: { embedded?: bo
         </div>
       </section>
 
-      {/* Плавающая корзина */}
+      {/* Плавающая корзина — по клику разворачивается в полный состав заказа
+          (услуги, сумма, скидка, промокод, итог), как в блоке «Ваш заказ» на
+          странице. К форме с контактами переходим только по кнопке «Заказать». */}
       {count > 0 && !modalOpen && (
-        <button
-          type="button"
-          onClick={() => setModalOpen(true)}
-          className="glass-dark fixed bottom-6 right-6 z-40 flex items-center gap-4 rounded-full bg-ink px-7 py-4 text-white shadow-xl"
-        >
-          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gold-light text-sm font-bold text-ink">{count}</span>
-          <span className="text-base font-semibold">{total.toLocaleString('ru-RU')} ₽</span>
-        </button>
+        <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-3">
+          {cartOpen && (
+            <div className="w-80 max-w-[calc(100vw-3rem)] rounded-2xl border border-ink/10 bg-white p-5 shadow-2xl">
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="font-semibold">Ваш заказ</h3>
+                <button type="button" onClick={() => setCartOpen(false)} className="text-ink/40 hover:text-ink" aria-label="Свернуть">✕</button>
+              </div>
+              <ul className="mb-3 space-y-2 text-sm">
+                {selectedServices.map((s) => (
+                  <li key={s.id} className="flex items-center justify-between gap-2">
+                    <span className="text-ink/70">{s.title}</span>
+                    <span className="shrink-0">{s.price.toLocaleString('ru-RU')} ₽</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="space-y-1 border-t border-ink/10 pt-3 text-sm">
+                <div className="flex justify-between text-ink/60">
+                  <span>Сумма</span>
+                  <span>{subtotal.toLocaleString('ru-RU')} ₽</span>
+                </div>
+                {tierDiscount > 0 && (
+                  <div className="flex justify-between text-ink/60">
+                    <span>Ваша скидка {tierPct}%</span>
+                    <span>−{tierDiscount.toLocaleString('ru-RU')} ₽</span>
+                  </div>
+                )}
+              </div>
+              <input
+                className="mt-3 w-full rounded-lg border border-ink/15 px-3 py-2 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+                placeholder="Промокод (необязательно)"
+                value={promo}
+                onChange={(e) => setPromo(e.target.value)}
+              />
+              <div className="mt-3 space-y-1 border-t border-ink/10 pt-3 text-sm">
+                {promoDiscount > 0 && (
+                  <div className="flex justify-between text-ink/60">
+                    <span>Промокод резидента</span>
+                    <span>−{promoDiscount.toLocaleString('ru-RU')} ₽</span>
+                  </div>
+                )}
+                <div className="flex justify-between pt-1 text-base font-semibold text-ink">
+                  <span>Итого</span>
+                  <span>{total.toLocaleString('ru-RU')} ₽</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setCartOpen(false)
+                  setModalOpen(true)
+                }}
+                className="mt-4 w-full rounded-full bg-ink py-2.5 text-sm font-semibold text-white hover:bg-ink/90"
+              >
+                Заказать
+              </button>
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={() => setCartOpen((v) => !v)}
+            className="glass-dark flex items-center gap-4 rounded-full bg-ink px-7 py-4 text-white shadow-xl"
+          >
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gold-light text-sm font-bold text-ink">{count}</span>
+            <span className="text-base font-semibold">{total.toLocaleString('ru-RU')} ₽</span>
+          </button>
+        </div>
       )}
 
       {/* Модалка оформления заказа */}

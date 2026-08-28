@@ -37,7 +37,7 @@ export default function Header() {
   const isCandidates = pathname.startsWith('/kadry/candidates')
 
   return (
-    <header className="sticky top-0 z-40 border-b border-ink/10 bg-white/70 backdrop-blur-xl">
+    <header className="sticky top-0 z-40 border-b border-ink/10 bg-white/70 backdrop-blur-xl [transform:translateZ(0)] [will-change:transform]">
       <div className="container-page flex h-16 items-center justify-between">
         <NavLink to="/" className="flex items-center gap-2.5">
           <svg viewBox="0 0 26 24" className="h-6 w-6 text-ink" fill="currentColor" aria-hidden="true">

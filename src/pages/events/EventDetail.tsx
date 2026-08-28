@@ -9,7 +9,7 @@ import { getRelatedContent } from '../../lib/related'
 import { demoMemberships } from '../../lib/account'
 import { submitLead } from '../../lib/leads'
 
-const eventTypeLabel = { conference: 'Большое мероприятие', webinar: 'Вебинар', breakfast: 'Бизнес-завтрак', intensive: 'Интенсив', tour: 'Экскурсия' }
+const eventTypeLabel = { conference: 'Ключевое мероприятие', webinar: 'Вебинар', breakfast: 'Бизнес-завтрак', intensive: 'Интенсив', tour: 'Экскурсия' }
 
 const steps = [
   { title: 'Регистрация', description: 'Оставляете заявку на участие на этой странице.' },

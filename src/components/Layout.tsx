@@ -8,16 +8,26 @@ import Footer from './Footer'
 // на ближайшем предке с классом .glass/.glass-dark под курсором.
 function useGlassCursor() {
   useEffect(() => {
+    let raf = 0
     function handlePointerMove(e: PointerEvent) {
-      const target = e.target as HTMLElement | null
-      const el = target?.closest<HTMLElement>('.glass, .glass-dark')
-      if (!el) return
-      const rect = el.getBoundingClientRect()
-      el.style.setProperty('--mx', `${((e.clientX - rect.left) / rect.width) * 100}%`)
-      el.style.setProperty('--my', `${((e.clientY - rect.top) / rect.height) * 100}%`)
+      // Откладываем до следующего кадра — иначе на страницах со sticky-панелями
+      // (bg + backdrop-blur) частые синхронные обновления --mx/--my во время
+      // скролла/движения мыши вызывали видимое мерцание перерисовки.
+      cancelAnimationFrame(raf)
+      raf = requestAnimationFrame(() => {
+        const target = e.target as HTMLElement | null
+        const el = target?.closest<HTMLElement>('.glass, .glass-dark')
+        if (!el) return
+        const rect = el.getBoundingClientRect()
+        el.style.setProperty('--mx', `${((e.clientX - rect.left) / rect.width) * 100}%`)
+        el.style.setProperty('--my', `${((e.clientY - rect.top) / rect.height) * 100}%`)
+      })
     }
     document.addEventListener('pointermove', handlePointerMove, { passive: true })
-    return () => document.removeEventListener('pointermove', handlePointerMove)
+    return () => {
+      document.removeEventListener('pointermove', handlePointerMove)
+      cancelAnimationFrame(raf)
+    }
   }, [])
 }
 

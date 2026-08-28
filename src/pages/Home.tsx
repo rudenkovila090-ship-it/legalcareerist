@@ -72,8 +72,8 @@ const achievements = [
   { source: 'Рейтинг юридических Telegram-каналов · 2025', group: 'Каналы студентов', metric: 'Индекс качества', value: '15 место' },
   { source: 'Рейтинг юридических Telegram-каналов · 2025', group: 'Каналы студентов', metric: 'Самый большой', value: '11 место' },
   { source: 'Консолидированный рейтинг репутационного капитала юррынка Москвы и Санкт-Петербурга · РАСО и Legal Business Forum, 2026', group: 'Профессиональные сообщества', metric: 'Группа рейтинга', value: '3-я группа' },
-  { source: 'Консолидированный рейтинг репутационного капитала юррынка Москвы и Санкт-Петербурга · РАСО и Legal Business Forum, 2026', group: 'Персональный бренд', metric: 'Оценка', value: 'отмечены отдельно' },
-  { source: 'Консолидированный рейтинг репутационного капитала юррынка Москвы и Санкт-Петербурга · РАСО и Legal Business Forum, 2026', group: 'Интегральные оценки', metric: 'Оценка', value: 'отмечены отдельно' },
+  { source: 'Консолидированный рейтинг репутационного капитала юррынка Москвы и Санкт-Петербурга · РАСО и Legal Business Forum, 2026', group: 'Персональный бренд', metric: 'Номинация', value: 'специально отмечены' },
+  { source: 'Консолидированный рейтинг репутационного капитала юррынка Москвы и Санкт-Петербурга · РАСО и Legal Business Forum, 2026', group: 'Интегральные оценки', metric: 'Номинация', value: 'специально отмечены' },
 ]
 
 function AchievementsBoard() {
@@ -88,13 +88,16 @@ function AchievementsBoard() {
 
   return (
     <div className="overflow-hidden rounded-2xl bg-ink text-white">
-      <div className="flex min-h-[190px] flex-col justify-between p-8 sm:p-10">
+      <div className="mx-auto flex min-h-[320px] max-w-2xl flex-col justify-between p-8 text-center sm:min-h-[360px] sm:p-12">
         <div className="text-xs uppercase tracking-wide text-white/40">{current.source}</div>
         <div key={active} className="animate-board-fade">
-          <div className="text-sm text-gold-light">{current.group} · {current.metric}</div>
-          <div className="mt-2 text-4xl font-semibold sm:text-5xl">{current.value}</div>
+          <div className="text-xs uppercase tracking-wide text-gold-light">{current.group}</div>
+          <div className="mt-4 flex flex-wrap items-baseline justify-center gap-x-3 gap-y-1">
+            <span className="text-xl font-semibold sm:text-2xl">{current.metric}</span>
+            <span className="text-7xl font-bold text-gold-light sm:text-8xl">{current.value}</span>
+          </div>
         </div>
-        <div className="flex gap-1.5">
+        <div className="flex justify-center gap-1.5">
           {achievements.map((a, i) => (
             <button
               key={`${a.source}-${a.group}-${a.metric}`}

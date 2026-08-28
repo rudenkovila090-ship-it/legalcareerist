@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import PageHero from '../../components/PageHero'
 import Testimonials from '../../components/Testimonials'
@@ -7,7 +7,7 @@ import FAQSection from '../../components/FAQSection'
 import { TagRow } from '../../components/Tag'
 import LeadForm from '../../components/LeadForm'
 import { vacancies } from '../../data/vacancies'
-import { SPECIALIZATIONS, type Specialization, type WorkFormat } from '../../types'
+import { SPECIALIZATIONS, EMPLOYMENT_TYPES, type Specialization, type WorkFormat, type EmploymentType } from '../../types'
 import KnowledgeList from '../KnowledgeList'
 import CareerReserve from './CareerReserve'
 import CareerConsultation from './CareerConsultation'
@@ -95,17 +95,28 @@ const candidateTabs = [
 ] as const
 
 const formats: { id: WorkFormat | 'any'; label: string }[] = [
-  { id: 'any', label: 'Любой формат' },
-  { id: 'office', label: 'Офис' },
-  { id: 'remote', label: 'Удаленно' },
+  { id: 'any', label: 'Формат' },
+  { id: 'office', label: 'Офлайн' },
+  { id: 'remote', label: 'Онлайн' },
   { id: 'hybrid', label: 'Гибрид' },
+]
+
+const employments: { id: EmploymentType | 'any'; label: string }[] = [
+  { id: 'any', label: 'Занятость' },
+  ...EMPLOYMENT_TYPES,
 ]
 
 export default function Candidates() {
   const [tab, setTab] = useState<(typeof candidateTabs)[number]['id']>('overview')
+  // Сброс скролла наверх при переключении подвкладки — иначе при переходе
+  // снизу одной вкладки страница показывала низ следующей.
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [tab])
 
   const [spec, setSpec] = useState<Specialization | 'all'>('all')
   const [format, setFormat] = useState<WorkFormat | 'any'>('any')
+  const [employment, setEmployment] = useState<EmploymentType | 'any'>('any')
   const [city, setCity] = useState('')
   const [minSalary, setMinSalary] = useState(0)
   const [selectedVacancySlug, setSelectedVacancySlug] = useState<string | null>(null)
@@ -116,17 +127,18 @@ export default function Candidates() {
       if (v.status !== 'open') return false
       if (spec !== 'all' && !v.specialization.includes(spec)) return false
       if (format !== 'any' && v.format !== format) return false
+      if (employment !== 'any' && v.employment !== employment) return false
       if (city && !v.city.toLowerCase().includes(city.toLowerCase())) return false
       if (minSalary > 0 && (v.salaryFrom ?? 0) < minSalary) return false
       return true
     })
-  }, [spec, format, city, minSalary])
+  }, [spec, format, employment, city, minSalary])
 
   return (
     <div>
       {/* Вкладки раздела — сразу под панелью аудитории «Работодателям / Соискателям» из шапки.
           Закреплена (sticky) — остается на экране при скролле. */}
-      <div className="sticky top-[142px] z-20 border-b border-ink/10 bg-white/95 py-4 backdrop-blur-xl">
+      <div className="sticky top-[142px] z-20 border-b border-ink/10 bg-white/95 py-4 backdrop-blur-xl [transform:translateZ(0)] [will-change:transform]">
         <div className="container-page">
         <div className="flex flex-wrap justify-end gap-3">
           {candidateTabs.map((t) => (
@@ -264,45 +276,56 @@ export default function Candidates() {
             Вакансии открываются по приоритету: сначала их видят резиденты Сообщества, затем — кадровый
             резерв, и только после этого — открытый доступ (см. вкладку «Кадровый резерв»).
           </div>
-          <div className="glass mb-8 flex flex-wrap items-center gap-3 rounded-xl p-4">
-            <select
-              value={spec}
-              onChange={(e) => setSpec(e.target.value as Specialization | 'all')}
-              className="rounded-lg border border-ink/15 px-3 py-2 text-sm"
-            >
-              <option value="all">Все специализации</option>
-              {SPECIALIZATIONS.map((s) => (
-                <option key={s.id} value={s.id}>{s.label}</option>
-              ))}
-            </select>
-            <select
-              value={format}
-              onChange={(e) => setFormat(e.target.value as WorkFormat | 'any')}
-              className="rounded-lg border border-ink/15 px-3 py-2 text-sm"
-            >
-              {formats.map((f) => (
-                <option key={f.id} value={f.id}>{f.label}</option>
-              ))}
-            </select>
-            <input
-              value={city}
-              onChange={(e) => setCity(e.target.value)}
-              placeholder="Город"
-              className="rounded-lg border border-ink/15 px-3 py-2 text-sm"
-            />
-            <label className="flex items-center gap-2 text-sm text-ink/60">
+          <div className="glass mb-8 rounded-xl p-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <select
+                value={spec}
+                onChange={(e) => setSpec(e.target.value as Specialization | 'all')}
+                className="rounded-lg border border-ink/15 px-3 py-2 text-sm"
+              >
+                <option value="all">Направление</option>
+                {SPECIALIZATIONS.map((s) => (
+                  <option key={s.id} value={s.id}>{s.label}</option>
+                ))}
+              </select>
+              <select
+                value={format}
+                onChange={(e) => setFormat(e.target.value as WorkFormat | 'any')}
+                className="rounded-lg border border-ink/15 px-3 py-2 text-sm"
+              >
+                {formats.map((f) => (
+                  <option key={f.id} value={f.id}>{f.label}</option>
+                ))}
+              </select>
+              <select
+                value={employment}
+                onChange={(e) => setEmployment(e.target.value as EmploymentType | 'any')}
+                className="rounded-lg border border-ink/15 px-3 py-2 text-sm"
+              >
+                {employments.map((f) => (
+                  <option key={f.id} value={f.id}>{f.label}</option>
+                ))}
+              </select>
+              <input
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                placeholder="Город"
+                className="rounded-lg border border-ink/15 px-3 py-2 text-sm"
+              />
+              <div className="ml-auto text-sm text-ink/50">{filteredVacancies.length} вакансий</div>
+            </div>
+            <label className="mt-4 block text-sm text-ink/60">
               Зарплата от {minSalary > 0 ? `${money.format(minSalary)} ₽` : 'любой'}
               <input
                 type="range"
                 min={0}
                 max={150000}
-                step={10000}
+                step={5000}
                 value={minSalary}
                 onChange={(e) => setMinSalary(Number(e.target.value))}
-                className="w-32 accent-ink"
+                className="mt-2 w-full accent-ink"
               />
             </label>
-            <div className="ml-auto text-sm text-ink/50">{filteredVacancies.length} вакансий</div>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
