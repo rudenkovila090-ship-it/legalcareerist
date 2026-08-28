@@ -3,8 +3,22 @@ import PageHero from '../../components/PageHero'
 import Testimonials from '../../components/Testimonials'
 import { communityTestimonials } from '../../data/testimonials'
 import FAQSection from '../../components/FAQSection'
+import SectionRail from '../../components/SectionRail'
 import { submitLead } from '../../lib/leads'
 import ilyaPhoto from '../../assets/ilya-rudenkov.jpg'
+
+const railItems = [
+  { id: 'hero', label: 'Обзор' },
+  { id: 'main', label: 'Главное' },
+  { id: 'mvc', label: 'Миссия и цель' },
+  { id: 'benefits', label: 'Резидентам' },
+  { id: 'founder', label: 'Основатель' },
+  { id: 'ambassadors', label: 'Амбассадоры' },
+  { id: 'map', label: 'Представители' },
+  { id: 'join', label: 'Присоединиться' },
+  { id: 'reviews', label: 'Отзывы' },
+  { id: 'faq', label: 'FAQ' },
+]
 
 function IconLock() {
   return (
@@ -106,16 +120,15 @@ const knowledgeCategories = [
   'Юриспруденция', 'Legal Tech', 'Legal Design', 'Legal Writing',
 ]
 
-const residentBenefits: { icon: typeof IconLock; title: string; text: string | null; list: string[] | null }[] = [
-  { icon: IconLock, title: 'Закрытые вакансии', text: 'Вакансии, которых нет в открытом доступе — резиденты узнают о них первыми.', list: null },
-  { icon: IconChatDot, title: 'Бесплатная консультация', text: 'Одна бесплатная карьерная консультация в месяц продолжительностью 30 минут.', list: null },
-  { icon: IconBook, title: 'База знаний', text: null, list: [...knowledgeCategories, 'Нетворкинг', 'Книжный клуб', 'Психологический клуб'] },
-  { icon: IconNetwork, title: 'Нетворкинг', text: 'Возможность расширять сеть контактов среди студентов и молодых юристов.', list: null },
-  { icon: IconTrophy, title: 'Спортивный клуб', text: 'Регулярные челленджи и совместная активность.', list: null },
-  { icon: IconBadge, title: 'Личный бренд', text: 'Советы, помощь и поддержка в развитии — выступления на подкастах и мероприятиях.', list: null },
-  { icon: IconBookOpen, title: 'Книжный клуб', text: 'Обсуждаем тематическую книгу месяца.', list: null },
-  { icon: IconQuestion, title: 'Юридические вопросы', text: 'Можно задавать вопросы по практике, с которой раньше не сталкивались.', list: null },
-  { icon: IconTicket, title: 'Мероприятия', text: 'Скидки 20–30% на мероприятия «Карьерного юриста» и партнеров, подборки событий, где выступают резиденты.', list: null },
+const residentBenefits = [
+  { icon: IconLock, title: 'Закрытые вакансии', text: 'Вакансии, которых нет в открытом доступе — резиденты узнают о них первыми.' },
+  { icon: IconChatDot, title: 'Бесплатная консультация', text: 'Одна бесплатная карьерная консультация в месяц продолжительностью 30 минут.' },
+  { icon: IconNetwork, title: 'Нетворкинг', text: 'Возможность расширять сеть контактов среди студентов и молодых юристов.' },
+  { icon: IconTrophy, title: 'Спортивный клуб', text: 'Регулярные челленджи и совместная активность.' },
+  { icon: IconBadge, title: 'Личный бренд', text: 'Советы, помощь и поддержка в развитии — выступления на подкастах и мероприятиях.' },
+  { icon: IconBookOpen, title: 'Книжный клуб', text: 'Обсуждаем тематическую книгу месяца.' },
+  { icon: IconQuestion, title: 'Юридические вопросы', text: 'Можно задавать вопросы по практике, с которой раньше не сталкивались.' },
+  { icon: IconTicket, title: 'Мероприятия', text: 'Скидки 20–30% на мероприятия «Карьерного юриста» и партнеров, подборки событий, где выступают резиденты.' },
 ]
 
 const ambassadors = [
@@ -220,14 +233,18 @@ export default function CommunityHome() {
 
   return (
     <div>
-      <PageHero
-        eyebrow="Сообщество для молодых юристов"
-        title="Карьера в праве — легче, когда рядом свои люди"
-        description="Объединяем студентов и начинающих юристов из разных городов и университетов."
-      />
+      <SectionRail items={railItems} />
+
+      <div id="hero">
+        <PageHero
+          eyebrow="Сообщество для молодых юристов"
+          title="Карьера в праве — легче, когда рядом свои люди"
+          description="Объединяем студентов и начинающих юристов из разных городов и университетов."
+        />
+      </div>
 
       {/* Главное */}
-      <section className="container-page py-14">
+      <section id="main" className="container-page py-14">
         <div className="glass rounded-2xl p-8 text-center sm:p-12">
           <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Главное</div>
           <h2 className="mx-auto max-w-2xl text-2xl font-semibold sm:text-3xl">
@@ -248,7 +265,7 @@ export default function CommunityHome() {
       </section>
 
       {/* Миссия, ценность, цель */}
-      <section className="border-y border-ink/10 bg-white py-12">
+      <section id="mvc" className="border-y border-ink/10 bg-white py-12">
         <div className="container-page">
           <div className="grid gap-4 sm:grid-cols-3">
             {mvc.map((m) => (
@@ -262,7 +279,7 @@ export default function CommunityHome() {
       </section>
 
       {/* Что получают резиденты */}
-      <section className="container-page py-12">
+      <section id="benefits" className="container-page py-12">
         <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Что получают резиденты</div>
         <h2 className="mb-6 text-2xl font-semibold">Все, что входит в резидентство</h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -272,20 +289,34 @@ export default function CommunityHome() {
                 <b.icon />
               </div>
               <div className="font-semibold text-ink">{b.title}</div>
-              {b.list ? (
-                <ul className="mt-2 space-y-0.5 text-sm text-ink/60">
-                  {b.list.map((item) => <li key={item}>· {item}</li>)}
-                </ul>
-              ) : (
-                <p className="mt-1 text-sm text-ink/60">{b.text}</p>
-              )}
+              <p className="mt-1 text-sm text-ink/60">{b.text}</p>
             </div>
           ))}
+        </div>
+
+        {/* База знаний — отдельным компактным блоком с тегами, а не длинным списком в карточке */}
+        <div className="glass mt-4 rounded-xl border border-ink/5 p-5 shadow-sm">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ink text-white">
+              <IconBook />
+            </div>
+            <div>
+              <div className="font-semibold text-ink">База знаний</div>
+              <p className="mt-1 text-sm text-ink/60">Темы, которые доступны резидентам:</p>
+            </div>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {[...knowledgeCategories, 'Нетворкинг', 'Книжный клуб', 'Психологический клуб'].map((topic) => (
+              <span key={topic} className="rounded-full bg-ink/[0.05] px-3 py-1 text-xs font-medium text-ink/70">
+                {topic}
+              </span>
+            ))}
+          </div>
         </div>
       </section>
 
       {/* Основатель сообщества */}
-      <section className="border-y border-ink/10 bg-white py-12">
+      <section id="founder" className="border-y border-ink/10 bg-white py-12">
         <div className="container-page">
           <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Основатель сообщества</div>
           <div className="glass flex gap-5 rounded-xl p-6">
@@ -308,31 +339,84 @@ export default function CommunityHome() {
         </div>
       </section>
 
-      {/* Амбассадоры клуба */}
-      <section className="container-page py-12">
-        <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Амбассадоры клуба</div>
-        <h2 className="mb-6 text-2xl font-semibold">Резиденты, которые представляют сообщество</h2>
-        <div className="overflow-x-auto">
-          <div className="animate-marquee flex w-max gap-4">
+      {/* Амбассадоры сообщества — неоновая бегущая линия вместо ручного листания карточек */}
+      <section id="ambassadors" className="container-page py-12">
+        <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Амбассадоры сообщества</div>
+        <h2 className="mb-8 text-2xl font-semibold">Резиденты, которые представляют сообщество</h2>
+        <div className="relative overflow-hidden py-3">
+          <div
+            className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2"
+            style={{ background: '#5ea1ff', boxShadow: '0 0 8px 1px #5ea1ff, 0 0 20px 4px rgba(94,161,255,0.5)' }}
+          />
+          <div className="animate-marquee relative flex w-max items-center gap-10">
             {[...ambassadors, ...ambassadors].map((a, i) => (
-              <div key={`${a.name}-${i}`} className="glass w-40 shrink-0 rounded-xl p-5 text-center">
-                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gold-light/25 text-lg font-semibold text-ink">
-                  {a.name.split(' ').map((p) => p[0]).join('')}
+              <div key={`${a.name}-${i}`} className="flex shrink-0 items-center gap-3">
+                <span
+                  className="h-2.5 w-2.5 shrink-0 rounded-full"
+                  style={{ background: '#5ea1ff', boxShadow: '0 0 6px 2px #5ea1ff' }}
+                />
+                <div>
+                  <div className="whitespace-nowrap text-sm font-semibold text-ink">{a.name}</div>
+                  <div className="text-xs text-ink/40">{a.status}</div>
                 </div>
-                <div className="mt-3 text-sm font-semibold">{a.name}</div>
-                <div className="mt-1 text-xs text-ink/50">{a.status}</div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
+      {/* Стать амбассадором */}
+      <section className="border-y border-ink/10 bg-white py-12 text-center">
+        <div className="container-page">
+          <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Стать амбассадором</div>
+          <h2 className="mb-2 text-2xl font-semibold">Хотите представлять сообщество в своем вузе или городе?</h2>
+          <p className="mx-auto mb-6 max-w-xl text-sm text-ink/60">
+            Амбассадоры помогают развивать сообщество: рассказывают о нем среди своих, помогают с
+            мероприятиями, представляют «Карьерного юриста» в своем городе.
+          </p>
+
+          {ambassadorSent ? (
+            <div className="mx-auto max-w-md rounded-2xl border border-emerald-200 bg-emerald-50 p-6 text-sm text-emerald-800">
+              <div className="font-semibold">Заявка отправлена</div>
+              <p className="mt-1">Мы свяжемся с вами в Telegram.</p>
+            </div>
+          ) : (
+            <form onSubmit={handleAmbassadorSubmit} className="glass mx-auto grid max-w-2xl gap-3 rounded-2xl p-6 text-left sm:grid-cols-2">
+              <input
+                value={ambassadorForm.name}
+                onChange={(e) => setAmbassadorForm((f) => ({ ...f, name: e.target.value }))}
+                placeholder="Имя"
+                className="rounded-lg border border-ink/15 px-3 py-2 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40"
+              />
+              <input
+                value={ambassadorForm.telegram}
+                onChange={(e) => setAmbassadorForm((f) => ({ ...f, telegram: e.target.value }))}
+                placeholder="Telegram"
+                className="rounded-lg border border-ink/15 px-3 py-2 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40"
+              />
+              <input
+                value={ambassadorForm.about}
+                onChange={(e) => setAmbassadorForm((f) => ({ ...f, about: e.target.value }))}
+                placeholder="Вуз и город"
+                className="rounded-lg border border-ink/15 px-3 py-2 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40 sm:col-span-2"
+              />
+              <button
+                type="submit"
+                className="rounded-lg bg-ink py-2.5 text-sm font-semibold text-white hover:bg-ink/90 sm:col-span-2"
+              >
+                Стать амбассадором
+              </button>
+            </form>
+          )}
+        </div>
+      </section>
+
       {/* Представители по городам */}
-      <section className="border-y border-ink/10 bg-white py-12">
+      <section id="map" className="border-y border-ink/10 bg-white py-12">
         <div className="container-page">
           <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Представители</div>
           <h2 className="mb-6 text-2xl font-semibold">Резиденты есть в этих городах</h2>
-          <div className="grid gap-8 lg:grid-cols-[1.2fr_1fr] lg:items-center">
+          <div className="mx-auto max-w-3xl">
             <div className="relative aspect-[16/9] w-full overflow-hidden rounded-2xl bg-ink/[0.04]">
               <svg viewBox="0 0 160 75" className="absolute inset-0 h-full w-full" aria-hidden="true">
                 {/* Условная сетка параллелей/меридианов — чтобы читалось как карта */}
@@ -376,14 +460,7 @@ export default function CommunityHome() {
                 </button>
               ))}
             </div>
-            <ul className="space-y-3">
-              {cities.map((c) => (
-                <li key={c.id} className="glass rounded-xl p-4">
-                  <div className="font-semibold">{c.name}</div>
-                  <div className="mt-1 text-sm text-ink/60">{c.schools.join(', ')}</div>
-                </li>
-              ))}
-            </ul>
+            <p className="mt-3 text-center text-xs text-ink/40">Наведите на город, чтобы увидеть вузы резидентов</p>
           </div>
         </div>
       </section>
@@ -391,8 +468,7 @@ export default function CommunityHome() {
       {/* Присоединиться: лид-заявка + тарифы */}
       <section id="join" ref={joinRef} className="scroll-mt-16 bg-ink py-14 text-white">
         <div className="container-page">
-          <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold-light">Присоединиться</div>
-          <h2 className="mb-8 text-2xl font-semibold">Вступить в «Карьерный юрист»</h2>
+          <div className="mb-8 text-sm font-medium uppercase tracking-wide text-gold-light">Присоединиться</div>
 
           {!paid && !submitted && (
             <>
@@ -439,7 +515,7 @@ export default function CommunityHome() {
                 onClick={handlePay}
                 className="mx-auto mt-8 block w-full max-w-3xl rounded-lg bg-gold-light py-3 text-sm font-semibold text-ink hover:opacity-90 sm:w-auto sm:px-10"
               >
-                Оплатить {tariff.priceLabel.replace('/мес', '')}
+                Оплатить
               </button>
             </>
           )}
@@ -488,58 +564,18 @@ export default function CommunityHome() {
               </p>
             </div>
           )}
-
-          {/* Стать амбассадором */}
-          <div className="mt-14 border-t border-white/10 pt-10 text-center">
-            <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold-light">Стать амбассадором</div>
-            <h3 className="mb-2 text-xl font-semibold">Хотите представлять сообщество в своем вузе или городе?</h3>
-            <p className="mx-auto mb-6 max-w-xl text-sm text-white/60">
-              Амбассадоры помогают развивать сообщество: рассказывают о нем среди своих, помогают с
-              мероприятиями, представляют «Карьерного юриста» в своем городе.
-            </p>
-
-            {ambassadorSent ? (
-              <div className="mx-auto max-w-md rounded-2xl border border-emerald-400/30 bg-emerald-400/10 p-6 text-sm text-emerald-200">
-                <div className="font-semibold">Заявка отправлена</div>
-                <p className="mt-1">Мы свяжемся с вами в Telegram.</p>
-              </div>
-            ) : (
-              <form onSubmit={handleAmbassadorSubmit} className="glass-dark mx-auto grid max-w-2xl gap-3 rounded-2xl p-6 text-left sm:grid-cols-2">
-                <input
-                  value={ambassadorForm.name}
-                  onChange={(e) => setAmbassadorForm((f) => ({ ...f, name: e.target.value }))}
-                  placeholder="Имя"
-                  className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white outline-none placeholder:text-white/40 focus:border-white/40"
-                />
-                <input
-                  value={ambassadorForm.telegram}
-                  onChange={(e) => setAmbassadorForm((f) => ({ ...f, telegram: e.target.value }))}
-                  placeholder="Telegram"
-                  className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white outline-none placeholder:text-white/40 focus:border-white/40"
-                />
-                <input
-                  value={ambassadorForm.about}
-                  onChange={(e) => setAmbassadorForm((f) => ({ ...f, about: e.target.value }))}
-                  placeholder="Вуз и город"
-                  className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white outline-none placeholder:text-white/40 focus:border-white/40 sm:col-span-2"
-                />
-                <button
-                  type="submit"
-                  className="rounded-lg bg-gold-light py-2.5 text-sm font-semibold text-ink hover:opacity-90 sm:col-span-2"
-                >
-                  Стать амбассадором
-                </button>
-              </form>
-            )}
-          </div>
         </div>
       </section>
 
       {/* Отзывы */}
-      <Testimonials items={communityTestimonials} />
+      <div id="reviews">
+        <Testimonials items={communityTestimonials} />
+      </div>
 
       {/* FAQ */}
-      <FAQSection items={buildFaqItems(handleActivateDemo)} />
+      <div id="faq">
+        <FAQSection items={buildFaqItems(handleActivateDemo)} />
+      </div>
     </div>
   )
 }
