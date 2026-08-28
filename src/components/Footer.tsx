@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 export default function Footer() {
   return (
     <footer className="border-t border-white/10 bg-ink text-white/80">
-      <div className="container-page grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="container-page grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-5">
         <div>
           <div className="mb-3 text-lg font-semibold text-white">Карьерный Юрист</div>
           <p className="text-sm leading-relaxed text-white/60">
@@ -45,6 +45,14 @@ export default function Footer() {
         </div>
 
         <div>
+          <div className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">Юридический блок</div>
+          <ul className="space-y-2 text-sm">
+            <li><Link className="hover:text-white" to="/legal/privacy">Политика обработки персональных данных</Link></li>
+            <li><Link className="hover:text-white" to="/legal/consent">Согласие на обработку персональных данных</Link></li>
+          </ul>
+        </div>
+
+        <div>
           <div className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">Контакты</div>
           <ul className="space-y-2 text-sm text-white/60">
             <li><a className="hover:text-white" href="mailto:info@legalcareerist.ru">info@legalcareerist.ru</a></li>
@@ -54,12 +62,8 @@ export default function Footer() {
         </div>
       </div>
       <div className="border-t border-white/10 py-5">
-        <div className="container-page flex flex-col items-center justify-between gap-3 text-xs text-white/40 sm:flex-row">
+        <div className="container-page text-center text-xs text-white/40">
           <span>© {new Date().getFullYear()} ИП Руденков И.В. Карьерный Юрист.</span>
-          <span className="flex gap-4">
-            <Link className="hover:text-white/70" to="/legal/privacy">Политика обработки персональных данных</Link>
-            <Link className="hover:text-white/70" to="/legal/consent">Согласия на обработку данных</Link>
-          </span>
         </div>
       </div>
     </footer>

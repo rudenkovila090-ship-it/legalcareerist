@@ -117,7 +117,7 @@ export default function CareerReserve({ embedded = false }: { embedded?: boolean
 
   return (
     <div>
-      {!embedded && <SectionRail items={railItems} />}
+      <SectionRail items={railItems} />
 
       {!embedded && (
         <div id="hero">

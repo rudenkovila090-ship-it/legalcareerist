@@ -10,6 +10,16 @@ const typeLabel: Record<ContentType, string> = {
   club: 'Клуб сообщества',
 }
 
+// Заголовки отдельных строк-групп при разбивке «Связанного» по типам.
+const groupLabel: Record<ContentType, string> = {
+  event: 'Мероприятия',
+  material: 'Материалы',
+  vacancy: 'Вакансии',
+  article: 'База знаний',
+  club: 'Клубы сообщества',
+}
+const groupOrder: ContentType[] = ['event', 'material', 'vacancy', 'article', 'club']
+
 // Монохромная шкала — тип различается текстом лейбла, а не радугой цветов
 // (в палитре сайта только белый и фирменный синий).
 const typeColor: Record<ContentType, string> = {
@@ -35,23 +45,34 @@ export default function RelatedContentBlock({ items, title = 'Связанное
       <p className="mb-5 text-sm text-ink/60">
         Подобрано автоматически по совпадению специализации и отрасли.
       </p>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {items.map((item) => (
-          <Link
-            key={`${item.type}-${item.id}`}
-            to={item.href}
-            onClick={() =>
-              trackEvent('related_content_click', { type: item.type, id: item.id, target: item.href })
-            }
-            className="glass group rounded-xl p-4"
-          >
-            <span className={`mb-2 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${typeColor[item.type]}`}>
-              {typeLabel[item.type]}
-            </span>
-            <div className="font-medium leading-snug text-ink group-hover:text-ink">{item.title}</div>
-            <div className="mt-1 text-xs text-ink/50">{item.meta}</div>
-          </Link>
-        ))}
+      <div className="space-y-6">
+        {groupOrder.map((type) => {
+          const group = items.filter((item) => item.type === type)
+          if (group.length === 0) return null
+          return (
+            <div key={type}>
+              <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-ink/50">{groupLabel[type]}</h3>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {group.map((item) => (
+                  <Link
+                    key={`${item.type}-${item.id}`}
+                    to={item.href}
+                    onClick={() =>
+                      trackEvent('related_content_click', { type: item.type, id: item.id, target: item.href })
+                    }
+                    className="glass group rounded-xl p-4"
+                  >
+                    <span className={`mb-2 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${typeColor[item.type]}`}>
+                      {typeLabel[item.type]}
+                    </span>
+                    <div className="font-medium leading-snug text-ink group-hover:text-ink">{item.title}</div>
+                    <div className="mt-1 text-xs text-ink/50">{item.meta}</div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )
+        })}
       </div>
     </section>
   )

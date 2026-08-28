@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import FAQSection from '../components/FAQSection'
 import ilyaPhoto from '../assets/ilya-rudenkov.jpg'
@@ -47,21 +48,56 @@ const valueProps = [
   },
 ]
 
-const kadryAdvantages = [
-  { title: 'Только юридический рынок', text: 'Специализируемся на начинающих и средних специалистах — понимаем их уровень, мотивацию и ожидания.' },
-  { title: 'Собственная база 8 000+', text: 'Активное сообщество студентов и выпускников — кандидаты уже мотивированы и готовы к работе.' },
-  { title: 'Оплата за результат', text: '30% от одного оклада кандидата: 75% предоплата до начала работ, 25% — после прохождения испытательного срока.' },
-  { title: 'Бесплатная замена', text: 'Если кандидат не проходит испытательный срок — подбираем замену бесплатно в согласованные сроки.' },
+// Табло достижений на главной — по одному пункту с автопереключением,
+// вместо статичных таблиц. Собрано из тех же реальных рейтингов.
+const achievements = [
+  { source: 'Рейтинг юридических Telegram-каналов · 2025', group: 'Юридические клубы', metric: 'Самый вовлеченный', value: '5 место' },
+  { source: 'Рейтинг юридических Telegram-каналов · 2025', group: 'Юридические клубы', metric: 'Индекс качества', value: '12 место' },
+  { source: 'Рейтинг юридических Telegram-каналов · 2025', group: 'Юридические клубы', metric: 'Самый большой', value: '8 место' },
+  { source: 'Рейтинг юридических Telegram-каналов · 2025', group: 'HR-направление', metric: 'Самый вовлеченный', value: '5 место' },
+  { source: 'Рейтинг юридических Telegram-каналов · 2025', group: 'HR-направление', metric: 'Индекс качества', value: '26 место' },
+  { source: 'Рейтинг юридических Telegram-каналов · 2025', group: 'HR-направление', metric: 'Самый большой', value: '31 место' },
+  { source: 'Рейтинг юридических Telegram-каналов · 2025', group: 'Каналы студентов', metric: 'Самый вовлеченный', value: '11 место' },
+  { source: 'Рейтинг юридических Telegram-каналов · 2025', group: 'Каналы студентов', metric: 'Индекс качества', value: '15 место' },
+  { source: 'Рейтинг юридических Telegram-каналов · 2025', group: 'Каналы студентов', metric: 'Самый большой', value: '11 место' },
+  { source: 'Консолидированный рейтинг репутационного капитала юррынка Москвы и Санкт-Петербурга · РАСО и Legal Business Forum, 2026', group: 'Профессиональные сообщества', metric: 'Группа рейтинга', value: '3-я группа' },
+  { source: 'Консолидированный рейтинг репутационного капитала юррынка Москвы и Санкт-Петербурга · РАСО и Legal Business Forum, 2026', group: 'Персональный бренд', metric: 'Оценка', value: 'отмечены отдельно' },
+  { source: 'Консолидированный рейтинг репутационного капитала юррынка Москвы и Санкт-Петербурга · РАСО и Legal Business Forum, 2026', group: 'Интегральные оценки', metric: 'Оценка', value: 'отмечены отдельно' },
 ]
 
-// Соответствует реальным услугам соискателям (см. /kadry/candidates) —
-// не сообщество, а кадровый резерв и карьерные консультации.
-const candidateBenefits = [
-  { title: 'Подбор работы без лишних хлопот', text: 'Берем переговоры с работодателем на себя и сопровождаем от заявки до выхода на позицию.' },
-  { title: 'Карьерные консультации', text: 'Резюме, подготовка к собеседованию, стратегия поиска — соберите свой набор услуг под задачу.' },
-  { title: 'Только юридический рынок', text: 'Понимаем специфику профессии — говорим с вами на одном языке с первого дня.' },
-  { title: 'Приоритет резидентам', text: 'Резиденты Сообщества видят новые вакансии первыми — раньше кадрового резерва и открытого рынка.' },
-]
+function AchievementsBoard() {
+  const [active, setActive] = useState(0)
+
+  useEffect(() => {
+    const id = setInterval(() => setActive((i) => (i + 1) % achievements.length), 3500)
+    return () => clearInterval(id)
+  }, [])
+
+  const current = achievements[active]
+
+  return (
+    <div className="overflow-hidden rounded-2xl bg-ink text-white">
+      <div className="flex min-h-[190px] flex-col justify-between p-8 sm:p-10">
+        <div className="text-xs uppercase tracking-wide text-white/40">{current.source}</div>
+        <div key={active} className="animate-board-fade">
+          <div className="text-sm text-gold-light">{current.group} · {current.metric}</div>
+          <div className="mt-2 text-4xl font-semibold sm:text-5xl">{current.value}</div>
+        </div>
+        <div className="flex gap-1.5">
+          {achievements.map((a, i) => (
+            <button
+              key={`${a.source}-${a.group}-${a.metric}`}
+              type="button"
+              aria-label={`Показать: ${a.group}, ${a.metric}`}
+              onClick={() => setActive(i)}
+              className={`h-1.5 rounded-full transition-all ${i === active ? 'w-6 bg-gold-light' : 'w-1.5 bg-white/25 hover:bg-white/50'}`}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
 
 const faqItems = [
   { q: 'Что такое Карьерный юрист?', a: 'Кадровое агентство и сообщество для юридического рынка под одним брендом — под ним объединены подбор персонала для юридических фирм и закрытое сообщество студентов-юристов.' },
@@ -231,141 +267,7 @@ export default function Home() {
       <section className="container-page py-14">
         <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Кейсы и результаты</div>
         <h2 className="mb-6 text-2xl font-semibold">Признание на рынке и цифры за нами</h2>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="glass rounded-xl p-6">
-            <div className="mb-1 text-sm font-medium uppercase tracking-wide text-gold">Рейтинг юридических Telegram-каналов</div>
-            <p className="text-xs text-ink/40">2025 года</p>
-            <div className="mt-4 space-y-4 text-sm">
-              {[
-                { group: 'Юридические клубы', rows: [['Самый вовлеченный', '5 место'], ['Индекс качества', '12 место'], ['Самый большой', '8 место']] },
-                { group: 'HR-направление', rows: [['Самый вовлеченный', '5 место'], ['Индекс качества', '26 место'], ['Самый большой', '31 место']] },
-                { group: 'Каналы студентов', rows: [['Самый вовлеченный', '11 место'], ['Индекс качества', '15 место'], ['Самый большой', '11 место']] },
-              ].map((cat) => (
-                <div key={cat.group}>
-                  <div className="font-semibold text-ink">{cat.group}</div>
-                  <ul className="mt-1.5 space-y-1">
-                    {cat.rows.map(([label, place]) => (
-                      <li key={label} className="flex items-center justify-between text-ink/60">
-                        <span>{label}</span>
-                        <span className="font-medium text-ink">{place}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="glass rounded-xl p-6">
-            <div className="mb-1 text-sm font-medium uppercase tracking-wide text-gold">
-              Консолидированный рейтинг репутационного капитала участников юридического рынка Москвы и Санкт-Петербурга
-            </div>
-            <p className="mt-1 text-xs text-ink/40">От комитета РАСО и Legal Business Forum, 2026</p>
-            <ul className="mt-4 space-y-2 text-sm">
-              <li className="flex items-center justify-between rounded-lg bg-ink/[0.04] px-3 py-2">
-                <span className="text-ink/70">«Профессиональные сообщества»</span>
-                <span className="font-medium text-ink">3-я группа</span>
-              </li>
-              <li className="flex items-center justify-between rounded-lg bg-ink/[0.04] px-3 py-2">
-                <span className="text-ink/70">«Персональный бренд»</span>
-                <span className="font-medium text-ink">отмечены отдельно</span>
-              </li>
-              <li className="flex items-center justify-between rounded-lg bg-ink/[0.04] px-3 py-2">
-                <span className="text-ink/70">«Интегральные оценки»</span>
-                <span className="font-medium text-ink">отмечены отдельно</span>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </section>
-
-      {/* Преимущества и выгоды */}
-      <section className="border-y border-ink/10 bg-white py-14">
-        <div className="container-page">
-          <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Преимущества и выгоды</div>
-          <h2 className="mb-8 text-2xl font-semibold">Что вы получаете</h2>
-          <div className="grid gap-8 lg:grid-cols-2">
-            <div>
-              <div className="mb-3 font-semibold text-ink">Работодателям (Кадры)</div>
-              <div className="grid gap-3 sm:grid-cols-2">
-                {kadryAdvantages.map((a) => (
-                  <div key={a.title} className="glass rounded-xl p-4">
-                    <div className="font-medium">{a.title}</div>
-                    <p className="mt-1 text-sm text-ink/60">{a.text}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div>
-              <div className="mb-3 font-semibold text-ink">Соискателям (Кадры)</div>
-              <div className="grid gap-3 sm:grid-cols-2">
-                {candidateBenefits.map((b) => (
-                  <div key={b.title} className="glass rounded-xl p-4">
-                    <div className="font-medium">{b.title}</div>
-                    <p className="mt-1 text-sm text-ink/60">{b.text}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Что мы предлагаем */}
-      <section id="kadry" className="scroll-mt-16 border-b border-ink/10 bg-ink py-16 text-white">
-        <div className="container-page">
-          <div className="text-sm font-medium uppercase tracking-wide text-gold-light">Что мы предлагаем · Кадры</div>
-          <h2 className="mt-2 max-w-2xl text-3xl font-semibold sm:text-4xl">
-            Находим сотрудников для юридических фирм — без лишних собеседований и потраченного времени
-          </h2>
-          <p className="mt-3 max-w-xl text-white/60">
-            Подбор помощников, младших юристов, офис-менеджеров — быстро и точно.
-          </p>
-
-          <div className="glass-dark mt-10 flex flex-col items-start gap-4 rounded-xl p-6 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <div className="font-semibold">Как мы ищем кандидата</div>
-              <p className="mt-1 text-sm text-white/60">
-                Сначала вакансию видят резиденты нашего Сообщества → затем кадровый резерв (8 000+
-                контактов) → и только потом открытый доступ.
-              </p>
-            </div>
-            <Link
-              to="/kadry/employers"
-              className="shrink-0 rounded-lg bg-gold-light px-6 py-2.5 text-sm font-semibold text-ink hover:opacity-90"
-            >
-              Подробнее и оставить заявку
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      <section id="community" className="scroll-mt-16 border-b border-ink/10 bg-white py-16">
-        <div className="container-page">
-          <div className="text-sm font-medium uppercase tracking-wide text-gold">Что мы предлагаем · Сообщество</div>
-          <h2 className="mt-2 max-w-2xl text-3xl font-semibold sm:text-4xl">
-            Карьера в праве — легче, когда рядом свои люди
-          </h2>
-          <p className="mt-3 max-w-xl text-ink/60">
-            Объединяем студентов и начинающих юристов из разных городов и университетов.
-          </p>
-
-          <div className="glass-dark mt-10 flex flex-col items-start gap-4 rounded-xl bg-ink p-6 text-white sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <div className="font-semibold">От 690 ₽/мес · демодоступ 7 дней</div>
-              <p className="mt-1 text-sm text-white/60">
-                Выберите тариф, оплатите и укажите ник в Telegram — бот сам напишет вам и пришлет
-                ссылку на вступление.
-              </p>
-            </div>
-            <Link
-              to="/community"
-              className="shrink-0 rounded-lg bg-gold-light px-6 py-2.5 text-sm font-semibold text-ink hover:opacity-90"
-            >
-              Вступить в сообщество
-            </Link>
-          </div>
-        </div>
+        <AchievementsBoard />
       </section>
 
       {/* FAQ */}

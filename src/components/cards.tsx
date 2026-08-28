@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import type { Article, CommunityClub, EventItem, MaterialItem, Vacancy } from '../types'
 import { TagRow } from './Tag'
+import { articleViews } from '../lib/articleViews'
 
 const money = new Intl.NumberFormat('ru-RU')
 
@@ -23,12 +24,28 @@ export function VacancyCard({ v }: { v: Vacancy }) {
   )
 }
 
-export function ArticleCard({ a }: { a: Article }) {
-  return (
-    <Link to={`/knowledge/${a.slug}`} className="glass block rounded-xl p-5">
+// onSelect — для встраивания внутрь вкладки другой страницы (см. KnowledgeList
+// с compact): открывает материал инлайн вместо перехода на отдельный роут,
+// чтобы не терять контекст вкладки (та же проблема, что была с вакансиями).
+export function ArticleCard({ a, onSelect }: { a: Article; onSelect?: (slug: string) => void }) {
+  const content = (
+    <>
       <span className="text-xs font-medium uppercase tracking-wide text-gold">{kindLabel(a.kind)}</span>
       <h3 className="mt-1 font-semibold leading-snug">{a.title}</h3>
       <p className="mt-2 text-sm text-ink/60">{a.excerpt}</p>
+      <div className="mt-2 text-xs text-ink/40">{articleViews(a.id)} просмотров</div>
+    </>
+  )
+  if (onSelect) {
+    return (
+      <button type="button" onClick={() => onSelect(a.slug)} className="glass block w-full rounded-xl p-5 text-left">
+        {content}
+      </button>
+    )
+  }
+  return (
+    <Link to={`/knowledge/${a.slug}`} className="glass block rounded-xl p-5">
+      {content}
     </Link>
   )
 }

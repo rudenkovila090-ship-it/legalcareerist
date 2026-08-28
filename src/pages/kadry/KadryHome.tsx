@@ -21,13 +21,6 @@ const railItems = [
   { id: 'lead-form', label: 'Заявка' },
 ]
 
-const stats = [
-  { value: '8 000+', label: 'потенциальных кандидатов' },
-  { value: '20+', label: 'позиций закрыто' },
-  { value: '5–7', label: 'Time to Hire, дней' },
-  { value: '30%', label: 'оплата от 1 зарплаты' },
-]
-
 // Простые линейные иконки — без внешних иконок, только inline SVG.
 function IconClock() {
   return (
@@ -128,7 +121,7 @@ function IconAccountCircle() {
 
 const employerTabs = [
   { id: 'recruiting', label: 'Рекрутинг', icon: IconBriefcase },
-  { id: 'candidates', label: 'Кандидаты', icon: IconUsers },
+  { id: 'candidates', label: 'Найти сотрудника', icon: IconUsers },
   { id: 'knowledge', label: 'База знаний', icon: IconBook },
   { id: 'account', label: 'Личный кабинет', icon: IconAccountCircle },
 ] as const
@@ -216,6 +209,12 @@ const demoCandidates = Array.from({ length: 30 }, (_, i) => {
   }
 })
 
+const schools = ['МГУ', 'СПбГУ', 'МГЮА']
+const positionOptions = Array.from(new Set(candidateTemplates.map((t) => t.position)))
+function parseSalary(s: string) {
+  return Number(s.replace(/\D/g, '')) || 0
+}
+
 const valueProps = [
   { icon: IconClock, title: 'Не тратите время на поиск', text: 'Размещение вакансии, отсев нерелевантных откликов, десятки собеседований — берем на себя.' },
   { icon: IconUserCheck, title: 'Кандидаты уже мотивированы', text: 'Наша база — активное сообщество студентов и выпускников, а не случайные отклики с job-бордов.' },
@@ -283,7 +282,8 @@ const cases = [
 ]
 
 const faqItems = [
-  { q: 'Сколько это стоит?', a: '30% от одного месячного оклада кандидата: 75% предоплата до начала работ, 25% — после прохождения испытательного срока.' },
+  { q: 'Сколько стоит подбор сотрудника?', a: '30% от одного месячного оклада кандидата: 75% предоплата до начала работ, 25% — после прохождения испытательного срока. Точную сумму под вашу вакансию покажет калькулятор выше.' },
+  { q: 'Можно открыть контакты кандидатов самостоятельно, без заявки?', a: 'Да, во вкладке «Найти сотрудника» — там же фильтры по городу, вузу, занятости, графику, формату и зарплате. Контакт конкретного кандидата открывается за 2000 ₽ после короткой регистрации работодателя.' },
   { q: 'Что если кандидат не подойдет?', a: 'Бесплатно подберем замену в согласованные сроки — это часть условий сотрудничества, а не платная опция.' },
   { q: 'Сколько ждать первых кандидатов?', a: 'В среднем вакансия закрывается за 5–7 дней (Time to Hire — 5,5 дней). Есть кейсы закрытия за 1–3 дня.' },
   { q: 'Кого вы подбираете?', a: 'Помощников юристов и адвокатов, младших юристов, секретарей, офис-менеджеров и смежные административные позиции на юридическом рынке.' },
@@ -318,19 +318,62 @@ export default function KadryHome() {
   const [unlocked, setUnlocked] = useState<Record<number, boolean>>({})
   const [visibleCandidates, setVisibleCandidates] = useState(3)
 
+  // Фильтры вкладки «Найти сотрудника»
+  const [fCity, setFCity] = useState('Все города')
+  const [fSchool, setFSchool] = useState('Все вузы')
+  const [fEmployment, setFEmployment] = useState('Любая занятость')
+  const [fSchedule, setFSchedule] = useState('Любой график')
+  const [fFormat, setFFormat] = useState('Любой формат')
+  const [fPosition, setFPosition] = useState('Все должности')
+  const [maxSalary, setMaxSalary] = useState(80000)
+
+  const filteredCandidates = demoCandidates.filter((c) =>
+    (fCity === 'Все города' || c.city === fCity) &&
+    (fSchool === 'Все вузы' || c.school === fSchool) &&
+    (fEmployment === 'Любая занятость' || c.employment === fEmployment) &&
+    (fSchedule === 'Любой график' || c.schedule === fSchedule) &&
+    (fFormat === 'Любой формат' || c.format === fFormat) &&
+    (fPosition === 'Все должности' || c.position === fPosition) &&
+    parseSalary(c.salaryFrom) <= maxSalary,
+  )
+
   function toggleCandidate(id: number) {
     setOpenCandidates((s) => ({ ...s, [id]: !s[id] }))
   }
 
-  function handleUnlock(id: number) {
+  // Открытие контакта — 2000 ₽. Перед первым открытием работодатель
+  // регистрируется и заполняет основную информацию о себе (форма ниже;
+  // содержание полей уточняется позже по инструкции) — дальше открывает
+  // контакты уже без повторной регистрации.
+  const [employerRegistered, setEmployerRegistered] = useState(false)
+  const [registeringId, setRegisteringId] = useState<number | null>(null)
+  const [employerForm, setEmployerForm] = useState({ company: '', contact: '', phone: '', email: '' })
+
+  function doUnlock(id: number) {
     submitLead({
       sourceBlock: 'kadry',
       formType: 'candidate_contact_unlock',
-      name: 'Работодатель',
-      contact: '—',
-      interest: [`Открыть контакт кандидата #${id} — 500 ₽`],
+      name: employerForm.contact || 'Работодатель',
+      contact: [employerForm.phone, employerForm.email].filter(Boolean).join(' / ') || '—',
+      interest: [`Открыть контакт кандидата #${id} — 2000 ₽`, employerForm.company].filter(Boolean),
     })
     setUnlocked((u) => ({ ...u, [id]: true }))
+  }
+
+  function handleUnlockClick(id: number) {
+    if (employerRegistered) {
+      doUnlock(id)
+    } else {
+      setRegisteringId(id)
+    }
+  }
+
+  function handleRegisterSubmit(e: FormEvent, id: number) {
+    e.preventDefault()
+    if (!employerForm.company.trim() || !employerForm.contact.trim() || (!employerForm.phone.trim() && !employerForm.email.trim())) return
+    setEmployerRegistered(true)
+    setRegisteringId(null)
+    doUnlock(id)
   }
 
   return (
@@ -338,8 +381,10 @@ export default function KadryHome() {
       {tab === 'recruiting' && <SectionRail items={railItems} dark />}
 
       {/* Вкладки раздела: рекрутинг / кандидаты / база знаний / личный кабинет —
-          сразу под панелью аудитории «Работодателям / Соискателям» из шапки. */}
-      <div className="container-page py-8">
+          сразу под панелью аудитории «Работодателям / Соискателям» из шапки.
+          Закреплена (sticky) — остается на экране при скролле. */}
+      <div className="sticky top-[142px] z-20 border-b border-white/10 bg-ink/95 py-4 backdrop-blur-xl">
+        <div className="container-page">
         <div className="flex flex-wrap justify-end gap-3">
           {employerTabs.map((t) => (
             <button
@@ -354,6 +399,7 @@ export default function KadryHome() {
               {t.label}
             </button>
           ))}
+        </div>
         </div>
       </div>
 
@@ -370,10 +416,48 @@ export default function KadryHome() {
 
       {tab === 'candidates' && (
         <section className="container-page pb-16">
-          <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold-light">Кандидаты</div>
+          <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold-light">Найти сотрудника</div>
           <h2 className="mb-6 text-2xl font-semibold text-white">Свежие анкеты из кадрового резерва</h2>
+
+          <div className="glass-dark mb-6 grid gap-3 rounded-xl p-5 sm:grid-cols-3 lg:grid-cols-6">
+            <select value={fCity} onChange={(e) => setFCity(e.target.value)} className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white outline-none focus:border-white/40">
+              {['Все города', ...cities].map((v) => <option key={v} value={v} className="text-ink">{v}</option>)}
+            </select>
+            <select value={fSchool} onChange={(e) => setFSchool(e.target.value)} className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white outline-none focus:border-white/40">
+              {['Все вузы', ...schools].map((v) => <option key={v} value={v} className="text-ink">{v}</option>)}
+            </select>
+            <select value={fEmployment} onChange={(e) => setFEmployment(e.target.value)} className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white outline-none focus:border-white/40">
+              {['Любая занятость', ...employments].map((v) => <option key={v} value={v} className="text-ink">{v}</option>)}
+            </select>
+            <select value={fSchedule} onChange={(e) => setFSchedule(e.target.value)} className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white outline-none focus:border-white/40">
+              {['Любой график', ...schedules].map((v) => <option key={v} value={v} className="text-ink">{v}</option>)}
+            </select>
+            <select value={fFormat} onChange={(e) => setFFormat(e.target.value)} className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white outline-none focus:border-white/40">
+              {['Любой формат', ...formats].map((v) => <option key={v} value={v} className="text-ink">{v}</option>)}
+            </select>
+            <select value={fPosition} onChange={(e) => setFPosition(e.target.value)} className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white outline-none focus:border-white/40">
+              {['Все должности', ...positionOptions].map((v) => <option key={v} value={v} className="text-ink">{v}</option>)}
+            </select>
+            <label className="sm:col-span-3 lg:col-span-6 text-sm text-white/70">
+              Зарплатные ожидания — до {maxSalary.toLocaleString('ru-RU')} ₽
+              <input
+                type="range"
+                min={20000}
+                max={100000}
+                step={5000}
+                value={maxSalary}
+                onChange={(e) => setMaxSalary(Number(e.target.value))}
+                className="mt-2 w-full accent-gold-light"
+              />
+            </label>
+          </div>
+
+          <p className="mb-4 text-sm text-white/50">
+            Показано {Math.min(visibleCandidates, filteredCandidates.length)} из {filteredCandidates.length} анкет
+          </p>
+
           <div className="grid gap-4 sm:grid-cols-3">
-            {demoCandidates.slice(0, visibleCandidates).map((c, i) => {
+            {filteredCandidates.slice(0, visibleCandidates).map((c, i) => {
               const isOpen = !!openCandidates[c.id]
               const isUnlocked = unlocked[c.id]
               return (
@@ -415,13 +499,50 @@ export default function KadryHome() {
                         <div className="rounded-lg bg-emerald-400/10 p-3 text-emerald-200">
                           Заявка на контакт отправлена — свяжемся для оплаты и передачи анкеты.
                         </div>
+                      ) : registeringId === c.id ? (
+                        <form onSubmit={(e) => handleRegisterSubmit(e, c.id)} className="space-y-2 rounded-lg border border-white/15 bg-white/5 p-3">
+                          <div className="text-xs font-semibold uppercase tracking-wide text-white/50">Регистрация работодателя</div>
+                          <input
+                            value={employerForm.company}
+                            onChange={(ev) => setEmployerForm((f) => ({ ...f, company: ev.target.value }))}
+                            placeholder="Компания"
+                            required
+                            className="w-full rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white outline-none placeholder:text-white/40 focus:border-white/40"
+                          />
+                          <input
+                            value={employerForm.contact}
+                            onChange={(ev) => setEmployerForm((f) => ({ ...f, contact: ev.target.value }))}
+                            placeholder="Контактное лицо"
+                            required
+                            className="w-full rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white outline-none placeholder:text-white/40 focus:border-white/40"
+                          />
+                          <div className="grid grid-cols-2 gap-2">
+                            <input
+                              type="tel"
+                              value={employerForm.phone}
+                              onChange={(ev) => setEmployerForm((f) => ({ ...f, phone: ev.target.value }))}
+                              placeholder="Телефон"
+                              className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white outline-none placeholder:text-white/40 focus:border-white/40"
+                            />
+                            <input
+                              type="email"
+                              value={employerForm.email}
+                              onChange={(ev) => setEmployerForm((f) => ({ ...f, email: ev.target.value }))}
+                              placeholder="Почта"
+                              className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white outline-none placeholder:text-white/40 focus:border-white/40"
+                            />
+                          </div>
+                          <button type="submit" className="w-full rounded-full bg-gold-light py-2.5 text-sm font-semibold text-ink hover:opacity-90">
+                            Открыть контакт — 2000 ₽
+                          </button>
+                        </form>
                       ) : (
                         <button
                           type="button"
-                          onClick={() => handleUnlock(c.id)}
+                          onClick={() => handleUnlockClick(c.id)}
                           className="w-full rounded-full bg-gold-light py-2.5 text-sm font-semibold text-ink hover:opacity-90"
                         >
-                          Открыть контакт — 500 ₽
+                          Открыть контакт — 2000 ₽
                         </button>
                       )}
                     </div>
@@ -438,10 +559,10 @@ export default function KadryHome() {
               )
             })}
           </div>
-          {visibleCandidates < demoCandidates.length && (
+          {visibleCandidates < filteredCandidates.length && (
             <button
               type="button"
-              onClick={() => setVisibleCandidates((v) => Math.min(v + 3, demoCandidates.length))}
+              onClick={() => setVisibleCandidates((v) => Math.min(v + 3, filteredCandidates.length))}
               className="mt-6 rounded-full border border-white/25 px-6 py-2.5 text-sm font-semibold text-white/70 hover:text-white"
             >
               Посмотреть еще кандидатов
@@ -483,34 +604,35 @@ export default function KadryHome() {
       {tab === 'recruiting' && (
       <>
 
-      <section className="container-page py-12">
-        <div className="grid gap-3 sm:grid-cols-4">
-          {stats.map((s) => (
-            <div key={s.label} className="glass-dark rounded-xl p-4">
-              <div className="text-2xl font-semibold text-white">{s.value}</div>
-              <div className="mt-1 text-sm text-white/60">{s.label}</div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* О компании */}
+      {/* О компании — сравнение с обычным рекрутером, намеренно другая
+          визуальная форма (таблица «против»), чтобы не повторять карточки
+          «Чем мы отличаемся» ниже. */}
       <section id="about" className="border-y border-white/10 py-12">
         <div className="container-page">
           <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold-light">О компании</div>
           <h2 className="mb-6 text-2xl font-semibold text-white">Почему работодатели выбирают нас</h2>
-          <div className="grid gap-8 lg:grid-cols-2">
-            <p className="text-white/60">
-              Мы работаем исключительно с юридическим рынком на уровне начинающих специалистов. Мы не
-              универсальный рекрутер, случайно попавший в юридическую нишу — знаем рынок изнутри,
-              понимаем специфику профессии и говорим с кандидатами на одном языке с первого дня.
-            </p>
-            <p className="text-white/60">
-              За кандидатами не нужно идти на открытый рынок: у нас собственная база из 8 000+
-              контактов и активное сообщество студентов-юристов, из которого вакансия закрывается в
-              среднем за 5–7 дней — с гарантией бесплатной замены, если кандидат не пройдет
-              испытательный срок.
-            </p>
+          <div className="overflow-hidden rounded-2xl border border-white/10">
+            <div className="grid grid-cols-2 divide-x divide-white/10">
+              <div className="bg-white/[0.03] p-5 text-center text-sm font-semibold text-white/50">Обычный рекрутер</div>
+              <div className="bg-gold-light/15 p-5 text-center text-sm font-semibold text-white">Карьерный Юрист</div>
+            </div>
+            {[
+              ['Универсальный подбор на любом рынке', 'Только юридический рынок — знаем специфику профессии'],
+              ['Кандидаты — отклики с открытых job-бордов', 'Собственная база 8 000+ и живое сообщество студентов-юристов'],
+              ['Закрытие вакансии — недели', 'В среднем 5–7 дней (Time to Hire — 5,5 дней)'],
+              ['Не отвечает за результат после найма', 'Бесплатная замена, если кандидат не прошел испытательный срок'],
+            ].map(([bad, good]) => (
+              <div key={good} className="grid grid-cols-2 divide-x divide-white/10 border-t border-white/10 text-sm">
+                <div className="flex items-start gap-2 p-5 text-white/40">
+                  <span className="mt-0.5 shrink-0">✕</span>
+                  <span>{bad}</span>
+                </div>
+                <div className="flex items-start gap-2 bg-gold-light/[0.06] p-5 text-white/80">
+                  <span className="mt-0.5 shrink-0 text-gold-light">✓</span>
+                  <span>{good}</span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -721,7 +843,13 @@ export default function KadryHome() {
             </ul>
 
             <div className="glass-dark rounded-2xl p-8 lg:-mt-1">
-              <label className="text-base font-semibold text-white">
+              <div className="text-xs uppercase tracking-wide text-white/50">Итого к оплате за подбор</div>
+              <div className="mt-1 text-4xl font-semibold text-white">{fee.toLocaleString('ru-RU')} ₽</div>
+              <div className="mt-1 text-sm text-white/50">
+                при рыночной комиссии 40–50% это было бы {Math.round(salary * 0.45).toLocaleString('ru-RU')} ₽ — экономия {Math.round(salary * 0.45 - fee).toLocaleString('ru-RU')} ₽
+              </div>
+
+              <label className="mt-6 block text-sm font-semibold text-white">
                 Оклад кандидата, ₽/мес
                 <input
                   type="range"
@@ -762,6 +890,11 @@ export default function KadryHome() {
                   </div>
                 </div>
               </div>
+
+              <div className="mt-4 flex items-center justify-between rounded-xl border border-white/15 bg-white/10 px-5 py-3 text-sm">
+                <span className="text-white/60">Ожидаемый срок закрытия вакансии</span>
+                <span className="font-semibold text-white">5–7 дней</span>
+              </div>
             </div>
           </div>
         </div>
@@ -769,7 +902,7 @@ export default function KadryHome() {
 
       {/* FAQ */}
       <div id="faq">
-        <FAQSection items={faqItems} dark />
+        <FAQSection items={faqItems} title="Вопросы работодателей" dark />
       </div>
 
       {/* Найти сотрудника — объединенный яркий CTA-блок с формой */}

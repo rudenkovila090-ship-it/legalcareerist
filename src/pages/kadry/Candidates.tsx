@@ -14,6 +14,13 @@ import CareerConsultation from './CareerConsultation'
 
 const money = new Intl.NumberFormat('ru-RU')
 
+// Демо-счетчик просмотров вакансии — детерминированный (по id), чтобы не
+// прыгал при каждом ререндере.
+function vacancyViews(id: string | number) {
+  const n = String(id).split('').reduce((a, c) => a + c.charCodeAt(0), 0)
+  return 60 + (n * 37) % 380
+}
+
 const benefits = [
   { title: 'Подбор работы без лишних хлопот', text: 'Берем переговоры с работодателем на себя и сопровождаем вас от заявки до выхода на позицию.' },
   { title: 'Только юридический рынок', text: 'Понимаем специфику профессии — говорим с вами на одном языке с первого дня.' },
@@ -79,7 +86,7 @@ function IconAccountCircle() {
 }
 
 const candidateTabs = [
-  { id: 'overview', label: 'Обзор', icon: IconHome },
+  { id: 'overview', label: 'Главное', icon: IconHome },
   { id: 'vacancies', label: 'Вакансии', icon: IconList },
   { id: 'consultation', label: 'Карьерная консультация', icon: IconStar },
   { id: 'reserve', label: 'Кадровый резерв', icon: IconArchive },
@@ -100,6 +107,7 @@ export default function Candidates() {
   const [spec, setSpec] = useState<Specialization | 'all'>('all')
   const [format, setFormat] = useState<WorkFormat | 'any'>('any')
   const [city, setCity] = useState('')
+  const [minSalary, setMinSalary] = useState(0)
   const [selectedVacancySlug, setSelectedVacancySlug] = useState<string | null>(null)
   const selectedVacancy = vacancies.find((v) => v.slug === selectedVacancySlug) ?? null
 
@@ -109,9 +117,10 @@ export default function Candidates() {
       if (spec !== 'all' && !v.specialization.includes(spec)) return false
       if (format !== 'any' && v.format !== format) return false
       if (city && !v.city.toLowerCase().includes(city.toLowerCase())) return false
+      if (minSalary > 0 && (v.salaryFrom ?? 0) < minSalary) return false
       return true
     })
-  }, [spec, format, city])
+  }, [spec, format, city, minSalary])
 
   return (
     <div>
@@ -201,6 +210,7 @@ export default function Candidates() {
             <div>
               <h1 className="text-3xl font-semibold">{selectedVacancy.title}</h1>
               <div className="mt-2 text-ink/60">{selectedVacancy.anonymous ? 'Компания скрыта' : selectedVacancy.company} · {selectedVacancy.city}</div>
+              <div className="mt-1 text-sm text-ink/40">{vacancyViews(selectedVacancy.id)} просмотров</div>
               <div className="mt-3">
                 <TagRow specialization={selectedVacancy.specialization} industry={selectedVacancy.industry} />
               </div>
@@ -277,6 +287,18 @@ export default function Candidates() {
               placeholder="Город"
               className="rounded-lg border border-ink/15 px-3 py-2 text-sm"
             />
+            <label className="flex items-center gap-2 text-sm text-ink/60">
+              Зарплата от {minSalary > 0 ? `${money.format(minSalary)} ₽` : 'любой'}
+              <input
+                type="range"
+                min={0}
+                max={150000}
+                step={10000}
+                value={minSalary}
+                onChange={(e) => setMinSalary(Number(e.target.value))}
+                className="w-32 accent-ink"
+              />
+            </label>
             <div className="ml-auto text-sm text-ink/50">{filteredVacancies.length} вакансий</div>
           </div>
 
@@ -300,6 +322,7 @@ export default function Candidates() {
                 <div className="mt-3">
                   <TagRow specialization={v.specialization} industry={v.industry} />
                 </div>
+                <div className="mt-3 text-xs text-ink/40">{vacancyViews(v.id)} просмотров</div>
               </button>
             ))}
             {filteredVacancies.length === 0 && <p className="text-ink/50">По заданным фильтрам вакансий не найдено.</p>}

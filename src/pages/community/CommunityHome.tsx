@@ -464,12 +464,10 @@ export default function CommunityHome() {
 
       {/* Присоединиться: лид-заявка + тарифы */}
       <section id="join" ref={joinRef} className="scroll-mt-16 bg-ink py-14 text-white">
-        <div className="container-page">
+        <div className="container-page text-center">
           <div className="mb-8 text-sm font-medium uppercase tracking-wide text-gold-light">Присоединиться</div>
 
-          {!paid && !submitted && (
-            <>
-              <div className="mx-auto grid max-w-3xl gap-4 sm:grid-cols-3">
+          <div className="mx-auto grid max-w-3xl gap-4 sm:grid-cols-3">
                 {tariffs.filter((t) => t.id !== 'demo').map((t) => {
                   const recommended = t.id === '3m'
                   const selected = tariffId === t.id
@@ -519,54 +517,80 @@ export default function CommunityHome() {
                   )
                 })}
               </div>
-            </>
-          )}
-
-          {paid && !submitted && (
-            <form onSubmit={handleSubmit} className="glass-dark max-w-md rounded-2xl p-6">
-              <div className="mb-1 font-semibold">Укажите ник в Telegram</div>
-              <p className="mb-4 text-sm text-white/50">
-                Тариф «{tariff.period}» {tariff.price > 0 && `оплачен (${tariff.priceLabel.replace('/мес', '')})`}.
-                Бот напишет вам первым — убедитесь, что можете получать сообщения от новых контактов.
-              </p>
-              <div className="grid gap-3">
-                <input
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Имя"
-                  required
-                  className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white outline-none placeholder:text-white/40 focus:border-white/40"
-                />
-                <input
-                  value={telegram}
-                  onChange={(e) => setTelegram(e.target.value)}
-                  placeholder="Ник в Telegram, например @ivanov"
-                  required
-                  className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white outline-none placeholder:text-white/40 focus:border-white/40"
-                />
-              </div>
-              <button
-                type="submit"
-                className="mt-4 w-full rounded-lg bg-gold-light py-2.5 text-sm font-semibold text-ink hover:opacity-90"
-              >
-                Вступить в сообщество
-              </button>
-            </form>
-          )}
-
-          {submitted && (
-            <div className="max-w-md rounded-2xl border border-emerald-400/30 bg-emerald-400/10 p-6 text-sm text-emerald-200">
-              <div className="font-semibold">Готово!</div>
-              <p className="mt-1">
-                В течение нескольких минут бот{' '}
-                <a className="underline" href="https://t.me/legalcareerist_bot" target="_blank" rel="noreferrer">
-                  @legalcareerist_bot
-                </a>{' '}
-                напишет вам в Telegram и пришлет ссылку на вступление в сообщество.
-              </p>
-            </div>
-          )}
         </div>
+
+        {/* Модалка оплаты — как в конструкторе карьерной консультации:
+            центрированное окно поверх страницы, а не блок слева. */}
+        {paid && (
+          <div
+            className="fixed inset-0 z-50 flex items-end justify-center bg-ink/70 p-0 sm:items-center sm:p-4"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setPaid(false)
+            }}
+          >
+            <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-white p-6 text-ink sm:rounded-2xl sm:p-8">
+              {submitted ? (
+                <div className="py-4 text-center">
+                  <div className="mb-3 flex justify-center">
+                    <span className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-2xl text-emerald-600">✓</span>
+                  </div>
+                  <p className="text-sm leading-relaxed text-ink/70">
+                    Тариф «{tariff.period}» {tariff.price > 0 && `оплачен (${tariff.priceLabel.replace('/мес', '')})`}.
+                    Бот напишет вам первым — убедитесь, что можете получать сообщения от новых контактов.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPaid(false)
+                      setSubmitted(false)
+                      setName('')
+                      setTelegram('')
+                    }}
+                    className="mt-6 rounded-full bg-ink px-6 py-2.5 text-sm font-semibold text-white"
+                  >
+                    Закрыть
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="mb-4 flex items-center justify-between">
+                    <h3 className="text-lg font-semibold">Оплата тарифа «{tariff.period}»</h3>
+                    <button type="button" onClick={() => setPaid(false)} className="text-ink/40 hover:text-ink" aria-label="Закрыть">
+                      ✕
+                    </button>
+                  </div>
+                  <div className="mb-5 flex items-center justify-between rounded-lg bg-ink/[0.04] px-4 py-3 text-sm">
+                    <span className="text-ink/60">{tariff.period}</span>
+                    <span className="text-base font-semibold text-ink">{tariff.priceLabel}</span>
+                  </div>
+                  <form onSubmit={handleSubmit} className="grid gap-3">
+                    <input
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Имя"
+                      required
+                      className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+                    />
+                    <input
+                      value={telegram}
+                      onChange={(e) => setTelegram(e.target.value)}
+                      placeholder="Ник в Telegram, например @ivanov"
+                      required
+                      className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+                    />
+                    <button
+                      type="submit"
+                      className="rounded-full bg-ink py-3 text-sm font-semibold text-white transition-colors hover:bg-ink/90"
+                    >
+                      {tariff.price > 0 ? 'Оплатить и вступить' : 'Вступить в сообщество'}
+                    </button>
+                    <p className="text-xs text-ink/50">Нажимая «Оплатить и вступить», вы соглашаетесь на обработку персональных данных.</p>
+                  </form>
+                </>
+              )}
+            </div>
+          </div>
+        )}
       </section>
 
       {/* Отзывы */}

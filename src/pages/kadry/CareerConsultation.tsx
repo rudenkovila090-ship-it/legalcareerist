@@ -357,28 +357,28 @@ export default function CareerConsultation({ embedded = false }: { embedded?: bo
         </ul>
       </section>
 
-      {/* Что вы получите */}
-      <section id="outcomes" className="container-page pb-12">
-        <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Что вы получите</div>
-        <h2 className="mb-6 text-2xl font-semibold">После консультации у вас будет</h2>
-        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {outcomes.map((item) => (
-            <li key={item} className="flex gap-2 text-sm text-ink/70">
-              <span className="text-ink">✓</span>
-              {item}
-            </li>
-          ))}
-        </ul>
+      {/* Что вы получите — намеренно другая визуальная форма (плашки-теги
+          вместо списка), чтобы не повторять блок «Кому подойдет» выше */}
+      <section id="outcomes" className="bg-ink py-12 text-white">
+        <div className="container-page">
+          <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold-light">Что вы получите</div>
+          <h2 className="mb-6 text-2xl font-semibold">После консультации у вас будет</h2>
+          <div className="flex flex-wrap gap-2.5">
+            {outcomes.map((item) => (
+              <span key={item} className="glass-dark flex items-center gap-2 rounded-full px-4 py-2 text-sm">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-gold-light text-xs font-bold text-ink">✓</span>
+                {item}
+              </span>
+            ))}
+          </div>
+        </div>
       </section>
 
       {/* Конструктор услуг */}
       <section id="services" className="border-y border-ink/10 bg-white py-12">
         <div className="container-page">
           <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Услуги</div>
-          <h2 className="mb-2 text-2xl font-semibold">Соберите свою консультацию</h2>
-          <p className="mb-8 text-sm text-ink/60">
-            Выбирайте нужные услуги — заказ и стоимость собираются внизу справа. От 2 услуг — скидка 5%, от 3 — 10%.
-          </p>
+          <h2 className="mb-8 text-2xl font-semibold">Соберите свою консультацию</h2>
 
           <div className="space-y-8">
             {consultationCategories.map((cat) => {
@@ -471,7 +471,7 @@ export default function CareerConsultation({ embedded = false }: { embedded?: bo
         <section className="border-y border-ink/10 bg-white py-10">
           <div className="container-page">
             <div className="mx-auto max-w-xl rounded-2xl border border-ink/10 p-6 sm:p-8">
-              <h3 className="mb-4 text-lg font-semibold">Ваш заказ на данный момент</h3>
+              <h3 className="mb-4 text-lg font-semibold">Ваш заказ</h3>
               <ul className="mb-4 space-y-2 text-sm">
                 {selectedServices.map((s) => (
                   <li key={s.id} className="flex items-center justify-between">
@@ -487,8 +487,24 @@ export default function CareerConsultation({ embedded = false }: { embedded?: bo
                 </div>
                 {tierDiscount > 0 && (
                   <div className="flex justify-between text-ink/60">
-                    <span>Скидка за количество ({tierPct}%)</span>
+                    <span>Ваша скидка {tierPct}%</span>
                     <span>−{tierDiscount.toLocaleString('ru-RU')} ₽</span>
+                  </div>
+                )}
+              </div>
+
+              <input
+                className="mt-3 w-full rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+                placeholder="Промокод (необязательно)"
+                value={promo}
+                onChange={(e) => setPromo(e.target.value)}
+              />
+
+              <div className="mt-3 space-y-1 border-t border-ink/10 pt-3 text-sm">
+                {promoDiscount > 0 && (
+                  <div className="flex justify-between text-ink/60">
+                    <span>Промокод резидента</span>
+                    <span>−{promoDiscount.toLocaleString('ru-RU')} ₽</span>
                   </div>
                 )}
                 <div className="flex justify-between pt-1 text-base font-semibold text-ink">
@@ -501,7 +517,7 @@ export default function CareerConsultation({ embedded = false }: { embedded?: bo
                 onClick={() => setModalOpen(true)}
                 className="mt-5 w-full rounded-full bg-ink py-3 text-sm font-semibold text-white transition-colors hover:bg-ink/90"
               >
-                Оформить заявку
+                Заказать
               </button>
             </div>
           </div>
@@ -621,57 +637,18 @@ export default function CareerConsultation({ embedded = false }: { embedded?: bo
             ) : (
               <>
                 <div className="mb-4 flex items-center justify-between">
-                  <h3 className="text-lg font-semibold">Ваш заказ</h3>
+                  <h3 className="text-lg font-semibold">Заказать</h3>
                   <button type="button" onClick={() => setModalOpen(false)} className="text-ink/40 hover:text-ink" aria-label="Закрыть">
                     ✕
                   </button>
                 </div>
 
-                <ul className="mb-4 space-y-2 text-sm">
-                  {selectedServices.map((s) => (
-                    <li key={s.id} className="flex items-center justify-between">
-                      <span className="text-ink/70">{s.title}</span>
-                      <span className="flex items-center gap-2">
-                        <span>{s.price.toLocaleString('ru-RU')} ₽</span>
-                        <button type="button" onClick={() => toggle(s.id)} className="text-ink/30 hover:text-ink" aria-label="Убрать">
-                          ✕
-                        </button>
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-
-                <input
-                  className="mb-3 w-full rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
-                  placeholder="Промокод (необязательно)"
-                  value={promo}
-                  onChange={(e) => setPromo(e.target.value)}
-                />
-
-                <div className="space-y-1 border-t border-ink/10 pt-3 text-sm">
-                  <div className="flex justify-between text-ink/60">
-                    <span>Сумма</span>
-                    <span>{subtotal.toLocaleString('ru-RU')} ₽</span>
-                  </div>
-                  {tierDiscount > 0 && (
-                    <div className="flex justify-between text-ink/60">
-                      <span>Скидка за количество ({tierPct}%)</span>
-                      <span>−{tierDiscount.toLocaleString('ru-RU')} ₽</span>
-                    </div>
-                  )}
-                  {promoDiscount > 0 && (
-                    <div className="flex justify-between text-ink/60">
-                      <span>Промокод резидента</span>
-                      <span>−{promoDiscount.toLocaleString('ru-RU')} ₽</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between pt-1 text-base font-semibold text-ink">
-                    <span>Итого</span>
-                    <span>{total.toLocaleString('ru-RU')} ₽</span>
-                  </div>
+                <div className="mb-5 flex items-center justify-between rounded-lg bg-ink/[0.04] px-4 py-3 text-sm">
+                  <span className="text-ink/60">{count} {count === 1 ? 'услуга' : 'услуги'} в заказе</span>
+                  <span className="text-base font-semibold text-ink">{total.toLocaleString('ru-RU')} ₽</span>
                 </div>
 
-                <form className="mt-5 grid gap-3" onSubmit={handleSubmit}>
+                <form className="grid gap-3" onSubmit={handleSubmit}>
                   <input
                     className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
                     placeholder="ФИО"
@@ -699,9 +676,9 @@ export default function CareerConsultation({ embedded = false }: { embedded?: bo
                     />
                   </div>
                   <button type="submit" className="rounded-full bg-ink py-3 text-sm font-semibold text-white transition-colors hover:bg-ink/90">
-                    Оформить заявку
+                    Заказать
                   </button>
-                  <p className="text-xs text-ink/50">Нажимая «Оформить заявку», вы соглашаетесь на обработку персональных данных.</p>
+                  <p className="text-xs text-ink/50">Нажимая «Заказать», вы соглашаетесь на обработку персональных данных.</p>
                 </form>
               </>
             )}
