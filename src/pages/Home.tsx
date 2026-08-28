@@ -98,7 +98,7 @@ export default function Home() {
               <div className="mt-1 text-sm text-ink/60">События для студентов-юристов</div>
             </Link>
             <Link to="/marketplace" className="rounded-2xl border-2 border-ink bg-white p-5 text-center shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-[0_0_0_8px_rgba(111,147,196,0.18)]">
-              <div className="text-lg font-semibold">Marketplace</div>
+              <div className="text-lg font-semibold">Маркетплейс</div>
               <div className="mt-1 text-sm text-ink/60">Каталог полезных материалов</div>
             </Link>
           </div>

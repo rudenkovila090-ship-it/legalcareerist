@@ -18,6 +18,7 @@ import Materials from './pages/events/Materials'
 import MaterialDetail from './pages/events/MaterialDetail'
 import Account from './pages/Account'
 import MarketplaceHome from './pages/MarketplaceHome'
+import BlogHome from './pages/BlogHome'
 import Contacts from './pages/Contacts'
 import Privacy from './pages/legal/Privacy'
 import Consent from './pages/legal/Consent'
@@ -90,6 +91,9 @@ export default function App() {
 
         {/* Marketplace */}
         <Route path="/marketplace" element={<MarketplaceHome />} />
+
+        {/* Блог */}
+        <Route path="/blog" element={<BlogHome />} />
 
         {/* Юридические документы */}
         <Route path="/legal/privacy" element={<Privacy />} />

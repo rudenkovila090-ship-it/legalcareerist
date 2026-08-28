@@ -10,8 +10,8 @@ export default function MarketplaceHome() {
     <div>
       <PageHero
         eyebrow="Карьерный Юрист"
-        title="Marketplace"
-        description="Маркетплейс юридических услуг и специалистов — раздел в разработке."
+        title="Маркетплейс"
+        description="Каталог полезных материалов — раздел в разработке."
         prototype
       />
       <div className="container-page py-16 text-center">

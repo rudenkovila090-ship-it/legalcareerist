@@ -3,38 +3,60 @@ import PageHero from '../../components/PageHero'
 import Testimonials from '../../components/Testimonials'
 import { communityTestimonials } from '../../data/testimonials'
 import FAQSection from '../../components/FAQSection'
-import CTASection from '../../components/CTASection'
 import { submitLead } from '../../lib/leads'
+import ilyaPhoto from '../../assets/ilya-rudenkov.jpg'
 
-const stats = [
-  { value: '70+', label: 'резидентов' },
-  { value: '4', label: 'клуба' },
-  { value: '690 ₽', label: 'подписка на 1 месяц' },
-  { value: '2 города', label: 'офлайн-встреч' },
+const mvc = [
+  {
+    label: 'Миссия',
+    text: 'Поддерживать, давать совет, помогать сделать следующий шаг в карьере — будь то первая работа, смена работы или развитие личного бренда.',
+  },
+  {
+    label: 'Ценность',
+    text: 'Закрытые вакансии, экспертная информация от приглашенных экспертов, база знаний, возможность найти работу.',
+  },
+  {
+    label: 'Цель',
+    text: 'Помогать расти профессионально, закрывать вакансии, делиться знаниями, помогать развивать личный бренд, выступать на подкастах и мероприятиях.',
+  },
 ]
 
-const valueProps = [
-  { title: 'Не одни на старте карьеры', text: 'На старте вопросов всегда больше, чем ответов: куда идти — консалтинг, инхаус или адвокатура, как оценить оффер. Рядом — те, кто уже разбирался с этим.' },
-  { title: 'Честный фидбек, а не вежливый', text: 'Сообщество, где можно показать резюме и получить реальную обратную связь, а не общие слова.' },
-  { title: 'Ниша, которую больше никто не закрывает', text: 'Юридических сообществ хватает, но почти все — для практиков с именем и связями. Для студентов и начинающих юристов таких почти нет.' },
+const knowledgeCategories = [
+  'Юридический мир', 'Юридическая карьера', 'Бизнес', 'Маркетинг', 'Личный бренд',
+  'Продажи', 'Финансы', 'Сервис', 'Лайф-менеджмент', 'Юридический менеджмент',
+  'Юриспруденция', 'Legal Tech', 'Legal Design', 'Legal Writing',
 ]
 
-const benefits = [
-  { title: 'Закрытые вакансии', text: 'Помощники, младшие юристы, секретари, офис-менеджеры — вакансий нет в открытом доступе. Резиденты получают предложения о работе в приоритетном порядке.' },
-  { title: 'Скидки на мероприятия', text: '30–50% на офлайн-встречи и участие в событиях сообщества.' },
-  { title: 'Закрытые вебинары', text: 'С приглашенными экспертами — доступны только резидентам.' },
-  { title: 'База знаний', text: 'Юридическая литература, психология, soft skills, юридический мир, legal design & writing и многое другое.' },
-  { title: 'Скидка на консультации', text: 'Льготная цена на консультацию психолога и карьерного консультанта для резидентов.' },
-  { title: 'Личный бренд', text: 'Записываем подкасты с резидентами, публикуем статьи.' },
+const residentBenefits = [
+  { title: 'Закрытые вакансии', text: 'Вакансии, которых нет в открытом доступе — резиденты узнают о них первыми.' },
+  { title: 'Бесплатная консультация', text: 'Одна бесплатная карьерная консультация в месяц продолжительностью 30 минут.' },
+  { title: 'База знаний', text: `Материалы по темам: ${knowledgeCategories.join(', ')} — а также нетворкинг, книжный клуб, психологический клуб.` },
+  { title: 'Нетворкинг', text: 'Возможность расширять сеть контактов среди студентов и молодых юристов.' },
+  { title: 'Спортивный клуб', text: 'Регулярные челленджи и совместная активность.' },
+  { title: 'Личный бренд', text: 'Советы, помощь и поддержка в развитии — выступления на подкастах и мероприятиях.' },
+  { title: 'Книжный клуб', text: 'Обсуждаем тематическую книгу месяца.' },
+  { title: 'Юридические вопросы', text: 'Можно задавать вопросы по практике, с которой раньше не сталкивались.' },
+  { title: 'Мероприятия', text: 'Скидки 20–30% на мероприятия «Карьерного юриста» и партнеров, подборки событий, где выступают резиденты.' },
 ]
+
+const ambassadors = [
+  'Анна Соколова', 'Максим Волков', 'Дарья Новикова', 'Иван Кузнецов',
+  'Полина Морозова', 'Артем Соловьев', 'Мария Егорова', 'Никита Орлов',
+].map((name) => ({ name, status: 'Great-амбассадор' }))
+
+const cities = [
+  { id: 'spb', name: 'Санкт-Петербург', x: '32%', y: '20%', schools: ['СПбГУ', 'НИУ ВШЭ', 'РАНХиГС'] },
+  { id: 'msk', name: 'Москва', x: '40%', y: '38%', schools: ['МГЮА', 'МГУ', 'МГИМО'] },
+  { id: 'ekb', name: 'Екатеринбург', x: '66%', y: '44%', schools: ['УрГУ'] },
+] as const
 
 const faqItems = [
+  { q: 'Что такое сообщество и чем оно отличается от юридических клубов, СНО?', a: 'Сообщество «Карьерного юриста» объединяет студентов и начинающих юристов из разных вузов и городов вокруг одной цели — карьеры в праве, а не привязано к конкретному учебному заведению, как студенческие клубы или СНО. Здесь закрытые вакансии, база знаний, менторская поддержка и живое общение с теми, кто уже прошел этот путь.' },
+  { q: 'Можно ли познакомиться с сообществом до вступления?', a: 'Да, вы можете вступить по демодоступу на 7 дней — оценить формат перед оплатой.' },
   { q: 'Что я получу сразу после оплаты?', a: 'Бот @legalcareerist_bot сам напишет вам в Telegram в течение нескольких минут и пришлет ссылку на вступление в закрытое сообщество.' },
-  { q: 'Можно попробовать бесплатно?', a: 'Да, есть демодоступ на 7 дней — чтобы оценить формат перед оплатой.' },
   { q: 'Что если я передумаю?', a: 'Подписка действует на выбранный срок (1, 3 или 6 месяцев) без автопродления — можно просто не продлевать дальше.' },
   { q: 'Нужна ли специализация или опыт?', a: 'Нет — сообщество открыто студентам и начинающим юристам из любого города, вуза и колледжа, независимо от специализации.' },
   { q: 'Как устроены закрытые вакансии?', a: 'Работодатели сначала предлагают вакансии резидентам сообщества — и только потом кадровому резерву и открытому рынку.' },
-  { q: 'Безопасно ли писать боту свой ник в Telegram?', a: 'Ник используется только для того, чтобы бот отправил приглашение в сообщество — подробности в Политике обработки персональных данных.' },
 ]
 
 const tariffs = [
@@ -53,6 +75,11 @@ export default function CommunityHome() {
   const [name, setName] = useState('')
   const [telegram, setTelegram] = useState('')
   const [submitted, setSubmitted] = useState(false)
+
+  const [hoveredCity, setHoveredCity] = useState<(typeof cities)[number]['id'] | null>(null)
+
+  const [ambassadorForm, setAmbassadorForm] = useState({ name: '', telegram: '', about: '' })
+  const [ambassadorSent, setAmbassadorSent] = useState(false)
 
   const tariff = tariffs.find((t) => t.id === tariffId)!
 
@@ -73,6 +100,19 @@ export default function CommunityHome() {
     setSubmitted(true)
   }
 
+  function handleAmbassadorSubmit(e: FormEvent) {
+    e.preventDefault()
+    if (!ambassadorForm.name.trim() || !ambassadorForm.telegram.trim()) return
+    submitLead({
+      sourceBlock: 'community',
+      formType: 'ambassador_application',
+      name: ambassadorForm.name,
+      contact: ambassadorForm.telegram,
+      interest: [ambassadorForm.about].filter(Boolean),
+    })
+    setAmbassadorSent(true)
+  }
+
   return (
     <div>
       <PageHero
@@ -81,77 +121,46 @@ export default function CommunityHome() {
         description="Объединяем студентов и начинающих юристов из разных городов и университетов."
       />
 
-      <section className="container-page py-10">
-        <div className="grid gap-3 sm:grid-cols-4">
-          {stats.map((s) => (
-            <div key={s.label} className="glass rounded-xl p-4">
-              <div className="text-2xl font-semibold text-ink">{s.value}</div>
-              <div className="mt-1 text-sm text-ink/60">{s.label}</div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* О компании */}
-      <section className="border-y border-ink/10 bg-white py-12">
-        <div className="container-page">
-          <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">О сообществе</div>
-          <h2 className="mb-4 text-2xl font-semibold">Почему нам доверяют</h2>
-          <p className="max-w-2xl text-ink/60">
-            «Карьерный юрист» — сообщество для студентов и начинающих юристов: помогаем находить
-            работу, расти в профессии и заводить своих людей. Признано рынком: 3-я группа в
-            номинации «Профессиональные сообщества» рейтинга РАСО и Legal Business Forum (2026) и
-            5-е место в рейтинге юридических Telegram-каналов (2025).
+      {/* Главное */}
+      <section className="container-page py-14">
+        <div className="glass rounded-2xl p-8 text-center sm:p-12">
+          <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Главное</div>
+          <h2 className="mx-auto max-w-2xl text-2xl font-semibold sm:text-3xl">
+            Станьте резидентом — и карьера в праве перестанет быть путем в одиночку
+          </h2>
+          <p className="mx-auto mt-3 max-w-xl text-ink/60">
+            Закрытые вакансии, база знаний, менторская поддержка и живое сообщество тех, кто уже
+            прошел этот путь и готов поделиться опытом.
           </p>
+          <a
+            href="#join"
+            className="mt-6 inline-block rounded-full bg-ink px-8 py-3 text-sm font-semibold text-white hover:bg-ink/90"
+          >
+            Стать резидентом
+          </a>
         </div>
       </section>
 
-      {/* Польза */}
-      <section className="container-page py-12">
-        <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">В чем наша польза</div>
-        <h2 className="mb-6 text-2xl font-semibold">Зачем вступать</h2>
-        <div className="grid gap-4 sm:grid-cols-3">
-          {valueProps.map((v) => (
-            <div key={v.title} className="glass rounded-xl p-5">
-              <div className="font-semibold">{v.title}</div>
-              <p className="mt-1 text-sm text-ink/60">{v.text}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Кейсы и результаты */}
+      {/* Миссия, ценность, цель */}
       <section className="border-y border-ink/10 bg-white py-12">
         <div className="container-page">
-          <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Кейсы и результаты</div>
-          <h2 className="mb-6 text-2xl font-semibold">70+ резидентов из 4 городов</h2>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="glass rounded-xl p-5">
-              <div className="font-semibold">Что уже сделано</div>
-              <ul className="mt-2 space-y-1 text-sm text-ink/60">
-                <li>· Открыли 4 клуба по интересам</li>
-                <li>· Провели офлайн-встречи в Петербурге и Москве</li>
-                <li>· Запустили закрытые встречи с экспертами юррынка</li>
-                <li>· Создали базу знаний</li>
-              </ul>
-            </div>
-            <div className="glass rounded-xl p-5">
-              <div className="font-semibold">Признание на рынке</div>
-              <ul className="mt-2 space-y-1 text-sm text-ink/60">
-                <li>· 3-я группа в номинации «Профессиональные сообщества» (РАСО и Legal Business Forum, 2026)</li>
-                <li>· 5 место в номинации «Самые вовлеченные юридические клубы» (рейтинг Telegram-каналов, 2025)</li>
-              </ul>
-            </div>
+          <div className="grid gap-4 sm:grid-cols-3">
+            {mvc.map((m) => (
+              <div key={m.label} className="glass rounded-xl p-6">
+                <div className="text-sm font-medium uppercase tracking-wide text-gold">{m.label}</div>
+                <p className="mt-2 text-sm text-ink/70">{m.text}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Преимущества и выгоды */}
+      {/* Что получают резиденты */}
       <section className="container-page py-12">
-        <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Преимущества и выгоды</div>
-        <h2 className="mb-6 text-2xl font-semibold">Что входит в резидентство</h2>
+        <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Что получают резиденты</div>
+        <h2 className="mb-6 text-2xl font-semibold">Все, что входит в резидентство</h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {benefits.map((b) => (
+          {residentBenefits.map((b) => (
             <div key={b.title} className="glass rounded-xl p-5">
               <div className="font-semibold">{b.title}</div>
               <p className="mt-1 text-sm text-ink/60">{b.text}</p>
@@ -160,26 +169,106 @@ export default function CommunityHome() {
         </div>
       </section>
 
-      {/* Отзывы */}
-      <Testimonials items={communityTestimonials} />
-
-      {/* Что мы предлагаем */}
+      {/* Основатель сообщества */}
       <section className="border-y border-ink/10 bg-white py-12">
         <div className="container-page">
-          <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Что мы предлагаем</div>
-          <h2 className="mb-4 text-2xl font-semibold">Резидентство «Карьерного юриста»</h2>
-          <p className="max-w-2xl text-sm text-ink/60">
-            Мы объединяемся не городом и не университетом, а одной целью. Понимаем специфику
-            профессии и разницу между направлениями практики, даем доступ к закрытым вакансиям и
-            живому общению — 4 клуба, встречи, обсуждения, челленджи.
-          </p>
+          <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Основатель сообщества</div>
+          <div className="glass flex gap-5 rounded-xl p-6">
+            <img
+              src={ilyaPhoto}
+              alt="Илья Руденков"
+              style={{ objectPosition: '50% 22%' }}
+              className="h-20 w-20 shrink-0 rounded-full object-cover shadow-md ring-4 ring-white sm:h-24 sm:w-24"
+            />
+            <div>
+              <div className="text-sm font-medium uppercase tracking-wide text-gold">Основатель</div>
+              <div className="mt-1 text-xl font-semibold">Илья Руденков</div>
+              <p className="mt-2 text-sm text-ink/60">
+                Создал сообщество, чтобы у студентов и начинающих юристов было пространство, где
+                можно честно обсудить карьеру, получить обратную связь и найти работу — не в
+                одиночку и не методом проб и ошибок.
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* Цены / вступление */}
+      {/* Амбассадоры клуба */}
+      <section className="container-page py-12">
+        <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Амбассадоры клуба</div>
+        <h2 className="mb-6 text-2xl font-semibold">Резиденты, которые представляют сообщество</h2>
+        <div className="overflow-x-auto">
+          <div className="animate-marquee flex w-max gap-4">
+            {[...ambassadors, ...ambassadors].map((a, i) => (
+              <div key={`${a.name}-${i}`} className="glass w-40 shrink-0 rounded-xl p-5 text-center">
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gold-light/25 text-lg font-semibold text-ink">
+                  {a.name.split(' ').map((p) => p[0]).join('')}
+                </div>
+                <div className="mt-3 text-sm font-semibold">{a.name}</div>
+                <div className="mt-1 text-xs text-ink/50">{a.status}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Представители по городам */}
+      <section className="border-y border-ink/10 bg-white py-12">
+        <div className="container-page">
+          <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Представители</div>
+          <h2 className="mb-6 text-2xl font-semibold">Резиденты есть в этих городах</h2>
+          <div className="grid gap-8 lg:grid-cols-[1.2fr_1fr] lg:items-center">
+            <div className="relative aspect-[4/3] w-full rounded-2xl bg-ink/[0.04]">
+              <svg viewBox="0 0 100 75" className="absolute inset-0 h-full w-full" aria-hidden="true">
+                <path
+                  d="M8 30 Q5 15 20 12 Q35 5 50 10 Q70 6 85 15 Q95 22 92 35 Q95 48 85 55 Q75 65 55 62 Q40 68 25 60 Q10 55 8 40 Z"
+                  fill="rgba(111,147,196,0.15)"
+                  stroke="rgba(40,57,83,0.2)"
+                  strokeWidth="0.5"
+                />
+              </svg>
+              {cities.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onMouseEnter={() => setHoveredCity(c.id)}
+                  onMouseLeave={() => setHoveredCity(null)}
+                  onFocus={() => setHoveredCity(c.id)}
+                  onBlur={() => setHoveredCity(null)}
+                  className="absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center"
+                  style={{ left: c.x, top: c.y }}
+                >
+                  <span className="h-3 w-3 rounded-full bg-ink ring-4 ring-white" />
+                  <span className="mt-1 whitespace-nowrap rounded-full bg-white px-2 py-0.5 text-xs font-medium text-ink shadow">
+                    {c.name}
+                  </span>
+                  {hoveredCity === c.id && (
+                    <div className="glass absolute top-full z-10 mt-2 w-44 rounded-lg p-3 text-left text-xs">
+                      <div className="mb-1 font-semibold text-ink">{c.name}</div>
+                      <ul className="space-y-0.5 text-ink/60">
+                        {c.schools.map((s) => <li key={s}>· {s}</li>)}
+                      </ul>
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
+            <ul className="space-y-3">
+              {cities.map((c) => (
+                <li key={c.id} className="glass rounded-xl p-4">
+                  <div className="font-semibold">{c.name}</div>
+                  <div className="mt-1 text-sm text-ink/60">{c.schools.join(', ')}</div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      {/* Присоединиться: лид-заявка + тарифы */}
       <section id="join" className="scroll-mt-16 bg-ink py-14 text-white">
         <div className="container-page">
-          <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold-light">Цены</div>
+          <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold-light">Присоединиться</div>
           <h2 className="mb-8 text-2xl font-semibold">Вступить в «Карьерный юрист»</h2>
 
           {!paid && !submitted && (
@@ -277,19 +366,58 @@ export default function CommunityHome() {
               </p>
             </div>
           )}
+
+          {/* Стать амбассадором */}
+          <div className="mt-14 border-t border-white/10 pt-10">
+            <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold-light">Стать амбассадором</div>
+            <h3 className="mb-2 text-xl font-semibold">Хотите представлять сообщество в своем вузе или городе?</h3>
+            <p className="mb-6 max-w-xl text-sm text-white/60">
+              Амбассадоры помогают развивать сообщество: рассказывают о нем среди своих, помогают с
+              мероприятиями, представляют «Карьерного юриста» в своем городе.
+            </p>
+
+            {ambassadorSent ? (
+              <div className="max-w-md rounded-2xl border border-emerald-400/30 bg-emerald-400/10 p-6 text-sm text-emerald-200">
+                <div className="font-semibold">Заявка отправлена</div>
+                <p className="mt-1">Мы свяжемся с вами в Telegram.</p>
+              </div>
+            ) : (
+              <form onSubmit={handleAmbassadorSubmit} className="glass-dark grid max-w-2xl gap-3 rounded-2xl p-6 sm:grid-cols-2">
+                <input
+                  value={ambassadorForm.name}
+                  onChange={(e) => setAmbassadorForm((f) => ({ ...f, name: e.target.value }))}
+                  placeholder="Имя"
+                  className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white outline-none placeholder:text-white/40 focus:border-white/40"
+                />
+                <input
+                  value={ambassadorForm.telegram}
+                  onChange={(e) => setAmbassadorForm((f) => ({ ...f, telegram: e.target.value }))}
+                  placeholder="Telegram"
+                  className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white outline-none placeholder:text-white/40 focus:border-white/40"
+                />
+                <input
+                  value={ambassadorForm.about}
+                  onChange={(e) => setAmbassadorForm((f) => ({ ...f, about: e.target.value }))}
+                  placeholder="Вуз и город"
+                  className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white outline-none placeholder:text-white/40 focus:border-white/40 sm:col-span-2"
+                />
+                <button
+                  type="submit"
+                  className="rounded-lg bg-gold-light py-2.5 text-sm font-semibold text-ink hover:opacity-90 sm:col-span-2"
+                >
+                  Стать амбассадором
+                </button>
+              </form>
+            )}
+          </div>
         </div>
       </section>
 
+      {/* Отзывы */}
+      <Testimonials items={communityTestimonials} />
+
       {/* FAQ */}
       <FAQSection items={faqItems} />
-
-      {/* CTA */}
-      <CTASection
-        title="Готовы присоединиться?"
-        description="Выберите тариф или начните с бесплатного демодоступа на 7 дней."
-        ctaLabel="Выбрать тариф"
-        ctaTo="#join"
-      />
     </div>
   )
 }

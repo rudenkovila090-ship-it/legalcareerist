@@ -4,7 +4,8 @@ const nav = [
   { to: '/kadry/employers', label: 'Кадры' },
   { to: '/community', label: 'Сообщество' },
   { to: '/events', label: 'Мероприятия' },
-  { to: '/marketplace', label: 'Marketplace' },
+  { to: '/marketplace', label: 'Маркетплейс' },
+  { to: '/blog', label: 'Блог' },
 ]
 
 function IconAccount() {
@@ -30,6 +31,7 @@ function linkClass({ isActive }: { isActive: boolean }) {
 export default function Header() {
   const { pathname } = useLocation()
   const onKadry = pathname.startsWith('/kadry')
+  const onCommunity = pathname.startsWith('/community')
   // Фон подкадровой панели меняется по аудитории: синий для работодателей,
   // белый для соискателей — визуально разводит два сценария подбора.
   const isCandidates = pathname.startsWith('/kadry/candidates')
@@ -55,13 +57,15 @@ export default function Header() {
         </nav>
 
         <div className="flex items-center gap-3">
-          <NavLink
-            to="/account"
-            className="flex items-center gap-2 rounded-full bg-ink px-4 py-2 text-sm font-medium text-white hover:bg-ink/90"
-          >
-            <IconAccount />
-            Личный кабинет
-          </NavLink>
+          {onCommunity && (
+            <NavLink
+              to="/account"
+              className="flex items-center gap-2 rounded-full bg-ink px-4 py-2 text-sm font-medium text-white hover:bg-ink/90"
+            >
+              <IconAccount />
+              Личный кабинет
+            </NavLink>
+          )}
         </div>
       </div>
       <nav className="container-page flex gap-4 overflow-x-auto pb-3 md:hidden">
