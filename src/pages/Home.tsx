@@ -48,6 +48,17 @@ const valueProps = [
   },
 ]
 
+// Новости «Карьерного юриста» — что изменилось у бота, на сайте, в подкасте
+// и на встречах с резидентами. Отдельный блок, не смешан с кейсами/отзывами.
+const news = [
+  { tag: 'Сайт', date: '18 августа 2026', title: 'Обновили доску вакансий', text: 'Добавили фильтры по городу, зарплате, формату и графику работы — вакансию теперь проще найти под себя.' },
+  { tag: 'Бот', date: '10 августа 2026', title: 'Бот сам пишет первым после оплаты', text: 'Больше не нужно писать боту вручную — после оплаты тарифа сообщества он сам присылает ссылку на вступление.' },
+  { tag: 'Подкаст', date: '2 августа 2026', title: 'Новый выпуск: как устроен найм в юрфирмах', text: 'Обсудили с приглашенным партнером, как компании выбирают между кадровым резервом и открытым рынком.' },
+  { tag: 'Достижения', date: '25 июля 2026', title: 'Вошли в рейтинг юридических Telegram-каналов', text: '5 место по вовлеченности среди юридических клубов — подробности в разделе «Признание на рынке».' },
+  { tag: 'Встречи', date: '14 июля 2026', title: 'Прошла встреча резидентов в Москве', text: 'Обсудили тему месяца с приглашенным экспертом — запись доступна резидентам Сообщества.' },
+  { tag: 'Сайт', date: '5 июля 2026', title: 'Запустили карьерный калькулятор для работодателей', text: 'Теперь можно сразу увидеть итоговую стоимость подбора и срок закрытия вакансии.' },
+]
+
 // Табло достижений на главной — по одному пункту с автопереключением,
 // вместо статичных таблиц. Собрано из тех же реальных рейтингов.
 const achievements = [
@@ -268,6 +279,26 @@ export default function Home() {
         <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Кейсы и результаты</div>
         <h2 className="mb-6 text-2xl font-semibold">Признание на рынке и цифры за нами</h2>
         <AchievementsBoard />
+      </section>
+
+      {/* Новости */}
+      <section className="border-y border-ink/10 bg-white py-14">
+        <div className="container-page">
+          <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Новости</div>
+          <h2 className="mb-6 text-2xl font-semibold">Что нового у «Карьерного юриста»</h2>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {news.map((n) => (
+              <div key={n.title} className="glass rounded-xl p-5">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="rounded-full bg-ink/[0.06] px-2.5 py-1 text-xs font-medium text-ink/70">{n.tag}</span>
+                  <span className="text-xs text-ink/40">{n.date}</span>
+                </div>
+                <div className="mt-3 font-semibold">{n.title}</div>
+                <p className="mt-1.5 text-sm text-ink/60">{n.text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
       </section>
 
       {/* FAQ */}

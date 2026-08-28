@@ -124,8 +124,10 @@ export default function Candidates() {
 
   return (
     <div>
-      {/* Вкладки раздела — сразу под панелью аудитории «Работодателям / Соискателям» из шапки. */}
-      <div className="container-page py-8">
+      {/* Вкладки раздела — сразу под панелью аудитории «Работодателям / Соискателям» из шапки.
+          Закреплена (sticky) — остается на экране при скролле. */}
+      <div className="sticky top-[142px] z-20 border-b border-ink/10 bg-white/95 py-4 backdrop-blur-xl">
+        <div className="container-page">
         <div className="flex flex-wrap justify-end gap-3">
           {candidateTabs.map((t) => (
             <button
@@ -140,6 +142,7 @@ export default function Candidates() {
               {t.label}
             </button>
           ))}
+        </div>
         </div>
       </div>
 

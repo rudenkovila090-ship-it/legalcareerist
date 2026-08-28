@@ -146,7 +146,7 @@ export interface Article extends Tagged {
   tags: string[]
 }
 
-export type EventType = 'webinar' | 'breakfast' | 'intensive' | 'tour'
+export type EventType = 'conference' | 'webinar' | 'breakfast' | 'intensive' | 'tour'
 export type EventFormat = 'online' | 'offline'
 export type EventStatus = 'open' | 'completed'
 
@@ -165,6 +165,12 @@ export interface EventItem extends Tagged {
   program: string[]
   location: string
   description: string
+  /** Организовано партнером — показывается отдельной строкой на афише мероприятий. */
+  partner?: string
+  /** Обложка афиши — если нет, используется цветовая заглушка по типу мероприятия. */
+  cover?: string
+  /** Для прошедших мероприятий — что можно купить: запись, материалы, или оба. */
+  sale?: { recording?: number; materials?: number; bundle?: number }
 }
 
 export type RegistrationStatus = 'registered' | 'paid' | 'attended'
@@ -178,7 +184,7 @@ export interface EventRegistration {
   receiptUrl?: string
 }
 
-export type MaterialKind = 'guide' | 'checklist' | 'recording'
+export type MaterialKind = 'guide' | 'checklist' | 'recording' | 'longlist' | 'article' | 'webinar'
 
 export interface MaterialItem extends Tagged {
   id: string
@@ -188,6 +194,14 @@ export interface MaterialItem extends Tagged {
   price: number
   description: string
   forWhom: string
+  /** Метрики маркетплейса — сколько купили, рейтинг, отзывы, ответы на вопросы. */
+  purchases?: number
+  rating?: number
+  reviewsCount?: number
+  qnaCount?: number
+  /** Для вебинаров: часть доступна бесплатно для просмотра, часть — в продаже (запись/материалы/оба). */
+  freePreview?: boolean
+  sale?: { recording?: number; materials?: number; bundle?: number }
 }
 
 export interface MaterialPurchase {

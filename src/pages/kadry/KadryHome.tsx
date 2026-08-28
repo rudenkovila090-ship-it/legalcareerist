@@ -192,6 +192,16 @@ const candidateTemplates = [
   },
 ]
 
+// Прогрессивная шкала: чем опытнее кандидат, тем дороже открыть его контакт.
+function experienceYears(exp: string) {
+  if (exp === 'без опыта') return 0
+  const n = Number(exp.match(/\d+/)?.[0])
+  return Number.isFinite(n) ? n : 0
+}
+function contactPrice(exp: string) {
+  return 1000 + experienceYears(exp) * 500
+}
+
 const cities = ['Москва', 'Санкт-Петербург']
 const schedules = ['Гибкий график', 'Полный день']
 const employments = ['Частичная занятость', 'Полная занятость']
@@ -283,7 +293,7 @@ const cases = [
 
 const faqItems = [
   { q: 'Сколько стоит подбор сотрудника?', a: '30% от одного месячного оклада кандидата: 75% предоплата до начала работ, 25% — после прохождения испытательного срока. Точную сумму под вашу вакансию покажет калькулятор выше.' },
-  { q: 'Можно открыть контакты кандидатов самостоятельно, без заявки?', a: 'Да, во вкладке «Найти сотрудника» — там же фильтры по городу, вузу, занятости, графику, формату и зарплате. Контакт конкретного кандидата открывается за 2000 ₽ после короткой регистрации работодателя.' },
+  { q: 'Можно открыть контакты кандидатов самостоятельно, без заявки?', a: 'Да, во вкладке «Найти сотрудника» — там же фильтры по городу, вузу, занятости, графику, формату и зарплате. Стоимость открытия контакта растет с опытом кандидата: от 1000 ₽ (без опыта) до 2500 ₽ (от 3 лет), после короткой регистрации работодателя.' },
   { q: 'Что если кандидат не подойдет?', a: 'Бесплатно подберем замену в согласованные сроки — это часть условий сотрудничества, а не платная опция.' },
   { q: 'Сколько ждать первых кандидатов?', a: 'В среднем вакансия закрывается за 5–7 дней (Time to Hire — 5,5 дней). Есть кейсы закрытия за 1–3 дня.' },
   { q: 'Кого вы подбираете?', a: 'Помощников юристов и адвокатов, младших юристов, секретарей, офис-менеджеров и смежные административные позиции на юридическом рынке.' },
@@ -350,12 +360,14 @@ export default function KadryHome() {
   const [employerForm, setEmployerForm] = useState({ company: '', contact: '', phone: '', email: '' })
 
   function doUnlock(id: number) {
+    const c = demoCandidates.find((cand) => cand.id === id)
+    const price = c ? contactPrice(c.exp) : 1000
     submitLead({
       sourceBlock: 'kadry',
       formType: 'candidate_contact_unlock',
       name: employerForm.contact || 'Работодатель',
       contact: [employerForm.phone, employerForm.email].filter(Boolean).join(' / ') || '—',
-      interest: [`Открыть контакт кандидата #${id} — 2000 ₽`, employerForm.company].filter(Boolean),
+      interest: [`Открыть контакт кандидата #${id} — ${price.toLocaleString('ru-RU')} ₽`, employerForm.company].filter(Boolean),
     })
     setUnlocked((u) => ({ ...u, [id]: true }))
   }
@@ -468,6 +480,9 @@ export default function KadryHome() {
                   <div className="mt-1 text-sm text-white/60">Опыт: {c.exp}</div>
                   <div className="mt-1 text-sm text-white/40">{c.city} · от {c.salaryFrom}</div>
                   <div className="mt-1 text-sm text-white/40">{c.school}</div>
+                  <div className="mt-2 text-xs font-semibold text-gold-light">
+                    Открыть контакт — {contactPrice(c.exp).toLocaleString('ru-RU')} ₽
+                  </div>
                   <div className="mt-3 flex flex-wrap gap-1.5">
                     {[c.schedule, c.employment, c.format].map((tag) => (
                       <span key={tag} className="rounded-full bg-white/10 px-2.5 py-1 text-xs text-white/70">{tag}</span>
@@ -533,7 +548,7 @@ export default function KadryHome() {
                             />
                           </div>
                           <button type="submit" className="w-full rounded-full bg-gold-light py-2.5 text-sm font-semibold text-ink hover:opacity-90">
-                            Открыть контакт — 2000 ₽
+                            Открыть контакт — {contactPrice(c.exp).toLocaleString('ru-RU')} ₽
                           </button>
                         </form>
                       ) : (
@@ -542,7 +557,7 @@ export default function KadryHome() {
                           onClick={() => handleUnlockClick(c.id)}
                           className="w-full rounded-full bg-gold-light py-2.5 text-sm font-semibold text-ink hover:opacity-90"
                         >
-                          Открыть контакт — 2000 ₽
+                          Открыть контакт — {contactPrice(c.exp).toLocaleString('ru-RU')} ₽
                         </button>
                       )}
                     </div>

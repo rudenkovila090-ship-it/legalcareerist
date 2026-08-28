@@ -9,7 +9,7 @@ import { getRelatedContent } from '../../lib/related'
 import { demoMemberships } from '../../lib/account'
 import { submitLead } from '../../lib/leads'
 
-const eventTypeLabel = { webinar: 'Вебинар', breakfast: 'Бизнес-завтрак', intensive: 'Интенсив', tour: 'Экскурсия' }
+const eventTypeLabel = { conference: 'Большое мероприятие', webinar: 'Вебинар', breakfast: 'Бизнес-завтрак', intensive: 'Интенсив', tour: 'Экскурсия' }
 
 const steps = [
   { title: 'Регистрация', description: 'Оставляете заявку на участие на этой странице.' },
@@ -66,6 +66,9 @@ export default function EventDetail() {
       <div className="mt-4 grid gap-8 lg:grid-cols-[2fr_1fr]">
         <div>
           <span className="text-sm font-medium uppercase tracking-wide text-gold">{eventTypeLabel[event.type]}</span>
+          {event.partner && (
+            <span className="ml-2 rounded-full bg-ink/[0.06] px-2.5 py-1 text-xs font-medium text-ink/60">Партнер: {event.partner}</span>
+          )}
           <h1 className="mt-1 text-3xl font-semibold">{event.title}</h1>
           <div className="mt-2 text-ink/60">
             {new Date(event.dateTime).toLocaleString('ru-RU', { dateStyle: 'long', timeStyle: 'short' })} ·{' '}
@@ -97,23 +100,51 @@ export default function EventDetail() {
 
         <aside>
           <div className="glass rounded-xl p-6">
-            <div className="text-sm text-ink/50">Стоимость участия</div>
-            <div className="mt-1 text-2xl font-semibold">
-              {finalPrice === 0 ? 'Бесплатно' : `${finalPrice.toLocaleString('ru-RU')} ₽`}
-            </div>
-            {eligibleMembership && event.price > 0 && (
-              <div className="mt-1 text-xs text-emerald-600">
-                Скидка {Math.round(COMMUNITY_DISCOUNT * 100)}% как участнику клуба «{eligibleMembership.clubName}»
-              </div>
-            )}
-            {event.promoCode && (
-              <div className="mt-2 text-xs text-ink/50">Промокод: {event.promoCode}</div>
+            {!(event.status === 'completed' && event.sale) && (
+              <>
+                <div className="text-sm text-ink/50">Стоимость участия</div>
+                <div className="mt-1 text-2xl font-semibold">
+                  {finalPrice === 0 ? 'Бесплатно' : `${finalPrice.toLocaleString('ru-RU')} ₽`}
+                </div>
+                {eligibleMembership && event.price > 0 && (
+                  <div className="mt-1 text-xs text-emerald-600">
+                    Скидка {Math.round(COMMUNITY_DISCOUNT * 100)}% как участнику клуба «{eligibleMembership.clubName}»
+                  </div>
+                )}
+                {event.promoCode && (
+                  <div className="mt-2 text-xs text-ink/50">Промокод: {event.promoCode}</div>
+                )}
+              </>
             )}
 
             {event.status === 'completed' ? (
-              <div className="mt-4 rounded-lg bg-ink/[0.04] p-3 text-sm text-ink/60">
-                Мероприятие завершено. Запись — в разделе «Полезные материалы».
-              </div>
+              event.sale ? (
+                <div className="mt-4 space-y-2">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-ink/40">Мероприятие завершено — доступно к покупке</div>
+                  {event.sale.recording !== undefined && (
+                    <button className="flex w-full items-center justify-between rounded-lg border border-ink/15 px-4 py-2.5 text-sm hover:border-ink/30">
+                      <span>Запись</span>
+                      <span className="font-semibold">{event.sale.recording === 0 ? 'Бесплатно' : `${event.sale.recording.toLocaleString('ru-RU')} ₽`}</span>
+                    </button>
+                  )}
+                  {event.sale.materials !== undefined && (
+                    <button className="flex w-full items-center justify-between rounded-lg border border-ink/15 px-4 py-2.5 text-sm hover:border-ink/30">
+                      <span>Материалы</span>
+                      <span className="font-semibold">{event.sale.materials.toLocaleString('ru-RU')} ₽</span>
+                    </button>
+                  )}
+                  {event.sale.bundle !== undefined && (
+                    <button className="flex w-full items-center justify-between rounded-lg bg-ink px-4 py-2.5 text-sm text-white hover:bg-ink/90">
+                      <span>Запись + материалы</span>
+                      <span className="font-semibold">{event.sale.bundle === 0 ? 'Бесплатно' : `${event.sale.bundle.toLocaleString('ru-RU')} ₽`}</span>
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="mt-4 rounded-lg bg-ink/[0.04] p-3 text-sm text-ink/60">
+                  Мероприятие завершено. Запись — в разделе «Полезные материалы».
+                </div>
+              )
             ) : registered ? (
               <div className="mt-4 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">Вы зарегистрированы. Напоминание придет заранее.</div>
             ) : (

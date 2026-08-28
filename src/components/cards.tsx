@@ -55,6 +55,7 @@ function kindLabel(kind: Article['kind']) {
 }
 
 const eventTypeLabel: Record<EventItem['type'], string> = {
+  conference: 'Большое мероприятие',
   webinar: 'Вебинар',
   breakfast: 'Бизнес-завтрак',
   intensive: 'Интенсив',
@@ -78,11 +79,20 @@ export function EventCard({ e }: { e: EventItem }) {
   )
 }
 
+export const materialKindLabel: Record<MaterialItem['kind'], string> = {
+  guide: 'Гайд',
+  checklist: 'Чек-лист',
+  recording: 'Запись',
+  longlist: 'Лонглист',
+  article: 'Статья',
+  webinar: 'Вебинар',
+}
+
 export function MaterialCard({ m }: { m: MaterialItem }) {
   return (
     <Link to={`/materials/${m.slug}`} className="glass block rounded-xl p-5">
       <span className="text-xs font-medium uppercase tracking-wide text-gold">
-        {{ guide: 'Гайд', checklist: 'Чек-лист', recording: 'Запись' }[m.kind]}
+        {materialKindLabel[m.kind]}
       </span>
       <h3 className="mt-1 font-semibold leading-snug">{m.title}</h3>
       <p className="mt-2 text-sm text-ink/60">{m.description}</p>
