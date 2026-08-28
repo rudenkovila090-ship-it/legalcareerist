@@ -259,10 +259,10 @@ const processWithDocs = [
 ]
 
 const marketingChannels = [
-  { icon: IconContent, title: 'Контент-маркетинг', text: 'Telegram-канал, YouTube, подкаст, ВК и другие соцсети.' },
-  { icon: IconNetwork, title: 'Нетворкинг', text: 'Юридические мероприятия, конференции, форумы, рекомендации коллег и соискателей.' },
   { icon: IconDatabase, title: 'Своя база', text: 'Более 8 000 контактов, кадровый резерв.' },
+  { icon: IconContent, title: 'Контент-маркетинг', text: 'Telegram-канал, YouTube, подкаст, ВК и другие соцсети.' },
   { icon: IconHandshake, title: 'Партнерства', text: 'Юридические сообщества и организации, блогеры.' },
+  { icon: IconNetwork, title: 'Нетворкинг', text: 'Юридические мероприятия, конференции, форумы, рекомендации коллег и соискателей.' },
 ]
 
 const positions = [
@@ -335,22 +335,24 @@ export default function KadryHome() {
   const [unlocked, setUnlocked] = useState<Record<number, boolean>>({})
   const [visibleCandidates, setVisibleCandidates] = useState(3)
 
-  // Фильтры вкладки «Найти сотрудника»
-  const [fCity, setFCity] = useState('Города')
-  const [fSchool, setFSchool] = useState('Учебное заведение')
-  const [fEmployment, setFEmployment] = useState('Занятость')
-  const [fSchedule, setFSchedule] = useState('График')
-  const [fFormat, setFFormat] = useState('Формат')
-  const [fPosition, setFPosition] = useState('Должности')
+  // Фильтры вкладки «Найти сотрудника» — пустая строка значит «фильтр не
+  // выбран»; подпись поля (Города/Формат/...) — это placeholder, а не
+  // отдельный вариант выбора в списке.
+  const [fCity, setFCity] = useState('')
+  const [fSchool, setFSchool] = useState('')
+  const [fEmployment, setFEmployment] = useState('')
+  const [fSchedule, setFSchedule] = useState('')
+  const [fFormat, setFFormat] = useState('')
+  const [fPosition, setFPosition] = useState('')
   const [maxSalary, setMaxSalary] = useState(80000)
 
   const filteredCandidates = demoCandidates.filter((c) =>
-    (fCity === 'Города' || c.city === fCity) &&
-    (fSchool === 'Учебное заведение' || c.school === fSchool) &&
-    (fEmployment === 'Занятость' || c.employment === fEmployment) &&
-    (fSchedule === 'График' || c.schedule === fSchedule) &&
-    (fFormat === 'Формат' || c.format === fFormat) &&
-    (fPosition === 'Должности' || c.position === fPosition) &&
+    (!fCity || c.city === fCity) &&
+    (!fSchool || c.school === fSchool) &&
+    (!fEmployment || c.employment === fEmployment) &&
+    (!fSchedule || c.schedule === fSchedule) &&
+    (!fFormat || c.format === fFormat) &&
+    (!fPosition || c.position === fPosition) &&
     parseSalary(c.salaryFrom) <= maxSalary,
   )
 
@@ -393,6 +395,19 @@ export default function KadryHome() {
     setEmployerRegistered(true)
     setRegisteringId(null)
     doUnlock(id)
+  }
+
+  // Быстрый заказ подбора прямо со списка позиций — появляется при наведении.
+  const [orderedPositions, setOrderedPositions] = useState<Record<string, boolean>>({})
+  function handleOrderPosition(title: string) {
+    submitLead({
+      sourceBlock: 'kadry',
+      formType: 'position_order',
+      name: 'Работодатель',
+      contact: '—',
+      interest: [title],
+    })
+    setOrderedPositions((s) => ({ ...s, [title]: true }))
   }
 
   return (
@@ -440,22 +455,34 @@ export default function KadryHome() {
 
           <div className="glass-dark mb-6 grid gap-3 rounded-xl p-5 sm:grid-cols-3 lg:grid-cols-6">
             <select value={fCity} onChange={(e) => setFCity(e.target.value)} className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white outline-none focus:border-white/40">
-              {['Города', ...cities].map((v) => <option key={v} value={v} className="text-ink">{v}</option>)}
+              <option value="" disabled hidden>Города</option>
+              {fCity && <option value="" className="text-ink">Все города</option>}
+              {cities.map((v) => <option key={v} value={v} className="text-ink">{v}</option>)}
             </select>
             <select value={fSchool} onChange={(e) => setFSchool(e.target.value)} className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white outline-none focus:border-white/40">
-              {['Учебное заведение', ...schools].map((v) => <option key={v} value={v} className="text-ink">{v}</option>)}
+              <option value="" disabled hidden>Учебное заведение</option>
+              {fSchool && <option value="" className="text-ink">Любое учебное заведение</option>}
+              {schools.map((v) => <option key={v} value={v} className="text-ink">{v}</option>)}
             </select>
             <select value={fEmployment} onChange={(e) => setFEmployment(e.target.value)} className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white outline-none focus:border-white/40">
-              {['Занятость', ...employments].map((v) => <option key={v} value={v} className="text-ink">{v}</option>)}
+              <option value="" disabled hidden>Занятость</option>
+              {fEmployment && <option value="" className="text-ink">Любая занятость</option>}
+              {employments.map((v) => <option key={v} value={v} className="text-ink">{v}</option>)}
             </select>
             <select value={fSchedule} onChange={(e) => setFSchedule(e.target.value)} className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white outline-none focus:border-white/40">
-              {['График', ...schedules].map((v) => <option key={v} value={v} className="text-ink">{v}</option>)}
+              <option value="" disabled hidden>График</option>
+              {fSchedule && <option value="" className="text-ink">Любой график</option>}
+              {schedules.map((v) => <option key={v} value={v} className="text-ink">{v}</option>)}
             </select>
             <select value={fFormat} onChange={(e) => setFFormat(e.target.value)} className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white outline-none focus:border-white/40">
-              {['Формат', ...formats].map((v) => <option key={v} value={v} className="text-ink">{v}</option>)}
+              <option value="" disabled hidden>Формат</option>
+              {fFormat && <option value="" className="text-ink">Любой формат</option>}
+              {formats.map((v) => <option key={v} value={v} className="text-ink">{v}</option>)}
             </select>
             <select value={fPosition} onChange={(e) => setFPosition(e.target.value)} className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white outline-none focus:border-white/40">
-              {['Должности', ...positionOptions].map((v) => <option key={v} value={v} className="text-ink">{v}</option>)}
+              <option value="" disabled hidden>Должности</option>
+              {fPosition && <option value="" className="text-ink">Все должности</option>}
+              {positionOptions.map((v) => <option key={v} value={v} className="text-ink">{v}</option>)}
             </select>
             <label className="sm:col-span-3 lg:col-span-6 text-sm text-white/70">
               Зарплатные ожидания — до {maxSalary.toLocaleString('ru-RU')} ₽
@@ -636,7 +663,7 @@ export default function KadryHome() {
         <div className="container-page">
           <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold-light">О компании</div>
           <h2 className="mb-6 text-2xl font-semibold text-white">Почему работодатели выбирают нас</h2>
-          <div className="overflow-hidden rounded-2xl border border-white/10">
+          <div className="mx-auto max-w-3xl overflow-hidden rounded-2xl border border-white/10">
             <div className="grid grid-cols-2 divide-x divide-white/10">
               <div className="bg-white/[0.03] p-5 text-center text-sm font-semibold text-white/50">Обычный рекрутер</div>
               <div className="bg-gold-light/15 p-5 text-center text-sm font-semibold text-white">Карьерный Юрист</div>
@@ -689,12 +716,12 @@ export default function KadryHome() {
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {cases.map((c, i) => (
               <div key={`${c.title}-${i}`} className="glass-dark rounded-xl p-4">
-                <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
                   <span className="shrink-0 rounded-full bg-emerald-400/15 px-2 py-0.5 text-[11px] font-medium text-emerald-300">Закрыто</span>
-                  <span className="text-[11px] text-white/35">
-                    за {c.days}
-                    {c.note && <span className="text-gold-light/80"> · {c.note}</span>}
-                  </span>
+                  <span className="text-[11px] text-white/35">за {c.days}</span>
+                  {c.note && (
+                    <span className="rounded-full bg-gold-light/20 px-2 py-0.5 text-[11px] font-semibold text-gold-light">{c.note}</span>
+                  )}
                 </div>
                 <div className="mt-2 text-sm font-semibold leading-snug text-white">{c.title}</div>
                 <div className="mt-1 text-xs text-white/50">{c.city ?? 'Удаленно / любой город'} · {c.salary}</div>
@@ -743,16 +770,26 @@ export default function KadryHome() {
           <h2 className="mb-6 text-2xl font-semibold text-white">Закрываем следующие позиции</h2>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {positions.map((p) => (
-              <div key={p.title} className="flex items-center justify-between rounded-lg bg-white/10 px-4 py-3 text-sm">
-                <span className="font-medium text-white">{p.title}</span>
-                <span className="text-white/50">{p.salary}</span>
+              <div key={p.title} className="group rounded-lg bg-white/10 px-4 py-3 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium text-white">{p.title}</span>
+                  <span className="text-white/50">{p.salary}</span>
+                </div>
+                {/* Появляется при наведении — быстрый заказ подбора на эту позицию */}
+                <button
+                  type="button"
+                  onClick={() => handleOrderPosition(p.title)}
+                  className="mt-0 block max-h-0 w-full overflow-hidden rounded-md bg-gold-light text-xs font-semibold text-ink opacity-0 transition-all duration-200 group-hover:mt-2 group-hover:max-h-8 group-hover:py-1.5 group-hover:opacity-100"
+                >
+                  {orderedPositions[p.title] ? 'Заявка отправлена' : 'Заказать'}
+                </button>
               </div>
             ))}
           </div>
 
           <h3 className="mb-2 mt-12 text-xl font-semibold text-white">Как мы работаем</h3>
           <p className="mb-6 text-sm text-white/60">8 этапов от заявки до выхода сотрудника — с документами, которые вы получаете на каждом из них.</p>
-          <ol className="grid gap-4 sm:grid-cols-2">
+          <ol className="mx-auto grid max-w-3xl gap-4 sm:grid-cols-2">
             {processWithDocs.map((step, i) => (
               <li key={step.title} className="glass-dark rounded-xl p-5">
                 <div className="flex items-center gap-3">
@@ -763,7 +800,7 @@ export default function KadryHome() {
                 </div>
                 <p className="mt-2 text-sm text-white/60">{step.description}</p>
                 <div className="mt-3 border-t border-white/10 pt-3">
-                  <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-white/40">Документы</div>
+                  <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-gold-light">Документы, которые вы получаете</div>
                   <ul className="space-y-0.5 text-sm text-white/70">
                     {step.docs.map((d) => <li key={d}>· {d}</li>)}
                   </ul>
@@ -869,7 +906,7 @@ export default function KadryHome() {
 
             <div className="glass-dark rounded-2xl p-8 lg:-mt-1">
               <label className="block text-sm font-semibold text-white">
-                Оклад кандидата, ₽/мес
+                Заработная плата кандидата, ₽/мес
                 <input
                   type="range"
                   min={20000}
@@ -885,7 +922,7 @@ export default function KadryHome() {
               <div className="mt-8">
                 <div className="mx-auto w-fit rounded-xl border border-white/15 bg-white/10 px-6 py-4 text-center text-white">
                   <div className="text-xs text-white/60">Комиссия 30%</div>
-                  <div className="mt-1 text-2xl font-semibold text-gold-light">{fee.toLocaleString('ru-RU')} ₽</div>
+                  <div className="mt-1 text-2xl font-bold text-white">{fee.toLocaleString('ru-RU')} ₽</div>
                 </div>
 
                 <svg viewBox="0 0 200 36" className="mx-auto block h-9 w-56" aria-hidden="true">
@@ -901,21 +938,18 @@ export default function KadryHome() {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="rounded-xl border border-white/15 bg-white/10 p-4 text-center text-white">
                     <div className="text-xs text-white/60">75% предоплата</div>
-                    <div className="mt-1 text-2xl font-semibold text-gold-light">{prepay.toLocaleString('ru-RU')} ₽</div>
+                    <div className="mt-1 text-2xl font-bold text-white">{prepay.toLocaleString('ru-RU')} ₽</div>
                   </div>
                   <div className="rounded-xl border border-white/15 bg-white/10 p-4 text-center text-white">
                     <div className="text-xs leading-snug text-white/60">25% после прохождения испытательного срока</div>
-                    <div className="mt-1 text-2xl font-semibold text-gold-light">{afterProbation.toLocaleString('ru-RU')} ₽</div>
+                    <div className="mt-1 text-2xl font-bold text-white">{afterProbation.toLocaleString('ru-RU')} ₽</div>
                   </div>
                 </div>
               </div>
 
               <div className="mt-6 border-t border-white/10 pt-6">
                 <div className="text-xs uppercase tracking-wide text-white/50">Итого к оплате за подбор</div>
-                <div className="mt-1 text-4xl font-semibold text-white">{fee.toLocaleString('ru-RU')} ₽</div>
-                <div className="mt-1 text-sm text-white/50">
-                  при рыночной комиссии 40–50% это было бы {Math.round(salary * 0.45).toLocaleString('ru-RU')} ₽ — экономия {Math.round(salary * 0.45 - fee).toLocaleString('ru-RU')} ₽
-                </div>
+                <div className="mt-1 text-4xl font-bold text-white">{fee.toLocaleString('ru-RU')} ₽</div>
               </div>
             </div>
           </div>

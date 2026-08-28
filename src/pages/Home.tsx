@@ -61,19 +61,22 @@ const news = [
 
 // Табло достижений на главной — по одному пункту с автопереключением,
 // вместо статичных таблиц. Собрано из тех же реальных рейтингов.
+// Единый формат для каждого пункта табло: «Номинация «X» — место» —
+// source (эйбров сверху), nomination (что именно за номинация) и place
+// (само место/результат).
 const achievements = [
-  { source: 'Рейтинг юридических Telegram-каналов · 2025', group: 'Юридические клубы', metric: 'Самый вовлеченный', value: '5 место' },
-  { source: 'Рейтинг юридических Telegram-каналов · 2025', group: 'Юридические клубы', metric: 'Индекс качества', value: '12 место' },
-  { source: 'Рейтинг юридических Telegram-каналов · 2025', group: 'Юридические клубы', metric: 'Самый большой', value: '8 место' },
-  { source: 'Рейтинг юридических Telegram-каналов · 2025', group: 'HR-направление', metric: 'Самый вовлеченный', value: '5 место' },
-  { source: 'Рейтинг юридических Telegram-каналов · 2025', group: 'HR-направление', metric: 'Индекс качества', value: '26 место' },
-  { source: 'Рейтинг юридических Telegram-каналов · 2025', group: 'HR-направление', metric: 'Самый большой', value: '31 место' },
-  { source: 'Рейтинг юридических Telegram-каналов · 2025', group: 'Каналы студентов', metric: 'Самый вовлеченный', value: '11 место' },
-  { source: 'Рейтинг юридических Telegram-каналов · 2025', group: 'Каналы студентов', metric: 'Индекс качества', value: '15 место' },
-  { source: 'Рейтинг юридических Telegram-каналов · 2025', group: 'Каналы студентов', metric: 'Самый большой', value: '11 место' },
-  { source: 'Консолидированный рейтинг репутационного капитала юррынка Москвы и Санкт-Петербурга · РАСО и Legal Business Forum, 2026', group: 'Профессиональные сообщества', metric: 'Группа рейтинга', value: '3-я группа' },
-  { source: 'Консолидированный рейтинг репутационного капитала юррынка Москвы и Санкт-Петербурга · РАСО и Legal Business Forum, 2026', group: 'Персональный бренд', metric: 'Номинация', value: 'специально отмечены' },
-  { source: 'Консолидированный рейтинг репутационного капитала юррынка Москвы и Санкт-Петербурга · РАСО и Legal Business Forum, 2026', group: 'Интегральные оценки', metric: 'Номинация', value: 'специально отмечены' },
+  { source: 'Рейтинг юридических Telegram-каналов · 2025', nomination: 'Юридические клубы — самый вовлеченный', place: '5 место' },
+  { source: 'Рейтинг юридических Telegram-каналов · 2025', nomination: 'Юридические клубы — индекс качества', place: '12 место' },
+  { source: 'Рейтинг юридических Telegram-каналов · 2025', nomination: 'Юридические клубы — самый большой', place: '8 место' },
+  { source: 'Рейтинг юридических Telegram-каналов · 2025', nomination: 'HR-направление — самый вовлеченный', place: '5 место' },
+  { source: 'Рейтинг юридических Telegram-каналов · 2025', nomination: 'HR-направление — индекс качества', place: '26 место' },
+  { source: 'Рейтинг юридических Telegram-каналов · 2025', nomination: 'HR-направление — самый большой', place: '31 место' },
+  { source: 'Рейтинг юридических Telegram-каналов · 2025', nomination: 'Каналы студентов — самый вовлеченный', place: '11 место' },
+  { source: 'Рейтинг юридических Telegram-каналов · 2025', nomination: 'Каналы студентов — индекс качества', place: '15 место' },
+  { source: 'Рейтинг юридических Telegram-каналов · 2025', nomination: 'Каналы студентов — самый большой', place: '11 место' },
+  { source: 'Консолидированный рейтинг репутационного капитала юррынка Москвы и Санкт-Петербурга · РАСО и Legal Business Forum, 2026', nomination: 'Профессиональные сообщества', place: '3-я группа' },
+  { source: 'Консолидированный рейтинг репутационного капитала юррынка Москвы и Санкт-Петербурга · РАСО и Legal Business Forum, 2026', nomination: 'Персональный бренд', place: 'специально отмечены' },
+  { source: 'Консолидированный рейтинг репутационного капитала юррынка Москвы и Санкт-Петербурга · РАСО и Legal Business Forum, 2026', nomination: 'Интегральные оценки', place: 'специально отмечены' },
 ]
 
 function AchievementsBoard() {
@@ -91,18 +94,15 @@ function AchievementsBoard() {
       <div className="mx-auto flex min-h-[320px] max-w-2xl flex-col justify-between p-8 text-center sm:min-h-[360px] sm:p-12">
         <div className="text-xs uppercase tracking-wide text-white/40">{current.source}</div>
         <div key={active} className="animate-board-fade">
-          <div className="text-xs uppercase tracking-wide text-gold-light">{current.group}</div>
-          <div className="mt-4 flex flex-wrap items-baseline justify-center gap-x-3 gap-y-1">
-            <span className="text-xl font-semibold sm:text-2xl">{current.metric}</span>
-            <span className="text-7xl font-bold text-gold-light sm:text-8xl">{current.value}</span>
-          </div>
+          <div className="text-xl font-semibold sm:text-2xl">Номинация «{current.nomination}»</div>
+          <div className="mt-3 text-7xl font-bold text-gold-light sm:text-8xl">{current.place}</div>
         </div>
         <div className="flex justify-center gap-1.5">
           {achievements.map((a, i) => (
             <button
-              key={`${a.source}-${a.group}-${a.metric}`}
+              key={`${a.source}-${a.nomination}`}
               type="button"
-              aria-label={`Показать: ${a.group}, ${a.metric}`}
+              aria-label={`Показать: ${a.nomination}`}
               onClick={() => setActive(i)}
               className={`h-1.5 rounded-full transition-all ${i === active ? 'w-6 bg-gold-light' : 'w-1.5 bg-white/25 hover:bg-white/50'}`}
             />

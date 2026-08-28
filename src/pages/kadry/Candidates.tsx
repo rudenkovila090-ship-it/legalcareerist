@@ -94,6 +94,8 @@ const candidateTabs = [
   { id: 'account', label: 'Личный кабинет', icon: IconAccountCircle },
 ] as const
 
+const CITIES = ['Санкт-Петербург', 'Москва', 'Екатеринбург', 'Казань']
+
 const formats: { id: WorkFormat | 'any'; label: string }[] = [
   { id: 'any', label: 'Формат' },
   { id: 'office', label: 'Офлайн' },
@@ -128,7 +130,7 @@ export default function Candidates() {
       if (spec !== 'all' && !v.specialization.includes(spec)) return false
       if (format !== 'any' && v.format !== format) return false
       if (employment !== 'any' && v.employment !== employment) return false
-      if (city && !v.city.toLowerCase().includes(city.toLowerCase())) return false
+      if (city && v.city !== city) return false
       if (minSalary > 0 && (v.salaryFrom ?? 0) < minSalary) return false
       return true
     })
@@ -283,7 +285,8 @@ export default function Candidates() {
                 onChange={(e) => setSpec(e.target.value as Specialization | 'all')}
                 className="rounded-lg border border-ink/15 px-3 py-2 text-sm"
               >
-                <option value="all">Направление</option>
+                <option value="all" disabled hidden>Направление</option>
+                {spec !== 'all' && <option value="all">Все направления</option>}
                 {SPECIALIZATIONS.map((s) => (
                   <option key={s.id} value={s.id}>{s.label}</option>
                 ))}
@@ -293,7 +296,9 @@ export default function Candidates() {
                 onChange={(e) => setFormat(e.target.value as WorkFormat | 'any')}
                 className="rounded-lg border border-ink/15 px-3 py-2 text-sm"
               >
-                {formats.map((f) => (
+                <option value="any" disabled hidden>Формат</option>
+                {format !== 'any' && <option value="any">Любой формат</option>}
+                {formats.filter((f) => f.id !== 'any').map((f) => (
                   <option key={f.id} value={f.id}>{f.label}</option>
                 ))}
               </select>
@@ -302,16 +307,21 @@ export default function Candidates() {
                 onChange={(e) => setEmployment(e.target.value as EmploymentType | 'any')}
                 className="rounded-lg border border-ink/15 px-3 py-2 text-sm"
               >
-                {employments.map((f) => (
+                <option value="any" disabled hidden>Занятость</option>
+                {employment !== 'any' && <option value="any">Любая занятость</option>}
+                {employments.filter((f) => f.id !== 'any').map((f) => (
                   <option key={f.id} value={f.id}>{f.label}</option>
                 ))}
               </select>
-              <input
+              <select
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
-                placeholder="Город"
                 className="rounded-lg border border-ink/15 px-3 py-2 text-sm"
-              />
+              >
+                <option value="" disabled hidden>Город</option>
+                {city && <option value="">Все города</option>}
+                {CITIES.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
               <div className="ml-auto text-sm text-ink/50">{filteredVacancies.length} вакансий</div>
             </div>
             <label className="mt-4 block text-sm text-ink/60">
