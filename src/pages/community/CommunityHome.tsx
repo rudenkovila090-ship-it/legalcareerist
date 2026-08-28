@@ -98,6 +98,16 @@ function IconTicket() {
     </svg>
   )
 }
+function IconUsersMeet() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <circle cx="8.5" cy="8" r="2.6" />
+      <circle cx="16" cy="8.5" r="2.1" />
+      <path d="M3.5 19c0-3 2.3-5 5-5s5 2 5 5" />
+      <path d="M14 14.3c2 .2 3.5 1.9 3.5 4.2" />
+    </svg>
+  )
+}
 
 const mvc = [
   {
@@ -129,6 +139,7 @@ const residentBenefits = [
   { icon: IconBookOpen, title: 'Книжный клуб', text: 'Обсуждаем тематическую книгу месяца.' },
   { icon: IconQuestion, title: 'Юридические вопросы', text: 'Можно задавать вопросы по практике, с которой раньше не сталкивались.' },
   { icon: IconTicket, title: 'Мероприятия', text: 'Скидки 20–30% на мероприятия «Карьерного юриста» и партнеров, подборки событий, где выступают резиденты.' },
+  { icon: IconUsersMeet, title: 'Встречи', text: 'Встречаемся с приглашенными экспертами, обсуждаем темы месяца, а также проводим встречи резидентов.' },
 ]
 
 const ambassadors = [
@@ -137,9 +148,9 @@ const ambassadors = [
 ].map((name) => ({ name, status: 'Great-амбассадор' }))
 
 const cities = [
-  { id: 'spb', name: 'Санкт-Петербург', x: '32%', y: '20%', schools: ['СПбГУ', 'НИУ ВШЭ', 'РАНХиГС'] },
-  { id: 'msk', name: 'Москва', x: '40%', y: '38%', schools: ['МГЮА', 'МГУ', 'МГИМО'] },
-  { id: 'ekb', name: 'Екатеринбург', x: '66%', y: '44%', schools: ['УрГУ'] },
+  { id: 'spb', name: 'Санкт-Петербург', x: '11%', y: '20%', schools: ['СПбГУ', 'НИУ ВШЭ', 'РАНХиГС'] },
+  { id: 'msk', name: 'Москва', x: '23%', y: '29%', schools: ['МГЮА', 'МГУ', 'МГИМО'] },
+  { id: 'ekb', name: 'Екатеринбург', x: '43%', y: '40%', schools: ['УрГУ'] },
 ] as const
 
 // Ответ на вопрос про демодоступ — со ссылкой-кнопкой на активацию, поэтому
@@ -191,7 +202,8 @@ export default function CommunityHome() {
 
   const tariff = tariffs.find((t) => t.id === tariffId)!
 
-  function handlePay() {
+  function handlePay(id?: (typeof tariffs)[number]['id']) {
+    if (id) setTariffId(id)
     setPaid(true)
   }
 
@@ -417,21 +429,13 @@ export default function CommunityHome() {
           <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Представители</div>
           <h2 className="mb-6 text-2xl font-semibold">Резиденты есть в этих городах</h2>
           <div className="mx-auto max-w-3xl">
-            <div className="relative aspect-[16/9] w-full overflow-hidden rounded-2xl bg-ink/[0.04]">
-              <svg viewBox="0 0 160 75" className="absolute inset-0 h-full w-full" aria-hidden="true">
-                {/* Условная сетка параллелей/меридианов — чтобы читалось как карта */}
-                {[15, 30, 45, 60].map((y) => (
-                  <line key={y} x1="0" y1={y} x2="160" y2={y} stroke="rgba(40,57,83,0.06)" strokeWidth="0.3" />
-                ))}
-                {[20, 45, 70, 95, 120, 145].map((x) => (
-                  <line key={x} x1={x} y1="0" x2={x} y2="75" stroke="rgba(40,57,83,0.06)" strokeWidth="0.3" />
-                ))}
-                {/* Стилизованный контур территории РФ, запад→восток */}
+            <div className="relative aspect-[20/9] w-full overflow-hidden rounded-2xl bg-white">
+              <svg viewBox="0 0 1000 450" className="absolute inset-0 h-full w-full" aria-hidden="true">
+                {/* Силуэт территории РФ, запад→восток, с Кольским п-овом на северо-западе
+                    и Камчаткой/Чукоткой на востоке — узнаваемая форма вместо условной «кляксы» */}
                 <path
-                  d="M6 40 Q4 28 14 22 Q10 14 22 10 Q30 4 42 8 Q55 2 66 8 Q78 4 88 10 Q100 5 112 11 Q126 6 138 14 Q150 12 155 22 Q158 32 150 38 Q154 46 144 50 Q148 58 136 60 Q124 68 108 62 Q96 70 82 63 Q68 69 56 61 Q42 66 30 58 Q18 62 10 52 Q4 48 6 40 Z"
-                  fill="rgba(111,147,196,0.18)"
-                  stroke="rgba(40,57,83,0.35)"
-                  strokeWidth="0.6"
+                  d="M90,120 L70,90 L110,70 L150,85 L190,65 L230,80 L270,60 L310,75 L350,55 L390,70 L430,50 L470,65 L510,45 L550,60 L590,50 L630,65 L670,45 L710,60 L750,80 L790,110 L830,95 L870,120 L910,105 L950,140 L920,170 L890,155 L900,200 L880,260 L860,310 L840,270 L820,230 L800,250 L780,210 L760,290 L720,320 L680,340 L640,360 L610,380 L570,365 L530,385 L490,370 L450,390 L410,375 L370,395 L330,380 L290,400 L250,385 L210,405 L170,390 L130,410 L100,385 L80,350 L60,310 L75,270 L50,230 L70,190 L45,150 Z"
+                  fill="#3f6aa8"
                 />
               </svg>
               {cities.map((c) => (
@@ -477,11 +481,13 @@ export default function CommunityHome() {
                   const recommended = t.id === '3m'
                   const selected = tariffId === t.id
                   return (
-                    <button
+                    <div
                       key={t.id}
-                      type="button"
+                      role="button"
+                      tabIndex={0}
                       onClick={() => setTariffId(t.id)}
-                      className={`glass-dark relative flex min-h-64 flex-col items-center rounded-2xl p-6 pt-8 text-center ${
+                      onKeyDown={(e) => e.key === 'Enter' && setTariffId(t.id)}
+                      className={`glass-dark relative flex min-h-64 cursor-pointer flex-col items-center rounded-2xl p-6 pt-8 text-center ${
                         selected ? 'border-gold-light' : ''
                       }`}
                     >
@@ -506,17 +512,20 @@ export default function CommunityHome() {
                           {t.note}
                         </span>
                       )}
-                    </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handlePay(t.id)
+                        }}
+                        className="mt-5 w-full rounded-lg bg-gold-light py-2.5 text-sm font-semibold text-ink hover:opacity-90"
+                      >
+                        Оплатить
+                      </button>
+                    </div>
                   )
                 })}
               </div>
-
-              <button
-                onClick={handlePay}
-                className="mx-auto mt-8 block w-full max-w-3xl rounded-lg bg-gold-light py-3 text-sm font-semibold text-ink hover:opacity-90 sm:w-auto sm:px-10"
-              >
-                Оплатить
-              </button>
             </>
           )}
 

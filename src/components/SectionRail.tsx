@@ -44,9 +44,9 @@ export default function SectionRail({ items, dark }: { items: SectionRailItem[];
   return (
     <nav
       aria-label="Оглавление раздела"
-      className={`fixed left-6 top-1/2 z-30 hidden -translate-y-1/2 xl:block ${dark ? 'glass-dark' : 'glass'} rounded-2xl p-3`}
+      className={`fixed left-4 top-1/2 z-30 hidden max-h-[80vh] -translate-y-1/2 overflow-y-auto 2xl:block ${dark ? 'glass-dark' : 'glass'} rounded-xl p-2`}
     >
-      <ul className="space-y-1">
+      <ul className="space-y-0.5">
         {items.map((item) => (
           <li key={item.id}>
             <a
@@ -67,7 +67,7 @@ export default function SectionRail({ items, dark }: { items: SectionRailItem[];
                 const top = el.getBoundingClientRect().top + window.scrollY - headerHeight - 16
                 window.scrollTo({ top, behavior: 'smooth' })
               }}
-              className={`block whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+              className={`block whitespace-nowrap rounded-lg px-2.5 py-1 text-[11px] font-medium transition-colors ${
                 active === item.id
                   ? dark
                     ? 'bg-white/15 text-white'
