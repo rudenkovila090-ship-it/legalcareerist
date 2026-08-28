@@ -57,15 +57,19 @@ export default function Header() {
         </nav>
 
         <div className="flex items-center gap-3">
-          {onCommunity && (
-            <NavLink
-              to="/account"
-              className="flex items-center gap-2 rounded-full bg-ink px-4 py-2 text-sm font-medium text-white hover:bg-ink/90"
-            >
-              <IconAccount />
-              Личный кабинет
-            </NavLink>
-          )}
+          {/* Всегда занимает место в разметке (invisible, а не условный рендер) —
+              иначе шапка «прыгает» при переходе на/со страницы Сообщества. */}
+          <NavLink
+            to="/account"
+            aria-hidden={!onCommunity}
+            tabIndex={onCommunity ? undefined : -1}
+            className={`flex items-center gap-2 rounded-full bg-ink px-4 py-2 text-sm font-medium text-white hover:bg-ink/90 ${
+              onCommunity ? '' : 'invisible pointer-events-none'
+            }`}
+          >
+            <IconAccount />
+            Личный кабинет
+          </NavLink>
         </div>
       </div>
       <nav className="container-page flex gap-4 overflow-x-auto pb-3 md:hidden">

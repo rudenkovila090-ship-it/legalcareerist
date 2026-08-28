@@ -1,6 +1,8 @@
+import type { ReactNode } from 'react'
+
 export interface FAQItem {
   q: string
-  a: string
+  a: ReactNode
 }
 
 // Раздел «Отвечаем на важные вопросы» — переиспользуемый аккордеон на <details>,
