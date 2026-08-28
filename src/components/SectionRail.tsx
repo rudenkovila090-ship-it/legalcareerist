@@ -44,13 +44,14 @@ export default function SectionRail({ items, dark }: { items: SectionRailItem[];
   return (
     <nav
       aria-label="Оглавление раздела"
-      className={`fixed left-4 top-1/2 z-30 hidden max-h-[80vh] -translate-y-1/2 overflow-y-auto 2xl:block ${dark ? 'glass-dark' : 'glass'} rounded-xl p-2`}
+      className="fixed left-4 top-1/2 z-30 hidden -translate-y-1/2 xl:block"
     >
-      <ul className="space-y-0.5">
+      <ul className={`space-y-2.5 rounded-full p-2 ${dark ? 'glass-dark' : 'glass'}`}>
         {items.map((item) => (
-          <li key={item.id}>
+          <li key={item.id} className="group relative">
             <a
               href={`#${item.id}`}
+              aria-label={item.label}
               onClick={(e) => {
                 e.preventDefault()
                 const el = document.getElementById(item.id)
@@ -67,18 +68,28 @@ export default function SectionRail({ items, dark }: { items: SectionRailItem[];
                 const top = el.getBoundingClientRect().top + window.scrollY - headerHeight - 16
                 window.scrollTo({ top, behavior: 'smooth' })
               }}
-              className={`block whitespace-nowrap rounded-lg px-2.5 py-1 text-[11px] font-medium transition-colors ${
-                active === item.id
-                  ? dark
-                    ? 'bg-white/15 text-white'
-                    : 'bg-ink text-white'
-                  : dark
-                    ? 'text-white/50 hover:text-white'
-                    : 'text-ink/50 hover:text-ink'
+              className="flex items-center justify-center p-0.5"
+            >
+              <span
+                className={`block rounded-full transition-all ${
+                  active === item.id
+                    ? dark
+                      ? 'h-2.5 w-2.5 bg-white'
+                      : 'h-2.5 w-2.5 bg-ink'
+                    : dark
+                      ? 'h-1.5 w-1.5 bg-white/40 group-hover:bg-white/70'
+                      : 'h-1.5 w-1.5 bg-ink/30 group-hover:bg-ink/60'
+                }`}
+              />
+            </a>
+            {/* Подпись-подсказка — только при наведении/фокусе, не занимает места в макете */}
+            <span
+              className={`pointer-events-none absolute left-full top-1/2 ml-2 -translate-y-1/2 whitespace-nowrap rounded-lg px-2.5 py-1 text-[11px] font-medium opacity-0 shadow transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 ${
+                dark ? 'bg-ink text-white' : 'bg-ink text-white'
               }`}
             >
               {item.label}
-            </a>
+            </span>
           </li>
         ))}
       </ul>

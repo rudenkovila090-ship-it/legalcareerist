@@ -148,9 +148,26 @@ const ambassadors = [
 ].map((name) => ({ name, status: 'Great-амбассадор' }))
 
 const cities = [
-  { id: 'spb', name: 'Санкт-Петербург', x: '11%', y: '20%', schools: ['СПбГУ', 'НИУ ВШЭ', 'РАНХиГС'] },
-  { id: 'msk', name: 'Москва', x: '23%', y: '29%', schools: ['МГЮА', 'МГУ', 'МГИМО'] },
-  { id: 'ekb', name: 'Екатеринбург', x: '43%', y: '40%', schools: ['УрГУ'] },
+  {
+    id: 'spb',
+    name: 'Санкт-Петербург',
+    schools: ['СПбГУ', 'НИУ ВШЭ', 'РГУП', 'РПА', 'СПбГЭУ'],
+  },
+  {
+    id: 'msk',
+    name: 'Москва',
+    schools: [
+      'МГУ',
+      'МГЮА',
+      'РТА',
+      'ВАВТ',
+      'НИУ ВШЭ',
+      'РАНХиГС',
+      'РГАИС',
+      'Институт законодательства и сравнительного правоведения',
+    ],
+  },
+  { id: 'ekb', name: 'Екатеринбург', schools: ['УрГЮУ'] },
 ] as const
 
 // Ответ на вопрос про демодоступ — со ссылкой-кнопкой на активацию, поэтому
@@ -194,8 +211,6 @@ export default function CommunityHome() {
   const [name, setName] = useState('')
   const [telegram, setTelegram] = useState('')
   const [submitted, setSubmitted] = useState(false)
-
-  const [hoveredCity, setHoveredCity] = useState<(typeof cities)[number]['id'] | null>(null)
 
   const [ambassadorForm, setAmbassadorForm] = useState({ name: '', telegram: '', about: '' })
   const [ambassadorSent, setAmbassadorSent] = useState(false)
@@ -427,44 +442,22 @@ export default function CommunityHome() {
       <section id="map" className="border-y border-ink/10 bg-white py-12">
         <div className="container-page">
           <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Представители</div>
-          <h2 className="mb-6 text-2xl font-semibold">Резиденты есть в этих городах</h2>
-          <div className="mx-auto max-w-3xl">
-            <div className="relative aspect-[20/9] w-full overflow-hidden rounded-2xl bg-white">
-              <svg viewBox="0 0 1000 450" className="absolute inset-0 h-full w-full" aria-hidden="true">
-                {/* Силуэт территории РФ, запад→восток, с Кольским п-овом на северо-западе
-                    и Камчаткой/Чукоткой на востоке — узнаваемая форма вместо условной «кляксы» */}
-                <path
-                  d="M90,120 L70,90 L110,70 L150,85 L190,65 L230,80 L270,60 L310,75 L350,55 L390,70 L430,50 L470,65 L510,45 L550,60 L590,50 L630,65 L670,45 L710,60 L750,80 L790,110 L830,95 L870,120 L910,105 L950,140 L920,170 L890,155 L900,200 L880,260 L860,310 L840,270 L820,230 L800,250 L780,210 L760,290 L720,320 L680,340 L640,360 L610,380 L570,365 L530,385 L490,370 L450,390 L410,375 L370,395 L330,380 L290,400 L250,385 L210,405 L170,390 L130,410 L100,385 L80,350 L60,310 L75,270 L50,230 L70,190 L45,150 Z"
-                  fill="#3f6aa8"
-                />
-              </svg>
-              {cities.map((c) => (
-                <button
-                  key={c.id}
-                  type="button"
-                  onMouseEnter={() => setHoveredCity(c.id)}
-                  onMouseLeave={() => setHoveredCity(null)}
-                  onFocus={() => setHoveredCity(c.id)}
-                  onBlur={() => setHoveredCity(null)}
-                  className="absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center"
-                  style={{ left: c.x, top: c.y }}
-                >
-                  <span className="h-3 w-3 rounded-full bg-ink ring-4 ring-white" />
-                  <span className="mt-1 whitespace-nowrap rounded-full bg-white px-2 py-0.5 text-xs font-medium text-ink shadow">
-                    {c.name}
-                  </span>
-                  {hoveredCity === c.id && (
-                    <div className="glass absolute top-full z-10 mt-2 w-44 rounded-lg p-3 text-left text-xs">
-                      <div className="mb-1 font-semibold text-ink">{c.name}</div>
-                      <ul className="space-y-0.5 text-ink/60">
-                        {c.schools.map((s) => <li key={s}>· {s}</li>)}
-                      </ul>
-                    </div>
-                  )}
-                </button>
-              ))}
-            </div>
-            <p className="mt-3 text-center text-xs text-ink/40">Наведите на город, чтобы увидеть вузы резидентов</p>
+          <h2 className="mb-8 text-2xl font-semibold">Резиденты есть в этих городах</h2>
+          <div className="grid gap-5 sm:grid-cols-3">
+            {cities.map((c) => (
+              <div key={c.id} className="rounded-2xl border border-ink/10 bg-ink/[0.02] p-6">
+                <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-ink text-white">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+                    <path d="M12 21s7-6.1 7-11.5A7 7 0 0 0 5 9.5C5 14.9 12 21 12 21Z" />
+                    <circle cx="12" cy="9.5" r="2.4" />
+                  </svg>
+                </div>
+                <div className="mb-3 text-lg font-semibold text-ink">{c.name}</div>
+                <ul className="space-y-1 text-sm text-ink/60">
+                  {c.schools.map((s) => <li key={s}>· {s}</li>)}
+                </ul>
+              </div>
+            ))}
           </div>
         </div>
       </section>
