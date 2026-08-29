@@ -302,7 +302,10 @@ export default function Candidates() {
             Вакансии открываются по приоритету: сначала их видят резиденты Сообщества, затем — кадровый
             резерв, и только после этого — открытый доступ (см. вкладку «Кадровый резерв»).
           </div>
-          <div className="glass mb-8 space-y-4 rounded-xl p-4">
+          {/* relative z-20 — у .glass своя изолированная область наложения
+              (isolation: isolate), без явного z-index раскрывающиеся списки
+              фильтров все равно оказывались под карточками вакансий ниже. */}
+          <div className="glass relative z-20 mb-8 space-y-4 rounded-xl p-4">
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               <select
                 value={spec}
@@ -315,6 +318,34 @@ export default function Candidates() {
                   <option key={s.id} value={s.id}>{s.label}</option>
                 ))}
               </select>
+              <IndustryFilter value={industrySel} onChange={setIndustrySel} />
+              <EducationFilter value={educationSel} onChange={setEducationSel} />
+              <select
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                className="rounded-lg border border-ink/15 px-3 py-2 text-sm"
+              >
+                <option value="" disabled hidden>Город</option>
+                {city && <option value="">Все города</option>}
+                {CITIES.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+              <select
+                value={experience}
+                onChange={(e) => setExperience(e.target.value as ExperienceBucket | 'any')}
+                className="rounded-lg border border-ink/15 px-3 py-2 text-sm"
+              >
+                <option value="any" disabled hidden>Опыт работы</option>
+                {experience !== 'any' && <option value="any">Любой опыт</option>}
+                {EXPERIENCE_BUCKETS.map((b) => (
+                  <option key={b.id} value={b.id}>{b.label}</option>
+                ))}
+              </select>
+              <input
+                value={salaryText}
+                onChange={(e) => setSalaryText(e.target.value)}
+                placeholder="Заработная плата, ₽ (например, 100 000)"
+                className="rounded-lg border border-ink/15 px-3 py-2 text-sm"
+              />
               <select
                 value={format}
                 onChange={(e) => setFormat(e.target.value as WorkFormat | 'any')}
@@ -348,38 +379,6 @@ export default function Candidates() {
                   <option key={f.id} value={f.id}>{f.label}</option>
                 ))}
               </select>
-              <select
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                className="rounded-lg border border-ink/15 px-3 py-2 text-sm"
-              >
-                <option value="" disabled hidden>Город</option>
-                {city && <option value="">Все города</option>}
-                {CITIES.map((c) => <option key={c} value={c}>{c}</option>)}
-              </select>
-              <select
-                value={experience}
-                onChange={(e) => setExperience(e.target.value as ExperienceBucket | 'any')}
-                className="rounded-lg border border-ink/15 px-3 py-2 text-sm"
-              >
-                <option value="any" disabled hidden>Опыт работы</option>
-                {experience !== 'any' && <option value="any">Любой опыт</option>}
-                {EXPERIENCE_BUCKETS.map((b) => (
-                  <option key={b.id} value={b.id}>{b.label}</option>
-                ))}
-              </select>
-            </div>
-
-            <input
-              value={salaryText}
-              onChange={(e) => setSalaryText(e.target.value)}
-              placeholder="Уровень заработной платы, ₽ (например, 100 000)"
-              className="w-full rounded-lg border border-ink/15 px-3 py-2 text-sm sm:max-w-xs"
-            />
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              <IndustryFilter value={industrySel} onChange={setIndustrySel} />
-              <EducationFilter value={educationSel} onChange={setEducationSel} />
             </div>
 
             <div className="text-sm text-ink/50">{filteredVacancies.length} вакансий</div>
