@@ -671,7 +671,7 @@ export default function KadryHome() {
             {[
               ['Универсальный подбор на любом рынке', 'Только юридический рынок — знаем специфику профессии'],
               ['Кандидаты — отклики с открытых job-бордов', 'Собственная база 8 000+ и живое сообщество студентов-юристов'],
-              ['Закрытие вакансии — недели', 'На это уходит неделя (Time to Hire — 5,5 дней)'],
+              ['Закрытие вакансии — недели', 'На это уходит неделя'],
               ['Замена кандидата — платно и по отдельным договоренностям', 'Бесплатная замена в согласованные сроки, включена в стоимость'],
             ].map(([bad, good]) => (
               <div key={good} className="grid grid-cols-2 divide-x divide-white/10 border-t border-white/10 text-sm">
@@ -680,7 +680,7 @@ export default function KadryHome() {
                   <span>{bad}</span>
                 </div>
                 <div className="flex items-start gap-2 bg-gold-light/[0.06] p-5 text-white/80">
-                  <span className="mt-0.5 shrink-0 text-gold-light">✓</span>
+                  <span className="mt-0.5 shrink-0 font-bold text-emerald-400">✓</span>
                   <span>{good}</span>
                 </div>
               </div>
@@ -713,7 +713,7 @@ export default function KadryHome() {
         <div className="container-page">
           <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold-light">Кейсы и результаты</div>
           <h2 className="mb-6 text-2xl font-semibold text-white">Наши закрытые вакансии</h2>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mx-auto grid max-w-4xl gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {cases.map((c, i) => (
               <div key={`${c.title}-${i}`} className="glass-dark rounded-xl p-4">
                 <div className="flex items-center gap-2">
@@ -768,12 +768,12 @@ export default function KadryHome() {
         <div className="container-page">
           <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold-light">Что мы предлагаем</div>
           <h2 className="mb-6 text-2xl font-semibold text-white">Закрываем следующие позиции</h2>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             {positions.map((p) => (
               <div key={p.title} className="group rounded-lg bg-white/10 px-4 py-3 text-sm">
-                <div className="flex items-center justify-between">
-                  <span className="font-medium text-white">{p.title}</span>
-                  <span className="text-white/50">{p.salary}</span>
+                <div className="flex items-center justify-between gap-3 whitespace-nowrap">
+                  <span className="truncate font-medium text-white">{p.title}</span>
+                  <span className="shrink-0 text-white/50">{p.salary}</span>
                 </div>
                 {/* Появляется при наведении — быстрый заказ подбора на эту позицию */}
                 <button
@@ -904,9 +904,9 @@ export default function KadryHome() {
               <li><strong className="text-white">Прозрачная отчетность</strong> — регулярно сообщаем о ходе поиска; если подходящих кандидатов нет — честно предупреждаем.</li>
             </ul>
 
-            <div className="glass-dark rounded-2xl p-8 lg:-mt-1">
+            <div className="glass-dark mx-auto w-full max-w-sm rounded-2xl p-6 lg:-mt-1">
               <label className="block text-sm font-semibold text-white">
-                Заработная плата кандидата, ₽/мес
+                Заработная плата, ₽/мес
                 <input
                   type="range"
                   min={20000}
@@ -914,20 +914,20 @@ export default function KadryHome() {
                   step={5000}
                   value={salary}
                   onChange={(e) => setSalary(Number(e.target.value))}
-                  className="mt-4 w-full accent-gold-light"
+                  className="mt-3 w-full accent-gold-light"
                 />
               </label>
-              <div className="mt-1 text-lg font-medium text-white/70">{salary.toLocaleString('ru-RU')} ₽/мес</div>
+              <div className="mt-1 text-base font-medium text-white/70">{salary.toLocaleString('ru-RU')} ₽/мес</div>
 
-              <div className="mt-8">
-                <div className="mx-auto w-fit rounded-xl border border-white/15 bg-white/10 px-6 py-4 text-center text-white">
+              <div className="mt-5">
+                <div className="mx-auto w-fit rounded-xl border border-white/15 bg-white/10 px-5 py-3 text-center text-white">
                   <div className="text-xs text-white/60">Комиссия 30%</div>
-                  <div className="mt-1 text-2xl font-bold text-white">{fee.toLocaleString('ru-RU')} ₽</div>
+                  <div className="mt-0.5 text-xl font-bold text-white">{fee.toLocaleString('ru-RU')} ₽</div>
                 </div>
 
-                <svg viewBox="0 0 200 36" className="mx-auto block h-9 w-56" aria-hidden="true">
+                <svg viewBox="0 0 200 30" className="mx-auto block h-6 w-44" aria-hidden="true">
                   <path
-                    d="M100 0 V16 M100 16 H40 M100 16 H160 M40 16 V32 M160 16 V32"
+                    d="M100 0 V13 M100 13 H40 M100 13 H160 M40 13 V26 M160 13 V26"
                     stroke="rgba(255,255,255,0.4)"
                     strokeWidth="2"
                     strokeLinecap="round"
@@ -935,21 +935,21 @@ export default function KadryHome() {
                   />
                 </svg>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="rounded-xl border border-white/15 bg-white/10 p-4 text-center text-white">
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div className="rounded-xl border border-white/15 bg-white/10 p-3 text-center text-white">
                     <div className="text-xs text-white/60">75% предоплата</div>
-                    <div className="mt-1 text-2xl font-bold text-white">{prepay.toLocaleString('ru-RU')} ₽</div>
+                    <div className="mt-0.5 text-xl font-bold text-white">{prepay.toLocaleString('ru-RU')} ₽</div>
                   </div>
-                  <div className="rounded-xl border border-white/15 bg-white/10 p-4 text-center text-white">
-                    <div className="text-xs leading-snug text-white/60">25% после прохождения испытательного срока</div>
-                    <div className="mt-1 text-2xl font-bold text-white">{afterProbation.toLocaleString('ru-RU')} ₽</div>
+                  <div className="rounded-xl border border-white/15 bg-white/10 p-3 text-center text-white">
+                    <div className="text-[11px] leading-snug text-white/60">25% после испытательного срока</div>
+                    <div className="mt-0.5 text-xl font-bold text-white">{afterProbation.toLocaleString('ru-RU')} ₽</div>
                   </div>
                 </div>
               </div>
 
-              <div className="mt-6 border-t border-white/10 pt-6">
+              <div className="mt-4 border-t border-white/10 pt-4">
                 <div className="text-xs uppercase tracking-wide text-white/50">Итого к оплате за подбор</div>
-                <div className="mt-1 text-4xl font-bold text-white">{fee.toLocaleString('ru-RU')} ₽</div>
+                <div className="mt-0.5 text-3xl font-bold text-white">{fee.toLocaleString('ru-RU')} ₽</div>
               </div>
             </div>
           </div>

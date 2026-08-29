@@ -2,18 +2,18 @@ import { useMemo, useState } from 'react'
 import PageHero from '../../components/PageHero'
 import { VacancyCard } from '../../components/cards'
 import { vacancies } from '../../data/vacancies'
-import { SPECIALIZATIONS, type Specialization, type WorkFormat } from '../../types'
+import { SPECIALIZATIONS, EMPLOYMENT_TYPES, type Specialization, type WorkFormat, type EmploymentType } from '../../types'
 
 const formats: { id: WorkFormat | 'any'; label: string }[] = [
-  { id: 'any', label: 'Любой формат' },
-  { id: 'office', label: 'Офис' },
-  { id: 'remote', label: 'Удаленно' },
+  { id: 'office', label: 'Офлайн' },
+  { id: 'remote', label: 'Онлайн' },
   { id: 'hybrid', label: 'Гибрид' },
 ]
 
 export default function Vacancies() {
   const [spec, setSpec] = useState<Specialization | 'all'>('all')
   const [format, setFormat] = useState<WorkFormat | 'any'>('any')
+  const [employment, setEmployment] = useState<EmploymentType | 'any'>('any')
   const [city, setCity] = useState('')
 
   const filtered = useMemo(() => {
@@ -21,10 +21,11 @@ export default function Vacancies() {
       if (v.status !== 'open') return false
       if (spec !== 'all' && !v.specialization.includes(spec)) return false
       if (format !== 'any' && v.format !== format) return false
+      if (employment !== 'any' && v.employment !== employment) return false
       if (city && !v.city.toLowerCase().includes(city.toLowerCase())) return false
       return true
     })
-  }, [spec, format, city])
+  }, [spec, format, employment, city])
 
   return (
     <div>
@@ -46,11 +47,10 @@ export default function Vacancies() {
             onChange={(e) => setSpec(e.target.value as Specialization | 'all')}
             className="rounded-lg border border-ink/15 px-3 py-2 text-sm"
           >
-            <option value="all">Все специализации</option>
+            <option value="all" disabled hidden>Направление</option>
+            {spec !== 'all' && <option value="all">Все направления</option>}
             {SPECIALIZATIONS.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.label}
-              </option>
+              <option key={s.id} value={s.id}>{s.label}</option>
             ))}
           </select>
           <select
@@ -58,10 +58,21 @@ export default function Vacancies() {
             onChange={(e) => setFormat(e.target.value as WorkFormat | 'any')}
             className="rounded-lg border border-ink/15 px-3 py-2 text-sm"
           >
+            <option value="any" disabled hidden>Формат</option>
+            {format !== 'any' && <option value="any">Любой формат</option>}
             {formats.map((f) => (
-              <option key={f.id} value={f.id}>
-                {f.label}
-              </option>
+              <option key={f.id} value={f.id}>{f.label}</option>
+            ))}
+          </select>
+          <select
+            value={employment}
+            onChange={(e) => setEmployment(e.target.value as EmploymentType | 'any')}
+            className="rounded-lg border border-ink/15 px-3 py-2 text-sm"
+          >
+            <option value="any" disabled hidden>Занятость</option>
+            {employment !== 'any' && <option value="any">Любая занятость</option>}
+            {EMPLOYMENT_TYPES.map((f) => (
+              <option key={f.id} value={f.id}>{f.label}</option>
             ))}
           </select>
           <input
