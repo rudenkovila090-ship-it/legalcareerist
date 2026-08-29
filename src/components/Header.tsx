@@ -32,6 +32,8 @@ export default function Header() {
   const { pathname } = useLocation()
   const onKadry = pathname.startsWith('/kadry')
   const onCommunity = pathname.startsWith('/community')
+  const onMarketplace = pathname.startsWith('/marketplace')
+  const showAccountButton = onCommunity || onMarketplace
   // Фон подкадровой панели меняется по аудитории: синий для работодателей,
   // белый для соискателей — визуально разводит два сценария подбора.
   const isCandidates = pathname.startsWith('/kadry/candidates')
@@ -61,10 +63,10 @@ export default function Header() {
               иначе шапка «прыгает» при переходе на/со страницы Сообщества. */}
           <NavLink
             to="/account"
-            aria-hidden={!onCommunity}
-            tabIndex={onCommunity ? undefined : -1}
+            aria-hidden={!showAccountButton}
+            tabIndex={showAccountButton ? undefined : -1}
             className={`flex items-center gap-2 rounded-full bg-ink px-4 py-2 text-sm font-medium text-white hover:bg-ink/90 ${
-              onCommunity ? '' : 'invisible pointer-events-none'
+              showAccountButton ? '' : 'invisible pointer-events-none'
             }`}
           >
             <IconAccount />
