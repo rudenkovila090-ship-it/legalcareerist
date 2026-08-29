@@ -7,9 +7,9 @@ import FAQSection from '../../components/FAQSection'
 import { TagRow } from '../../components/Tag'
 import LeadForm from '../../components/LeadForm'
 import { vacancies } from '../../data/vacancies'
+import { IndustryFilter, EducationFilter } from '../../components/VacancyFilters'
 import {
-  SPECIALIZATIONS, EMPLOYMENT_TYPES, WORK_SCHEDULES, EXPERIENCE_BUCKETS, EDUCATION_LEVELS,
-  COMPANY_INDUSTRY_TREE,
+  SPECIALIZATIONS, EMPLOYMENT_TYPES, WORK_SCHEDULES, EXPERIENCE_BUCKETS,
   type Specialization, type WorkFormat, type EmploymentType, type WorkSchedule,
   type ExperienceBucket, type EducationLevel,
 } from '../../types'
@@ -133,24 +133,6 @@ export default function Candidates() {
   const [salaryText, setSalaryText] = useState('')
   const [educationSel, setEducationSel] = useState<Set<EducationLevel>>(new Set())
   const [industrySel, setIndustrySel] = useState<Set<string>>(new Set())
-
-  function toggleEducation(id: EducationLevel) {
-    setEducationSel((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-  }
-
-  function toggleIndustry(label: string) {
-    setIndustrySel((prev) => {
-      const next = new Set(prev)
-      if (next.has(label)) next.delete(label)
-      else next.add(label)
-      return next
-    })
-  }
 
   const minSalary = parseMinSalary(salaryText)
   const [selectedVacancySlug, setSelectedVacancySlug] = useState<string | null>(null)
@@ -395,52 +377,9 @@ export default function Candidates() {
               className="w-full rounded-lg border border-ink/15 px-3 py-2 text-sm sm:max-w-xs"
             />
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="rounded-lg border border-ink/15 p-3">
-                <div className="mb-2 text-sm font-medium text-ink/70">Отрасль компании</div>
-                <div className="max-h-56 space-y-2 overflow-y-auto pr-1">
-                  {COMPANY_INDUSTRY_TREE.map((group) => (
-                    <div key={group.category}>
-                      <label className="flex items-center gap-2 text-sm font-medium text-ink">
-                        <input
-                          type="checkbox"
-                          checked={industrySel.has(group.category)}
-                          onChange={() => toggleIndustry(group.category)}
-                        />
-                        {group.category}
-                      </label>
-                      <div className="ml-5 mt-1 space-y-1">
-                        {group.items.map((item) => (
-                          <label key={item} className="flex items-center gap-2 text-sm text-ink/60">
-                            <input
-                              type="checkbox"
-                              checked={industrySel.has(item)}
-                              onChange={() => toggleIndustry(item)}
-                            />
-                            {item}
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="rounded-lg border border-ink/15 p-3">
-                <div className="mb-2 text-sm font-medium text-ink/70">Образование</div>
-                <div className="flex flex-wrap gap-x-4 gap-y-2">
-                  {EDUCATION_LEVELS.map((e) => (
-                    <label key={e.id} className="flex items-center gap-2 text-sm text-ink/70">
-                      <input
-                        type="checkbox"
-                        checked={educationSel.has(e.id)}
-                        onChange={() => toggleEducation(e.id)}
-                      />
-                      {e.label}
-                    </label>
-                  ))}
-                </div>
-              </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <IndustryFilter value={industrySel} onChange={setIndustrySel} />
+              <EducationFilter value={educationSel} onChange={setEducationSel} />
             </div>
 
             <div className="text-sm text-ink/50">{filteredVacancies.length} вакансий</div>
