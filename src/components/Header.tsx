@@ -42,10 +42,11 @@ export default function Header() {
     <header className="sticky top-0 z-40 border-b border-ink/10 bg-white/70 backdrop-blur-xl [transform:translateZ(0)] [will-change:transform]">
       <div className="container-page flex h-16 items-center justify-between">
         <NavLink to="/" className="flex items-center gap-2.5">
-          <svg viewBox="0 0 26 24" className="h-6 w-6 text-ink" fill="currentColor" aria-hidden="true">
-            <rect x="0" y="13" width="4" height="11" rx="1" />
-            <rect x="9" y="6" width="4" height="18" rx="1" />
-            <rect x="18" y="0" width="4" height="24" rx="1" />
+          <svg viewBox="0 0 26 24" className="h-6 w-6 text-ink" fill="none" stroke="currentColor" strokeWidth="3.4" strokeLinecap="round" aria-hidden="true">
+            <line x1="2.5" y1="21" x2="2.5" y2="11.5" />
+            <line x1="10" y1="17.5" x2="10" y2="6" />
+            <line x1="17.5" y1="14" x2="17.5" y2="3" />
+            <line x1="24" y1="10" x2="24" y2="1" />
           </svg>
           <span className="font-semibold tracking-tight">Карьерный Юрист</span>
         </NavLink>
