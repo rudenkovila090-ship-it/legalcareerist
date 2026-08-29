@@ -1,13 +1,13 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import PageHero from '../../components/PageHero'
-import SectionRail from '../../components/SectionRail'
 import { events } from '../../data/events'
+import { submitLead } from '../../lib/leads'
 import type { EventItem } from '../../types'
 
 const money = new Intl.NumberFormat('ru-RU')
 
-// Цвет «афиши» — по типу мероприятия, чтобы ряды считывались с ходу даже
+// Цвет «афиши» — по типу мероприятия, чтобы карточки считывались с ходу даже
 // без чтения текста (как цветовое кодирование жанров в афише кинотеатра).
 const posterTone: Record<EventItem['type'], string> = {
   conference: 'from-ink to-[#1a2536]',
@@ -27,7 +27,7 @@ const eventTypeLabel: Record<EventItem['type'], string> = {
 
 function IconMic() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-9 w-9">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6">
       <rect x="9" y="3" width="6" height="11" rx="3" />
       <path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7" />
     </svg>
@@ -35,7 +35,7 @@ function IconMic() {
 }
 function IconCoffee() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-9 w-9">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6">
       <path d="M4 8h13v6a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V8z" />
       <path d="M17 9.5h1.5a2.5 2.5 0 0 1 0 5H17" />
       <path d="M7 3.5c-.6.8-.6 1.4 0 2.2M11 3.5c-.6.8-.6 1.4 0 2.2" />
@@ -44,7 +44,7 @@ function IconCoffee() {
 }
 function IconStage() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-9 w-9">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6">
       <path d="M3.5 19h17M5 19V9.5l7-5 7 5V19" />
       <path d="M9.5 19v-6h5v6" />
     </svg>
@@ -65,24 +65,60 @@ const posterIcon: Record<EventItem['type'], typeof IconMic> = {
   tour: IconStage,
 }
 
-function EventPoster({ e }: { e: EventItem }) {
+function IconGrid() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <rect x="3.5" y="3.5" width="7" height="7" rx="1.3" />
+      <rect x="13.5" y="3.5" width="7" height="7" rx="1.3" />
+      <rect x="3.5" y="13.5" width="7" height="7" rx="1.3" />
+      <rect x="13.5" y="13.5" width="7" height="7" rx="1.3" />
+    </svg>
+  )
+}
+function IconPlus() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  )
+}
+function IconAccountCircle() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <circle cx="12" cy="12" r="9" />
+      <circle cx="12" cy="10" r="3" />
+      <path d="M6 18.5c1.2-2.3 3.4-3.5 6-3.5s4.8 1.2 6 3.5" />
+    </svg>
+  )
+}
+
+const eventTabs = [
+  { id: 'poster', label: 'Афиша', icon: IconGrid },
+  { id: 'create', label: 'Создать свое событие', icon: IconPlus },
+  { id: 'account', label: 'Личный кабинет', icon: IconAccountCircle },
+] as const
+
+// Категории на одной строке — прямоугольная ячейка-иконка и подпись справа
+// от нее, ведут себя как быстрый фильтр по афише ниже.
+const quickCategories = [
+  { id: 'key', label: 'Ключевые мероприятия', icon: IconStage },
+  { id: 'breakfast', label: 'Бизнес-завтраки', icon: IconCoffee },
+  { id: 'webinar', label: 'Вебинары', icon: IconMic },
+] as const
+type QuickCategory = (typeof quickCategories)[number]['id'] | 'all'
+
+function EventCard({ e }: { e: EventItem }) {
   const Icon = posterIcon[e.type]
   const date = new Date(e.dateTime)
   const past = e.status === 'completed'
   return (
-    <Link
-      to={`/events/${e.slug}`}
-      className="glass block w-96 shrink-0 snap-start overflow-hidden rounded-2xl"
-    >
-      <div className={`relative flex h-[13.5rem] flex-col justify-between bg-gradient-to-br p-5 text-white ${posterTone[e.type]} ${past ? 'grayscale' : ''}`}>
+    <Link to={`/events/${e.slug}`} className="glass block overflow-hidden rounded-2xl">
+      <div className={`relative flex h-40 flex-col justify-between bg-gradient-to-br p-5 text-white ${posterTone[e.type]} ${past ? 'grayscale' : ''}`}>
         <div className="flex items-start justify-between">
           <Icon />
           {e.partner && (
             <span className="rounded-full bg-white/20 px-2.5 py-1 text-xs font-semibold uppercase tracking-wide">Партнер</span>
           )}
-        </div>
-        <div className="text-sm font-semibold uppercase tracking-wide opacity-80">
-          {date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}
         </div>
         {past && (
           <span className="absolute right-4 top-1/2 -translate-y-1/2 -rotate-12 rounded border-2 border-white/70 px-3 py-1 text-sm font-bold uppercase tracking-wide">
@@ -93,172 +129,359 @@ function EventPoster({ e }: { e: EventItem }) {
       <div className="p-5">
         <div className="text-xs font-medium uppercase tracking-wide text-gold">{eventTypeLabel[e.type]}</div>
         <h3 className="mt-1 text-lg font-semibold leading-snug">{e.title}</h3>
-        <div className="mt-2 text-sm text-ink/50">{e.format === 'online' ? 'Онлайн' : e.city}</div>
+
+        <div className="mt-3 space-y-1 text-sm text-ink/60">
+          <div>{e.format === 'online' ? 'Онлайн' : e.city}</div>
+          <div>{date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })} · {date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</div>
+          <div>{e.location}</div>
+        </div>
+
         {past && e.sale ? (
           <div className="mt-3 flex flex-wrap gap-1.5">
             {e.sale.bundle !== undefined && (
-              <span className="rounded-full bg-ink px-2.5 py-1 text-xs font-medium text-white">
+              <span className="rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-white">
                 Запись + материалы {e.sale.bundle === 0 ? '· бесплатно' : `· ${money.format(e.sale.bundle)} ₽`}
               </span>
             )}
             {e.sale.bundle === undefined && e.sale.recording !== undefined && (
-              <span className="rounded-full bg-ink/10 px-2.5 py-1 text-xs font-medium text-ink">Запись · {e.sale.recording === 0 ? 'бесплатно' : `${money.format(e.sale.recording)} ₽`}</span>
+              <span className="rounded-full bg-ink/10 px-3 py-1.5 text-xs font-semibold text-ink">Запись · {e.sale.recording === 0 ? 'бесплатно' : `${money.format(e.sale.recording)} ₽`}</span>
             )}
             {e.sale.materials !== undefined && e.sale.bundle === undefined && (
-              <span className="rounded-full bg-ink/10 px-2.5 py-1 text-xs font-medium text-ink">Материалы · {money.format(e.sale.materials)} ₽</span>
+              <span className="rounded-full bg-ink/10 px-3 py-1.5 text-xs font-semibold text-ink">Материалы · {money.format(e.sale.materials)} ₽</span>
             )}
           </div>
         ) : (
-          <div className="mt-3 text-base font-medium">{e.price === 0 ? 'Бесплатно' : `${money.format(e.price)} ₽`}</div>
+          <div className="mt-3 inline-block rounded-full bg-ink px-4 py-1.5 text-sm font-semibold text-white">
+            {e.price === 0 ? 'Бесплатно' : `${money.format(e.price)} ₽`}
+          </div>
         )}
       </div>
     </Link>
   )
 }
 
-function EventRow({ id, title, items }: { id: string; title: string; items: EventItem[] }) {
-  if (items.length === 0) return null
+function IconTelegram() {
   return (
-    <section id={id} className="scroll-mt-24 py-8">
-      <div className="container-page">
-        <h2 className="mb-4 text-xl font-semibold">{title}</h2>
-      </div>
-      <div className="container-page">
-        <div className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory scroll-px-5">
-          {items.map((e) => <EventPoster key={e.id} e={e} />)}
-        </div>
-      </div>
-    </section>
+    <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
+      <path d="M21.5 3.5 2.7 11.2c-1.2.5-1.2 1.2-.2 1.5l4.8 1.5 1.8 5.6c.2.6.4.9.9.9.5 0 .7-.2 1-.5l2.4-2.3 4.9 3.6c.9.5 1.5.2 1.7-.8L23.9 4.9c.3-1.3-.5-1.9-1.4-1.4z" />
+    </svg>
+  )
+}
+function IconVk() {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
+      <path d="M13.2 17.3c-5.4 0-8.6-3.7-8.7-9.9h2.8c.1 4.5 2.1 6.4 3.6 6.8v-6.8h2.6v3.9c1.5-.2 3.1-2 3.6-3.9h2.6c-.4 2.3-2.1 4.1-3.3 4.9 1.2.6 3.1 2.2 3.9 4.9h-2.9c-.6-1.8-2-3.2-3.9-3.4v3.4z" />
+    </svg>
+  )
+}
+function IconYoutube() {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
+      <path d="M22 12s0-3-.4-4.4a2.9 2.9 0 0 0-2-2C17.9 5 12 5 12 5s-5.9 0-7.6.6a2.9 2.9 0 0 0-2 2C2 9 2 12 2 12s0 3 .4 4.4a2.9 2.9 0 0 0 2 2C6.1 19 12 19 12 19s5.9 0 7.6-.6a2.9 2.9 0 0 0 2-2C22 15 22 12 22 12z" opacity=".18" />
+      <path d="M10 15.2V8.8L15.8 12z" />
+    </svg>
+  )
+}
+function IconTiktok() {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
+      <path d="M16.5 2h-3v13.6a2.6 2.6 0 1 1-2-2.5v-3a5.6 5.6 0 1 0 5 5.6V9c1 .7 2.2 1.1 3.5 1.1V7a3.5 3.5 0 0 1-3.5-3.5z" />
+    </svg>
   )
 }
 
-const railItems = [
-  { id: 'big', label: 'Ключевые' },
-  { id: 'webinars', label: 'Вебинары' },
-  { id: 'breakfasts', label: 'Бизнес-завтраки' },
-  { id: 'partners', label: 'Партнеры' },
-  { id: 'past', label: 'Прошедшие' },
-]
-
-const eventTypeOptions: { id: EventItem['type'] | 'all'; label: string }[] = [
-  { id: 'all', label: 'Вид мероприятия' },
-  { id: 'conference', label: 'Ключевое мероприятие' },
-  { id: 'webinar', label: 'Вебинар' },
-  { id: 'breakfast', label: 'Бизнес-завтрак' },
-  { id: 'intensive', label: 'Интенсив' },
-  { id: 'tour', label: 'Экскурсия' },
-]
-
-const sortOptions = [
-  { id: 'popular', label: 'Популярные' },
-  { id: 'price_asc', label: 'Сначала дешевле' },
-  { id: 'price_desc', label: 'Сначала дороже' },
-] as const
-
 export default function EventsHome() {
-  const [typeFilter, setTypeFilter] = useState<EventItem['type'] | 'all'>('all')
+  const [tab, setTab] = useState<(typeof eventTabs)[number]['id']>('poster')
+
+  const [quick, setQuick] = useState<QuickCategory>('all')
   const [cityFilter, setCityFilter] = useState('all')
   const [formatFilter, setFormatFilter] = useState<'all' | 'online' | 'offline'>('all')
-  const [sort, setSort] = useState<(typeof sortOptions)[number]['id']>('popular')
+  const [sort, setSort] = useState<'popular' | 'price_asc' | 'price_desc'>('popular')
 
   const cities = useMemo(
     () => Array.from(new Set(events.filter((e) => e.city).map((e) => e.city!))).sort(),
     [],
   )
 
-  const isFiltering = typeFilter !== 'all' || cityFilter !== 'all' || formatFilter !== 'all' || sort !== 'popular'
-
   const filtered = useMemo(() => {
     const list = events.filter((e) => {
-      if (typeFilter !== 'all' && e.type !== typeFilter) return false
+      if (quick === 'key' && !(e.type === 'conference' || e.type === 'intensive' || e.type === 'tour')) return false
+      if (quick === 'breakfast' && e.type !== 'breakfast') return false
+      if (quick === 'webinar' && e.type !== 'webinar') return false
       if (cityFilter !== 'all' && e.city !== cityFilter) return false
-      if (formatFilter !== 'all' && e.format !== (formatFilter === 'online' ? 'online' : 'offline')) return false
+      if (formatFilter !== 'all' && e.format !== formatFilter) return false
       return true
     })
     if (sort === 'price_asc') return [...list].sort((a, b) => a.price - b.price)
     if (sort === 'price_desc') return [...list].sort((a, b) => b.price - a.price)
-    return list
-  }, [typeFilter, cityFilter, formatFilter, sort])
+    return [...list].sort((a, b) => Number(a.status === 'completed') - Number(b.status === 'completed'))
+  }, [quick, cityFilter, formatFilter, sort])
 
-  const open = events.filter((e) => e.status === 'open')
-  const big = open.filter((e) => !e.partner && (e.type === 'conference' || e.type === 'intensive' || e.type === 'tour'))
-  const webinars = open.filter((e) => !e.partner && e.type === 'webinar')
-  const breakfasts = open.filter((e) => !e.partner && e.type === 'breakfast')
-  const partners = open.filter((e) => e.partner)
-  const past = events.filter((e) => e.status === 'completed')
+  const isFiltering = quick !== 'all' || cityFilter !== 'all' || formatFilter !== 'all' || sort !== 'popular'
+
+  // «Создать свое событие» — лид-заявка организатора.
+  const [eventForm, setEventForm] = useState({ fio: '', phone: '', email: '', telegram: '', about: '' })
+  const [eventSent, setEventSent] = useState(false)
+
+  function handleEventSubmit(e: FormEvent) {
+    e.preventDefault()
+    if (!eventForm.fio.trim() || (!eventForm.phone.trim() && !eventForm.email.trim())) return
+    submitLead({
+      sourceBlock: 'events',
+      formType: 'event_submission',
+      name: eventForm.fio,
+      contact: [eventForm.phone, eventForm.email, eventForm.telegram].filter(Boolean).join(' / '),
+      interest: eventForm.about ? [eventForm.about] : [],
+    })
+    setEventSent(true)
+  }
 
   return (
     <div>
-      <SectionRail items={railItems} />
-      <PageHero eyebrow="Мероприятия" title="Вебинары, бизнес-завтраки, интенсивы" description="Онлайн и офлайн события для карьерного роста в праве — листайте афиши в каждой категории или отфильтруйте." prototype />
+      <PageHero eyebrow="Мероприятия" title="Вебинары, бизнес-завтраки, интенсивы" description="Онлайн и офлайн события для карьерного роста в праве." prototype />
 
-      <div className="container-page py-8">
-        <div className="glass flex flex-wrap items-center gap-3 rounded-xl p-4">
-          <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as EventItem['type'] | 'all')} className="rounded-lg border border-ink/15 px-3 py-2 text-sm">
-            {eventTypeOptions.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
-          </select>
-          <select value={cityFilter} onChange={(e) => setCityFilter(e.target.value)} className="rounded-lg border border-ink/15 px-3 py-2 text-sm">
-            <option value="all">Город мероприятия</option>
-            {cities.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
-          <select value={formatFilter} onChange={(e) => setFormatFilter(e.target.value as 'all' | 'online' | 'offline')} className="rounded-lg border border-ink/15 px-3 py-2 text-sm">
-            <option value="all">Способ участия</option>
-            <option value="online">Онлайн</option>
-            <option value="offline">Офлайн</option>
-          </select>
-          <select value={sort} onChange={(e) => setSort(e.target.value as (typeof sortOptions)[number]['id'])} className="rounded-lg border border-ink/15 px-3 py-2 text-sm">
-            {sortOptions.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
-          </select>
-          {isFiltering && (
-            <button
-              type="button"
-              onClick={() => {
-                setTypeFilter('all')
-                setCityFilter('all')
-                setFormatFilter('all')
-                setSort('popular')
-              }}
-              className="text-sm text-ink/50 hover:text-ink"
-            >
-              Сбросить
-            </button>
-          )}
-          <div className="ml-auto text-sm text-ink/50">{filtered.length} мероприятий</div>
+      {/* Подменю раздела — Афиша / Создать свое событие / Личный кабинет */}
+      <div className="sticky top-[142px] z-20 border-b border-ink/10 bg-white/95 py-4 backdrop-blur-xl">
+        <div className="container-page">
+          <div className="flex flex-wrap justify-end gap-3">
+            {eventTabs.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setTab(t.id)}
+                className={`flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition-colors ${
+                  tab === t.id ? 'bg-ink text-white' : 'border border-ink/15 text-ink/60 hover:text-ink'
+                }`}
+              >
+                <t.icon />
+                {t.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
-      {isFiltering ? (
-        <div className="container-page pb-16">
-          <div className="flex flex-wrap gap-4">
-            {filtered.map((e) => <EventPoster key={e.id} e={e} />)}
-            {filtered.length === 0 && <p className="text-ink/50">Мероприятий по фильтру не найдено.</p>}
-          </div>
-        </div>
-      ) : (
-        <div className="divide-y divide-ink/10">
-          <EventRow id="big" title="Ключевые мероприятия" items={big} />
-          <EventRow id="webinars" title="Вебинары" items={webinars} />
-          <EventRow id="breakfasts" title="Бизнес-завтраки" items={breakfasts} />
-          <EventRow id="partners" title="Мероприятия наших партнеров" items={partners} />
-          <EventRow id="past" title="Прошедшие" items={past} />
-        </div>
-      )}
-      {events.length === 0 && <p className="container-page py-16 text-ink/50">Мероприятий пока нет.</p>}
+      {tab === 'poster' && (
+        <>
+          {/* Пояснительный блок — наполнение уточняется отдельно */}
+          <section className="container-page py-8">
+            <div className="rounded-2xl border border-dashed border-ink/15 p-10 text-center text-sm text-ink/30">
+              Раздел «О мероприятиях» — наполнение уточняется
+            </div>
+          </section>
 
-      {/* Партнерам и организаторам — отдельные CTA, наполнение (условия, форма) уточняется */}
-      <section className="border-t border-ink/10 bg-white py-12">
-        <div className="container-page grid gap-4 sm:grid-cols-2">
-          <div className="glass rounded-2xl p-6 text-center">
-            <h3 className="text-lg font-semibold">Стать партнером мероприятия</h3>
-            <p className="mx-auto mt-2 max-w-sm text-sm text-ink/60">
-              Условия партнерства — раздел в разработке, наполнение уточняется.
-            </p>
+          {/* Категории — прямоугольная ячейка-иконка и подпись справа, работают как быстрый фильтр */}
+          <section className="container-page pb-8">
+            <div className="flex flex-wrap gap-3">
+              {quickCategories.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => setQuick((q) => (q === c.id ? 'all' : c.id))}
+                  className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-sm font-semibold transition-colors ${
+                    quick === c.id ? 'border-ink bg-ink text-white' : 'border-ink/15 text-ink hover:border-ink/40'
+                  }`}
+                >
+                  <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${quick === c.id ? 'bg-white/15' : 'bg-ink/5'}`}>
+                    <c.icon />
+                  </span>
+                  {c.label}
+                </button>
+              ))}
+            </div>
+          </section>
+
+          <section className="container-page pb-8">
+            <div className="glass flex flex-wrap items-center gap-3 rounded-xl p-4">
+              <select value={cityFilter} onChange={(e) => setCityFilter(e.target.value)} className="rounded-lg border border-ink/15 px-3 py-2 text-sm">
+                <option value="all">Город мероприятия</option>
+                {cities.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+              <select value={formatFilter} onChange={(e) => setFormatFilter(e.target.value as 'all' | 'online' | 'offline')} className="rounded-lg border border-ink/15 px-3 py-2 text-sm">
+                <option value="all">Способ участия</option>
+                <option value="online">Онлайн</option>
+                <option value="offline">Офлайн</option>
+              </select>
+              <select value={sort} onChange={(e) => setSort(e.target.value as 'popular' | 'price_asc' | 'price_desc')} className="rounded-lg border border-ink/15 px-3 py-2 text-sm">
+                <option value="popular">Популярные</option>
+                <option value="price_asc">Сначала дешевле</option>
+                <option value="price_desc">Сначала дороже</option>
+              </select>
+              {isFiltering && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setQuick('all')
+                    setCityFilter('all')
+                    setFormatFilter('all')
+                    setSort('popular')
+                  }}
+                  className="text-sm text-ink/50 hover:text-ink"
+                >
+                  Сбросить
+                </button>
+              )}
+              <div className="ml-auto text-sm text-ink/50">{filtered.length} мероприятий</div>
+            </div>
+          </section>
+
+          {/* Все события — единый список */}
+          <section id="all-events" className="container-page pb-16">
+            <h2 className="mb-4 text-xl font-semibold">Все события</h2>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {filtered.map((e) => <EventCard key={e.id} e={e} />)}
+              {filtered.length === 0 && <p className="text-ink/50">Мероприятий по фильтру не найдено.</p>}
+            </div>
+          </section>
+
+          {/* Партнерам и организаторам */}
+          <section className="border-t border-ink/10 bg-white py-12">
+            <div className="container-page grid gap-4 sm:grid-cols-2">
+              <div className="glass rounded-2xl p-6 text-center">
+                <h3 className="text-lg font-semibold">Стать партнером мероприятия</h3>
+                <p className="mx-auto mt-2 max-w-sm text-sm text-ink/60">
+                  Условия партнерства — раздел в разработке, наполнение уточняется.
+                </p>
+              </div>
+              <button type="button" onClick={() => setTab('create')} className="glass rounded-2xl p-6 text-center">
+                <h3 className="text-lg font-semibold">Разместить свое мероприятие</h3>
+                <p className="mx-auto mt-2 max-w-sm text-sm text-ink/60">
+                  Форма подачи мероприятия — раздел в разработке, наполнение уточняется.
+                </p>
+              </button>
+            </div>
+          </section>
+        </>
+      )}
+
+      {tab === 'create' && (
+        <section className="container-page py-12">
+          <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Создать свое событие</div>
+          <h2 className="mb-6 text-2xl font-semibold">Расскажите о своем мероприятии</h2>
+
+          <div className="mx-auto max-w-xl">
+            {eventSent ? (
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-6 text-emerald-800">
+                <div className="font-semibold">Заявка отправлена</div>
+                <p className="mt-1 text-sm">Мы свяжемся с вами, чтобы обсудить детали размещения.</p>
+              </div>
+            ) : (
+              <form onSubmit={handleEventSubmit} className="glass grid gap-3 rounded-2xl p-6">
+                <input
+                  value={eventForm.fio}
+                  onChange={(e) => setEventForm((f) => ({ ...f, fio: e.target.value }))}
+                  placeholder="ФИО"
+                  required
+                  className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none focus:border-ink/40"
+                />
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <input
+                    type="tel"
+                    value={eventForm.phone}
+                    onChange={(e) => setEventForm((f) => ({ ...f, phone: e.target.value }))}
+                    placeholder="Номер телефона"
+                    className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none focus:border-ink/40"
+                  />
+                  <input
+                    type="email"
+                    value={eventForm.email}
+                    onChange={(e) => setEventForm((f) => ({ ...f, email: e.target.value }))}
+                    placeholder="Почта"
+                    className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none focus:border-ink/40"
+                  />
+                </div>
+                <input
+                  value={eventForm.telegram}
+                  onChange={(e) => setEventForm((f) => ({ ...f, telegram: e.target.value }))}
+                  placeholder="Telegram"
+                  className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none focus:border-ink/40"
+                />
+                <textarea
+                  value={eventForm.about}
+                  onChange={(e) => setEventForm((f) => ({ ...f, about: e.target.value }))}
+                  placeholder="Название и описание мероприятия"
+                  rows={4}
+                  className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none focus:border-ink/40"
+                />
+                <button type="submit" className="rounded-lg bg-ink py-2.5 text-sm font-semibold text-white hover:bg-ink/90">
+                  Отправить заявку
+                </button>
+                <p className="text-xs text-ink/40">Нажимая «Отправить заявку», вы соглашаетесь на обработку персональных данных.</p>
+              </form>
+            )}
           </div>
-          <div className="glass rounded-2xl p-6 text-center">
-            <h3 className="text-lg font-semibold">Разместить свое мероприятие</h3>
-            <p className="mx-auto mt-2 max-w-sm text-sm text-ink/60">
-              Форма подачи мероприятия — раздел в разработке, наполнение уточняется.
+        </section>
+      )}
+
+      {tab === 'account' && (
+        <section className="container-page py-12">
+          <div className="glass rounded-2xl p-8 text-center">
+            <div className="text-sm font-medium uppercase tracking-wide text-gold">Личный кабинет</div>
+            <h2 className="mt-2 text-2xl font-semibold">Билеты, заявки и записи мероприятий в одном месте</h2>
+            <p className="mx-auto mt-2 max-w-md text-sm text-ink/60">
+              Сквозной личный кабинет для участников и организаторов — демо-каркас раздела.
             </p>
+            <Link to="/account" className="mt-5 inline-block rounded-full bg-ink px-6 py-2.5 text-sm font-semibold text-white hover:bg-ink/90">
+              Перейти в личный кабинет
+            </Link>
+          </div>
+        </section>
+      )}
+
+      {/* Подвал раздела «Мероприятия» — отдельно от общего футера сайта */}
+      <section className="bg-ink py-14 text-white/80">
+        <div className="container-page grid gap-10 sm:grid-cols-2 lg:grid-cols-5">
+          <div>
+            <div className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">Афиша</div>
+            <ul className="space-y-2 text-sm">
+              <li><button type="button" onClick={() => { setTab('poster'); setQuick('all') }} className="hover:text-white">Все события</button></li>
+              <li><a href="#all-events" onClick={() => setTab('poster')} className="hover:text-white">Категории мероприятий</a></li>
+              <li className="text-white/40">Возврат билета</li>
+              <li className="text-white/40">Участие в исследованиях</li>
+              <li className="text-white/40">Билетная система</li>
+            </ul>
+          </div>
+
+          <div>
+            <div className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">Организаторам</div>
+            <ul className="space-y-2 text-sm">
+              <li><button type="button" onClick={() => setTab('create')} className="hover:text-white">Создать событие</button></li>
+              <li className="text-white/40">Возможности</li>
+              <li className="text-white/40">Реклама</li>
+            </ul>
+          </div>
+
+          <div>
+            <div className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">Мероприятия</div>
+            <ul className="space-y-2 text-sm">
+              <li className="text-white/40">Документы</li>
+            </ul>
+          </div>
+
+          <div>
+            <div className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">Помощь</div>
+            <ul className="space-y-2 text-sm">
+              <li><Link className="hover:text-white" to="/events/contacts">Задать вопрос</Link></li>
+              <li><Link className="hover:text-white" to="/events/knowledge">База знаний</Link></li>
+            </ul>
+          </div>
+
+          <div>
+            <div className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">Новости</div>
+            <div className="flex gap-2.5">
+              <a href="https://t.me/legalcareerst_support" target="_blank" rel="noreferrer" aria-label="Telegram" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 hover:bg-white/20">
+                <IconTelegram />
+              </a>
+              <a href="https://vk.com/legalcareerist" target="_blank" rel="noreferrer" aria-label="ВКонтакте" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 hover:bg-white/20">
+                <IconVk />
+              </a>
+              <a href="https://youtube.com/@legalcareerist" target="_blank" rel="noreferrer" aria-label="YouTube" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 hover:bg-white/20">
+                <IconYoutube />
+              </a>
+              <a href="https://tiktok.com/@legalcareerist" target="_blank" rel="noreferrer" aria-label="TikTok" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 hover:bg-white/20">
+                <IconTiktok />
+              </a>
+            </div>
           </div>
         </div>
       </section>
