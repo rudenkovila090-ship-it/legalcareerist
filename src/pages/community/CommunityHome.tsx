@@ -5,6 +5,7 @@ import { communityTestimonials } from '../../data/testimonials'
 import FAQSection from '../../components/FAQSection'
 import SectionRail from '../../components/SectionRail'
 import { submitLead } from '../../lib/leads'
+import { openTelegramBot } from '../../lib/telegram'
 import ilyaPhoto from '../../assets/ilya-rudenkov.jpg'
 
 const railItems = [
@@ -204,9 +205,14 @@ const tariffs = [
   { id: 'demo', period: 'Демодоступ', price: 0, priceLabel: 'Бесплатно', note: '7 дней, чтобы попробовать формат перед оплатой' },
 ] as const
 
-// Лендинг «Вступить» (уточнено заказчиком): выбор тарифа → оплата → ник в
-// Telegram → бот сам пишет пользователю и присылает ссылку на вступление.
-// Реальная оплата подключается позже (Prodamus); здесь — рабочий макет шагов.
+// Лендинг «Вступить» (уточнено заказчиком): выбор тарифа → оплата → открываем
+// чат с ботом (openTelegramBot) → пользователь жмет Start → бот (сценарий в
+// BotHelp, ветка resident_<тариф>) сам присылает ссылку на вступление, ставит
+// метку «резидент» и ведет счет дней резидентства.
+// Реальная оплата подключается позже (Prodamus) — сейчас клик «Оплатить и
+// вступить» сразу считается успешной оплатой (демо-макет шага); когда
+// появится реальный платежный шлюз, openTelegramBot нужно перенести в
+// обработчик успешного колбэка оплаты, а не оставлять на клике по кнопке.
 export default function CommunityHome() {
   const joinRef = useRef<HTMLElement>(null)
   const [tariffId, setTariffId] = useState<(typeof tariffs)[number]['id']>('1m')
@@ -245,6 +251,10 @@ export default function CommunityHome() {
       contact: telegram.startsWith('@') ? telegram : `@${telegram}`,
       interest: [tariff.period],
     })
+    // Открываем чат с ботом сразу после оплаты — пользователю остается нажать
+    // Start, и дальше сценарий в BotHelp (ветка resident_<тариф>) сам
+    // присылает ссылку на вступление и ставит метки резидента.
+    openTelegramBot(`resident_${tariffId}`)
     setSubmitted(true)
   }
 
@@ -547,7 +557,7 @@ export default function CommunityHome() {
                   </div>
                   <p className="text-sm leading-relaxed text-ink/70">
                     Тариф «{tariff.period}» {tariff.price > 0 && `оплачен (${tariff.priceLabel.replace('/мес', '')})`}.
-                    Бот напишет вам первым — убедитесь, что можете получать сообщения от новых контактов.
+                    Мы открыли чат с ботом в новой вкладке — нажмите там Start, и он сразу пришлет ссылку на вступление в закрытое сообщество.
                   </p>
                   <button
                     type="button"
