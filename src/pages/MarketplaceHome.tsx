@@ -78,6 +78,7 @@ export default function MarketplaceHome() {
   const [directions, setDirections] = useState<Set<MarketplaceDirection>>(new Set())
   const [priceFrom, setPriceFrom] = useState('')
   const [priceTo, setPriceTo] = useState('')
+  const [sort, setSort] = useState<'popular' | 'price_asc' | 'price_desc'>('popular')
 
   function toggleDirection(id: MarketplaceDirection) {
     setDirections((prev) => {
@@ -100,13 +101,16 @@ export default function MarketplaceHome() {
   const filtered = useMemo(() => {
     const from = Number(priceFrom) || 0
     const to = Number(priceTo) || Infinity
-    return materials.filter((m) => {
+    const list = materials.filter((m) => {
       if (category !== 'all' && m.kind !== category) return false
       if (directions.size > 0 && !m.direction.some((d) => directions.has(d))) return false
       if (m.price < from || m.price > to) return false
       return true
     })
-  }, [category, directions, priceFrom, priceTo])
+    if (sort === 'price_asc') return [...list].sort((a, b) => a.price - b.price)
+    if (sort === 'price_desc') return [...list].sort((a, b) => b.price - a.price)
+    return [...list].sort((a, b) => (b.purchases ?? 0) - (a.purchases ?? 0))
+  }, [category, directions, priceFrom, priceTo, sort])
 
   function closeGate() {
     setGateFor(null)
@@ -120,7 +124,6 @@ export default function MarketplaceHome() {
         eyebrow="Карьерный Юрист"
         title="Маркетплейс"
         description="Каталог полезных материалов для юридической карьеры: гайды, чек-листы, лонглисты, статьи и вебинары."
-        prototype
       />
 
       {/* Личный кабинет — справа */}
@@ -205,9 +208,20 @@ export default function MarketplaceHome() {
           {/* Каталог */}
           <div>
             <div className="mb-1 text-sm font-medium uppercase tracking-wide text-gold">Маркетплейс</div>
-            <div className="mb-6 flex items-end justify-between gap-4">
+            <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
               <h2 className="text-2xl font-semibold">Каталог материалов</h2>
-              <span className="shrink-0 text-sm text-ink/50">{filtered.length} материалов</span>
+              <div className="flex items-center gap-3">
+                <select
+                  value={sort}
+                  onChange={(e) => setSort(e.target.value as 'popular' | 'price_asc' | 'price_desc')}
+                  className="rounded-lg border border-ink/15 px-3 py-2 text-sm"
+                >
+                  <option value="popular">Популярное</option>
+                  <option value="price_asc">По цене, минимальной</option>
+                  <option value="price_desc">По цене, максимальной</option>
+                </select>
+                <span className="shrink-0 text-sm text-ink/50">{filtered.length} материалов</span>
+              </div>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">

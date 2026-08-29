@@ -24,8 +24,6 @@ export default function Footer() {
           <div className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">Сообщество</div>
           <ul className="space-y-2 text-sm">
             <li><Link className="hover:text-white" to="/community">Вступить в сообщество</Link></li>
-            <li><Link className="hover:text-white" to="/community/clubs/klub-korporativnogo-prava">Клубы (демо-каркас)</Link></li>
-            <li><Link className="hover:text-white" to="/account">Личный кабинет (демо-каркас)</Link></li>
           </ul>
         </div>
 
