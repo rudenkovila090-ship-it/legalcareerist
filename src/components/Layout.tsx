@@ -40,13 +40,17 @@ export default function Layout() {
 
   useGlassCursor()
 
+  // Страница «Мероприятия» — свой подвал раздела (см. EventsHome), с
+  // навигацией по разделу и своим юридическим блоком, вместо общего футера.
+  const hideGlobalFooter = pathname === '/events'
+
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
       <main className="flex-1">
         <Outlet />
       </main>
-      <Footer />
+      {!hideGlobalFooter && <Footer />}
     </div>
   )
 }

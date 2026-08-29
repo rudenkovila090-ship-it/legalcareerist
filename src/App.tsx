@@ -25,6 +25,7 @@ import Consent from './pages/legal/Consent'
 import About from './pages/About'
 import News from './pages/News'
 import Documents from './pages/Documents'
+import Placeholder from './pages/Placeholder'
 
 export default function App() {
   return (
@@ -86,6 +87,11 @@ export default function App() {
         <Route path="/materials/:slug" element={<MaterialDetail />} />
         <Route path="/events/contacts" element={<Contacts eyebrow="Мероприятия" sourceBlock="events" />} />
         <Route path="/events/documents" element={<Documents />} />
+        <Route path="/events/ticket-refund" element={<Placeholder eyebrow="Афиша" title="Возврат билета" />} />
+        <Route path="/events/research" element={<Placeholder eyebrow="Афиша" title="Участие в исследованиях" />} />
+        <Route path="/events/ticketing" element={<Placeholder eyebrow="Афиша" title="Билетная система" />} />
+        <Route path="/events/opportunities" element={<Placeholder eyebrow="Организаторам" title="Возможности" />} />
+        <Route path="/events/advertising" element={<Placeholder eyebrow="Организаторам" title="Реклама" />} />
 
         {/* Общие информационные страницы */}
         <Route path="/about" element={<About />} />

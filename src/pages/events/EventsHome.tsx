@@ -171,6 +171,36 @@ function IconCart() {
   )
 }
 
+function IconTelegram() {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
+      <path d="M21.5 3.5 2.7 11.2c-1.2.5-1.2 1.2-.2 1.5l4.8 1.5 1.8 5.6c.2.6.4.9.9.9.5 0 .7-.2 1-.5l2.4-2.3 4.9 3.6c.9.5 1.5.2 1.7-.8L23.9 4.9c.3-1.3-.5-1.9-1.4-1.4z" />
+    </svg>
+  )
+}
+function IconVk() {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
+      <path d="M13.2 17.3c-5.4 0-8.6-3.7-8.7-9.9h2.8c.1 4.5 2.1 6.4 3.6 6.8v-6.8h2.6v3.9c1.5-.2 3.1-2 3.6-3.9h2.6c-.4 2.3-2.1 4.1-3.3 4.9 1.2.6 3.1 2.2 3.9 4.9h-2.9c-.6-1.8-2-3.2-3.9-3.4v3.4z" />
+    </svg>
+  )
+}
+function IconYoutube() {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
+      <path d="M22 12s0-3-.4-4.4a2.9 2.9 0 0 0-2-2C17.9 5 12 5 12 5s-5.9 0-7.6.6a2.9 2.9 0 0 0-2 2C2 9 2 12 2 12s0 3 .4 4.4a2.9 2.9 0 0 0 2 2C6.1 19 12 19 12 19s5.9 0 7.6-.6a2.9 2.9 0 0 0 2-2C22 15 22 12 22 12z" opacity=".18" />
+      <path d="M10 15.2V8.8L15.8 12z" />
+    </svg>
+  )
+}
+function IconTiktok() {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
+      <path d="M16.5 2h-3v13.6a2.6 2.6 0 1 1-2-2.5v-3a5.6 5.6 0 1 0 5 5.6V9c1 .7 2.2 1.1 3.5 1.1V7a3.5 3.5 0 0 1-3.5-3.5z" />
+    </svg>
+  )
+}
+
 export default function EventsHome() {
   const [tab, setTab] = useState<(typeof eventTabs)[number]['id']>('poster')
 
@@ -487,6 +517,81 @@ export default function EventsHome() {
         </section>
       )}
 
+      {/* Подвал раздела «Мероприятия» — вместо общего футера сайта (отключен для
+          этой страницы в Layout), поэтому здесь же дублируется юридический блок
+          и копирайт. Каждая строка — рабочая ссылка, ни одной серой заглушки. */}
+      <footer className="border-t border-white/10 bg-ink text-white/80">
+        <div className="container-page grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-6">
+          <div>
+            <div className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">Афиша</div>
+            <ul className="space-y-2 text-sm">
+              <li><button type="button" onClick={() => { setTab('poster'); setQuick('all'); window.scrollTo(0, 0) }} className="hover:text-white">Все события</button></li>
+              <li><button type="button" onClick={() => { setTab('poster'); document.getElementById('all-events')?.scrollIntoView({ behavior: 'smooth' }) }} className="hover:text-white">Категории мероприятий</button></li>
+              <li><Link className="hover:text-white" to="/events/ticket-refund">Возврат билета</Link></li>
+              <li><Link className="hover:text-white" to="/events/research">Участие в исследованиях</Link></li>
+              <li><Link className="hover:text-white" to="/events/ticketing">Билетная система</Link></li>
+            </ul>
+          </div>
+
+          <div>
+            <div className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">Организаторам</div>
+            <ul className="space-y-2 text-sm">
+              <li><button type="button" onClick={() => { setTab('create'); window.scrollTo(0, 0) }} className="hover:text-white">Создать событие</button></li>
+              <li><Link className="hover:text-white" to="/events/opportunities">Возможности</Link></li>
+              <li><Link className="hover:text-white" to="/events/advertising">Реклама</Link></li>
+            </ul>
+          </div>
+
+          <div>
+            <div className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">Мероприятия</div>
+            <ul className="space-y-2 text-sm">
+              <li><Link className="hover:text-white" to="/about">О нас</Link></li>
+              <li><Link className="hover:text-white" to="/blog">Блог</Link></li>
+              <li><Link className="hover:text-white" to="/news">Новости</Link></li>
+              <li><Link className="hover:text-white" to="/events/documents">Документы</Link></li>
+            </ul>
+          </div>
+
+          <div>
+            <div className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">Помощь</div>
+            <ul className="space-y-2 text-sm">
+              <li><Link className="hover:text-white" to="/events/contacts">Задать вопрос</Link></li>
+              <li><Link className="hover:text-white" to="/events/knowledge">База знаний</Link></li>
+            </ul>
+          </div>
+
+          <div>
+            <div className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">Новости</div>
+            <div className="flex gap-2.5">
+              <a href="https://t.me/legalcareerst_support" target="_blank" rel="noreferrer" aria-label="Telegram" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 hover:text-white">
+                <IconTelegram />
+              </a>
+              <a href="https://vk.com/legalcareerist" target="_blank" rel="noreferrer" aria-label="ВКонтакте" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 hover:text-white">
+                <IconVk />
+              </a>
+              <a href="https://youtube.com/@legalcareerist" target="_blank" rel="noreferrer" aria-label="YouTube" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 hover:text-white">
+                <IconYoutube />
+              </a>
+              <a href="https://tiktok.com/@legalcareerist" target="_blank" rel="noreferrer" aria-label="TikTok" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 hover:text-white">
+                <IconTiktok />
+              </a>
+            </div>
+          </div>
+
+          <div>
+            <div className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">Юридический блок</div>
+            <ul className="space-y-2 text-sm">
+              <li><Link className="hover:text-white" to="/legal/privacy">Политика обработки персональных данных</Link></li>
+              <li><Link className="hover:text-white" to="/legal/consent">Согласие на обработку персональных данных</Link></li>
+            </ul>
+          </div>
+        </div>
+        <div className="border-t border-white/10 py-5">
+          <div className="container-page text-center text-xs text-white/40">
+            <span>© {new Date().getFullYear()} ИП Руденков И.В. Карьерный Юрист.</span>
+          </div>
+        </div>
+      </footer>
     </div>
   )
 }
