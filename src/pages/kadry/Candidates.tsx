@@ -7,7 +7,12 @@ import FAQSection from '../../components/FAQSection'
 import { TagRow } from '../../components/Tag'
 import LeadForm from '../../components/LeadForm'
 import { vacancies } from '../../data/vacancies'
-import { SPECIALIZATIONS, EMPLOYMENT_TYPES, type Specialization, type WorkFormat, type EmploymentType } from '../../types'
+import {
+  SPECIALIZATIONS, EMPLOYMENT_TYPES, WORK_SCHEDULES, EXPERIENCE_BUCKETS, EDUCATION_LEVELS,
+  COMPANY_INDUSTRY_TREE,
+  type Specialization, type WorkFormat, type EmploymentType, type WorkSchedule,
+  type ExperienceBucket, type EducationLevel,
+} from '../../types'
 import KnowledgeList from '../KnowledgeList'
 import CareerReserve from './CareerReserve'
 import CareerConsultation from './CareerConsultation'
@@ -94,19 +99,22 @@ const candidateTabs = [
   { id: 'account', label: 'Личный кабинет', icon: IconAccountCircle },
 ] as const
 
-const CITIES = ['Санкт-Петербург', 'Москва', 'Екатеринбург', 'Казань']
+// Раздел «Вакансии» на стороне соискателя — тот же справочник направлений,
+// формат/занятость/город/опыт/образование/отрасль компании, что и на доске вакансий.
+const vacancySpecIds: Specialization[] = ['inhouse', 'consulting', 'advocacy', 'notary', 'law_enforcement', 'government']
+const vacancySpecs = vacancySpecIds.map((id) => SPECIALIZATIONS.find((s) => s.id === id)!)
 
-const formats: { id: WorkFormat | 'any'; label: string }[] = [
-  { id: 'any', label: 'Формат' },
-  { id: 'office', label: 'Офлайн' },
-  { id: 'remote', label: 'Онлайн' },
+const CITIES = ['Москва', 'Санкт-Петербург', 'Екатеринбург']
+
+const formats: { id: WorkFormat; label: string }[] = [
+  { id: 'office', label: 'Офис' },
   { id: 'hybrid', label: 'Гибрид' },
+  { id: 'remote', label: 'Дистанционно' },
 ]
 
-const employments: { id: EmploymentType | 'any'; label: string }[] = [
-  { id: 'any', label: 'Занятость' },
-  ...EMPLOYMENT_TYPES,
-]
+function parseMinSalary(text: string) {
+  return Number(text.replace(/\D/g, '')) || 0
+}
 
 export default function Candidates() {
   const [tab, setTab] = useState<(typeof candidateTabs)[number]['id']>('overview')
@@ -118,9 +126,33 @@ export default function Candidates() {
 
   const [spec, setSpec] = useState<Specialization | 'all'>('all')
   const [format, setFormat] = useState<WorkFormat | 'any'>('any')
+  const [schedule, setSchedule] = useState<WorkSchedule | 'any'>('any')
   const [employment, setEmployment] = useState<EmploymentType | 'any'>('any')
   const [city, setCity] = useState('')
-  const [minSalary, setMinSalary] = useState(0)
+  const [experience, setExperience] = useState<ExperienceBucket | 'any'>('any')
+  const [salaryText, setSalaryText] = useState('')
+  const [educationSel, setEducationSel] = useState<Set<EducationLevel>>(new Set())
+  const [industrySel, setIndustrySel] = useState<Set<string>>(new Set())
+
+  function toggleEducation(id: EducationLevel) {
+    setEducationSel((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function toggleIndustry(label: string) {
+    setIndustrySel((prev) => {
+      const next = new Set(prev)
+      if (next.has(label)) next.delete(label)
+      else next.add(label)
+      return next
+    })
+  }
+
+  const minSalary = parseMinSalary(salaryText)
   const [selectedVacancySlug, setSelectedVacancySlug] = useState<string | null>(null)
   const selectedVacancy = vacancies.find((v) => v.slug === selectedVacancySlug) ?? null
   // Открытие конкретной вакансии подменяет список ее карточкой прямо на месте
@@ -135,12 +167,16 @@ export default function Candidates() {
       if (v.status !== 'open') return false
       if (spec !== 'all' && !v.specialization.includes(spec)) return false
       if (format !== 'any' && v.format !== format) return false
+      if (schedule !== 'any' && v.schedule !== schedule) return false
       if (employment !== 'any' && v.employment !== employment) return false
       if (city && v.city !== city) return false
-      if (minSalary > 0 && (v.salaryFrom ?? 0) < minSalary) return false
+      if (experience !== 'any' && v.experience !== experience) return false
+      if (educationSel.size > 0 && !v.education.some((e) => educationSel.has(e))) return false
+      if (industrySel.size > 0 && !v.companyIndustry.some((t) => industrySel.has(t))) return false
+      if (minSalary > 0 && (v.salaryFrom ?? 0) < minSalary && (v.salaryTo ?? 0) < minSalary) return false
       return true
     })
-  }, [spec, format, employment, city, minSalary])
+  }, [spec, format, schedule, employment, city, experience, educationSel, industrySel, minSalary])
 
   return (
     <div>
@@ -284,8 +320,8 @@ export default function Candidates() {
             Вакансии открываются по приоритету: сначала их видят резиденты Сообщества, затем — кадровый
             резерв, и только после этого — открытый доступ (см. вкладку «Кадровый резерв»).
           </div>
-          <div className="glass mb-8 rounded-xl p-4">
-            <div className="flex flex-wrap items-center gap-3">
+          <div className="glass mb-8 space-y-4 rounded-xl p-4">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               <select
                 value={spec}
                 onChange={(e) => setSpec(e.target.value as Specialization | 'all')}
@@ -293,7 +329,7 @@ export default function Candidates() {
               >
                 <option value="all" disabled hidden>Направление</option>
                 {spec !== 'all' && <option value="all">Все направления</option>}
-                {SPECIALIZATIONS.map((s) => (
+                {vacancySpecs.map((s) => (
                   <option key={s.id} value={s.id}>{s.label}</option>
                 ))}
               </select>
@@ -304,8 +340,19 @@ export default function Candidates() {
               >
                 <option value="any" disabled hidden>Формат</option>
                 {format !== 'any' && <option value="any">Любой формат</option>}
-                {formats.filter((f) => f.id !== 'any').map((f) => (
+                {formats.map((f) => (
                   <option key={f.id} value={f.id}>{f.label}</option>
+                ))}
+              </select>
+              <select
+                value={schedule}
+                onChange={(e) => setSchedule(e.target.value as WorkSchedule | 'any')}
+                className="rounded-lg border border-ink/15 px-3 py-2 text-sm"
+              >
+                <option value="any" disabled hidden>График</option>
+                {schedule !== 'any' && <option value="any">Любой график</option>}
+                {WORK_SCHEDULES.map((s) => (
+                  <option key={s.id} value={s.id}>{s.label}</option>
                 ))}
               </select>
               <select
@@ -315,7 +362,7 @@ export default function Candidates() {
               >
                 <option value="any" disabled hidden>Занятость</option>
                 {employment !== 'any' && <option value="any">Любая занятость</option>}
-                {employments.filter((f) => f.id !== 'any').map((f) => (
+                {EMPLOYMENT_TYPES.map((f) => (
                   <option key={f.id} value={f.id}>{f.label}</option>
                 ))}
               </select>
@@ -328,20 +375,75 @@ export default function Candidates() {
                 {city && <option value="">Все города</option>}
                 {CITIES.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
-              <div className="ml-auto text-sm text-ink/50">{filteredVacancies.length} вакансий</div>
+              <select
+                value={experience}
+                onChange={(e) => setExperience(e.target.value as ExperienceBucket | 'any')}
+                className="rounded-lg border border-ink/15 px-3 py-2 text-sm"
+              >
+                <option value="any" disabled hidden>Опыт работы</option>
+                {experience !== 'any' && <option value="any">Любой опыт</option>}
+                {EXPERIENCE_BUCKETS.map((b) => (
+                  <option key={b.id} value={b.id}>{b.label}</option>
+                ))}
+              </select>
             </div>
-            <label className="mt-4 block text-sm text-ink/60">
-              Зарплата от {minSalary > 0 ? `${money.format(minSalary)} ₽` : 'любой'}
-              <input
-                type="range"
-                min={0}
-                max={150000}
-                step={5000}
-                value={minSalary}
-                onChange={(e) => setMinSalary(Number(e.target.value))}
-                className="mt-2 w-full accent-ink"
-              />
-            </label>
+
+            <input
+              value={salaryText}
+              onChange={(e) => setSalaryText(e.target.value)}
+              placeholder="Уровень заработной платы, ₽ (например, 100 000)"
+              className="w-full rounded-lg border border-ink/15 px-3 py-2 text-sm sm:max-w-xs"
+            />
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="rounded-lg border border-ink/15 p-3">
+                <div className="mb-2 text-sm font-medium text-ink/70">Отрасль компании</div>
+                <div className="max-h-56 space-y-2 overflow-y-auto pr-1">
+                  {COMPANY_INDUSTRY_TREE.map((group) => (
+                    <div key={group.category}>
+                      <label className="flex items-center gap-2 text-sm font-medium text-ink">
+                        <input
+                          type="checkbox"
+                          checked={industrySel.has(group.category)}
+                          onChange={() => toggleIndustry(group.category)}
+                        />
+                        {group.category}
+                      </label>
+                      <div className="ml-5 mt-1 space-y-1">
+                        {group.items.map((item) => (
+                          <label key={item} className="flex items-center gap-2 text-sm text-ink/60">
+                            <input
+                              type="checkbox"
+                              checked={industrySel.has(item)}
+                              onChange={() => toggleIndustry(item)}
+                            />
+                            {item}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-ink/15 p-3">
+                <div className="mb-2 text-sm font-medium text-ink/70">Образование</div>
+                <div className="flex flex-wrap gap-x-4 gap-y-2">
+                  {EDUCATION_LEVELS.map((e) => (
+                    <label key={e.id} className="flex items-center gap-2 text-sm text-ink/70">
+                      <input
+                        type="checkbox"
+                        checked={educationSel.has(e.id)}
+                        onChange={() => toggleEducation(e.id)}
+                      />
+                      {e.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="text-sm text-ink/50">{filteredVacancies.length} вакансий</div>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
