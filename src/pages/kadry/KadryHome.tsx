@@ -204,7 +204,7 @@ function contactPrice(exp: string) {
 
 const cities = ['Москва', 'Санкт-Петербург']
 const schedules = ['Гибкий', 'Полный']
-const employments = ['Частичная занятость', 'Полная занятость']
+const employments = ['Полная занятость', 'Частичная занятость', 'Проектная занятость']
 const formats: string[] = ['Офис', 'Гибрид', 'Дистанционно']
 
 const demoCandidates = Array.from({ length: 30 }, (_, i) => {
@@ -219,7 +219,11 @@ const demoCandidates = Array.from({ length: 30 }, (_, i) => {
   }
 })
 
-const schools = ['МГУ', 'СПбГУ', 'МГЮА']
+const schools = [
+  'МГУ', 'СПбГУ', 'НИУ ВШЭ', 'МГИМО', 'МГЮА', 'РАНХиГС',
+  'Финансовый университет', 'РУДН', 'Казанский федеральный университет',
+  'РГУП', 'УрГЮУ', 'РПА', 'РЭУ',
+]
 const positionOptions = Array.from(new Set(candidateTemplates.map((t) => t.position)))
 function parseSalary(s: string) {
   return Number(s.replace(/\D/g, '')) || 0
@@ -234,7 +238,7 @@ const valueProps = [
 const kpis = [
   { value: '5,5 дней', label: 'Time to Hire — среднее время закрытия вакансии', group: 'Операционный' },
   { value: '89%', label: 'Конверсия интервью в оффер', group: 'Операционный' },
-  { value: '100%', label: 'Доля кандидатов, прошедших испытательный срок', group: 'Качественный' },
+  { value: '97%', label: 'Доля кандидатов, прошедших испытательный срок', group: 'Качественный' },
 ]
 
 const kadryAdvantages = [
@@ -307,6 +311,24 @@ export default function KadryHome() {
   const prepay = Math.round(fee * 0.75)
   const afterProbation = fee - prepay
 
+  // «Оформить услугу» — лид-заявка из калькулятора, центрированная модалка.
+  const [serviceModalOpen, setServiceModalOpen] = useState(false)
+  const [serviceForm, setServiceForm] = useState({ company: '', fio: '', phone: '', email: '', telegram: '' })
+  const [serviceSent, setServiceSent] = useState(false)
+
+  function handleServiceSubmit(e: FormEvent) {
+    e.preventDefault()
+    if (!serviceForm.company.trim() || !serviceForm.fio.trim() || (!serviceForm.phone.trim() && !serviceForm.email.trim())) return
+    submitLead({
+      sourceBlock: 'kadry',
+      formType: 'service_order',
+      name: serviceForm.fio,
+      contact: [serviceForm.phone, serviceForm.email, serviceForm.telegram].filter(Boolean).join(' / '),
+      interest: [serviceForm.company, `Заработная плата кандидата: ${salary.toLocaleString('ru-RU')} ₽/мес`, `Итого: ${fee.toLocaleString('ru-RU')} ₽`],
+    })
+    setServiceSent(true)
+  }
+
   const [form, setForm] = useState({ name: '', email: '', phone: '', position: '' })
   const [sent, setSent] = useState(false)
 
@@ -366,7 +388,7 @@ export default function KadryHome() {
   // контакты уже без повторной регистрации.
   const [employerRegistered, setEmployerRegistered] = useState(false)
   const [registeringId, setRegisteringId] = useState<number | null>(null)
-  const [employerForm, setEmployerForm] = useState({ company: '', contact: '', phone: '', email: '' })
+  const [employerForm, setEmployerForm] = useState({ company: '', contact: '', phone: '', email: '', telegram: '' })
 
   function doUnlock(id: number) {
     const c = demoCandidates.find((cand) => cand.id === id)
@@ -375,7 +397,7 @@ export default function KadryHome() {
       sourceBlock: 'kadry',
       formType: 'candidate_contact_unlock',
       name: employerForm.contact || 'Работодатель',
-      contact: [employerForm.phone, employerForm.email].filter(Boolean).join(' / ') || '—',
+      contact: [employerForm.phone, employerForm.email, employerForm.telegram].filter(Boolean).join(' / ') || '—',
       interest: [`Открыть контакт кандидата #${id} — ${price.toLocaleString('ru-RU')} ₽`, employerForm.company].filter(Boolean),
     })
     setUnlocked((u) => ({ ...u, [id]: true }))
@@ -395,19 +417,6 @@ export default function KadryHome() {
     setEmployerRegistered(true)
     setRegisteringId(null)
     doUnlock(id)
-  }
-
-  // Быстрый заказ подбора прямо со списка позиций — появляется при наведении.
-  const [orderedPositions, setOrderedPositions] = useState<Record<string, boolean>>({})
-  function handleOrderPosition(title: string) {
-    submitLead({
-      sourceBlock: 'kadry',
-      formType: 'position_order',
-      name: 'Работодатель',
-      contact: '—',
-      interest: [title],
-    })
-    setOrderedPositions((s) => ({ ...s, [title]: true }))
   }
 
   return (
@@ -455,7 +464,7 @@ export default function KadryHome() {
 
           <div className="glass-dark mb-6 grid gap-3 rounded-xl p-5 sm:grid-cols-3 lg:grid-cols-6">
             <select value={fCity} onChange={(e) => setFCity(e.target.value)} className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white outline-none focus:border-white/40">
-              <option value="" disabled hidden>Города</option>
+              <option value="" disabled hidden>Город</option>
               {fCity && <option value="" className="text-ink">Все города</option>}
               {cities.map((v) => <option key={v} value={v} className="text-ink">{v}</option>)}
             </select>
@@ -564,7 +573,7 @@ export default function KadryHome() {
                           <input
                             value={employerForm.contact}
                             onChange={(ev) => setEmployerForm((f) => ({ ...f, contact: ev.target.value }))}
-                            placeholder="Контактное лицо"
+                            placeholder="ФИО"
                             required
                             className="w-full rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white outline-none placeholder:text-white/40 focus:border-white/40"
                           />
@@ -573,7 +582,7 @@ export default function KadryHome() {
                               type="tel"
                               value={employerForm.phone}
                               onChange={(ev) => setEmployerForm((f) => ({ ...f, phone: ev.target.value }))}
-                              placeholder="Телефон"
+                              placeholder="Номер телефона"
                               className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white outline-none placeholder:text-white/40 focus:border-white/40"
                             />
                             <input
@@ -584,6 +593,12 @@ export default function KadryHome() {
                               className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white outline-none placeholder:text-white/40 focus:border-white/40"
                             />
                           </div>
+                          <input
+                            value={employerForm.telegram}
+                            onChange={(ev) => setEmployerForm((f) => ({ ...f, telegram: ev.target.value }))}
+                            placeholder="Telegram"
+                            className="w-full rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white outline-none placeholder:text-white/40 focus:border-white/40"
+                          />
                           <button type="submit" className="w-full rounded-full bg-gold-light py-2.5 text-sm font-semibold text-ink hover:opacity-90">
                             Открыть контакт — {contactPrice(c.exp).toLocaleString('ru-RU')} ₽
                           </button>
@@ -662,29 +677,9 @@ export default function KadryHome() {
       <section id="about" className="border-y border-white/10 py-12">
         <div className="container-page">
           <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold-light">О компании</div>
-          <h2 className="mb-6 text-2xl font-semibold text-white">Почему работодатели выбирают нас</h2>
-          <div className="mx-auto max-w-3xl overflow-hidden rounded-2xl border border-white/10">
-            <div className="grid grid-cols-2 divide-x divide-white/10">
-              <div className="bg-white/[0.03] p-5 text-center text-sm font-semibold text-white/50">Обычный рекрутер</div>
-              <div className="bg-gold-light/15 p-5 text-center text-sm font-semibold text-white">Карьерный Юрист</div>
-            </div>
-            {[
-              ['Универсальный подбор на любом рынке', 'Только юридический рынок — знаем специфику профессии'],
-              ['Кандидаты — отклики с открытых job-бордов', 'Собственная база 8 000+ и живое сообщество студентов-юристов'],
-              ['Закрытие вакансии — недели', 'На это уходит неделя'],
-              ['Замена кандидата — платно и по отдельным договоренностям', 'Бесплатная замена в согласованные сроки, включена в стоимость'],
-            ].map(([bad, good]) => (
-              <div key={good} className="grid grid-cols-2 divide-x divide-white/10 border-t border-white/10 text-sm">
-                <div className="flex items-start gap-2 p-5 text-white/40">
-                  <span className="mt-0.5 shrink-0">✕</span>
-                  <span>{bad}</span>
-                </div>
-                <div className="flex items-start gap-2 bg-gold-light/[0.06] p-5 text-white/80">
-                  <span className="mt-0.5 shrink-0 font-bold text-emerald-400">✓</span>
-                  <span>{good}</span>
-                </div>
-              </div>
-            ))}
+          {/* Контент раздела уточняется — временно пусто по просьбе клиента. */}
+          <div className="rounded-2xl border border-dashed border-white/15 p-10 text-center text-sm text-white/30">
+            Раздел «О компании» — наполнение уточняется
           </div>
         </div>
       </section>
@@ -770,19 +765,11 @@ export default function KadryHome() {
           <h2 className="mb-6 text-2xl font-semibold text-white">Закрываем следующие позиции</h2>
           <div className="grid gap-3 sm:grid-cols-2">
             {positions.map((p) => (
-              <div key={p.title} className="group rounded-lg bg-white/10 px-4 py-3 text-sm">
+              <div key={p.title} className="rounded-lg bg-white/10 px-4 py-3 text-sm">
                 <div className="flex items-center justify-between gap-3 whitespace-nowrap">
                   <span className="truncate font-medium text-white">{p.title}</span>
                   <span className="shrink-0 text-white/50">{p.salary}</span>
                 </div>
-                {/* Появляется при наведении — быстрый заказ подбора на эту позицию */}
-                <button
-                  type="button"
-                  onClick={() => handleOrderPosition(p.title)}
-                  className="mt-0 block max-h-0 w-full overflow-hidden rounded-md bg-gold-light text-xs font-semibold text-ink opacity-0 transition-all duration-200 group-hover:mt-2 group-hover:max-h-8 group-hover:py-1.5 group-hover:opacity-100"
-                >
-                  {orderedPositions[p.title] ? 'Заявка отправлена' : 'Заказать'}
-                </button>
               </div>
             ))}
           </div>
@@ -895,16 +882,18 @@ export default function KadryHome() {
       {/* Цены */}
       <section id="pricing" className="border-y border-white/10 py-12">
         <div className="container-page">
-          <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold-light">Цены</div>
-          <h2 className="mb-6 text-2xl font-semibold text-white">Прозрачная система оплаты и гарантий</h2>
           <div className="grid gap-8 lg:grid-cols-2 lg:items-start">
-            <ul className="space-y-3 pt-1 text-sm text-white/70">
+            <div>
+            <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold-light">Цены</div>
+            <h2 className="mb-6 text-2xl font-semibold text-white">Прозрачная система оплаты и гарантий</h2>
+            <ul className="space-y-3 text-sm text-white/70">
               <li><strong className="text-white">Оплата за результат</strong> — 30% от одного месячного оклада кандидата: 75% предоплата до начала работ, 25% после прохождения испытательного срока.</li>
               <li><strong className="text-white">Бесплатная замена</strong> — если кандидат не проходит испытательный срок, подбираем замену бесплатно в согласованные сроки.</li>
               <li><strong className="text-white">Прозрачная отчетность</strong> — регулярно сообщаем о ходе поиска; если подходящих кандидатов нет — честно предупреждаем.</li>
             </ul>
+            </div>
 
-            <div className="glass-dark mx-auto w-full max-w-sm rounded-2xl p-6 lg:-mt-1">
+            <div className="glass-dark mx-auto w-full max-w-sm rounded-2xl p-6">
               <label className="block text-sm font-semibold text-white">
                 Заработная плата, ₽/мес
                 <input
@@ -935,12 +924,12 @@ export default function KadryHome() {
                   />
                 </svg>
 
-                <div className="grid grid-cols-2 gap-2.5">
-                  <div className="rounded-xl border border-white/15 bg-white/10 p-3 text-center text-white">
+                <div className="grid grid-cols-2 items-stretch gap-2.5">
+                  <div className="flex flex-col justify-between rounded-xl border border-white/15 bg-white/10 p-3 text-center text-white">
                     <div className="text-xs text-white/60">75% предоплата</div>
                     <div className="mt-0.5 text-xl font-bold text-white">{prepay.toLocaleString('ru-RU')} ₽</div>
                   </div>
-                  <div className="rounded-xl border border-white/15 bg-white/10 p-3 text-center text-white">
+                  <div className="flex flex-col justify-between rounded-xl border border-white/15 bg-white/10 p-3 text-center text-white">
                     <div className="text-[11px] leading-snug text-white/60">25% после испытательного срока</div>
                     <div className="mt-0.5 text-xl font-bold text-white">{afterProbation.toLocaleString('ru-RU')} ₽</div>
                   </div>
@@ -950,6 +939,13 @@ export default function KadryHome() {
               <div className="mt-4 border-t border-white/10 pt-4">
                 <div className="text-xs uppercase tracking-wide text-white/50">Итого к оплате за подбор</div>
                 <div className="mt-0.5 text-3xl font-bold text-white">{fee.toLocaleString('ru-RU')} ₽</div>
+                <button
+                  type="button"
+                  onClick={() => setServiceModalOpen(true)}
+                  className="mt-4 w-full rounded-lg bg-gold-light py-2.5 text-sm font-semibold text-ink hover:opacity-90"
+                >
+                  Оформить услугу
+                </button>
               </div>
             </div>
           </div>
@@ -1022,6 +1018,90 @@ export default function KadryHome() {
           </div>
         </div>
       </section>
+
+      {/* Модалка «Оформить услугу» — центрированная лид-заявка из калькулятора */}
+      {serviceModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-ink/70 p-0 sm:items-center sm:p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setServiceModalOpen(false)
+          }}
+        >
+          <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-white p-6 text-ink sm:rounded-2xl sm:p-8">
+            {serviceSent ? (
+              <div className="py-4 text-center">
+                <div className="mb-3 flex justify-center">
+                  <span className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-2xl text-emerald-600">✓</span>
+                </div>
+                <div className="font-semibold">Заявка отправлена</div>
+                <p className="mt-2 text-sm text-ink/60">Мы свяжемся с вами, чтобы согласовать детали и запустить поиск.</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setServiceModalOpen(false)
+                    setServiceSent(false)
+                    setServiceForm({ company: '', fio: '', phone: '', email: '', telegram: '' })
+                  }}
+                  className="mt-6 rounded-full bg-ink px-6 py-2.5 text-sm font-semibold text-white"
+                >
+                  Закрыть
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="mb-4 flex items-center justify-between">
+                  <h3 className="text-lg font-semibold">Оформить услугу</h3>
+                  <button type="button" onClick={() => setServiceModalOpen(false)} className="text-ink/40 hover:text-ink" aria-label="Закрыть">✕</button>
+                </div>
+                <div className="mb-5 flex items-center justify-between rounded-lg bg-ink/[0.04] px-4 py-3 text-sm">
+                  <span className="text-ink/60">Заработная плата {salary.toLocaleString('ru-RU')} ₽/мес</span>
+                  <span className="text-base font-semibold text-ink">{fee.toLocaleString('ru-RU')} ₽</span>
+                </div>
+                <form onSubmit={handleServiceSubmit} className="grid gap-3">
+                  <input
+                    value={serviceForm.company}
+                    onChange={(e) => setServiceForm((f) => ({ ...f, company: e.target.value }))}
+                    placeholder="Компания"
+                    required
+                    className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+                  />
+                  <input
+                    value={serviceForm.fio}
+                    onChange={(e) => setServiceForm((f) => ({ ...f, fio: e.target.value }))}
+                    placeholder="ФИО"
+                    required
+                    className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+                  />
+                  <input
+                    type="tel"
+                    value={serviceForm.phone}
+                    onChange={(e) => setServiceForm((f) => ({ ...f, phone: e.target.value }))}
+                    placeholder="Номер телефона"
+                    className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+                  />
+                  <input
+                    type="email"
+                    value={serviceForm.email}
+                    onChange={(e) => setServiceForm((f) => ({ ...f, email: e.target.value }))}
+                    placeholder="Почта"
+                    className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+                  />
+                  <input
+                    value={serviceForm.telegram}
+                    onChange={(e) => setServiceForm((f) => ({ ...f, telegram: e.target.value }))}
+                    placeholder="Telegram"
+                    className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+                  />
+                  <button type="submit" className="rounded-full bg-ink py-3 text-sm font-semibold text-white transition-colors hover:bg-ink/90">
+                    Отправить заявку
+                  </button>
+                  <p className="text-xs text-ink/50">Нажимая «Отправить заявку», вы соглашаетесь на обработку персональных данных.</p>
+                </form>
+              </>
+            )}
+          </div>
+        </div>
+      )}
       </>
       )}
     </div>

@@ -91,11 +91,12 @@ function AchievementsBoard() {
 
   return (
     <div className="overflow-hidden rounded-2xl bg-ink text-white">
-      <div className="mx-auto flex min-h-[320px] max-w-2xl flex-col justify-between p-8 text-center sm:min-h-[360px] sm:p-12">
+      <div className="mx-auto flex min-h-[160px] max-w-2xl flex-col justify-between p-5 text-center sm:min-h-[180px] sm:p-6">
         <div className="text-xs uppercase tracking-wide text-white/40">{current.source}</div>
         <div key={active} className="animate-board-fade">
-          <div className="text-xl font-semibold sm:text-2xl">Номинация «{current.nomination}»</div>
-          <div className="mt-3 text-7xl font-bold text-gold-light sm:text-8xl">{current.place}</div>
+          <div className="text-lg font-semibold sm:text-xl">
+            Номинация «{current.nomination}» — <span className="text-gold-light">{current.place}</span>
+          </div>
         </div>
         <div className="flex justify-center gap-1.5">
           {achievements.map((a, i) => (
