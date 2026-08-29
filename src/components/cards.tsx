@@ -86,6 +86,7 @@ export const materialKindLabel: Record<MaterialItem['kind'], string> = {
   longlist: 'Лонглист',
   article: 'Статья',
   webinar: 'Вебинар',
+  presentation: 'Презентация',
 }
 
 export function MaterialCard({ m }: { m: MaterialItem }) {

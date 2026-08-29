@@ -1,20 +1,29 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import PageHero from '../components/PageHero'
 import { materials } from '../data/materials'
 import { materialKindLabel } from '../components/cards'
-import type { MaterialItem, MaterialKind } from '../types'
+import { MARKETPLACE_DIRECTIONS, type MaterialItem, type MaterialKind, type MarketplaceDirection } from '../types'
 
 const money = new Intl.NumberFormat('ru-RU')
 
-// Витрина маркетплейса — блоки-подкатегории в духе Ozon/Amazon: карточка
-// товара с рейтингом, числом покупок и ценой, вместо голого списка ссылок.
-const sections: { kind: MaterialKind; title: string; text: string }[] = [
-  { kind: 'guide', title: 'Гайды', text: 'Развернутые разборы конкретной карьерной задачи — от смены практики до личного бренда.' },
-  { kind: 'checklist', title: 'Чек-листы', text: 'Короткие практические списки, которые можно применить сразу.' },
-  { kind: 'longlist', title: 'Лонглисты', text: 'Подборки компаний и программ с контактами — экономят недели самостоятельного поиска.' },
-  { kind: 'article', title: 'Статьи', text: 'Разборы конкретных карьерных ситуаций на цифрах и примерах.' },
-  { kind: 'webinar', title: 'Вебинары', text: 'Часть — в бесплатном доступе, часть — запись, материалы или все вместе.' },
+const categoryOptions: { id: MaterialKind; label: string }[] = [
+  { id: 'guide', label: 'Гайды' },
+  { id: 'checklist', label: 'Чек-листы' },
+  { id: 'longlist', label: 'Лонг-листы' },
+  { id: 'article', label: 'Статьи' },
+  { id: 'webinar', label: 'Вебинары' },
+  { id: 'presentation', label: 'Презентации' },
 ]
+
+function IconAccount() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+      <circle cx="12" cy="8" r="3.5" />
+      <path d="M4.5 20c0-3.9 3.4-6.5 7.5-6.5s7.5 2.6 7.5 6.5" />
+    </svg>
+  )
+}
 
 function Stars({ rating }: { rating: number }) {
   return (
@@ -32,35 +41,28 @@ function ProductCard({ m, onOpen }: { m: MaterialItem; onOpen: (m: MaterialItem)
   const free = m.price === 0 && !m.sale
   const fromPrice = m.sale ? Math.min(...Object.values(m.sale).filter((v): v is number => v !== undefined)) : m.price
   return (
-    <div className="glass flex flex-col rounded-xl p-5">
-      <div className="mb-3 flex h-28 items-center justify-center rounded-lg bg-gradient-to-br from-ink to-gold text-white">
+    <div className="glass flex flex-col overflow-hidden rounded-xl">
+      <div className="flex h-32 items-center justify-center bg-gradient-to-br from-ink to-gold text-white">
         <span className="text-xs font-semibold uppercase tracking-wide opacity-80">{materialKindLabel[m.kind]}</span>
       </div>
-      <h3 className="font-semibold leading-snug">{m.title}</h3>
-      <p className="mt-1.5 line-clamp-2 text-sm text-ink/60">{m.description}</p>
+      <div className="flex flex-1 flex-col p-5">
+        <h3 className="font-semibold leading-snug">{m.title}</h3>
+        <p className="mt-1.5 line-clamp-2 text-sm text-ink/60">{m.description}</p>
 
-      {m.rating !== undefined && (
-        <div className="mt-2 flex items-center gap-2 text-xs text-ink/50">
-          <Stars rating={m.rating} />
-          <span>{m.rating.toFixed(1)}</span>
-          {m.reviewsCount !== undefined && <span>· {m.reviewsCount} отзывов</span>}
-          {m.qnaCount !== undefined && <span>· {m.qnaCount} вопросов</span>}
-        </div>
-      )}
-      {m.purchases !== undefined && (
-        <div className="mt-1 text-xs text-ink/40">Купили {m.purchases}+ раз</div>
-      )}
+        {m.rating !== undefined && (
+          <div className="mt-2 flex items-center gap-2 text-xs text-ink/50">
+            <Stars rating={m.rating} />
+            <span>{m.rating.toFixed(1)}</span>
+            {m.reviewsCount !== undefined && <span>· {m.reviewsCount} отзывов</span>}
+          </div>
+        )}
 
-      <div className="mt-auto flex items-center justify-between pt-3">
-        <span className="text-base font-semibold">
-          {free ? 'Бесплатно' : m.sale ? `от ${money.format(fromPrice)} ₽` : `${money.format(m.price)} ₽`}
-        </span>
         <button
           type="button"
           onClick={() => onOpen(m)}
-          className="rounded-full bg-ink px-4 py-2 text-sm font-semibold text-white hover:bg-ink/90"
+          className="mt-4 rounded-full bg-ink py-2.5 text-sm font-semibold text-white hover:bg-ink/90"
         >
-          {free || m.freePreview ? 'Посмотреть' : 'Купить'}
+          {free || m.freePreview ? 'Посмотреть бесплатно' : `Купить за ${money.format(fromPrice)} ₽`}
         </button>
       </div>
     </div>
@@ -71,6 +73,40 @@ export default function MarketplaceHome() {
   const [gateFor, setGateFor] = useState<MaterialItem | null>(null)
   const [account, setAccount] = useState({ email: '', password: '' })
   const [created, setCreated] = useState(false)
+
+  const [category, setCategory] = useState<MaterialKind | 'all'>('all')
+  const [directions, setDirections] = useState<Set<MarketplaceDirection>>(new Set())
+  const [priceFrom, setPriceFrom] = useState('')
+  const [priceTo, setPriceTo] = useState('')
+
+  function toggleDirection(id: MarketplaceDirection) {
+    setDirections((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const isFiltering = category !== 'all' || directions.size > 0 || priceFrom !== '' || priceTo !== ''
+
+  function resetFilters() {
+    setCategory('all')
+    setDirections(new Set())
+    setPriceFrom('')
+    setPriceTo('')
+  }
+
+  const filtered = useMemo(() => {
+    const from = Number(priceFrom) || 0
+    const to = Number(priceTo) || Infinity
+    return materials.filter((m) => {
+      if (category !== 'all' && m.kind !== category) return false
+      if (directions.size > 0 && !m.direction.some((d) => directions.has(d))) return false
+      if (m.price < from || m.price > to) return false
+      return true
+    })
+  }, [category, directions, priceFrom, priceTo])
 
   function closeGate() {
     setGateFor(null)
@@ -87,35 +123,100 @@ export default function MarketplaceHome() {
         prototype
       />
 
-      {/* Один блок с объяснением, что это такое */}
-      <section className="border-b border-ink/10 bg-white py-10">
-        <div className="container-page">
-          <div className="glass rounded-2xl p-6 sm:p-8">
-            <p className="max-w-2xl text-ink/70">
-              Маркетплейс — это каталог платных и бесплатных материалов от «Карьерного юриста»: то, что
-              обычно узнается методом проб и ошибок, здесь собрано в готовые гайды, чек-листы, подборки
-              компаний, статьи и записи вебинаров. Купленные и открытые материалы сохраняются в личном
-              кабинете — доступны в любой момент.
-            </p>
-          </div>
+      {/* Личный кабинет — справа */}
+      <div className="border-b border-ink/10 bg-white py-3">
+        <div className="container-page flex justify-end">
+          <Link
+            to="/account"
+            className="flex items-center gap-2 rounded-full border border-ink/15 px-4 py-2 text-sm font-medium text-ink/70 hover:text-ink"
+          >
+            <IconAccount />
+            Личный кабинет
+          </Link>
         </div>
-      </section>
+      </div>
 
-      {sections.map((s) => {
-        const items = materials.filter((m) => m.kind === s.kind)
-        if (items.length === 0) return null
-        return (
-          <section key={s.kind} className="border-b border-ink/10 py-12 last:border-b-0">
-            <div className="container-page">
-              <div className="mb-1 text-sm font-medium uppercase tracking-wide text-gold">{s.title}</div>
-              <p className="mb-6 max-w-xl text-sm text-ink/60">{s.text}</p>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {items.map((m) => <ProductCard key={m.id} m={m} onOpen={setGateFor} />)}
+      <div className="container-page py-10">
+        <div className="grid gap-8 lg:grid-cols-[260px_1fr]">
+          {/* Фильтры */}
+          <aside className="space-y-6">
+            <div className="rounded-2xl border border-ink/10 p-5">
+              <div className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink/50">Категория</div>
+              <div className="space-y-2 text-sm">
+                {categoryOptions.map((c) => (
+                  <label key={c.id} className="flex cursor-pointer items-center gap-2">
+                    <input
+                      type="radio"
+                      name="category"
+                      checked={category === c.id}
+                      onChange={() => setCategory(c.id)}
+                    />
+                    {c.label}
+                  </label>
+                ))}
               </div>
             </div>
-          </section>
-        )
-      })}
+
+            <div className="rounded-2xl border border-ink/10 p-5">
+              <div className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink/50">Направление</div>
+              <div className="space-y-2 text-sm">
+                {MARKETPLACE_DIRECTIONS.map((d) => (
+                  <label key={d.id} className="flex cursor-pointer items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={directions.has(d.id)}
+                      onChange={() => toggleDirection(d.id)}
+                    />
+                    {d.label}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-ink/10 p-5">
+              <div className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink/50">Цена</div>
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  type="number"
+                  min={0}
+                  value={priceFrom}
+                  onChange={(e) => setPriceFrom(e.target.value)}
+                  placeholder="От"
+                  className="rounded-lg border border-ink/15 px-3 py-2 text-sm outline-none focus:border-ink/40"
+                />
+                <input
+                  type="number"
+                  min={0}
+                  value={priceTo}
+                  onChange={(e) => setPriceTo(e.target.value)}
+                  placeholder="До"
+                  className="rounded-lg border border-ink/15 px-3 py-2 text-sm outline-none focus:border-ink/40"
+                />
+              </div>
+            </div>
+
+            {isFiltering && (
+              <button type="button" onClick={resetFilters} className="text-sm text-ink/50 hover:text-ink">
+                Сбросить фильтры
+              </button>
+            )}
+          </aside>
+
+          {/* Каталог */}
+          <div>
+            <div className="mb-1 text-sm font-medium uppercase tracking-wide text-gold">Маркетплейс</div>
+            <div className="mb-6 flex items-end justify-between gap-4">
+              <h2 className="text-2xl font-semibold">Каталог материалов</h2>
+              <span className="shrink-0 text-sm text-ink/50">{filtered.length} материалов</span>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {filtered.map((m) => <ProductCard key={m.id} m={m} onOpen={setGateFor} />)}
+              {filtered.length === 0 && <p className="text-ink/50">По заданным фильтрам материалов не найдено.</p>}
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Гейт создания аккаунта — при просмотре/покупке любого материала */}
       {gateFor && (

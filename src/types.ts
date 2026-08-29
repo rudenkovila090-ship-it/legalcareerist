@@ -257,13 +257,28 @@ export interface EventRegistration {
   receiptUrl?: string
 }
 
-export type MaterialKind = 'guide' | 'checklist' | 'recording' | 'longlist' | 'article' | 'webinar'
+export type MaterialKind = 'guide' | 'checklist' | 'recording' | 'longlist' | 'article' | 'webinar' | 'presentation'
+
+// Направление — отдельный справочник для фильтра маркетплейса, по темам
+// материалов (шире, чем специализация кандидата/вакансии).
+export type MarketplaceDirection = 'notary' | 'career' | 'personal_brand' | 'advocacy' | 'inhouse' | 'consulting' | 'events' | 'finance'
+export const MARKETPLACE_DIRECTIONS: { id: MarketplaceDirection; label: string }[] = [
+  { id: 'notary', label: 'Нотариат' },
+  { id: 'career', label: 'Карьера юриста' },
+  { id: 'personal_brand', label: 'Личный бренд' },
+  { id: 'advocacy', label: 'Адвокатура' },
+  { id: 'inhouse', label: 'In-house' },
+  { id: 'consulting', label: 'Консалтинг' },
+  { id: 'events', label: 'Мероприятия' },
+  { id: 'finance', label: 'Финансы' },
+]
 
 export interface MaterialItem extends Tagged {
   id: string
   slug: string
   title: string
   kind: MaterialKind
+  direction: MarketplaceDirection[]
   price: number
   description: string
   forWhom: string
