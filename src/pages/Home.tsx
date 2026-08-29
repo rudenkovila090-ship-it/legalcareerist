@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import FAQSection from '../components/FAQSection'
 import ilyaPhoto from '../assets/ilya-rudenkov.jpg'
+import { news } from '../data/news'
 
 function IconClock() {
   return (
@@ -46,17 +47,6 @@ const valueProps = [
     title: 'Поддержка',
     text: 'Не формальный сервис, а искренняя вовлеченность: разбираемся в вашей ситуации с интересом, держим связь и отзывчиво помогаем на каждом шаге — от первой заявки до результата.',
   },
-]
-
-// Новости «Карьерного юриста» — что изменилось у бота, на сайте, в подкасте
-// и на встречах с резидентами. Отдельный блок, не смешан с кейсами/отзывами.
-const news = [
-  { tag: 'Сайт', date: '18 августа 2026', title: 'Обновили доску вакансий', text: 'Добавили фильтры по городу, зарплате, формату и графику работы — вакансию теперь проще найти под себя.' },
-  { tag: 'Бот', date: '10 августа 2026', title: 'Бот сам пишет первым после оплаты', text: 'Больше не нужно писать боту вручную — после оплаты тарифа сообщества он сам присылает ссылку на вступление.' },
-  { tag: 'Подкаст', date: '2 августа 2026', title: 'Новый выпуск: как устроен найм в юрфирмах', text: 'Обсудили с приглашенным партнером, как компании выбирают между кадровым резервом и открытым рынком.' },
-  { tag: 'Достижения', date: '25 июля 2026', title: 'Вошли в рейтинг юридических Telegram-каналов', text: '5 место по вовлеченности среди юридических клубов — подробности в разделе «Признание на рынке».' },
-  { tag: 'Встречи', date: '14 июля 2026', title: 'Прошла встреча резидентов в Москве', text: 'Обсудили тему месяца с приглашенным экспертом — запись доступна резидентам Сообщества.' },
-  { tag: 'Сайт', date: '5 июля 2026', title: 'Запустили карьерный калькулятор для работодателей', text: 'Теперь можно сразу увидеть итоговую стоимость подбора и срок закрытия вакансии.' },
 ]
 
 // Табло достижений на главной — по одному пункту с автопереключением,
@@ -289,7 +279,10 @@ export default function Home() {
       <section className="border-y border-ink/10 bg-white py-14">
         <div className="container-page">
           <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Новости</div>
-          <h2 className="mb-6 text-2xl font-semibold">Что нового у «Карьерного юриста»</h2>
+          <div className="mb-6 flex items-end justify-between gap-4">
+            <h2 className="text-2xl font-semibold">Что нового у «Карьерного юриста»</h2>
+            <Link to="/news" className="shrink-0 text-sm font-medium text-ink/50 hover:text-ink">Все новости →</Link>
+          </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {news.map((n) => (
               <div key={n.title} className="glass rounded-xl p-5">

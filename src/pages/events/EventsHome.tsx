@@ -95,6 +95,7 @@ function IconAccountCircle() {
 const eventTabs = [
   { id: 'poster', label: 'Афиша', icon: IconGrid },
   { id: 'create', label: 'Создать свое событие', icon: IconPlus },
+  { id: 'order', label: 'Заказать мероприятие', icon: IconCart },
   { id: 'account', label: 'Личный кабинет', icon: IconAccountCircle },
 ] as const
 
@@ -160,32 +161,12 @@ function EventCard({ e }: { e: EventItem }) {
   )
 }
 
-function IconTelegram() {
+function IconCart() {
   return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
-      <path d="M21.5 3.5 2.7 11.2c-1.2.5-1.2 1.2-.2 1.5l4.8 1.5 1.8 5.6c.2.6.4.9.9.9.5 0 .7-.2 1-.5l2.4-2.3 4.9 3.6c.9.5 1.5.2 1.7-.8L23.9 4.9c.3-1.3-.5-1.9-1.4-1.4z" />
-    </svg>
-  )
-}
-function IconVk() {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
-      <path d="M13.2 17.3c-5.4 0-8.6-3.7-8.7-9.9h2.8c.1 4.5 2.1 6.4 3.6 6.8v-6.8h2.6v3.9c1.5-.2 3.1-2 3.6-3.9h2.6c-.4 2.3-2.1 4.1-3.3 4.9 1.2.6 3.1 2.2 3.9 4.9h-2.9c-.6-1.8-2-3.2-3.9-3.4v3.4z" />
-    </svg>
-  )
-}
-function IconYoutube() {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
-      <path d="M22 12s0-3-.4-4.4a2.9 2.9 0 0 0-2-2C17.9 5 12 5 12 5s-5.9 0-7.6.6a2.9 2.9 0 0 0-2 2C2 9 2 12 2 12s0 3 .4 4.4a2.9 2.9 0 0 0 2 2C6.1 19 12 19 12 19s5.9 0 7.6-.6a2.9 2.9 0 0 0 2-2C22 15 22 12 22 12z" opacity=".18" />
-      <path d="M10 15.2V8.8L15.8 12z" />
-    </svg>
-  )
-}
-function IconTiktok() {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
-      <path d="M16.5 2h-3v13.6a2.6 2.6 0 1 1-2-2.5v-3a5.6 5.6 0 1 0 5 5.6V9c1 .7 2.2 1.1 3.5 1.1V7a3.5 3.5 0 0 1-3.5-3.5z" />
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <path d="M3.5 4.5h2l2.3 11a1.8 1.8 0 0 0 1.8 1.5h7a1.8 1.8 0 0 0 1.77-1.47L20 9H6.5" />
+      <circle cx="10" cy="20" r="1.3" />
+      <circle cx="17" cy="20" r="1.3" />
     </svg>
   )
 }
@@ -236,12 +217,31 @@ export default function EventsHome() {
     setEventSent(true)
   }
 
+  // «Заказать мероприятие» — лид-заявка на подбор/организацию мероприятия под запрос.
+  const [orderForm, setOrderForm] = useState({ fio: '', phone: '', email: '', telegram: '', about: '' })
+  const [orderSent, setOrderSent] = useState(false)
+
+  function handleOrderSubmit(e: FormEvent) {
+    e.preventDefault()
+    if (!orderForm.fio.trim() || (!orderForm.phone.trim() && !orderForm.email.trim())) return
+    submitLead({
+      sourceBlock: 'events',
+      formType: 'event_order',
+      name: orderForm.fio,
+      contact: [orderForm.phone, orderForm.email, orderForm.telegram].filter(Boolean).join(' / '),
+      interest: orderForm.about ? [orderForm.about] : [],
+    })
+    setOrderSent(true)
+  }
+
   return (
     <div>
-      <PageHero eyebrow="Мероприятия" title="Вебинары, бизнес-завтраки, интенсивы" description="Онлайн и офлайн события для карьерного роста в праве." prototype />
+      <PageHero eyebrow="Мероприятия" title="Мероприятия" />
 
-      {/* Подменю раздела — Афиша / Создать свое событие / Личный кабинет */}
-      <div className="sticky top-[142px] z-20 border-b border-ink/10 bg-white/95 py-4 backdrop-blur-xl">
+      {/* Подменю раздела — Афиша / Создать свое событие / Заказать мероприятие / Личный кабинет.
+          top-16 — под шапкой сайта (h-16); на страницах /kadry используют top-[142px] из-за
+          дополнительной панели аудитории под шапкой, которой здесь нет. */}
+      <div className="sticky top-16 z-20 border-b border-ink/10 bg-white/95 py-4 backdrop-blur-xl">
         <div className="container-page">
           <div className="flex flex-wrap justify-end gap-3">
             {eventTabs.map((t) => (
@@ -413,6 +413,65 @@ export default function EventsHome() {
         </section>
       )}
 
+      {tab === 'order' && (
+        <section className="container-page py-12">
+          <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Заказать мероприятие</div>
+          <h2 className="mb-6 text-2xl font-semibold">Подберем или организуем мероприятие под ваш запрос</h2>
+
+          <div className="mx-auto max-w-xl">
+            {orderSent ? (
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-6 text-emerald-800">
+                <div className="font-semibold">Заявка отправлена</div>
+                <p className="mt-1 text-sm">Мы свяжемся с вами, чтобы обсудить детали.</p>
+              </div>
+            ) : (
+              <form onSubmit={handleOrderSubmit} className="glass grid gap-3 rounded-2xl p-6">
+                <input
+                  value={orderForm.fio}
+                  onChange={(e) => setOrderForm((f) => ({ ...f, fio: e.target.value }))}
+                  placeholder="ФИО"
+                  required
+                  className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none focus:border-ink/40"
+                />
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <input
+                    type="tel"
+                    value={orderForm.phone}
+                    onChange={(e) => setOrderForm((f) => ({ ...f, phone: e.target.value }))}
+                    placeholder="Номер телефона"
+                    className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none focus:border-ink/40"
+                  />
+                  <input
+                    type="email"
+                    value={orderForm.email}
+                    onChange={(e) => setOrderForm((f) => ({ ...f, email: e.target.value }))}
+                    placeholder="Почта"
+                    className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none focus:border-ink/40"
+                  />
+                </div>
+                <input
+                  value={orderForm.telegram}
+                  onChange={(e) => setOrderForm((f) => ({ ...f, telegram: e.target.value }))}
+                  placeholder="Telegram"
+                  className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none focus:border-ink/40"
+                />
+                <textarea
+                  value={orderForm.about}
+                  onChange={(e) => setOrderForm((f) => ({ ...f, about: e.target.value }))}
+                  placeholder="Какое мероприятие нужно"
+                  rows={4}
+                  className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none focus:border-ink/40"
+                />
+                <button type="submit" className="rounded-lg bg-ink py-2.5 text-sm font-semibold text-white hover:bg-ink/90">
+                  Отправить заявку
+                </button>
+                <p className="text-xs text-ink/40">Нажимая «Отправить заявку», вы соглашаетесь на обработку персональных данных.</p>
+              </form>
+            )}
+          </div>
+        </section>
+      )}
+
       {tab === 'account' && (
         <section className="container-page py-12">
           <div className="glass rounded-2xl p-8 text-center">
@@ -428,63 +487,6 @@ export default function EventsHome() {
         </section>
       )}
 
-      {/* Подвал раздела «Мероприятия» — отдельно от общего футера сайта */}
-      <section className="bg-ink py-14 text-white/80">
-        <div className="container-page grid gap-10 sm:grid-cols-2 lg:grid-cols-5">
-          <div>
-            <div className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">Афиша</div>
-            <ul className="space-y-2 text-sm">
-              <li><button type="button" onClick={() => { setTab('poster'); setQuick('all') }} className="hover:text-white">Все события</button></li>
-              <li><a href="#all-events" onClick={() => setTab('poster')} className="hover:text-white">Категории мероприятий</a></li>
-              <li className="text-white/40">Возврат билета</li>
-              <li className="text-white/40">Участие в исследованиях</li>
-              <li className="text-white/40">Билетная система</li>
-            </ul>
-          </div>
-
-          <div>
-            <div className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">Организаторам</div>
-            <ul className="space-y-2 text-sm">
-              <li><button type="button" onClick={() => setTab('create')} className="hover:text-white">Создать событие</button></li>
-              <li className="text-white/40">Возможности</li>
-              <li className="text-white/40">Реклама</li>
-            </ul>
-          </div>
-
-          <div>
-            <div className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">Мероприятия</div>
-            <ul className="space-y-2 text-sm">
-              <li className="text-white/40">Документы</li>
-            </ul>
-          </div>
-
-          <div>
-            <div className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">Помощь</div>
-            <ul className="space-y-2 text-sm">
-              <li><Link className="hover:text-white" to="/events/contacts">Задать вопрос</Link></li>
-              <li><Link className="hover:text-white" to="/events/knowledge">База знаний</Link></li>
-            </ul>
-          </div>
-
-          <div>
-            <div className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">Новости</div>
-            <div className="flex gap-2.5">
-              <a href="https://t.me/legalcareerst_support" target="_blank" rel="noreferrer" aria-label="Telegram" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 hover:bg-white/20">
-                <IconTelegram />
-              </a>
-              <a href="https://vk.com/legalcareerist" target="_blank" rel="noreferrer" aria-label="ВКонтакте" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 hover:bg-white/20">
-                <IconVk />
-              </a>
-              <a href="https://youtube.com/@legalcareerist" target="_blank" rel="noreferrer" aria-label="YouTube" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 hover:bg-white/20">
-                <IconYoutube />
-              </a>
-              <a href="https://tiktok.com/@legalcareerist" target="_blank" rel="noreferrer" aria-label="TikTok" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 hover:bg-white/20">
-                <IconTiktok />
-              </a>
-            </div>
-          </div>
-        </div>
-      </section>
     </div>
   )
 }

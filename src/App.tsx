@@ -22,6 +22,9 @@ import BlogHome from './pages/BlogHome'
 import Contacts from './pages/Contacts'
 import Privacy from './pages/legal/Privacy'
 import Consent from './pages/legal/Consent'
+import About from './pages/About'
+import News from './pages/News'
+import Documents from './pages/Documents'
 
 export default function App() {
   return (
@@ -82,6 +85,11 @@ export default function App() {
         <Route path="/events/materials" element={<Materials />} />
         <Route path="/materials/:slug" element={<MaterialDetail />} />
         <Route path="/events/contacts" element={<Contacts eyebrow="Мероприятия" sourceBlock="events" />} />
+        <Route path="/events/documents" element={<Documents />} />
+
+        {/* Общие информационные страницы */}
+        <Route path="/about" element={<About />} />
+        <Route path="/news" element={<News />} />
 
         {/* Общая статья Базы знаний (единая сущность для всех трех разделов) */}
         <Route path="/knowledge/:slug" element={<ArticleDetail />} />

@@ -32,8 +32,10 @@ export default function Footer() {
         <div>
           <div className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">Мероприятия</div>
           <ul className="space-y-2 text-sm">
-            <li><Link className="hover:text-white" to="/events">Все мероприятия</Link></li>
-            <li><Link className="hover:text-white" to="/events/materials">Материалы (демо-каркас)</Link></li>
+            <li><Link className="hover:text-white" to="/about">О нас</Link></li>
+            <li><Link className="hover:text-white" to="/blog">Блог</Link></li>
+            <li><Link className="hover:text-white" to="/news">Новости</Link></li>
+            <li><Link className="hover:text-white" to="/events/documents">Документы</Link></li>
           </ul>
         </div>
 
