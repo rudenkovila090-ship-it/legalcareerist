@@ -90,11 +90,11 @@ function AchievementsBoard() {
   const current = achievements[active]
 
   return (
-    <div className="overflow-hidden rounded-2xl bg-ink text-white">
-      <div className="mx-auto flex min-h-[160px] max-w-2xl flex-col justify-between p-5 text-center sm:min-h-[180px] sm:p-6">
+    <div className="mx-auto max-w-[640px] overflow-hidden rounded-2xl bg-ink text-white">
+      <div className="flex min-h-[130px] flex-col justify-between p-5 text-center sm:min-h-[150px] sm:p-6">
         <div className="text-xs uppercase tracking-wide text-white/40">{current.source}</div>
-        <div key={active} className="animate-board-fade">
-          <div className="text-lg font-semibold sm:text-xl">
+        <div key={active} className="animate-board-fade overflow-x-auto">
+          <div className="text-sm font-semibold sm:whitespace-nowrap">
             Номинация «{current.nomination}» — <span className="text-gold-light">{current.place}</span>
           </div>
         </div>

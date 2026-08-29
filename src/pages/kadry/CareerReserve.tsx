@@ -141,6 +141,14 @@ export default function CareerReserve({ embedded = false }: { embedded?: boolean
         </div>
       )}
 
+      {/* Что такое кадровый резерв — вводный блок, наполнение уточняется */}
+      <section className="container-page pt-10">
+        <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Что такое кадровый резерв</div>
+        <div className="rounded-2xl border border-dashed border-ink/15 p-10 text-center text-sm text-ink/30">
+          Раздел «Что такое кадровый резерв» — наполнение уточняется
+        </div>
+      </section>
+
       {/* Соц. доказательства */}
       <section className="container-page py-12">
         <div className="grid gap-3 sm:grid-cols-3">

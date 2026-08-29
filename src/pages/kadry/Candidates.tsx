@@ -123,6 +123,12 @@ export default function Candidates() {
   const [minSalary, setMinSalary] = useState(0)
   const [selectedVacancySlug, setSelectedVacancySlug] = useState<string | null>(null)
   const selectedVacancy = vacancies.find((v) => v.slug === selectedVacancySlug) ?? null
+  // Открытие конкретной вакансии подменяет список ее карточкой прямо на месте
+  // (без перехода по роуту) — список короче карточки, поэтому без сброса
+  // скролла страницу утаскивало вниз, к старой позиции клика.
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [selectedVacancySlug])
 
   const filteredVacancies = useMemo(() => {
     return vacancies.filter((v) => {

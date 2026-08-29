@@ -215,7 +215,7 @@ export default function CommunityHome() {
   const [telegram, setTelegram] = useState('')
   const [submitted, setSubmitted] = useState(false)
 
-  const [ambassadorForm, setAmbassadorForm] = useState({ name: '', telegram: '', about: '' })
+  const [ambassadorForm, setAmbassadorForm] = useState({ name: '', phone: '', telegram: '', about: '' })
   const [ambassadorSent, setAmbassadorSent] = useState(false)
 
   const tariff = tariffs.find((t) => t.id === tariffId)!
@@ -250,12 +250,12 @@ export default function CommunityHome() {
 
   function handleAmbassadorSubmit(e: FormEvent) {
     e.preventDefault()
-    if (!ambassadorForm.name.trim() || !ambassadorForm.telegram.trim()) return
+    if (!ambassadorForm.name.trim() || (!ambassadorForm.phone.trim() && !ambassadorForm.telegram.trim())) return
     submitLead({
       sourceBlock: 'community',
       formType: 'ambassador_application',
       name: ambassadorForm.name,
-      contact: ambassadorForm.telegram,
+      contact: [ambassadorForm.phone, ambassadorForm.telegram].filter(Boolean).join(' / '),
       interest: [ambassadorForm.about].filter(Boolean),
     })
     setAmbassadorSent(true)
@@ -415,19 +415,27 @@ export default function CommunityHome() {
               <input
                 value={ambassadorForm.name}
                 onChange={(e) => setAmbassadorForm((f) => ({ ...f, name: e.target.value }))}
-                placeholder="Имя"
+                placeholder="ФИО"
+                className="rounded-lg border border-ink/15 px-3 py-2 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40"
+              />
+              <input
+                type="tel"
+                value={ambassadorForm.phone}
+                onChange={(e) => setAmbassadorForm((f) => ({ ...f, phone: e.target.value }))}
+                placeholder="Номер телефона"
                 className="rounded-lg border border-ink/15 px-3 py-2 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40"
               />
               <input
                 value={ambassadorForm.telegram}
                 onChange={(e) => setAmbassadorForm((f) => ({ ...f, telegram: e.target.value }))}
                 placeholder="Telegram"
-                className="rounded-lg border border-ink/15 px-3 py-2 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40"
+                className="rounded-lg border border-ink/15 px-3 py-2 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40 sm:col-span-2"
               />
-              <input
+              <textarea
                 value={ambassadorForm.about}
                 onChange={(e) => setAmbassadorForm((f) => ({ ...f, about: e.target.value }))}
-                placeholder="Вуз и город"
+                placeholder="Напишите, почему должны выбрать вас"
+                rows={3}
                 className="rounded-lg border border-ink/15 px-3 py-2 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40 sm:col-span-2"
               />
               <button

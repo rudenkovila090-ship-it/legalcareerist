@@ -29,9 +29,9 @@ export const SPECIALIZATIONS: { id: Specialization; label: string }[] = [
 
 export type EmploymentType = 'full' | 'part' | 'project'
 export const EMPLOYMENT_TYPES: { id: EmploymentType; label: string }[] = [
-  { id: 'full', label: 'Полная' },
-  { id: 'part', label: 'Частичная' },
-  { id: 'project', label: 'Проектная' },
+  { id: 'full', label: 'Полная занятость' },
+  { id: 'part', label: 'Частичная занятость' },
+  { id: 'project', label: 'Проектная занятость' },
 ]
 
 // Ось 2: отрасль/область права — множественный выбор, редактируется через админку.
@@ -126,6 +126,49 @@ export type VacancyStatus = 'open' | 'closed'
 // найден ни там, ни там, вакансия публикуется в открытом доступе на сайте.
 export type VacancyVisibilityStage = 'residents' | 'talent_pool' | 'public'
 
+export type WorkSchedule = '5/2' | 'flexible' | 'other'
+export const WORK_SCHEDULES: { id: WorkSchedule; label: string }[] = [
+  { id: '5/2', label: '5/2' },
+  { id: 'flexible', label: 'Свободный' },
+  { id: 'other', label: 'Другое' },
+]
+
+export type ExperienceBucket = 'none' | 'from1' | 'from1to3' | 'from3to5' | 'from5to9' | 'from9'
+export const EXPERIENCE_BUCKETS: { id: ExperienceBucket; label: string }[] = [
+  { id: 'none', label: 'Без опыта' },
+  { id: 'from1', label: 'От 1 года' },
+  { id: 'from1to3', label: 'От 1 до 3 лет' },
+  { id: 'from3to5', label: 'От 3 до 5 лет' },
+  { id: 'from5to9', label: 'От 5 до 9 лет' },
+  { id: 'from9', label: 'Более 9 лет' },
+]
+
+export type EducationLevel = 'college' | 'bachelor' | 'master' | 'specialist'
+export const EDUCATION_LEVELS: { id: EducationLevel; label: string }[] = [
+  { id: 'college', label: 'Среднее специальное' },
+  { id: 'bachelor', label: 'Бакалавриат' },
+  { id: 'master', label: 'Магистратура' },
+  { id: 'specialist', label: 'Специалитет' },
+]
+
+// Отрасль компании — категории с подкатегориями (справочник для фильтра
+// вакансий), выбор множественный: категория и/или отдельные подкатегории.
+export const COMPANY_INDUSTRY_TREE: { category: string; items: string[] }[] = [
+  { category: 'Адвокатура', items: ['Адвокатский кабинет', 'Адвокатская консультация', 'Коллегия адвокатов', 'Адвокатское бюро'] },
+  { category: 'Консалтинг', items: ['Частный юрист', 'Юридическая фирма', 'Юридический бутик'] },
+  { category: 'Правоохранительные органы', items: ['МВД', 'Следственный комитет', 'ФССП', 'Прокуратура'] },
+  { category: 'Суд', items: [
+    'Конституционный Суд РФ', 'Верховный Суд РФ', 'Кассационный суд общей юрисдикции',
+    'Апелляционный суд общей юрисдикции', 'Верховный суд республики', 'Краевой суд', 'Областной суд',
+    'Суд города федерального значения', 'Суд автономной области', 'Суд автономного округа',
+    'Районный суд', 'Городской суд', 'Межрайонный суд', 'Военный суд',
+    'Окружной (флотский) военный суд', 'Гарнизонный военный суд', 'Арбитражный суд округа',
+    'Арбитражный апелляционный суд', 'Арбитражный суд субъекта РФ', 'Суд по интеллектуальным правам',
+    'Мировой судья',
+  ] },
+  { category: 'Государственная служба', items: ['Министерство юстиции', 'ФНС', 'РКН', 'ФАС', 'Росреестр'] },
+]
+
 export interface Vacancy extends Tagged {
   id: string
   slug: string
@@ -138,6 +181,10 @@ export interface Vacancy extends Tagged {
   level: CandidateLevel
   salaryFrom?: number
   salaryTo?: number
+  schedule: WorkSchedule
+  experience: ExperienceBucket
+  education: EducationLevel[]
+  companyIndustry: string[]
   description: string
   requirements: string[]
   conditions: string[]

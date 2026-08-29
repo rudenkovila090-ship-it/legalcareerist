@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import PageHero from '../../components/PageHero'
 import Testimonials from '../../components/Testimonials'
@@ -238,7 +238,7 @@ const valueProps = [
 const kpis = [
   { value: '5,5 дней', label: 'Time to Hire — среднее время закрытия вакансии', group: 'Операционный' },
   { value: '89%', label: 'Конверсия интервью в оффер', group: 'Операционный' },
-  { value: '97%', label: 'Доля кандидатов, прошедших испытательный срок', group: 'Качественный' },
+  { value: '97%', label: 'кандидатов прошло испытательный срок', group: 'Качественный' },
 ]
 
 const kadryAdvantages = [
@@ -305,6 +305,65 @@ const faqItems = [
   { q: 'Какие документы я получу?', a: 'Договор, план работ, еженедельную отчетность, карточки кандидатов с рекомендациями и план адаптации нового сотрудника — на каждом этапе своя подтверждающая документация.' },
 ]
 
+// Собственный дропдаун вместо нативного <select> — так список вариантов
+// гарантированно раскрывается ниже поля фильтра, а не туда, куда решит браузер.
+function FilterSelect({ placeholder, resetLabel, value, options, onChange }: {
+  placeholder: string
+  resetLabel: string
+  value: string
+  options: string[]
+  onChange: (v: string) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function onDocClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', onDocClick)
+    return () => document.removeEventListener('mousedown', onDocClick)
+  }, [])
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className={`flex w-full items-center justify-between gap-2 rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-left text-sm outline-none focus:border-white/40 ${value ? 'text-white' : 'text-white/50'}`}
+      >
+        <span className="truncate">{value || placeholder}</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`h-4 w-4 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}>
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+      </button>
+      {open && (
+        <div className="absolute left-0 top-full z-30 mt-1 max-h-64 w-full overflow-y-auto rounded-lg border border-white/15 bg-ink shadow-xl">
+          {value && (
+            <button
+              type="button"
+              onClick={() => { onChange(''); setOpen(false) }}
+              className="block w-full px-3 py-2 text-left text-sm text-white/50 hover:bg-white/10"
+            >
+              {resetLabel}
+            </button>
+          )}
+          {options.map((o) => (
+            <button
+              key={o}
+              type="button"
+              onClick={() => { onChange(o); setOpen(false) }}
+              className="block w-full px-3 py-2 text-left text-sm text-white hover:bg-white/10"
+            >
+              {o}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function KadryHome() {
   const [salary, setSalary] = useState(50000)
   const fee = Math.round(salary * 0.3)
@@ -329,18 +388,18 @@ export default function KadryHome() {
     setServiceSent(true)
   }
 
-  const [form, setForm] = useState({ name: '', email: '', phone: '', position: '' })
+  const [form, setForm] = useState({ company: '', fio: '', email: '', phone: '', telegram: '', position: '' })
   const [sent, setSent] = useState(false)
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    if (!form.name.trim() || (!form.email.trim() && !form.phone.trim())) return
+    if (!form.fio.trim() || (!form.email.trim() && !form.phone.trim())) return
     submitLead({
       sourceBlock: 'kadry',
       formType: 'employer_request',
-      name: form.name,
-      contact: [form.email, form.phone].filter(Boolean).join(' / '),
-      interest: form.position ? [form.position] : [],
+      name: form.fio,
+      contact: [form.phone, form.email, form.telegram].filter(Boolean).join(' / '),
+      interest: [form.company, form.position].filter(Boolean),
     })
     setSent(true)
   }
@@ -463,42 +522,18 @@ export default function KadryHome() {
           <h2 className="mb-6 text-2xl font-semibold text-white">Свежие анкеты из кадрового резерва</h2>
 
           <div className="glass-dark mb-6 grid gap-3 rounded-xl p-5 sm:grid-cols-3 lg:grid-cols-6">
-            <select value={fCity} onChange={(e) => setFCity(e.target.value)} className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white outline-none focus:border-white/40">
-              <option value="" disabled hidden>Город</option>
-              {fCity && <option value="" className="text-ink">Все города</option>}
-              {cities.map((v) => <option key={v} value={v} className="text-ink">{v}</option>)}
-            </select>
-            <select value={fSchool} onChange={(e) => setFSchool(e.target.value)} className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white outline-none focus:border-white/40">
-              <option value="" disabled hidden>Учебное заведение</option>
-              {fSchool && <option value="" className="text-ink">Любое учебное заведение</option>}
-              {schools.map((v) => <option key={v} value={v} className="text-ink">{v}</option>)}
-            </select>
-            <select value={fEmployment} onChange={(e) => setFEmployment(e.target.value)} className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white outline-none focus:border-white/40">
-              <option value="" disabled hidden>Занятость</option>
-              {fEmployment && <option value="" className="text-ink">Любая занятость</option>}
-              {employments.map((v) => <option key={v} value={v} className="text-ink">{v}</option>)}
-            </select>
-            <select value={fSchedule} onChange={(e) => setFSchedule(e.target.value)} className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white outline-none focus:border-white/40">
-              <option value="" disabled hidden>График</option>
-              {fSchedule && <option value="" className="text-ink">Любой график</option>}
-              {schedules.map((v) => <option key={v} value={v} className="text-ink">{v}</option>)}
-            </select>
-            <select value={fFormat} onChange={(e) => setFFormat(e.target.value)} className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white outline-none focus:border-white/40">
-              <option value="" disabled hidden>Формат</option>
-              {fFormat && <option value="" className="text-ink">Любой формат</option>}
-              {formats.map((v) => <option key={v} value={v} className="text-ink">{v}</option>)}
-            </select>
-            <select value={fPosition} onChange={(e) => setFPosition(e.target.value)} className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white outline-none focus:border-white/40">
-              <option value="" disabled hidden>Должности</option>
-              {fPosition && <option value="" className="text-ink">Все должности</option>}
-              {positionOptions.map((v) => <option key={v} value={v} className="text-ink">{v}</option>)}
-            </select>
+            <FilterSelect placeholder="Город" resetLabel="Все города" value={fCity} options={cities} onChange={setFCity} />
+            <FilterSelect placeholder="Учебное заведение" resetLabel="Любое учебное заведение" value={fSchool} options={schools} onChange={setFSchool} />
+            <FilterSelect placeholder="Занятость" resetLabel="Любая занятость" value={fEmployment} options={employments} onChange={setFEmployment} />
+            <FilterSelect placeholder="График" resetLabel="Любой график" value={fSchedule} options={schedules} onChange={setFSchedule} />
+            <FilterSelect placeholder="Формат" resetLabel="Любой формат" value={fFormat} options={formats} onChange={setFFormat} />
+            <FilterSelect placeholder="Должности" resetLabel="Все должности" value={fPosition} options={positionOptions} onChange={setFPosition} />
             <label className="sm:col-span-3 lg:col-span-6 text-sm text-white/70">
               Зарплатные ожидания — до {maxSalary.toLocaleString('ru-RU')} ₽
               <input
                 type="range"
                 min={20000}
-                max={100000}
+                max={150000}
                 step={5000}
                 value={maxSalary}
                 onChange={(e) => setMaxSalary(Number(e.target.value))}
@@ -526,9 +561,6 @@ export default function KadryHome() {
                   <div className="mt-1 text-sm text-white/60">Опыт: {c.exp}</div>
                   <div className="mt-1 text-sm text-white/40">{c.city} · от {c.salaryFrom}</div>
                   <div className="mt-1 text-sm text-white/40">{c.school}</div>
-                  <div className="mt-2 text-xs font-semibold text-gold-light">
-                    Открыть контакт — {contactPrice(c.exp).toLocaleString('ru-RU')} ₽
-                  </div>
                   <div className="mt-3 flex flex-wrap gap-1.5">
                     {[c.schedule, c.employment, c.format].map((tag) => (
                       <span key={tag} className="rounded-full bg-white/10 px-2.5 py-1 text-xs text-white/70">{tag}</span>
@@ -763,10 +795,10 @@ export default function KadryHome() {
         <div className="container-page">
           <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold-light">Что мы предлагаем</div>
           <h2 className="mb-6 text-2xl font-semibold text-white">Закрываем следующие позиции</h2>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="mx-auto grid max-w-3xl gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {positions.map((p) => (
-              <div key={p.title} className="rounded-lg bg-white/10 px-4 py-3 text-sm">
-                <div className="flex items-center justify-between gap-3 whitespace-nowrap">
+              <div key={p.title} className="rounded-lg bg-white/10 px-3 py-2.5 text-xs">
+                <div className="flex items-center justify-between gap-2 whitespace-nowrap">
                   <span className="truncate font-medium text-white">{p.title}</span>
                   <span className="shrink-0 text-white/50">{p.salary}</span>
                 </div>
@@ -944,7 +976,7 @@ export default function KadryHome() {
                   onClick={() => setServiceModalOpen(true)}
                   className="mt-4 w-full rounded-lg bg-gold-light py-2.5 text-sm font-semibold text-ink hover:opacity-90"
                 >
-                  Оформить услугу
+                  Ваш заказ
                 </button>
               </div>
             </div>
@@ -979,16 +1011,23 @@ export default function KadryHome() {
               <form onSubmit={handleSubmit} className="grid gap-4">
                 <div className="grid gap-4 sm:grid-cols-2">
                   <input
-                    value={form.name}
-                    onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                    placeholder="Имя"
+                    value={form.company}
+                    onChange={(e) => setForm((f) => ({ ...f, company: e.target.value }))}
+                    placeholder="Компания"
+                    className="rounded-lg border border-white/15 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/40 focus:border-white/40"
+                  />
+                  <input
+                    value={form.fio}
+                    onChange={(e) => setForm((f) => ({ ...f, fio: e.target.value }))}
+                    placeholder="ФИО"
                     required
                     className="rounded-lg border border-white/15 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/40 focus:border-white/40"
                   />
                   <input
-                    value={form.position}
-                    onChange={(e) => setForm((f) => ({ ...f, position: e.target.value }))}
-                    placeholder="Кого ищем"
+                    type="tel"
+                    value={form.phone}
+                    onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+                    placeholder="Номер телефона"
                     className="rounded-lg border border-white/15 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/40 focus:border-white/40"
                   />
                   <input
@@ -999,11 +1038,16 @@ export default function KadryHome() {
                     className="rounded-lg border border-white/15 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/40 focus:border-white/40"
                   />
                   <input
-                    type="tel"
-                    value={form.phone}
-                    onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-                    placeholder="Номер телефона"
+                    value={form.telegram}
+                    onChange={(e) => setForm((f) => ({ ...f, telegram: e.target.value }))}
+                    placeholder="Telegram"
                     className="rounded-lg border border-white/15 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/40 focus:border-white/40"
+                  />
+                  <input
+                    value={form.position}
+                    onChange={(e) => setForm((f) => ({ ...f, position: e.target.value }))}
+                    placeholder="Кого ищем"
+                    className="rounded-lg border border-white/15 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/40 focus:border-white/40 sm:col-span-2"
                   />
                 </div>
                 <button
@@ -1050,7 +1094,7 @@ export default function KadryHome() {
             ) : (
               <>
                 <div className="mb-4 flex items-center justify-between">
-                  <h3 className="text-lg font-semibold">Оформить услугу</h3>
+                  <h3 className="text-lg font-semibold">Ваш заказ</h3>
                   <button type="button" onClick={() => setServiceModalOpen(false)} className="text-ink/40 hover:text-ink" aria-label="Закрыть">✕</button>
                 </div>
                 <div className="mb-5 flex items-center justify-between rounded-lg bg-ink/[0.04] px-4 py-3 text-sm">

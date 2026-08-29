@@ -244,6 +244,24 @@ export default function EventsHome() {
         </div>
       )}
       {events.length === 0 && <p className="container-page py-16 text-ink/50">Мероприятий пока нет.</p>}
+
+      {/* Партнерам и организаторам — отдельные CTA, наполнение (условия, форма) уточняется */}
+      <section className="border-t border-ink/10 bg-white py-12">
+        <div className="container-page grid gap-4 sm:grid-cols-2">
+          <div className="glass rounded-2xl p-6 text-center">
+            <h3 className="text-lg font-semibold">Стать партнером мероприятия</h3>
+            <p className="mx-auto mt-2 max-w-sm text-sm text-ink/60">
+              Условия партнерства — раздел в разработке, наполнение уточняется.
+            </p>
+          </div>
+          <div className="glass rounded-2xl p-6 text-center">
+            <h3 className="text-lg font-semibold">Разместить свое мероприятие</h3>
+            <p className="mx-auto mt-2 max-w-sm text-sm text-ink/60">
+              Форма подачи мероприятия — раздел в разработке, наполнение уточняется.
+            </p>
+          </div>
+        </div>
+      </section>
     </div>
   )
 }

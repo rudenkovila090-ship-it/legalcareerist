@@ -19,6 +19,20 @@ export default function BlogHome() {
           <Link className="underline" to="/community">Сообщество</Link>.
         </p>
       </div>
+
+      {/* Подкаст — отдельный раздел блога, наполнение уточняется. */}
+      <section className="border-t border-ink/10 bg-white py-16">
+        <div className="container-page text-center">
+          <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Блог</div>
+          <h2 className="mb-2 text-2xl font-semibold">Подкаст</h2>
+          <p className="mx-auto mb-6 max-w-lg text-sm text-ink/60">
+            Разговоры о найме, карьере и юридическом рынке — раздел в разработке, выпуски скоро появятся здесь.
+          </p>
+          <div className="mx-auto max-w-lg rounded-2xl border border-dashed border-ink/15 p-10 text-sm text-ink/30">
+            Раздел «Подкаст» — наполнение уточняется
+          </div>
+        </div>
+      </section>
     </div>
   )
 }
