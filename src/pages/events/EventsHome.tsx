@@ -1,6 +1,5 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
-import PageHero from '../../components/PageHero'
 import { events } from '../../data/events'
 import { submitLead } from '../../lib/leads'
 import type { EventItem } from '../../types'
@@ -266,8 +265,6 @@ export default function EventsHome() {
 
   return (
     <div>
-      <PageHero eyebrow="Мероприятия" title="Мероприятия" />
-
       {/* Подменю раздела — Афиша / Создать свое событие / Заказать мероприятие / Личный кабинет.
           top-16 — под шапкой сайта (h-16); на страницах /kadry используют top-[142px] из-за
           дополнительной панели аудитории под шапкой, которой здесь нет. */}
