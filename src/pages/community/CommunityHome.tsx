@@ -1,4 +1,4 @@
-import { useRef, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import PageHero from '../../components/PageHero'
 import Testimonials from '../../components/Testimonials'
 import { communityTestimonials } from '../../data/testimonials'
@@ -224,6 +224,21 @@ export default function CommunityHome() {
   const [submitted, setSubmitted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState(false)
+
+  // При возврате кнопкой «Назад» браузер часто восстанавливает страницу из
+  // bfcache вместе с "замороженным" состоянием — кнопка так и осталась бы
+  // задизейбленной в виде «Переходим к оплате…». Сбрасываем состояние
+  // загрузки, чтобы поля снова были редактируемыми.
+  useEffect(() => {
+    function handlePageShow(e: PageTransitionEvent) {
+      if (e.persisted) {
+        setSubmitting(false)
+        setSubmitError(false)
+      }
+    }
+    window.addEventListener('pageshow', handlePageShow)
+    return () => window.removeEventListener('pageshow', handlePageShow)
+  }, [])
 
   const [ambassadorForm, setAmbassadorForm] = useState({ name: '', phone: '', telegram: '', about: '' })
   const [ambassadorSent, setAmbassadorSent] = useState(false)
