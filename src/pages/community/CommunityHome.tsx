@@ -188,7 +188,7 @@ function buildFaqItems(onActivateDemo: () => void) {
         </>
       ),
     },
-    { q: 'Что я получу сразу после оплаты?', a: 'Бот @legalcareerist_bot сам напишет вам в Telegram в течение нескольких минут и пришлет ссылку на вступление в закрытое сообщество.' },
+    { q: 'Что я получу сразу после оплаты?', a: 'Бот @LegalcareeristBot сам напишет вам в Telegram в течение нескольких минут и пришлет ссылку на вступление в закрытое сообщество.' },
     { q: 'Что если я передумаю?', a: 'Подписка автоматически продлевается по окончании выбранного срока — отключить автопродление можно в любой момент в личном кабинете.' },
     { q: 'Нужна ли специализация или опыт?', a: 'Нет — сообщество открыто студентам и начинающим юристам из любого города, вуза и колледжа, независимо от специализации.' },
     { q: 'Как устроены закрытые вакансии?', a: 'Карьерный юрист сначала предлагает вакансии резидентам сообщества — и только потом кадровому резерву и открытому рынку.' },
@@ -205,14 +205,12 @@ const tariffs = [
   { id: 'demo', period: 'Демодоступ', price: 0, priceLabel: 'Бесплатно', note: '7 дней, чтобы попробовать формат перед оплатой' },
 ] as const
 
-// Лендинг «Вступить» (уточнено заказчиком): выбор тарифа → оплата → открываем
-// чат с ботом (openTelegramBot) → пользователь жмет Start → бот (сценарий в
-// BotHelp, ветка resident_<тариф>) сам присылает ссылку на вступление, ставит
-// метку «резидент» и ведет счет дней резидентства.
-// Реальная оплата подключается позже (Prodamus) — сейчас клик «Оплатить и
-// вступить» сразу считается успешной оплатой (демо-макет шага); когда
-// появится реальный платежный шлюз, openTelegramBot нужно перенести в
-// обработчик успешного колбэка оплаты, а не оставлять на клике по кнопке.
+// Лендинг «Вступить»: выбор тарифа → открываем чат с ботом (openTelegramBot,
+// payload resident_<tariffId>) → человек жмет Start → бэкенд
+// (server/index.js, /api/telegram/webhook) видит /start, генерирует
+// подписанную ссылку на оплату подписки в Prodamus и присылает её в чат.
+// После реальной оплаты Prodamus шлет вебхук (/api/prodamus/webhook) —
+// это и есть момент подтвержденной оплаты, а не клик по кнопке на сайте.
 export default function CommunityHome() {
   const joinRef = useRef<HTMLElement>(null)
   const [tariffId, setTariffId] = useState<(typeof tariffs)[number]['id']>('1m')
@@ -556,8 +554,8 @@ export default function CommunityHome() {
                     <span className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-2xl text-emerald-600">✓</span>
                   </div>
                   <p className="text-sm leading-relaxed text-ink/70">
-                    Тариф «{tariff.period}» {tariff.price > 0 && `оплачен (${tariff.priceLabel.replace('/мес', '')})`}.
-                    Мы открыли чат с ботом в новой вкладке — нажмите там Start, и он сразу пришлет ссылку на вступление в закрытое сообщество.
+                    Мы открыли чат с ботом в новой вкладке — нажмите там Start, и он пришлет вам ссылку на оплату тарифа «{tariff.period}» ({tariff.priceLabel}).
+                    После оплаты бот сам добавит вас в закрытое сообщество.
                   </p>
                   <button
                     type="button"
@@ -575,7 +573,7 @@ export default function CommunityHome() {
               ) : (
                 <>
                   <div className="mb-4 flex items-center justify-between">
-                    <h3 className="text-lg font-semibold">Оплата тарифа «{tariff.period}»</h3>
+                    <h3 className="text-lg font-semibold">Тариф «{tariff.period}» — {tariff.priceLabel}</h3>
                     <button type="button" onClick={() => setPaid(false)} className="text-ink/40 hover:text-ink" aria-label="Закрыть">
                       ✕
                     </button>
@@ -603,9 +601,9 @@ export default function CommunityHome() {
                       type="submit"
                       className="rounded-full bg-ink py-3 text-sm font-semibold text-white transition-colors hover:bg-ink/90"
                     >
-                      {tariff.price > 0 ? 'Оплатить и вступить' : 'Вступить в сообщество'}
+                      {tariff.price > 0 ? 'Продолжить в Telegram' : 'Вступить в сообщество'}
                     </button>
-                    <p className="text-xs text-ink/50">Нажимая «Оплатить и вступить», вы соглашаетесь на обработку персональных данных.</p>
+                    <p className="text-xs text-ink/50">Нажимая «Продолжить в Telegram», вы соглашаетесь на обработку персональных данных.</p>
                   </form>
                 </>
               )}
