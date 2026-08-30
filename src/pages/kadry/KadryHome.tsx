@@ -202,6 +202,14 @@ function contactPrice(exp: string) {
   return 1000 + experienceYears(exp) * 500
 }
 
+// Скидка за объем — как в конструкторе карьерной консультации, но с другими
+// порогами: заявка на подбор контактов нескольких кандидатов сразу выгоднее.
+function candidatesTierDiscountPct(count: number): number {
+  if (count >= 7) return 10
+  if (count >= 3) return 5
+  return 0
+}
+
 const cities = ['Москва', 'Санкт-Петербург']
 const schedules = ['Гибкий', 'Полный']
 const employments = ['Полная занятость', 'Частичная занятость', 'Проектная занятость']
@@ -413,7 +421,6 @@ export default function KadryHome() {
     window.scrollTo(0, 0)
   }, [tab])
   const [openCandidates, setOpenCandidates] = useState<Record<number, boolean>>({})
-  const [unlocked, setUnlocked] = useState<Record<number, boolean>>({})
   const [visibleCandidates, setVisibleCandidates] = useState(3)
 
   // Фильтры вкладки «Найти сотрудника» — пустая строка значит «фильтр не
@@ -441,41 +448,42 @@ export default function KadryHome() {
     setOpenCandidates((s) => ({ ...s, [id]: !s[id] }))
   }
 
-  // Открытие контакта — 2000 ₽. Перед первым открытием работодатель
-  // регистрируется и заполняет основную информацию о себе (форма ниже;
-  // содержание полей уточняется позже по инструкции) — дальше открывает
-  // контакты уже без повторной регистрации.
-  const [employerRegistered, setEmployerRegistered] = useState(false)
-  const [registeringId, setRegisteringId] = useState<number | null>(null)
-  const [employerForm, setEmployerForm] = useState({ company: '', contact: '', phone: '', email: '', telegram: '' })
+  // Конструктор заявки на контакты — как в карьерной консультации: отмечаете
+  // плюсиком нужных кандидатов (можно несколько), скидка растет с объемом,
+  // а контакты работодателя оставляются один раз в конце, не на каждого кандидата.
+  const [selectedIds, setSelectedIds] = useState<Record<number, boolean>>({})
+  const [cartOpen, setCartOpen] = useState(false)
+  const [requestModalOpen, setRequestModalOpen] = useState(false)
+  const [requestForm, setRequestForm] = useState({ company: '', contact: '', phone: '', email: '', telegram: '' })
+  const [requestSent, setRequestSent] = useState(false)
 
-  function doUnlock(id: number) {
-    const c = demoCandidates.find((cand) => cand.id === id)
-    const price = c ? contactPrice(c.exp) : 1000
+  function toggleSelect(id: number) {
+    setSelectedIds((s) => ({ ...s, [id]: !s[id] }))
+  }
+
+  const selectedCandidates = demoCandidates.filter((c) => selectedIds[c.id])
+  const selectedCount = selectedCandidates.length
+  const candidatesSubtotal = selectedCandidates.reduce((sum, c) => sum + contactPrice(c.exp), 0)
+  const candidatesTierPct = candidatesTierDiscountPct(selectedCount)
+  const candidatesDiscount = Math.round((candidatesSubtotal * candidatesTierPct) / 100)
+  const candidatesTotal = candidatesSubtotal - candidatesDiscount
+
+  function handleRequestSubmit(e: FormEvent) {
+    e.preventDefault()
+    if (!requestForm.contact.trim() || (!requestForm.phone.trim() && !requestForm.email.trim())) return
     submitLead({
       sourceBlock: 'kadry',
-      formType: 'candidate_contact_unlock',
-      name: employerForm.contact || 'Работодатель',
-      contact: [employerForm.phone, employerForm.email, employerForm.telegram].filter(Boolean).join(' / ') || '—',
-      interest: [`Открыть контакт кандидата #${id} — ${price.toLocaleString('ru-RU')} ₽`, employerForm.company].filter(Boolean),
+      formType: 'candidates_selection_request',
+      name: requestForm.contact,
+      contact: [requestForm.phone, requestForm.email, requestForm.telegram].filter(Boolean).join(' / '),
+      interest: [
+        requestForm.company,
+        ...selectedCandidates.map((c) => `Кандидат №${c.id} — ${c.position}, ${contactPrice(c.exp).toLocaleString('ru-RU')} ₽`),
+        candidatesTierPct > 0 ? `Скидка ${candidatesTierPct}%` : '',
+        `Итого: ${candidatesTotal.toLocaleString('ru-RU')} ₽`,
+      ].filter(Boolean),
     })
-    setUnlocked((u) => ({ ...u, [id]: true }))
-  }
-
-  function handleUnlockClick(id: number) {
-    if (employerRegistered) {
-      doUnlock(id)
-    } else {
-      setRegisteringId(id)
-    }
-  }
-
-  function handleRegisterSubmit(e: FormEvent, id: number) {
-    e.preventDefault()
-    if (!employerForm.company.trim() || !employerForm.contact.trim() || (!employerForm.phone.trim() && !employerForm.email.trim())) return
-    setEmployerRegistered(true)
-    setRegisteringId(null)
-    doUnlock(id)
+    setRequestSent(true)
   }
 
   return (
@@ -549,14 +557,25 @@ export default function KadryHome() {
           <div className="grid gap-4 sm:grid-cols-3">
             {filteredCandidates.slice(0, visibleCandidates).map((c) => {
               const isOpen = !!openCandidates[c.id]
-              const isUnlocked = unlocked[c.id]
+              const isSelected = !!selectedIds[c.id]
               return (
-                <div key={c.id} className="glass-dark flex flex-col rounded-xl p-5">
+                <div key={c.id} className={`glass-dark relative flex flex-col rounded-xl p-5 transition-colors ${isSelected ? 'ring-2 ring-gold-light' : ''}`}>
+                  <button
+                    type="button"
+                    onClick={() => toggleSelect(c.id)}
+                    aria-label={isSelected ? 'Убрать из заявки' : 'Добавить в заявку'}
+                    className={`absolute right-4 top-4 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold transition-colors ${
+                      isSelected ? 'bg-gold-light text-ink' : 'bg-white/10 text-white/70 hover:bg-white/20'
+                    }`}
+                  >
+                    {isSelected ? '✓' : '+'}
+                  </button>
+
                   {/* Номер закреплен за id кандидата, а не за позицией в
                       отфильтрованном списке — иначе при смене фильтров
                       «Кандидат №2» указывал бы то на одного, то на другого. */}
-                  <div className="text-xs font-semibold uppercase tracking-wide text-gold-light">Кандидат №{c.id}</div>
-                  <div className="mt-1 font-semibold text-white">{c.position}</div>
+                  <div className="pr-10 text-xs font-semibold uppercase tracking-wide text-gold-light">Кандидат №{c.id}</div>
+                  <div className="mt-1 pr-10 font-semibold text-white">{c.position}</div>
                   <div className="mt-1 text-sm text-white/60">Сфера: {c.sphere}</div>
                   <div className="mt-1 text-sm text-white/60">Опыт: {c.exp}</div>
                   <div className="mt-1 text-sm text-white/40">{c.city} · от {c.salaryFrom}</div>
@@ -566,6 +585,8 @@ export default function KadryHome() {
                       <span key={tag} className="rounded-full bg-white/10 px-2.5 py-1 text-xs text-white/70">{tag}</span>
                     ))}
                   </div>
+
+                  <div className="mt-3 text-sm text-white/50">Контакт — {contactPrice(c.exp).toLocaleString('ru-RU')} ₽</div>
 
                   {isOpen && (
                     <div className="mt-4 space-y-3 border-t border-white/10 pt-4 text-sm">
@@ -588,62 +609,6 @@ export default function KadryHome() {
                           ))}
                         </div>
                       </div>
-                      {isUnlocked ? (
-                        <div className="rounded-lg bg-emerald-400/10 p-3 text-emerald-200">
-                          Заявка на контакт отправлена — свяжемся для оплаты и передачи анкеты.
-                        </div>
-                      ) : registeringId === c.id ? (
-                        <form onSubmit={(e) => handleRegisterSubmit(e, c.id)} className="space-y-2 rounded-lg border border-white/15 bg-white/5 p-3">
-                          <div className="text-xs font-semibold uppercase tracking-wide text-white/50">Регистрация работодателя</div>
-                          <input
-                            value={employerForm.company}
-                            onChange={(ev) => setEmployerForm((f) => ({ ...f, company: ev.target.value }))}
-                            placeholder="Компания"
-                            required
-                            className="w-full rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white outline-none placeholder:text-white/40 focus:border-white/40"
-                          />
-                          <input
-                            value={employerForm.contact}
-                            onChange={(ev) => setEmployerForm((f) => ({ ...f, contact: ev.target.value }))}
-                            placeholder="ФИО"
-                            required
-                            className="w-full rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white outline-none placeholder:text-white/40 focus:border-white/40"
-                          />
-                          <div className="grid grid-cols-2 gap-2">
-                            <input
-                              type="tel"
-                              value={employerForm.phone}
-                              onChange={(ev) => setEmployerForm((f) => ({ ...f, phone: ev.target.value }))}
-                              placeholder="Номер телефона"
-                              className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white outline-none placeholder:text-white/40 focus:border-white/40"
-                            />
-                            <input
-                              type="email"
-                              value={employerForm.email}
-                              onChange={(ev) => setEmployerForm((f) => ({ ...f, email: ev.target.value }))}
-                              placeholder="Почта"
-                              className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white outline-none placeholder:text-white/40 focus:border-white/40"
-                            />
-                          </div>
-                          <input
-                            value={employerForm.telegram}
-                            onChange={(ev) => setEmployerForm((f) => ({ ...f, telegram: ev.target.value }))}
-                            placeholder="Telegram"
-                            className="w-full rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white outline-none placeholder:text-white/40 focus:border-white/40"
-                          />
-                          <button type="submit" className="w-full rounded-full bg-gold-light py-2.5 text-sm font-semibold text-ink hover:opacity-90">
-                            Открыть контакт — {contactPrice(c.exp).toLocaleString('ru-RU')} ₽
-                          </button>
-                        </form>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => handleUnlockClick(c.id)}
-                          className="w-full rounded-full bg-gold-light py-2.5 text-sm font-semibold text-ink hover:opacity-90"
-                        >
-                          Открыть контакт — {contactPrice(c.exp).toLocaleString('ru-RU')} ₽
-                        </button>
-                      )}
                     </div>
                   )}
 
@@ -667,7 +632,157 @@ export default function KadryHome() {
               Посмотреть еще кандидатов
             </button>
           )}
+
+          {selectedCount >= 3 && (
+            <p className="mt-4 text-sm text-gold-light">
+              {selectedCount >= 7 ? 'Скидка 10% за 7 и более кандидатов в заявке.' : 'Скидка 5% за 3 и более кандидатов в заявке — от 7 скидка 10%.'}
+            </p>
+          )}
         </section>
+      )}
+
+      {/* Плавающая корзина выбранных кандидатов — как в конструкторе карьерной
+          консультации: плюсик на карточке добавляет кандидата в заявку,
+          скидка растет с количеством, контакты работодателя — один раз в конце. */}
+      {tab === 'candidates' && selectedCount > 0 && !requestModalOpen && (
+        <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-3">
+          {cartOpen && (
+            <div className="w-80 max-w-[calc(100vw-3rem)] rounded-2xl border border-white/10 bg-ink p-5 text-white shadow-2xl">
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="font-semibold">Ваша заявка</h3>
+                <button type="button" onClick={() => setCartOpen(false)} className="text-white/40 hover:text-white" aria-label="Свернуть">✕</button>
+              </div>
+              <ul className="mb-3 max-h-48 space-y-2 overflow-y-auto text-sm">
+                {selectedCandidates.map((c) => (
+                  <li key={c.id} className="flex items-center justify-between gap-2">
+                    <span className="text-white/70">Кандидат №{c.id} — {c.position}</span>
+                    <span className="shrink-0">{contactPrice(c.exp).toLocaleString('ru-RU')} ₽</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="space-y-1 border-t border-white/10 pt-3 text-sm">
+                <div className="flex justify-between text-white/60">
+                  <span>Сумма</span>
+                  <span>{candidatesSubtotal.toLocaleString('ru-RU')} ₽</span>
+                </div>
+                {candidatesDiscount > 0 && (
+                  <div className="flex justify-between text-white/60">
+                    <span>Скидка {candidatesTierPct}%</span>
+                    <span>−{candidatesDiscount.toLocaleString('ru-RU')} ₽</span>
+                  </div>
+                )}
+                <div className="flex justify-between pt-1 text-base font-semibold text-white">
+                  <span>Итого</span>
+                  <span>{candidatesTotal.toLocaleString('ru-RU')} ₽</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setCartOpen(false)
+                  setRequestModalOpen(true)
+                }}
+                className="mt-4 w-full rounded-full bg-gold-light py-2.5 text-sm font-semibold text-ink hover:opacity-90"
+              >
+                Оставить заявку
+              </button>
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={() => setCartOpen((v) => !v)}
+            className="glass-dark flex items-center gap-4 rounded-full bg-ink px-7 py-4 text-white shadow-xl"
+          >
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gold-light text-sm font-bold text-ink">{selectedCount}</span>
+            <span className="text-base font-semibold">{candidatesTotal.toLocaleString('ru-RU')} ₽</span>
+          </button>
+        </div>
+      )}
+
+      {/* Модалка заявки на выбранных кандидатов */}
+      {requestModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-ink/70 p-0 sm:items-center sm:p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setRequestModalOpen(false)
+          }}
+        >
+          <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-white p-6 text-ink sm:rounded-2xl sm:p-8">
+            {requestSent ? (
+              <div className="py-4 text-center">
+                <div className="mb-3 flex justify-center">
+                  <span className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-2xl text-emerald-600">✓</span>
+                </div>
+                <div className="font-semibold">Заявка отправлена</div>
+                <p className="mt-2 text-sm text-ink/60">Мы свяжемся с вами, чтобы согласовать оплату и передать контакты кандидатов.</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRequestModalOpen(false)
+                    setRequestSent(false)
+                    setSelectedIds({})
+                    setRequestForm({ company: '', contact: '', phone: '', email: '', telegram: '' })
+                  }}
+                  className="mt-6 rounded-full bg-ink px-6 py-2.5 text-sm font-semibold text-white"
+                >
+                  Закрыть
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="mb-4 flex items-center justify-between">
+                  <h3 className="text-lg font-semibold">Заявка на кандидатов</h3>
+                  <button type="button" onClick={() => setRequestModalOpen(false)} className="text-ink/40 hover:text-ink" aria-label="Закрыть">✕</button>
+                </div>
+                <div className="mb-5 flex items-center justify-between rounded-lg bg-ink/[0.04] px-4 py-3 text-sm">
+                  <span className="text-ink/60">{selectedCount} {selectedCount === 1 ? 'кандидат' : 'кандидата'} в заявке</span>
+                  <span className="text-base font-semibold text-ink">{candidatesTotal.toLocaleString('ru-RU')} ₽</span>
+                </div>
+                <form onSubmit={handleRequestSubmit} className="grid gap-3">
+                  <input
+                    value={requestForm.company}
+                    onChange={(e) => setRequestForm((f) => ({ ...f, company: e.target.value }))}
+                    placeholder="Компания"
+                    className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+                  />
+                  <input
+                    value={requestForm.contact}
+                    onChange={(e) => setRequestForm((f) => ({ ...f, contact: e.target.value }))}
+                    placeholder="ФИО"
+                    required
+                    className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+                  />
+                  <div className="grid grid-cols-2 gap-3">
+                    <input
+                      type="tel"
+                      value={requestForm.phone}
+                      onChange={(e) => setRequestForm((f) => ({ ...f, phone: e.target.value }))}
+                      placeholder="Номер телефона"
+                      className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+                    />
+                    <input
+                      type="email"
+                      value={requestForm.email}
+                      onChange={(e) => setRequestForm((f) => ({ ...f, email: e.target.value }))}
+                      placeholder="Почта"
+                      className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+                    />
+                  </div>
+                  <input
+                    value={requestForm.telegram}
+                    onChange={(e) => setRequestForm((f) => ({ ...f, telegram: e.target.value }))}
+                    placeholder="Telegram"
+                    className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+                  />
+                  <button type="submit" className="rounded-full bg-ink py-3 text-sm font-semibold text-white transition-colors hover:bg-ink/90">
+                    Оставить заявку
+                  </button>
+                  <p className="text-xs text-ink/50">Нажимая «Оставить заявку», вы соглашаетесь на обработку персональных данных.</p>
+                </form>
+              </>
+            )}
+          </div>
+        </div>
       )}
 
       {tab === 'knowledge' && (
