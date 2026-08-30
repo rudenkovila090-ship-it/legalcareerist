@@ -38,8 +38,8 @@ export const demoApplications: (Application & { vacancyTitle: string })[] = [
 export const demoMaterialPurchases: (MaterialPurchase & { materialTitle: string })[] = [
   {
     id: 'mp1',
-    materialId: 'm2',
-    materialTitle: 'Гайд «Переход из консалтинга в инхаус»',
+    materialId: 'm4',
+    materialTitle: 'Лонглист «Студенческие юридические мероприятия»',
     userId: 'u_demo',
     date: '2026-07-01',
     paid: true,
