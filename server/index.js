@@ -1,14 +1,21 @@
 // Бэкенд-эндпоинт сайта «Карьерный Юрист».
 // 1. POST /api/notify — заявка с сайта → уведомление админу в Telegram.
-// 2. POST /api/telegram/webhook — апдейты от Telegram-бота (@LegalcareeristBot):
-//    по /start <tariffId> генерирует подписанную ссылку на оплату подписки
-//    сообщества и присылает её человеку в чат.
-// 3. POST /api/prodamus/webhook — уведомления Prodamus об оплате подписки.
+// 2. POST /api/community/subscribe — выбор тарифа на сайте → подписанная
+//    ссылка на оплату в Prodamus (идентификация клиента по телефону, без
+//    tg_user_id — на этом шаге человек ещё не открывал бота).
+// 3. POST /api/telegram/webhook — апдейты бота @LegalcareeristBot: по
+//    /start access_<token> проверяет, оплачена ли заявка, и присылает
+//    ссылку на вступление в сообщество (сразу либо как только придёт
+//    вебхук об оплате).
+// 4. POST /api/prodamus/webhook — уведомления Prodamus об оплате: находит
+//    заявку по телефону, помечает оплаченной, шлёт ссылку в бота, если
+//    человек уже успел нажать Start.
 // Токены и секретные ключи — только в server/.env, в репозиторий не попадают.
 import express from 'express'
 import cors from 'cors'
 import { buildSubscriptionLink, TARIFFS } from './lib/prodamus.js'
 import { HmacHelper } from './lib/hmac.js'
+import { createPendingJoin, getPendingJoin, setTgUserId, markPaidByPhone } from './lib/store.js'
 
 const app = express()
 app.use(cors())
@@ -18,6 +25,8 @@ app.use(express.urlencoded({ extended: true }))
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN
 const ADMIN_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID
 const PRODAMUS_SECRET_KEY = process.env.PRODAMUS_SECRET_KEY
+const SITE_URL = process.env.SITE_URL || 'https://legalcareerist.ru'
+const COMMUNITY_INVITE_LINK = process.env.COMMUNITY_INVITE_LINK
 
 async function sendTelegramMessage(chatId, text) {
   const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
@@ -27,6 +36,15 @@ async function sendTelegramMessage(chatId, text) {
   })
   if (!res.ok) console.error('[telegram] sendMessage ошибка:', await res.text())
   return res.ok
+}
+
+async function sendInviteLink(chatId, join) {
+  const tariff = TARIFFS[join.tariffId]
+  const label = tariff?.label ?? 'Сообщество'
+  await sendTelegramMessage(
+    chatId,
+    `Оплата получена — добро пожаловать в «${label}»! 🎉\n\nСсылка на вступление в закрытое сообщество:\n${COMMUNITY_INVITE_LINK}`,
+  )
 }
 
 app.post('/api/notify', async (req, res) => {
@@ -54,8 +72,26 @@ app.post('/api/notify', async (req, res) => {
   res.json({ ok: true })
 })
 
+// Выбор тарифа на сайте → ссылка на оплату Prodamus. После оплаты Prodamus
+// вернёт человека на urlSuccess (страница сайта), где предлагаем перейти в бота.
+app.post('/api/community/subscribe', (req, res) => {
+  const { tariffId, name, phone, telegram } = req.body ?? {}
+  if (!TARIFFS[tariffId]) return res.status(400).json({ ok: false, error: 'unknown_tariff' })
+  if (!phone) return res.status(400).json({ ok: false, error: 'phone_required' })
+
+  try {
+    const token = createPendingJoin({ tariffId, name, phone, telegram })
+    const urlSuccess = `${SITE_URL}/community/success?token=${token}`
+    const url = buildSubscriptionLink({ tariffId, phone, urlSuccess })
+    res.json({ ok: true, url })
+  } catch (err) {
+    console.error('[subscribe] ошибка генерации ссылки на оплату:', err)
+    res.status(500).json({ ok: false, error: 'link_generation_failed' })
+  }
+})
+
 // Апдейты от Telegram-бота @LegalcareeristBot. Настраивается один раз
-// командой setWebhook (см. инструкцию в переписке/README сервера).
+// командой setWebhook (см. README сервера).
 app.post('/api/telegram/webhook', async (req, res) => {
   res.sendStatus(200) // Telegram ждёт быстрый ответ, обрабатываем после
 
@@ -64,30 +100,30 @@ app.post('/api/telegram/webhook', async (req, res) => {
   const chatId = message?.chat?.id
   if (!chatId || !text || !text.startsWith('/start')) return
 
-  const payload = text.slice('/start'.length).trim() // например "resident_1m"
-  const match = payload.match(/^resident_(\w+)$/)
-  const tariffId = match?.[1]
-  const tariff = tariffId ? TARIFFS[tariffId] : null
+  const payload = text.slice('/start'.length).trim()
+  const match = payload.match(/^access_(\w+)$/)
+  const token = match?.[1]
 
-  if (!tariff) {
-    await sendTelegramMessage(chatId, 'Привет! Это бот «Карьерного юриста». Чтобы оформить подписку на сообщество, начните с сайта — раздел «Сообщество».')
+  if (!token) {
+    await sendTelegramMessage(chatId, 'Привет! Это бот «Карьерного юриста». Чтобы вступить в сообщество, начните с сайта — раздел «Сообщество».')
     return
   }
 
-  try {
-    const link = buildSubscriptionLink({ tariffId, tgUserId: chatId })
-    await sendTelegramMessage(
-      chatId,
-      `Тариф «${tariff.label}» — ${tariff.price.toLocaleString('ru-RU')} ₽.\n\nОплатите по ссылке ниже — после оплаты бот сам добавит вас в закрытое сообщество и пришлёт ссылку на вступление:\n\n${link}`,
-    )
-  } catch (err) {
-    console.error('[telegram] ошибка генерации ссылки на оплату:', err)
-    await sendTelegramMessage(chatId, 'Не получилось сформировать ссылку на оплату — напишите нам, разберёмся.')
+  const join = setTgUserId(token, chatId)
+  if (!join) {
+    await sendTelegramMessage(chatId, 'Не нашли вашу заявку — попробуйте оформить подписку заново на сайте.')
+    return
+  }
+
+  if (join.paid) {
+    await sendInviteLink(chatId, join)
+  } else {
+    await sendTelegramMessage(chatId, 'Ждём подтверждения оплаты от банка — обычно это занимает меньше минуты. Как только оплата пройдёт, здесь появится ссылка на вступление.')
   }
 })
 
-// Уведомления Prodamus об оплате/статусе подписки.
-app.post('/api/prodamus/webhook', (req, res) => {
+// Уведомления Prodamus об оплате подписки.
+app.post('/api/prodamus/webhook', async (req, res) => {
   const body = req.body ?? {}
   const sign = req.headers['sign'] || body.signature
 
@@ -101,12 +137,16 @@ app.post('/api/prodamus/webhook', (req, res) => {
     console.error('[prodamus] PRODAMUS_SECRET_KEY не задан или подпись отсутствует в запросе — пропускаю проверку')
   }
 
-  // Пока просто логируем полный payload — точные поля события (успешная
-  // оплата/статус подписки/дата следующего списания) уточним по первому
-  // реальному вебхуку, чтобы не гадать с названиями полей.
+  // Логируем полный payload — точные поля события (успешная оплата/статус
+  // подписки) уточняем по первому реальному платежу, чтобы не гадать.
   console.log('[prodamus] webhook:', JSON.stringify(body))
-
   res.sendStatus(200)
+
+  const phone = body.customer_phone || body.phone
+  const join = markPaidByPhone(phone)
+  if (join?.tgUserId) {
+    await sendInviteLink(join.tgUserId, join)
+  }
 })
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }))

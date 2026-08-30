@@ -22,7 +22,7 @@ const TARIFFS = {
  * управлении подпиской (setActivity и т.д.) — без него Prodamus не
  * свяжет оплату с конкретным Telegram-пользователем для наших целей.
  */
-export function buildSubscriptionLink({ tariffId, tgUserId, phone, email }) {
+export function buildSubscriptionLink({ tariffId, tgUserId, phone, email, urlSuccess }) {
   const tariff = TARIFFS[tariffId]
   if (!tariff) throw new Error(`unknown tariff: ${tariffId}`)
   if (!SECRET_KEY) throw new Error('PRODAMUS_SECRET_KEY not set')
@@ -37,6 +37,7 @@ export function buildSubscriptionLink({ tariffId, tgUserId, phone, email }) {
   if (tgUserId) data.tg_user_id = tgUserId
   if (phone) data.customer_phone = phone
   if (email) data.customer_email = email
+  if (urlSuccess) data.urlSuccess = urlSuccess
 
   data.signature = HmacHelper.create(data, SECRET_KEY)
 

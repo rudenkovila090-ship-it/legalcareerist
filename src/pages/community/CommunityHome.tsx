@@ -188,7 +188,7 @@ function buildFaqItems(onActivateDemo: () => void) {
         </>
       ),
     },
-    { q: 'Что я получу сразу после оплаты?', a: 'Бот @LegalcareeristBot сам напишет вам в Telegram в течение нескольких минут и пришлет ссылку на вступление в закрытое сообщество.' },
+    { q: 'Что я получу сразу после оплаты?', a: 'После оплаты вы вернетесь на сайт — там будет кнопка «Перейти в бота». Нажмите Start в чате с ботом @LegalcareeristBot, и он сразу пришлет ссылку на вступление в закрытое сообщество.' },
     { q: 'Что если я передумаю?', a: 'Подписка автоматически продлевается по окончании выбранного срока — отключить автопродление можно в любой момент в личном кабинете.' },
     { q: 'Нужна ли специализация или опыт?', a: 'Нет — сообщество открыто студентам и начинающим юристам из любого города, вуза и колледжа, независимо от специализации.' },
     { q: 'Как устроены закрытые вакансии?', a: 'Карьерный юрист сначала предлагает вакансии резидентам сообщества — и только потом кадровому резерву и открытому рынку.' },
@@ -205,19 +205,24 @@ const tariffs = [
   { id: 'demo', period: 'Демодоступ', price: 0, priceLabel: 'Бесплатно', note: '7 дней, чтобы попробовать формат перед оплатой' },
 ] as const
 
-// Лендинг «Вступить»: выбор тарифа → открываем чат с ботом (openTelegramBot,
-// payload resident_<tariffId>) → человек жмет Start → бэкенд
-// (server/index.js, /api/telegram/webhook) видит /start, генерирует
-// подписанную ссылку на оплату подписки в Prodamus и присылает её в чат.
-// После реальной оплаты Prodamus шлет вебхук (/api/prodamus/webhook) —
-// это и есть момент подтвержденной оплаты, а не клик по кнопке на сайте.
+// Лендинг «Вступить»: выбор тарифа → форма (имя, телефон, telegram) →
+// POST /api/community/subscribe генерирует подписанную ссылку на оплату
+// Prodamus (идентификация по телефону) → редирект на страницу оплаты.
+// После оплаты Prodamus возвращает человека на /community/success, где
+// кнопка открывает бота (@LegalcareeristBot, payload access_<token>) —
+// бот проверяет статус оплаты (вебхук /api/prodamus/webhook) и присылает
+// ссылку на вступление в сообщество. Демодоступ (без оплаты) — как раньше,
+// сразу открывает бота.
 export default function CommunityHome() {
   const joinRef = useRef<HTMLElement>(null)
   const [tariffId, setTariffId] = useState<(typeof tariffs)[number]['id']>('1m')
   const [paid, setPaid] = useState(false)
   const [name, setName] = useState('')
+  const [phone, setPhone] = useState('')
   const [telegram, setTelegram] = useState('')
   const [submitted, setSubmitted] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState(false)
 
   const [ambassadorForm, setAmbassadorForm] = useState({ name: '', phone: '', telegram: '', about: '' })
   const [ambassadorSent, setAmbassadorSent] = useState(false)
@@ -239,9 +244,11 @@ export default function CommunityHome() {
     scrollToJoin()
   }
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     if (!name.trim() || !telegram.trim()) return
+    if (tariff.price > 0 && !phone.trim()) return
+
     submitLead({
       sourceBlock: 'community',
       formType: 'community_join',
@@ -249,11 +256,32 @@ export default function CommunityHome() {
       contact: telegram.startsWith('@') ? telegram : `@${telegram}`,
       interest: [tariff.period],
     })
-    // Открываем чат с ботом сразу после оплаты — пользователю остается нажать
-    // Start, и дальше сценарий в BotHelp (ветка resident_<тариф>) сам
-    // присылает ссылку на вступление и ставит метки резидента.
-    openTelegramBot(`resident_${tariffId}`)
-    setSubmitted(true)
+
+    if (tariff.price === 0) {
+      // Демодоступ — без оплаты, просто открываем бота за ссылкой на вступление.
+      openTelegramBot(`resident_${tariffId}`)
+      setSubmitted(true)
+      return
+    }
+
+    // Платный тариф — уходим на настоящую страницу оплаты Prodamus. После
+    // оплаты человек вернется на /community/success, откуда перейдет в бота
+    // за ссылкой на вступление (бот не может писать первым — нужен Start).
+    setSubmitting(true)
+    setSubmitError(false)
+    try {
+      const res = await fetch('/api/community/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tariffId, name, phone, telegram }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.url) throw new Error('subscribe_failed')
+      window.location.href = data.url
+    } catch {
+      setSubmitting(false)
+      setSubmitError(true)
+    }
   }
 
   function handleAmbassadorSubmit(e: FormEvent) {
@@ -554,8 +582,7 @@ export default function CommunityHome() {
                     <span className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-2xl text-emerald-600">✓</span>
                   </div>
                   <p className="text-sm leading-relaxed text-ink/70">
-                    Мы открыли чат с ботом в новой вкладке — нажмите там Start, и он пришлет вам ссылку на оплату тарифа «{tariff.period}» ({tariff.priceLabel}).
-                    После оплаты бот сам добавит вас в закрытое сообщество.
+                    Мы открыли чат с ботом в новой вкладке — нажмите там Start, и он пришлет вам ссылку на вступление в закрытое сообщество.
                   </p>
                   <button
                     type="button"
@@ -563,6 +590,7 @@ export default function CommunityHome() {
                       setPaid(false)
                       setSubmitted(false)
                       setName('')
+                      setPhone('')
                       setTelegram('')
                     }}
                     className="mt-6 rounded-full bg-ink px-6 py-2.5 text-sm font-semibold text-white"
@@ -590,6 +618,16 @@ export default function CommunityHome() {
                       required
                       className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
                     />
+                    {tariff.price > 0 && (
+                      <input
+                        type="tel"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        placeholder="Номер телефона, например +79990000000"
+                        required
+                        className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+                      />
+                    )}
                     <input
                       value={telegram}
                       onChange={(e) => setTelegram(e.target.value)}
@@ -597,13 +635,17 @@ export default function CommunityHome() {
                       required
                       className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
                     />
+                    {submitError && (
+                      <p className="text-sm text-red-600">Не получилось перейти к оплате — попробуйте еще раз через минуту.</p>
+                    )}
                     <button
                       type="submit"
-                      className="rounded-full bg-ink py-3 text-sm font-semibold text-white transition-colors hover:bg-ink/90"
+                      disabled={submitting}
+                      className="rounded-full bg-ink py-3 text-sm font-semibold text-white transition-colors hover:bg-ink/90 disabled:opacity-60"
                     >
-                      {tariff.price > 0 ? 'Продолжить в Telegram' : 'Вступить в сообщество'}
+                      {submitting ? 'Переходим к оплате…' : tariff.price > 0 ? 'Перейти к оплате' : 'Вступить в сообщество'}
                     </button>
-                    <p className="text-xs text-ink/50">Нажимая «Продолжить в Telegram», вы соглашаетесь на обработку персональных данных.</p>
+                    <p className="text-xs text-ink/50">Нажимая «{tariff.price > 0 ? 'Перейти к оплате' : 'Вступить в сообщество'}», вы соглашаетесь на обработку персональных данных.</p>
                   </form>
                 </>
               )}

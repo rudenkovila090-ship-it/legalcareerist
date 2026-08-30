@@ -11,6 +11,7 @@ import VacancyDetail from './pages/VacancyDetail'
 import KnowledgeList from './pages/KnowledgeList'
 import ArticleDetail from './pages/ArticleDetail'
 import CommunityHome from './pages/community/CommunityHome'
+import JoinSuccess from './pages/community/JoinSuccess'
 import ClubDetail from './pages/community/ClubDetail'
 import EventsHome from './pages/events/EventsHome'
 import EventDetail from './pages/events/EventDetail'
@@ -57,6 +58,7 @@ export default function App() {
 
         {/* Сообщество */}
         <Route path="/community" element={<CommunityHome />} />
+        <Route path="/community/success" element={<JoinSuccess />} />
         <Route path="/community/clubs/:slug" element={<ClubDetail />} />
         <Route
           path="/community/knowledge"
