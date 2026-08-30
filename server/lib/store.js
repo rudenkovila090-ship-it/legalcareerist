@@ -44,11 +44,19 @@ export function setTgUserId(token, tgUserId) {
   return data[token]
 }
 
-/** Находит первую неоплаченную заявку с таким телефоном и помечает оплаченной. */
-export function markPaidByPhone(phone) {
+/**
+ * Находит неоплаченную заявку с таким телефоном (и, если известен —
+ * именно тем тарифом, чтобы не перепутать при нескольких заявках подряд
+ * с одного номера) и помечает оплаченной. Среди совпадений берёт самую
+ * свежую (createdAt).
+ */
+export function markPaidByPhone(phone, tariffId) {
   if (!phone) return null
   const data = load()
-  const entry = Object.entries(data).find(([, v]) => v.phone === phone && !v.paid)
+  const matches = Object.entries(data)
+    .filter(([, v]) => v.phone === phone && !v.paid && (!tariffId || v.tariffId === tariffId))
+    .sort((a, b) => b[1].createdAt - a[1].createdAt)
+  const entry = matches[0]
   if (!entry) return null
   const [token, value] = entry
   value.paid = true

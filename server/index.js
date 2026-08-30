@@ -13,7 +13,7 @@
 // Токены и секретные ключи — только в server/.env, в репозиторий не попадают.
 import express from 'express'
 import cors from 'cors'
-import { createPaymentLink, TARIFFS } from './lib/prodamus.js'
+import { createPaymentLink, TARIFFS, tariffIdBySubscriptionId } from './lib/prodamus.js'
 import { HmacHelper } from './lib/hmac.js'
 import { createPendingJoin, getPendingJoin, setTgUserId, markPaidByPhone } from './lib/store.js'
 
@@ -149,9 +149,10 @@ app.post('/api/prodamus/webhook', async (req, res) => {
   }
 
   const phone = body.customer_phone || body.phone
-  console.log('[prodamus] ищу заявку по телефону:', phone)
-  const join = markPaidByPhone(phone)
-  console.log('[prodamus] результат поиска заявки:', join ? `найдена ${join.token}, tgUserId=${join.tgUserId}` : 'не найдена')
+  const tariffId = tariffIdBySubscriptionId(body.subscription?.id)
+  console.log('[prodamus] ищу заявку по телефону:', phone, 'тариф:', tariffId)
+  const join = markPaidByPhone(phone, tariffId)
+  console.log('[prodamus] результат поиска заявки:', join ? `найдена ${join.token} (${join.tariffId}), tgUserId=${join.tgUserId}` : 'не найдена')
   if (join?.tgUserId) {
     await sendInviteLink(join.tgUserId, join)
   }

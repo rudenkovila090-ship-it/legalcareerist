@@ -61,4 +61,10 @@ export async function createPaymentLink(params) {
   return text
 }
 
+/** Обратный поиск: по ID подписки Prodamus (из вебхука) — наш tariffId. */
+export function tariffIdBySubscriptionId(subscriptionId) {
+  const entry = Object.entries(TARIFFS).find(([, t]) => String(t.subscription) === String(subscriptionId))
+  return entry?.[0] ?? null
+}
+
 export { TARIFFS }
