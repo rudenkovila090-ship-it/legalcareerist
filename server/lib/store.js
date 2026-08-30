@@ -24,10 +24,10 @@ function save(data) {
   fs.writeFileSync(FILE, JSON.stringify(data, null, 2))
 }
 
-export function createPendingJoin({ tariffId, name, phone, telegram }) {
+export function createPendingJoin({ tariffId, name, phone, email, telegram }) {
   const token = crypto.randomBytes(12).toString('hex')
   const data = load()
-  data[token] = { tariffId, name, phone, telegram, paid: false, tgUserId: null, createdAt: Date.now() }
+  data[token] = { tariffId, name, phone, email, telegram, paid: false, tgUserId: null, createdAt: Date.now() }
   save(data)
   return token
 }

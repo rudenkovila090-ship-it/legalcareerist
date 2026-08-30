@@ -219,6 +219,7 @@ export default function CommunityHome() {
   const [paid, setPaid] = useState(false)
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
+  const [email, setEmail] = useState('')
   const [telegram, setTelegram] = useState('')
   const [submitted, setSubmitted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -273,7 +274,7 @@ export default function CommunityHome() {
       const res = await fetch('/api/community/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tariffId, name, phone, telegram }),
+        body: JSON.stringify({ tariffId, name, phone, email, telegram }),
       })
       const data = await res.json()
       if (!res.ok || !data.url) throw new Error('subscribe_failed')
@@ -591,6 +592,7 @@ export default function CommunityHome() {
                       setSubmitted(false)
                       setName('')
                       setPhone('')
+                      setEmail('')
                       setTelegram('')
                     }}
                     className="mt-6 rounded-full bg-ink px-6 py-2.5 text-sm font-semibold text-white"
@@ -619,14 +621,23 @@ export default function CommunityHome() {
                       className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
                     />
                     {tariff.price > 0 && (
-                      <input
-                        type="tel"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        placeholder="Номер телефона, например +79990000000"
-                        required
-                        className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
-                      />
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <input
+                          type="tel"
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                          placeholder="Телефон, например +79990000000"
+                          required
+                          className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+                        />
+                        <input
+                          type="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          placeholder="Почта (необязательно)"
+                          className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+                        />
+                      </div>
                     )}
                     <input
                       value={telegram}

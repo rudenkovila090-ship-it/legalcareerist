@@ -75,14 +75,14 @@ app.post('/api/notify', async (req, res) => {
 // Выбор тарифа на сайте → ссылка на оплату Prodamus. После оплаты Prodamus
 // вернёт человека на urlSuccess (страница сайта), где предлагаем перейти в бота.
 app.post('/api/community/subscribe', async (req, res) => {
-  const { tariffId, name, phone, telegram } = req.body ?? {}
+  const { tariffId, name, phone, email, telegram } = req.body ?? {}
   if (!TARIFFS[tariffId]) return res.status(400).json({ ok: false, error: 'unknown_tariff' })
   if (!phone) return res.status(400).json({ ok: false, error: 'phone_required' })
 
   try {
-    const token = createPendingJoin({ tariffId, name, phone, telegram })
+    const token = createPendingJoin({ tariffId, name, phone, email, telegram })
     const urlSuccess = `${SITE_URL}/community/success?token=${token}`
-    const url = await createPaymentLink({ tariffId, phone, urlSuccess })
+    const url = await createPaymentLink({ tariffId, phone, email, urlSuccess })
     res.json({ ok: true, url })
   } catch (err) {
     console.error('[subscribe] ошибка генерации ссылки на оплату:', err)
