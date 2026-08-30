@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { materials } from '../../data/materials'
 import { TagRow } from '../../components/Tag'
@@ -27,10 +27,30 @@ export default function MaterialDetail() {
 
   // Клик по любому варианту получения (бесплатно или платно) сначала открывает
   // гейт создания аккаунта — доступ считается открытым только после него.
+  // Исключение — материалы с realPurchase: там гейт заменяется формой с
+  // настоящей оплатой через Продамус (см. ниже handlePurchaseSubmit).
   const [gateOpen, setGateOpen] = useState(false)
   const [pendingLabel, setPendingLabel] = useState('')
   const [account, setAccount] = useState({ email: '', password: '' })
   const [accountCreated, setAccountCreated] = useState(false)
+
+  const [purchaseForm, setPurchaseForm] = useState({ name: '', phone: '', email: '' })
+  const [purchasing, setPurchasing] = useState(false)
+  const [purchaseError, setPurchaseError] = useState(false)
+
+  // При возврате кнопкой «Назад» после редиректа на оплату браузер может
+  // восстановить страницу из bfcache вместе с "замороженной" кнопкой
+  // «Переходим к оплате…» — сбрасываем состояние загрузки.
+  useEffect(() => {
+    function handlePageShow(e: PageTransitionEvent) {
+      if (e.persisted) {
+        setPurchasing(false)
+        setPurchaseError(false)
+      }
+    }
+    window.addEventListener('pageshow', handlePageShow)
+    return () => window.removeEventListener('pageshow', handlePageShow)
+  }, [])
 
   if (!material) {
     return (
@@ -58,6 +78,26 @@ export default function MaterialDetail() {
     if (!account.email.trim()) return
     setAccountCreated(true)
     setPurchased(true)
+  }
+
+  async function handlePurchaseSubmit(e: FormEvent) {
+    e.preventDefault()
+    if (!purchaseForm.name.trim() || !purchaseForm.phone.trim()) return
+    setPurchasing(true)
+    setPurchaseError(false)
+    try {
+      const res = await fetch('/api/marketplace/purchase', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ materialSlug: material!.slug, ...purchaseForm }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.url) throw new Error('purchase_failed')
+      window.location.href = data.url
+    } catch {
+      setPurchasing(false)
+      setPurchaseError(true)
+    }
   }
 
   return (
@@ -120,7 +160,7 @@ export default function MaterialDetail() {
                   {material.price === 0 ? 'Бесплатно' : `${money.format(material.price)} ₽`}
                 </div>
                 <button
-                  onClick={() => openGate(material.title)}
+                  onClick={() => (material.realPurchase ? setGateOpen(true) : openGate(material.title))}
                   className="mt-4 w-full rounded-lg bg-ink px-6 py-2.5 text-sm font-semibold text-white hover:bg-ink/90"
                 >
                   {material.price === 0 ? 'Получить бесплатно' : 'Оплатить и получить доступ'}
@@ -131,8 +171,64 @@ export default function MaterialDetail() {
         </aside>
       </div>
 
+      {/* Форма настоящей оплаты — для материалов с realPurchase, вместо гейта аккаунта */}
+      {gateOpen && material.realPurchase && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-ink/60 p-0 sm:items-center sm:p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setGateOpen(false)
+          }}
+        >
+          <div className="w-full max-w-sm rounded-t-2xl bg-white p-6 sm:rounded-2xl sm:p-8">
+            <div className="mb-1 flex items-center justify-between">
+              <h3 className="text-lg font-semibold">Оформить покупку</h3>
+              <button type="button" onClick={() => setGateOpen(false)} className="text-ink/40 hover:text-ink" aria-label="Закрыть">✕</button>
+            </div>
+            <div className="mb-4 flex items-center justify-between rounded-lg bg-ink/[0.04] px-4 py-3 text-sm">
+              <span className="text-ink/60 line-clamp-1">{material.title}</span>
+              <span className="shrink-0 font-semibold text-ink">{money.format(material.price)} ₽</span>
+            </div>
+            <form className="grid gap-3" onSubmit={handlePurchaseSubmit}>
+              <input
+                required
+                placeholder="Имя"
+                value={purchaseForm.name}
+                onChange={(e) => setPurchaseForm((f) => ({ ...f, name: e.target.value }))}
+                className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+              />
+              <input
+                type="tel"
+                required
+                placeholder="Телефон, например +79990000000"
+                value={purchaseForm.phone}
+                onChange={(e) => setPurchaseForm((f) => ({ ...f, phone: e.target.value }))}
+                className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+              />
+              <input
+                type="email"
+                placeholder="Почта (необязательно)"
+                value={purchaseForm.email}
+                onChange={(e) => setPurchaseForm((f) => ({ ...f, email: e.target.value }))}
+                className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+              />
+              {purchaseError && (
+                <p className="text-sm text-red-600">Не получилось перейти к оплате — попробуйте еще раз через минуту.</p>
+              )}
+              <button
+                type="submit"
+                disabled={purchasing}
+                className="rounded-full bg-ink py-3 text-sm font-semibold text-white transition-colors hover:bg-ink/90 disabled:opacity-60"
+              >
+                {purchasing ? 'Переходим к оплате…' : 'Перейти к оплате'}
+              </button>
+              <p className="text-xs text-ink/50">Нажимая «Перейти к оплате», вы соглашаетесь на обработку персональных данных.</p>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Гейт создания аккаунта — появляется после выбора варианта получения материала */}
-      {gateOpen && (
+      {gateOpen && !material.realPurchase && (
         <div
           className="fixed inset-0 z-50 flex items-end justify-center bg-ink/60 p-0 sm:items-center sm:p-4"
           onClick={(e) => {

@@ -2,11 +2,22 @@
 // система Prodamus). Формат ссылки и параметры — из официальной статьи
 // «Создание ссылки с автоплатежом» (help.prodamus.ru), подпись — через
 // hmac.js (проверено на реальных ссылках клубной системы, все совпали).
-import { HmacHelper } from './hmac.js'
+import { HmacHelper, flattenForm } from './hmac.js'
 
 const PAYFORM_DOMAIN = process.env.PRODAMUS_DOMAIN || 'legalcareerist.payform.ru'
 const SECRET_KEY = process.env.PRODAMUS_SECRET_KEY
 const SITE_URL = process.env.SITE_URL || 'https://legalcareerist.ru'
+
+// Материалы маркетплейса с настоящей оплатой (не подпиской — разовая
+// покупка). Цена и название задаются здесь, а не приходят от клиента —
+// иначе можно было бы подделать сумму в запросе с фронтенда.
+export const MATERIALS = {
+  'longlist-studencheskie-yuridicheskie-meropriyatiya': {
+    title: 'Лонглист «Студенческие юридические мероприятия»',
+    price: 990,
+    accessUrl: process.env.LONGLIST_EVENTS_ACCESS_URL || '',
+  },
+}
 
 // ID подписок в клубной системе Prodamus — заведены вручную в личном
 // кабинете, совпадают с тарифами на странице /community.
@@ -57,6 +68,40 @@ export async function createPaymentLink(params) {
   const text = (await res.text()).trim()
   if (!res.ok || !text.startsWith('http')) {
     throw new Error(`prodamus do=link ответил неожиданно: ${res.status} ${text.slice(0, 200)}`)
+  }
+  return text
+}
+
+/**
+ * Ссылка на разовую оплату товара (не подписки) — например, материал
+ * маркетплейса. Формат — do=link с массивом products, а не subscription;
+ * products[N][...] в подписи и в ссылке передаются как вложенная
+ * структура, поэтому используем flattenForm для сборки query-строки.
+ */
+export async function createProductPaymentLink({ materialSlug, phone, email, urlSuccess }) {
+  const material = MATERIALS[materialSlug]
+  if (!material) throw new Error(`unknown material: ${materialSlug}`)
+  if (!SECRET_KEY) throw new Error('PRODAMUS_SECRET_KEY not set')
+  if (!phone && !email) throw new Error('need phone or email to identify customer')
+
+  const data = {
+    do: 'link',
+    products: [{ name: material.title, price: material.price, quantity: 1 }],
+    urlNotification: `${SITE_URL}/api/prodamus/webhook`,
+  }
+  if (phone) data.customer_phone = phone
+  if (email) data.customer_email = email
+  if (urlSuccess) data.urlSuccess = urlSuccess
+
+  data.signature = HmacHelper.create(data, SECRET_KEY)
+
+  const flat = flattenForm(data)
+  const linkRequestUrl = `https://${PAYFORM_DOMAIN}/?${new URLSearchParams(flat).toString()}`
+
+  const res = await fetch(linkRequestUrl)
+  const text = (await res.text()).trim()
+  if (!res.ok || !text.startsWith('http')) {
+    throw new Error(`prodamus do=link (товар) ответил неожиданно: ${res.status} ${text.slice(0, 200)}`)
   }
   return text
 }

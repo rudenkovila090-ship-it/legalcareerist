@@ -167,7 +167,7 @@ export default function MarketplaceHome() {
     <div>
       <PageHero
         eyebrow="Карьерный Юрист"
-        title="Маркетплейс"
+        title="Маркет"
         description="Каталог полезных материалов для юридической карьеры: гайды, чек-листы, лонглисты, статьи и вебинары."
       />
 
@@ -209,7 +209,7 @@ export default function MarketplaceHome() {
 
           {/* Каталог */}
           <div>
-            <div className="mb-1 text-sm font-medium uppercase tracking-wide text-gold">Маркетплейс</div>
+            <div className="mb-1 text-sm font-medium uppercase tracking-wide text-gold">Маркет</div>
             <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
               <h2 className="text-2xl font-semibold">Каталог материалов</h2>
               <div className="flex items-center gap-3">

@@ -290,6 +290,8 @@ export interface MaterialItem extends Tagged {
   /** Для вебинаров: часть доступна бесплатно для просмотра, часть — в продаже (запись/материалы/оба). */
   freePreview?: boolean
   sale?: { recording?: number; materials?: number; bundle?: number }
+  /** Настоящая оплата через Prodamus вместо демо-гейта (см. server/lib/prodamus.js MATERIALS). */
+  realPurchase?: boolean
 }
 
 export interface MaterialPurchase {

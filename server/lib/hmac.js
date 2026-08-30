@@ -47,3 +47,24 @@ function sortRecursive(value) {
   }
   return value
 }
+
+/**
+ * Разворачивает вложенную структуру в плоские ключи `products[0][name]` —
+ * нужна для ссылок с товарами (не подписками), где данные передаются как
+ * вложенный массив, а сама ссылка должна нести именно эти плоские ключи.
+ */
+export function flattenForm(data, prefix = '') {
+  const entries = Array.isArray(data) ? data.entries() : Object.entries(data)
+  const result = []
+
+  for (const [key, value] of entries) {
+    const fullKey = prefix ? `${prefix}[${key}]` : String(key)
+    if (value !== null && typeof value === 'object') {
+      result.push(...flattenForm(value, fullKey))
+    } else {
+      result.push([fullKey, value === null || value === undefined ? '' : String(value)])
+    }
+  }
+
+  return result
+}

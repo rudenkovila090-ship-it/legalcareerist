@@ -17,6 +17,7 @@ import EventsHome from './pages/events/EventsHome'
 import EventDetail from './pages/events/EventDetail'
 import Materials from './pages/events/Materials'
 import MaterialDetail from './pages/events/MaterialDetail'
+import PurchaseCabinet from './pages/materials/PurchaseCabinet'
 import Account from './pages/Account'
 import MarketplaceHome from './pages/MarketplaceHome'
 import BlogHome from './pages/BlogHome'
@@ -86,6 +87,7 @@ export default function App() {
           }
         />
         <Route path="/events/materials" element={<Materials />} />
+        <Route path="/materials/cabinet" element={<PurchaseCabinet />} />
         <Route path="/materials/:slug" element={<MaterialDetail />} />
         <Route path="/events/contacts" element={<Contacts eyebrow="Мероприятия" sourceBlock="events" />} />
         <Route path="/events/documents" element={<Documents />} />

@@ -7,15 +7,21 @@
 //    /start access_<token> проверяет, оплачена ли заявка, и присылает
 //    ссылку на вступление в сообщество (сразу либо как только придёт
 //    вебхук об оплате).
-// 4. POST /api/prodamus/webhook — уведомления Prodamus об оплате: находит
-//    заявку по телефону, помечает оплаченной, шлёт ссылку в бота, если
-//    человек уже успел нажать Start.
+// 4. POST /api/marketplace/purchase — покупка материала маркетплейса →
+//    подписанная ссылка на разовую оплату (не подписка).
+// 5. GET /api/marketplace/purchase/:token — данные для личного кабинета
+//    (что купили, оплачено ли, ссылка на материал).
+// 6. POST /api/prodamus/webhook — уведомления Prodamus об оплате: и для
+//    подписок сообщества (находит заявку по телефону+тарифу, шлёт ссылку
+//    в бота), и для разовых покупок материалов (шлёт админу уведомление
+//    о покупке).
 // Токены и секретные ключи — только в server/.env, в репозиторий не попадают.
 import express from 'express'
 import cors from 'cors'
-import { createPaymentLink, TARIFFS, tariffIdBySubscriptionId } from './lib/prodamus.js'
+import { createPaymentLink, TARIFFS, tariffIdBySubscriptionId, createProductPaymentLink, MATERIALS } from './lib/prodamus.js'
 import { HmacHelper } from './lib/hmac.js'
 import { createPendingJoin, getPendingJoin, setTgUserId, markPaidByPhone } from './lib/store.js'
+import { createPendingPurchase, getPurchase, markPurchasePaidByPhone } from './lib/materialsStore.js'
 
 const app = express()
 app.use(cors())
@@ -90,6 +96,39 @@ app.post('/api/community/subscribe', async (req, res) => {
   }
 })
 
+// Покупка материала маркетплейса → ссылка на разовую оплату Prodamus.
+app.post('/api/marketplace/purchase', async (req, res) => {
+  const { materialSlug, name, phone, email } = req.body ?? {}
+  if (!MATERIALS[materialSlug]) return res.status(400).json({ ok: false, error: 'unknown_material' })
+  if (!phone) return res.status(400).json({ ok: false, error: 'phone_required' })
+
+  try {
+    const token = createPendingPurchase({ materialSlug, name, phone, email })
+    const urlSuccess = `${SITE_URL}/materials/cabinet?token=${token}`
+    const url = await createProductPaymentLink({ materialSlug, phone, email, urlSuccess })
+    res.json({ ok: true, url })
+  } catch (err) {
+    console.error('[marketplace] ошибка генерации ссылки на оплату:', err)
+    res.status(500).json({ ok: false, error: 'link_generation_failed' })
+  }
+})
+
+// Данные для личного кабинета покупки — отдаём только безопасный минимум,
+// ссылку на материал — только если заявка реально оплачена.
+app.get('/api/marketplace/purchase/:token', (req, res) => {
+  const purchase = getPurchase(req.params.token)
+  if (!purchase) return res.status(404).json({ ok: false, error: 'not_found' })
+
+  const material = MATERIALS[purchase.materialSlug]
+  res.json({
+    ok: true,
+    name: purchase.name,
+    materialTitle: material?.title ?? purchase.materialSlug,
+    paid: purchase.paid,
+    accessUrl: purchase.paid ? material?.accessUrl ?? '' : null,
+  })
+})
+
 // Апдейты от Telegram-бота @LegalcareeristBot. Настраивается один раз
 // командой setWebhook (см. README сервера).
 app.post('/api/telegram/webhook', async (req, res) => {
@@ -149,12 +188,31 @@ app.post('/api/prodamus/webhook', async (req, res) => {
   }
 
   const phone = body.customer_phone || body.phone
-  const tariffId = tariffIdBySubscriptionId(body.subscription?.id)
-  console.log('[prodamus] ищу заявку по телефону:', phone, 'тариф:', tariffId)
-  const join = markPaidByPhone(phone, tariffId)
-  console.log('[prodamus] результат поиска заявки:', join ? `найдена ${join.token} (${join.tariffId}), tgUserId=${join.tgUserId}` : 'не найдена')
-  if (join?.tgUserId) {
-    await sendInviteLink(join.tgUserId, join)
+
+  // Есть subscription — это оплата подписки сообщества; нет — разовая
+  // покупка материала маркетплейса. Это единственное надёжное отличие,
+  // которое приходит в вебхуке.
+  if (body.subscription) {
+    const tariffId = tariffIdBySubscriptionId(body.subscription.id)
+    console.log('[prodamus] подписка сообщества — телефон:', phone, 'тариф:', tariffId)
+    const join = markPaidByPhone(phone, tariffId)
+    console.log('[prodamus] результат поиска заявки:', join ? `найдена ${join.token} (${join.tariffId}), tgUserId=${join.tgUserId}` : 'не найдена')
+    if (join?.tgUserId) {
+      await sendInviteLink(join.tgUserId, join)
+    }
+    return
+  }
+
+  console.log('[prodamus] покупка материала — телефон:', phone)
+  const purchase = markPurchasePaidByPhone(phone)
+  console.log('[prodamus] результат поиска покупки:', purchase ? `найдена ${purchase.token}` : 'не найдена')
+  if (purchase) {
+    const material = MATERIALS[purchase.materialSlug]
+    const cabinetUrl = `${SITE_URL}/materials/cabinet?token=${purchase.token}`
+    await sendTelegramMessage(
+      ADMIN_CHAT_ID,
+      `💰 Покупка материала\nЧто: ${material?.title ?? purchase.materialSlug}\nСумма: ${body.sum} ₽\nКто: ${purchase.name || '—'}\nКонтакт: ${phone}${purchase.email ? ` / ${purchase.email}` : ''}\nЛичный кабинет: ${cabinetUrl}`,
+    )
   }
 })
 

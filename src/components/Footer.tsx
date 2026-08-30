@@ -36,7 +36,7 @@ export default function Footer() {
         </div>
 
         <div>
-          <div className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">Маркетплейс</div>
+          <div className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">Маркет</div>
           <ul className="space-y-2 text-sm">
             <li><Link className="hover:text-white" to="/marketplace">Каталог полезных материалов</Link></li>
           </ul>
