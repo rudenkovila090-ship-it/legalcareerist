@@ -17,6 +17,16 @@ export const MATERIALS = {
     price: 990,
     accessUrl: process.env.LONGLIST_EVENTS_ACCESS_URL || '',
   },
+  'gaid-kariera-yurista-v-notariate': {
+    title: 'Гайд «Карьера юриста в нотариате»',
+    price: 990,
+    accessUrl: process.env.GUIDE_NOTARIAT_ACCESS_URL || '',
+  },
+  'gaid-stipendii-i-granty': {
+    title: 'Гайд «Стипендии и гранты»',
+    price: 990,
+    accessUrl: process.env.GUIDE_GRANTS_ACCESS_URL || '',
+  },
 }
 
 // ID подписок в клубной системе Prodamus — заведены вручную в личном
