@@ -137,13 +137,21 @@ app.post('/api/prodamus/webhook', async (req, res) => {
     console.error('[prodamus] PRODAMUS_SECRET_KEY не задан или подпись отсутствует в запросе — пропускаю проверку')
   }
 
-  // Логируем полный payload — точные поля события (успешная оплата/статус
-  // подписки) уточняем по первому реальному платежу, чтобы не гадать.
+  // Логируем полный payload — точные поля события уточнили по первым
+  // реальным платежам: payment_status "success"/что-то ещё, customer_phone,
+  // subscription.id и т.д.
   console.log('[prodamus] webhook:', JSON.stringify(body))
   res.sendStatus(200)
 
+  if (body.payment_status !== 'success') {
+    console.log('[prodamus] статус не success — пропускаю:', body.payment_status)
+    return
+  }
+
   const phone = body.customer_phone || body.phone
+  console.log('[prodamus] ищу заявку по телефону:', phone)
   const join = markPaidByPhone(phone)
+  console.log('[prodamus] результат поиска заявки:', join ? `найдена ${join.token}, tgUserId=${join.tgUserId}` : 'не найдена')
   if (join?.tgUserId) {
     await sendInviteLink(join.tgUserId, join)
   }
