@@ -45,4 +45,20 @@ export function buildSubscriptionLink({ tariffId, tgUserId, phone, email, urlSuc
   return `https://${PAYFORM_DOMAIN}/?${qs}`
 }
 
+/**
+ * do=link не отдаёт саму страницу оплаты, а возвращает короткую ссылку на
+ * неё простым текстом (например, https://payform.ru/76cqQZ7/) — поэтому
+ * ходим по сгенерированной ссылке на сервере и отдаём на сайт уже готовый
+ * адрес, куда можно сразу редиректить браузер.
+ */
+export async function createPaymentLink(params) {
+  const linkRequestUrl = buildSubscriptionLink(params)
+  const res = await fetch(linkRequestUrl)
+  const text = (await res.text()).trim()
+  if (!res.ok || !text.startsWith('http')) {
+    throw new Error(`prodamus do=link ответил неожиданно: ${res.status} ${text.slice(0, 200)}`)
+  }
+  return text
+}
+
 export { TARIFFS }

@@ -13,7 +13,7 @@
 // Токены и секретные ключи — только в server/.env, в репозиторий не попадают.
 import express from 'express'
 import cors from 'cors'
-import { buildSubscriptionLink, TARIFFS } from './lib/prodamus.js'
+import { createPaymentLink, TARIFFS } from './lib/prodamus.js'
 import { HmacHelper } from './lib/hmac.js'
 import { createPendingJoin, getPendingJoin, setTgUserId, markPaidByPhone } from './lib/store.js'
 
@@ -74,7 +74,7 @@ app.post('/api/notify', async (req, res) => {
 
 // Выбор тарифа на сайте → ссылка на оплату Prodamus. После оплаты Prodamus
 // вернёт человека на urlSuccess (страница сайта), где предлагаем перейти в бота.
-app.post('/api/community/subscribe', (req, res) => {
+app.post('/api/community/subscribe', async (req, res) => {
   const { tariffId, name, phone, telegram } = req.body ?? {}
   if (!TARIFFS[tariffId]) return res.status(400).json({ ok: false, error: 'unknown_tariff' })
   if (!phone) return res.status(400).json({ ok: false, error: 'phone_required' })
@@ -82,7 +82,7 @@ app.post('/api/community/subscribe', (req, res) => {
   try {
     const token = createPendingJoin({ tariffId, name, phone, telegram })
     const urlSuccess = `${SITE_URL}/community/success?token=${token}`
-    const url = buildSubscriptionLink({ tariffId, phone, urlSuccess })
+    const url = await createPaymentLink({ tariffId, phone, urlSuccess })
     res.json({ ok: true, url })
   } catch (err) {
     console.error('[subscribe] ошибка генерации ссылки на оплату:', err)
