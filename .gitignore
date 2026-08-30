@@ -12,6 +12,10 @@ dist
 dist-ssr
 *.local
 
+# Бэкенд-эндпоинт (server/) — секреты только на сервере, не в репозитории
+server/.env
+server/node_modules
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

@@ -2,9 +2,19 @@
 // В проде пишет в таблицу Lead + создает/обновляет User, дублирует в Telegram-бот админу.
 // В этом фронтенд-MVP — сохраняет в localStorage, эмулируя единую CRM-таблицу лидов,
 // и триггерит analytics-событие (раздел 8: цели на каждую форму).
+// Дублирование в Telegram — настоящее (не демо): каждая заявка летит на бэкенд
+// (/api/notify), который шлет сообщение админу через Bot API. Бэкенд сам решает,
+// настроен ли токен/chat_id — если нет, просто отвечает ok:false, страница это не блокирует.
 import type { Lead, LeadSourceBlock } from '../types'
 
 const LEADS_KEY = 'ky_leads'
+
+const sourceLabels: Record<LeadSourceBlock, string> = {
+  kadry: 'Кадры',
+  community: 'Сообщество',
+  events: 'Мероприятия',
+  home: 'Главная',
+}
 
 export interface LeadInput {
   sourceBlock: LeadSourceBlock
@@ -31,8 +41,27 @@ export function submitLead(input: LeadInput): Lead {
   localStorage.setItem(LEADS_KEY, JSON.stringify(all))
 
   trackEvent('lead_submit', { source: input.sourceBlock, form: input.formType })
+  notifyTelegram(lead)
 
   return lead
+}
+
+/** Уведомление админу в Telegram — не блокирует отправку формы при ошибке/недоступности бэкенда. */
+function notifyTelegram(lead: Lead) {
+  if (typeof fetch === 'undefined') return
+  fetch('/api/notify', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      source: sourceLabels[lead.sourceBlock] ?? lead.sourceBlock,
+      formType: lead.formType,
+      name: lead.name,
+      contact: lead.contact,
+      interest: lead.interest,
+    }),
+  }).catch(() => {
+    // Бэкенд недоступен/не настроен — заявка все равно сохранена в localStorage, не мешаем пользователю.
+  })
 }
 
 export function getLeads(): Lead[] {
