@@ -586,7 +586,7 @@ export default function KadryHome() {
                     ))}
                   </div>
 
-                  <div className="mt-3 text-sm text-white/50">Контакт — {contactPrice(c.exp).toLocaleString('ru-RU')} ₽</div>
+                  <div className="mt-3 text-sm font-semibold text-gold-light">Контакт — {contactPrice(c.exp).toLocaleString('ru-RU')} ₽</div>
 
                   {isOpen && (
                     <div className="mt-4 space-y-3 border-t border-white/10 pt-4 text-sm">
