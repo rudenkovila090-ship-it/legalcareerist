@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import PageHero from '../components/PageHero'
 import { materials } from '../data/materials'
-import { materialKindLabel } from '../components/cards'
+import { materialKindLabel } from '../lib/materialLabels'
 import { MARKETPLACE_DIRECTIONS, type MaterialItem, type MaterialKind, type MarketplaceDirection } from '../types'
 
 const money = new Intl.NumberFormat('ru-RU')

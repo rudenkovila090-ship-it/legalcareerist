@@ -4,7 +4,7 @@ import { materials } from '../../data/materials'
 import { TagRow } from '../../components/Tag'
 import RelatedContentBlock from '../../components/RelatedContentBlock'
 import { getRelatedContent } from '../../lib/related'
-import { materialKindLabel as kindLabel } from '../../components/cards'
+import { materialKindLabel as kindLabel } from '../../lib/materialLabels'
 
 const money = new Intl.NumberFormat('ru-RU')
 

@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import type { Article, CommunityClub, EventItem, MaterialItem, Vacancy } from '../types'
 import { TagRow } from './Tag'
 import { articleViews } from '../lib/articleViews'
+import { materialKindLabel } from '../lib/materialLabels'
 
 const money = new Intl.NumberFormat('ru-RU')
 
@@ -77,16 +78,6 @@ export function EventCard({ e }: { e: EventItem }) {
       <div className="mt-2 text-sm font-medium">{e.price === 0 ? 'Бесплатно' : `${money.format(e.price)} ₽`}</div>
     </Link>
   )
-}
-
-export const materialKindLabel: Record<MaterialItem['kind'], string> = {
-  guide: 'Гайд',
-  checklist: 'Чек-лист',
-  recording: 'Запись',
-  longlist: 'Лонглист',
-  article: 'Статья',
-  webinar: 'Вебинар',
-  presentation: 'Презентация',
 }
 
 export function MaterialCard({ m }: { m: MaterialItem }) {

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import PageHero from '../../components/PageHero'
 import Testimonials from '../../components/Testimonials'
 import { communityTestimonials } from '../../data/testimonials'
@@ -214,7 +214,6 @@ const tariffs = [
 // ссылку на вступление в сообщество. Демодоступ (без оплаты) — как раньше,
 // сразу открывает бота.
 export default function CommunityHome() {
-  const joinRef = useRef<HTMLElement>(null)
   const [tariffId, setTariffId] = useState<(typeof tariffs)[number]['id']>('1m')
   const [paid, setPaid] = useState(false)
   const [name, setName] = useState('')
@@ -251,7 +250,7 @@ export default function CommunityHome() {
   }
 
   function scrollToJoin() {
-    joinRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    document.getElementById('join')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
   function handleActivateDemo() {
@@ -526,7 +525,7 @@ export default function CommunityHome() {
       </section>
 
       {/* Присоединиться: лид-заявка + тарифы */}
-      <section id="join" ref={joinRef} className="scroll-mt-16 bg-ink py-14 text-white">
+      <section id="join" className="scroll-mt-16 bg-ink py-14 text-white">
         <div className="container-page text-center">
           <div className="mb-8 text-sm font-medium uppercase tracking-wide text-gold-light">Присоединиться</div>
 
