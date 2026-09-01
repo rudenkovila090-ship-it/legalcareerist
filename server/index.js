@@ -44,6 +44,19 @@ async function sendTelegramMessage(chatId, text) {
   return res.ok
 }
 
+/**
+ * Оборачивает работу, которая идёт уже после того, как клиенту отправлен
+ * быстрый ответ (webhook'и Telegram/Prodamus этого ждут) — ошибку в такой
+ * работе некому вернуть в ответ, поэтому просто логируем и не роняем процесс.
+ */
+async function afterResponse(tag, work) {
+  try {
+    await work()
+  } catch (err) {
+    console.error(`[${tag}] ошибка обработки:`, err)
+  }
+}
+
 async function sendInviteLink(chatId, join) {
   const tariff = TARIFFS[join.tariffId]
   const label = tariff?.label ?? 'Сообщество'
@@ -134,7 +147,7 @@ app.get('/api/marketplace/purchase/:token', (req, res) => {
 app.post('/api/telegram/webhook', async (req, res) => {
   res.sendStatus(200) // Telegram ждёт быстрый ответ, обрабатываем после
 
-  try {
+  await afterResponse('telegram/webhook', async () => {
     const message = req.body?.message
     const text = message?.text
     const chatId = message?.chat?.id
@@ -160,10 +173,7 @@ app.post('/api/telegram/webhook', async (req, res) => {
     } else {
       await sendTelegramMessage(chatId, 'Ждём подтверждения оплаты от банка — обычно это занимает меньше минуты. Как только оплата пройдёт, здесь появится ссылка на вступление.')
     }
-  } catch (err) {
-    // Telegram уже получил 200 — просто логируем, чтобы не потерять причину сбоя.
-    console.error('[telegram/webhook] ошибка обработки:', err)
-  }
+  })
 })
 
 // Уведомления Prodamus об оплате подписки.
@@ -187,7 +197,7 @@ app.post('/api/prodamus/webhook', async (req, res) => {
   console.log('[prodamus] webhook:', JSON.stringify(body))
   res.sendStatus(200)
 
-  try {
+  await afterResponse('prodamus/webhook', async () => {
     if (body.payment_status !== 'success') {
       console.log('[prodamus] статус не success — пропускаю:', body.payment_status)
       return
@@ -220,10 +230,7 @@ app.post('/api/prodamus/webhook', async (req, res) => {
         `💰 Покупка материала\nЧто: ${material?.title ?? purchase.materialSlug}\nСумма: ${body.sum} ₽\nКто: ${purchase.name || '—'}\nКонтакт: ${phone}${purchase.email ? ` / ${purchase.email}` : ''}\nЛичный кабинет: ${cabinetUrl}`,
       )
     }
-  } catch (err) {
-    // Prodamus уже получил 200 — просто логируем, чтобы не потерять причину сбоя.
-    console.error('[prodamus/webhook] ошибка обработки:', err)
-  }
+  })
 })
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }))

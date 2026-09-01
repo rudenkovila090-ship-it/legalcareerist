@@ -9,10 +9,6 @@ export function createPendingJoin({ tariffId, name, phone, email, telegram }) {
   return store.create({ tariffId, name, phone, email, telegram, tgUserId: null })
 }
 
-export function getPendingJoin(token) {
-  return store.get(token)
-}
-
 export function setTgUserId(token, tgUserId) {
   return store.setField(token, 'tgUserId', tgUserId)
 }
