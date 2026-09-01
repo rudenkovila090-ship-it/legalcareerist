@@ -20,7 +20,7 @@ import express from 'express'
 import cors from 'cors'
 import { createPaymentLink, TARIFFS, tariffIdBySubscriptionId, createProductPaymentLink, MATERIALS } from './lib/prodamus.js'
 import { HmacHelper } from './lib/hmac.js'
-import { createPendingJoin, getPendingJoin, setTgUserId, markPaidByPhone } from './lib/store.js'
+import { createPendingJoin, setTgUserId, markPaidByPhone } from './lib/store.js'
 import { createPendingPurchase, getPurchase, markPurchasePaidByPhone } from './lib/materialsStore.js'
 
 const app = express()
@@ -134,30 +134,35 @@ app.get('/api/marketplace/purchase/:token', (req, res) => {
 app.post('/api/telegram/webhook', async (req, res) => {
   res.sendStatus(200) // Telegram ждёт быстрый ответ, обрабатываем после
 
-  const message = req.body?.message
-  const text = message?.text
-  const chatId = message?.chat?.id
-  if (!chatId || !text || !text.startsWith('/start')) return
+  try {
+    const message = req.body?.message
+    const text = message?.text
+    const chatId = message?.chat?.id
+    if (!chatId || !text || !text.startsWith('/start')) return
 
-  const payload = text.slice('/start'.length).trim()
-  const match = payload.match(/^access_(\w+)$/)
-  const token = match?.[1]
+    const payload = text.slice('/start'.length).trim()
+    const match = payload.match(/^access_(\w+)$/)
+    const token = match?.[1]
 
-  if (!token) {
-    await sendTelegramMessage(chatId, 'Привет! Это бот «Карьерного юриста». Чтобы вступить в сообщество, начните с сайта — раздел «Сообщество».')
-    return
-  }
+    if (!token) {
+      await sendTelegramMessage(chatId, 'Привет! Это бот «Карьерного юриста». Чтобы вступить в сообщество, начните с сайта — раздел «Сообщество».')
+      return
+    }
 
-  const join = setTgUserId(token, chatId)
-  if (!join) {
-    await sendTelegramMessage(chatId, 'Не нашли вашу заявку — попробуйте оформить подписку заново на сайте.')
-    return
-  }
+    const join = setTgUserId(token, chatId)
+    if (!join) {
+      await sendTelegramMessage(chatId, 'Не нашли вашу заявку — попробуйте оформить подписку заново на сайте.')
+      return
+    }
 
-  if (join.paid) {
-    await sendInviteLink(chatId, join)
-  } else {
-    await sendTelegramMessage(chatId, 'Ждём подтверждения оплаты от банка — обычно это занимает меньше минуты. Как только оплата пройдёт, здесь появится ссылка на вступление.')
+    if (join.paid) {
+      await sendInviteLink(chatId, join)
+    } else {
+      await sendTelegramMessage(chatId, 'Ждём подтверждения оплаты от банка — обычно это занимает меньше минуты. Как только оплата пройдёт, здесь появится ссылка на вступление.')
+    }
+  } catch (err) {
+    // Telegram уже получил 200 — просто логируем, чтобы не потерять причину сбоя.
+    console.error('[telegram/webhook] ошибка обработки:', err)
   }
 })
 
@@ -182,41 +187,52 @@ app.post('/api/prodamus/webhook', async (req, res) => {
   console.log('[prodamus] webhook:', JSON.stringify(body))
   res.sendStatus(200)
 
-  if (body.payment_status !== 'success') {
-    console.log('[prodamus] статус не success — пропускаю:', body.payment_status)
-    return
-  }
-
-  const phone = body.customer_phone || body.phone
-
-  // Есть subscription — это оплата подписки сообщества; нет — разовая
-  // покупка материала маркетплейса. Это единственное надёжное отличие,
-  // которое приходит в вебхуке.
-  if (body.subscription) {
-    const tariffId = tariffIdBySubscriptionId(body.subscription.id)
-    console.log('[prodamus] подписка сообщества — телефон:', phone, 'тариф:', tariffId)
-    const join = markPaidByPhone(phone, tariffId)
-    console.log('[prodamus] результат поиска заявки:', join ? `найдена ${join.token} (${join.tariffId}), tgUserId=${join.tgUserId}` : 'не найдена')
-    if (join?.tgUserId) {
-      await sendInviteLink(join.tgUserId, join)
+  try {
+    if (body.payment_status !== 'success') {
+      console.log('[prodamus] статус не success — пропускаю:', body.payment_status)
+      return
     }
-    return
-  }
 
-  console.log('[prodamus] покупка материала — телефон:', phone)
-  const purchase = markPurchasePaidByPhone(phone)
-  console.log('[prodamus] результат поиска покупки:', purchase ? `найдена ${purchase.token}` : 'не найдена')
-  if (purchase) {
-    const material = MATERIALS[purchase.materialSlug]
-    const cabinetUrl = `${SITE_URL}/materials/cabinet?token=${purchase.token}`
-    await sendTelegramMessage(
-      ADMIN_CHAT_ID,
-      `💰 Покупка материала\nЧто: ${material?.title ?? purchase.materialSlug}\nСумма: ${body.sum} ₽\nКто: ${purchase.name || '—'}\nКонтакт: ${phone}${purchase.email ? ` / ${purchase.email}` : ''}\nЛичный кабинет: ${cabinetUrl}`,
-    )
+    const phone = body.customer_phone || body.phone
+
+    // Есть subscription — это оплата подписки сообщества; нет — разовая
+    // покупка материала маркетплейса. Это единственное надёжное отличие,
+    // которое приходит в вебхуке.
+    if (body.subscription) {
+      const tariffId = tariffIdBySubscriptionId(body.subscription.id)
+      console.log('[prodamus] подписка сообщества — телефон:', phone, 'тариф:', tariffId)
+      const join = markPaidByPhone(phone, tariffId)
+      console.log('[prodamus] результат поиска заявки:', join ? `найдена ${join.token} (${join.tariffId}), tgUserId=${join.tgUserId}` : 'не найдена')
+      if (join?.tgUserId) {
+        await sendInviteLink(join.tgUserId, join)
+      }
+      return
+    }
+
+    console.log('[prodamus] покупка материала — телефон:', phone)
+    const purchase = markPurchasePaidByPhone(phone)
+    console.log('[prodamus] результат поиска покупки:', purchase ? `найдена ${purchase.token}` : 'не найдена')
+    if (purchase) {
+      const material = MATERIALS[purchase.materialSlug]
+      const cabinetUrl = `${SITE_URL}/materials/cabinet?token=${purchase.token}`
+      await sendTelegramMessage(
+        ADMIN_CHAT_ID,
+        `💰 Покупка материала\nЧто: ${material?.title ?? purchase.materialSlug}\nСумма: ${body.sum} ₽\nКто: ${purchase.name || '—'}\nКонтакт: ${phone}${purchase.email ? ` / ${purchase.email}` : ''}\nЛичный кабинет: ${cabinetUrl}`,
+      )
+    }
+  } catch (err) {
+    // Prodamus уже получил 200 — просто логируем, чтобы не потерять причину сбоя.
+    console.error('[prodamus/webhook] ошибка обработки:', err)
   }
 })
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }))
+
+// Страховка от падения процесса из-за необработанной ошибки где-то в фоне
+// (например, сорвавшийся запрос к Telegram/Prodamus после ответа клиенту) —
+// логируем и продолжаем работу вместо того, чтобы уронить сервер целиком.
+process.on('unhandledRejection', (err) => console.error('[unhandledRejection]', err))
+process.on('uncaughtException', (err) => console.error('[uncaughtException]', err))
 
 const PORT = process.env.PORT || 3001
 app.listen(PORT, () => console.log(`legalcareerist-server слушает порт ${PORT}`))

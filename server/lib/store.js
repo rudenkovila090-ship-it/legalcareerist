@@ -1,65 +1,27 @@
-// Простое файловое хранилище заявок на подписку сообщества (пока без БД —
-// заявок немного, JSON-файл достаточно; заменить на настоящую БД, когда
-// появится полная логика напоминаний/автосписаний из ТЗ).
-// Запись живёт с момента "выбрал тариф на сайте" до момента "получил
-// ссылку на сообщество в боте": token → { tariffId, name, phone, telegram,
-// paid, tgUserId, createdAt }.
-import fs from 'node:fs'
-import path from 'node:path'
-import crypto from 'node:crypto'
+// Заявки на подписку сообщества: token → { tariffId, name, phone, email,
+// telegram, paid, tgUserId, createdAt }. Живёт с момента "выбрал тариф на
+// сайте" до момента "получил ссылку на сообщество в боте".
+import { createJsonStore } from './jsonStore.js'
 
-const DATA_DIR = path.join(import.meta.dirname, '..', 'data')
-const FILE = path.join(DATA_DIR, 'pending-joins.json')
-
-function load() {
-  try {
-    return JSON.parse(fs.readFileSync(FILE, 'utf8'))
-  } catch {
-    return {}
-  }
-}
-
-function save(data) {
-  fs.mkdirSync(DATA_DIR, { recursive: true })
-  fs.writeFileSync(FILE, JSON.stringify(data, null, 2))
-}
+const store = createJsonStore('pending-joins.json')
 
 export function createPendingJoin({ tariffId, name, phone, email, telegram }) {
-  const token = crypto.randomBytes(12).toString('hex')
-  const data = load()
-  data[token] = { tariffId, name, phone, email, telegram, paid: false, tgUserId: null, createdAt: Date.now() }
-  save(data)
-  return token
+  return store.create({ tariffId, name, phone, email, telegram, tgUserId: null })
 }
 
 export function getPendingJoin(token) {
-  return load()[token] ?? null
+  return store.get(token)
 }
 
 export function setTgUserId(token, tgUserId) {
-  const data = load()
-  if (!data[token]) return null
-  data[token].tgUserId = tgUserId
-  save(data)
-  return data[token]
+  return store.setField(token, 'tgUserId', tgUserId)
 }
 
 /**
  * Находит неоплаченную заявку с таким телефоном (и, если известен —
  * именно тем тарифом, чтобы не перепутать при нескольких заявках подряд
- * с одного номера) и помечает оплаченной. Среди совпадений берёт самую
- * свежую (createdAt).
+ * с одного номера) и помечает оплаченной. Среди совпадений берёт самую свежую.
  */
 export function markPaidByPhone(phone, tariffId) {
-  if (!phone) return null
-  const data = load()
-  const matches = Object.entries(data)
-    .filter(([, v]) => v.phone === phone && !v.paid && (!tariffId || v.tariffId === tariffId))
-    .sort((a, b) => b[1].createdAt - a[1].createdAt)
-  const entry = matches[0]
-  if (!entry) return null
-  const [token, value] = entry
-  value.paid = true
-  save(data)
-  return { token, ...value }
+  return store.markPaidByPhone(phone, tariffId ? (v) => v.tariffId === tariffId : undefined)
 }

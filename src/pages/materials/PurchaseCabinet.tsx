@@ -17,13 +17,10 @@ export default function PurchaseCabinet() {
   const [params] = useSearchParams()
   const token = params.get('token')
   const [data, setData] = useState<PurchaseData | null>(null)
-  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
+  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>(token ? 'loading' : 'error')
 
   useEffect(() => {
-    if (!token) {
-      setStatus('error')
-      return
-    }
+    if (!token) return
     fetch(`/api/marketplace/purchase/${token}`)
       .then((res) => {
         if (!res.ok) throw new Error('not_found')
