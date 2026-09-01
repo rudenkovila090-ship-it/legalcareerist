@@ -13,6 +13,9 @@ export function VacancyCard({ v }: { v: Vacancy }) {
         <h3 className="font-semibold leading-snug">{v.title}</h3>
         {v.urgent && <span className="shrink-0 rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-600">Срочно</span>}
       </div>
+      {v.technicalExample && (
+        <div className="mt-1 text-xs font-medium text-amber-700">Технический пример</div>
+      )}
       <div className="mt-1 text-sm text-ink/60">{v.anonymous ? 'Компания скрыта' : v.company} · {v.city}</div>
       <div className="mt-2 text-sm font-medium text-ink">
         {v.salaryFrom ? `от ${money.format(v.salaryFrom)} ₽` : 'По договоренности'}

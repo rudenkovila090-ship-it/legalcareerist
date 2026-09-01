@@ -25,14 +25,6 @@ export const demoApplications: (Application & { vacancyTitle: string })[] = [
     date: '2026-08-16',
     status: 'in_review',
   },
-  {
-    id: 'app2',
-    vacancyId: 'v3',
-    vacancyTitle: 'Юрист, налоговый консалтинг',
-    candidateId: 'u_demo',
-    date: '2026-08-20',
-    status: 'new',
-  },
 ]
 
 export const demoMaterialPurchases: (MaterialPurchase & { materialTitle: string })[] = [

@@ -193,6 +193,20 @@ export interface Vacancy extends Tagged {
   publishedAt: string
   urgent: boolean
   employerId: string
+  /** Короткая метка над названием компании — например, статус/направление практики (см. страницу вакансии). */
+  companyTagline?: string
+  /** «Почему вакансия интересна» — карточки на странице вакансии. */
+  highlights?: { title: string; description: string }[]
+  /** «Что предстоит делать» — если задано, requirements выводится рядом как «Кого мы ищем». */
+  responsibilities?: string[]
+  /** Направления деятельности компании — теги под условиями. */
+  practiceAreas?: string[]
+  contactPhone?: string
+  contactEmail?: string
+  companyWebsite?: string
+  companyAddress?: string
+  /** Помечает вакансию как технический пример структуры страницы — не реальное предложение о работе. */
+  technicalExample?: boolean
 }
 
 export type ApplicationStatus = 'new' | 'in_review' | 'rejected' | 'offer'

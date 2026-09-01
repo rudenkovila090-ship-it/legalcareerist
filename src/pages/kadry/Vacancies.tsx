@@ -3,6 +3,7 @@ import PageHero from '../../components/PageHero'
 import { VacancyCard } from '../../components/cards'
 import { vacancies } from '../../data/vacancies'
 import { IndustryFilter, EducationFilter } from '../../components/VacancyFilters'
+import { pluralRu } from '../../lib/plural'
 import {
   SPECIALIZATIONS, EMPLOYMENT_TYPES, WORK_SCHEDULES, EXPERIENCE_BUCKETS,
   type Specialization, type WorkFormat, type EmploymentType, type WorkSchedule,
@@ -67,7 +68,8 @@ export default function Vacancies() {
         <div className="mb-6 rounded-lg bg-ink/[0.04] p-4 text-sm text-ink/60">
           В реальном продукте вакансии не публикуются здесь открыто: сначала их видят резиденты
           Сообщества, затем — кадровый резерв, и только после этого — открытый доступ (см. главную,
-          раздел «Кадры»). Доска ниже — демо-каркас со старыми тестовыми вакансиями.
+          раздел «Кадры»). Ниже — одна вакансия-пример, показывающая структуру страницы; реальные
+          вакансии добавляются по мере поступления от работодателей.
         </div>
 
         {/* relative z-20 — у .glass своя изолированная область наложения
@@ -149,7 +151,7 @@ export default function Vacancies() {
             </select>
           </div>
 
-          <div className="text-sm text-ink/50">{filtered.length} вакансий</div>
+          <div className="text-sm text-ink/50">{filtered.length} {pluralRu(filtered.length, ['вакансия', 'вакансии', 'вакансий'])}</div>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
