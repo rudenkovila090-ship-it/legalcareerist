@@ -6,6 +6,7 @@ import { consultationTestimonials } from '../../data/testimonials'
 import FAQSection from '../../components/FAQSection'
 import { TagRow } from '../../components/Tag'
 import LeadForm from '../../components/LeadForm'
+import VacancyDetailBody from '../../components/VacancyDetailBody'
 import { vacancies } from '../../data/vacancies'
 import { IndustryFilter, EducationFilter } from '../../components/VacancyFilters'
 import {
@@ -249,33 +250,10 @@ export default function Candidates() {
 
           <div className="mt-4 grid gap-8 lg:grid-cols-[2fr_1fr]">
             <div>
-              <h1 className="text-3xl font-semibold">{selectedVacancy.title}</h1>
-              <div className="mt-2 text-ink/60">{selectedVacancy.anonymous ? 'Компания скрыта' : selectedVacancy.company} · {selectedVacancy.city}</div>
-              <div className="mt-1 text-sm text-ink/40">{vacancyViews(selectedVacancy.id)} просмотров</div>
-              <div className="mt-3">
-                <TagRow specialization={selectedVacancy.specialization} industry={selectedVacancy.industry} />
-              </div>
-
-              <div className="mt-6 text-lg font-medium">
-                {selectedVacancy.salaryFrom ? `от ${money.format(selectedVacancy.salaryFrom)} ₽` : 'По договоренности'}
-                {selectedVacancy.salaryTo ? ` до ${money.format(selectedVacancy.salaryTo)} ₽` : ''}
-              </div>
-
-              <p className="mt-6 leading-relaxed text-ink/80">{selectedVacancy.description}</p>
-
-              <div className="mt-6">
-                <h2 className="font-semibold">Требования</h2>
-                <ul className="mt-2 list-inside list-disc space-y-1 text-ink/70">
-                  {selectedVacancy.requirements.map((r) => <li key={r}>{r}</li>)}
-                </ul>
-              </div>
-
-              <div className="mt-6">
-                <h2 className="font-semibold">Условия</h2>
-                <ul className="mt-2 list-inside list-disc space-y-1 text-ink/70">
-                  {selectedVacancy.conditions.map((c) => <li key={c}>{c}</li>)}
-                </ul>
-              </div>
+              <VacancyDetailBody
+                vacancy={selectedVacancy}
+                extra={<div className="mt-1 text-sm text-ink/40">{vacancyViews(selectedVacancy.id)} просмотров</div>}
+              />
             </div>
 
             <aside>
@@ -396,6 +374,9 @@ export default function Candidates() {
                   <h3 className="font-semibold leading-snug">{v.title}</h3>
                   {v.urgent && <span className="shrink-0 rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-600">Срочно</span>}
                 </div>
+                {v.technicalExample && (
+                  <div className="mt-1 text-xs font-medium text-amber-700">Технический пример</div>
+                )}
                 <div className="mt-1 text-sm text-ink/60">{v.anonymous ? 'Компания скрыта' : v.company} · {v.city}</div>
                 <div className="mt-2 text-sm font-medium text-ink">
                   {v.salaryFrom ? `от ${money.format(v.salaryFrom)} ₽` : 'По договоренности'}
