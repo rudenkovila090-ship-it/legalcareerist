@@ -154,16 +154,16 @@ export default function LeadForm({
       )}
 
       {showResumeUpload && (
-        <FileField label="Загрузить резюме (PDF)" required={requireAll} file={resumeFile} onChange={setResumeFile} />
+        <FileField label="Резюме (PDF)" required={requireAll} file={resumeFile} onChange={setResumeFile} />
       )}
       {showMotivationUpload && (
-        <FileField label="Загрузить мотивационное письмо (PDF)" required={requireAll} file={motivationFile} onChange={setMotivationFile} />
+        <FileField label="Мотивационное письмо (PDF)" required={requireAll} file={motivationFile} onChange={setMotivationFile} />
       )}
       {showCoverLetterUpload && (
-        <FileField label="Загрузить сопроводительное письмо (PDF)" required={requireAll} file={coverLetterFile} onChange={setCoverLetterFile} />
+        <FileField label="Сопроводительное письмо (PDF)" required={requireAll} file={coverLetterFile} onChange={setCoverLetterFile} />
       )}
       {showRecommendationUpload && (
-        <FileField label="Загрузить рекомендацию (необязательно)" required={false} file={recommendationFile} onChange={setRecommendationFile} />
+        <FileField label="Рекомендация (необязательно)" required={false} file={recommendationFile} onChange={setRecommendationFile} />
       )}
 
       {interestOptions && interestOptions.length > 0 && (
@@ -191,7 +191,7 @@ export default function LeadForm({
 
       <button
         type="submit"
-        className="mt-4 w-full rounded-lg bg-ink py-2.5 text-sm font-semibold text-white hover:bg-ink/90 sm:w-auto sm:px-6"
+        className="mt-4 w-full rounded-lg bg-ink py-2.5 text-sm font-semibold text-white hover:bg-ink/90"
       >
         Отправить заявку
       </button>

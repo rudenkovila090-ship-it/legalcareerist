@@ -243,7 +243,7 @@ export default function Candidates() {
           <button
             type="button"
             onClick={() => setSelectedVacancySlug(null)}
-            className="text-sm text-ink/50 hover:text-ink"
+            className="text-xl font-semibold text-ink/50 hover:text-ink"
           >
             ← Все вакансии
           </button>
@@ -258,7 +258,7 @@ export default function Candidates() {
                 sourceBlock="kadry"
                 formType="vacancy_application"
                 title="Откликнуться на вакансию"
-                description={`Заявка на позицию «${selectedVacancy.title}»`}
+                description={`«${selectedVacancy.title}»`}
                 contactLabel="Почта"
                 showPhone
                 showTelegram

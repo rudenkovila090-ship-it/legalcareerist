@@ -23,7 +23,7 @@ export default function VacancyDetail() {
 
   return (
     <div className="container-page py-12">
-      <Link to="/kadry/vacancies" className="text-sm text-ink/50 hover:text-ink">← Все вакансии</Link>
+      <Link to="/kadry/vacancies" className="text-xl font-semibold text-ink/50 hover:text-ink">← Все вакансии</Link>
 
       <div className="mt-4 grid gap-8 lg:grid-cols-[3fr_2fr]">
         <div>
@@ -46,7 +46,7 @@ export default function VacancyDetail() {
             sourceBlock="kadry"
             formType="vacancy_application"
             title="Откликнуться на вакансию"
-            description={`Заявка на позицию «${vacancy.title}»`}
+            description={`«${vacancy.title}»`}
             contactLabel="Почта"
             showPhone
             showTelegram

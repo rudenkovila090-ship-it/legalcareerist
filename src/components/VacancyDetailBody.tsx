@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { TagRow } from './Tag'
+import { SpecTag, IndustryTag } from './Tag'
 import { pluralRu } from '../lib/plural'
 import type { Vacancy } from '../types'
 
@@ -83,8 +83,18 @@ export default function VacancyDetailBody({ vacancy, extra }: { vacancy: Vacancy
         </div>
       )}
 
-      <div className="mt-3">
-        <TagRow specialization={vacancy.specialization} industry={vacancy.industry} />
+      {/* Специализация + направления деятельности — один ряд тегов, без
+          повтора: если заданы practiceAreas (более конкретные, чем общая
+          отрасль), показываем их вместо тега отрасли, а не вместе с ним —
+          иначе "Корпоративное право / M&A" дублировалось бы соседними
+          тегами "Корпоративное право" и "M&A". */}
+      <div className="mt-3 flex flex-wrap gap-1.5">
+        {vacancy.specialization.map((s) => <SpecTag key={s} id={s} />)}
+        {vacancy.practiceAreas && vacancy.practiceAreas.length > 0
+          ? vacancy.practiceAreas.map((p) => (
+              <span key={p} className="rounded-full bg-ink/5 px-2.5 py-1 text-xs font-medium text-ink/70">{p}</span>
+            ))
+          : vacancy.industry.map((i) => <IndustryTag key={i} id={i} />)}
       </div>
 
       {vacancy.aboutCompany ? (
@@ -144,24 +154,13 @@ export default function VacancyDetailBody({ vacancy, extra }: { vacancy: Vacancy
         </ul>
       </div>
 
-      {vacancy.practiceAreas && vacancy.practiceAreas.length > 0 && (
-        <div className="mt-8">
-          <h2 className="font-semibold">Направления деятельности компании</h2>
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {vacancy.practiceAreas.map((p) => (
-              <span key={p} className="rounded-full bg-ink/5 px-2.5 py-1 text-xs font-medium text-ink/70">{p}</span>
-            ))}
-          </div>
-        </div>
-      )}
-
       {vacancy.officeCoords && (
         <div className="mt-8">
-          <h2 className="font-semibold">Офис на карте</h2>
+          <h2 className="font-semibold">Адрес</h2>
           {vacancy.companyAddress && <p className="mt-1 text-sm text-ink/60">{vacancy.companyAddress}</p>}
           <div className="mt-3 overflow-hidden rounded-xl border border-ink/10">
             <iframe
-              title="Офис на карте"
+              title="Адрес на карте"
               src={`https://yandex.ru/map-widget/v1/?ll=${vacancy.officeCoords.lng}%2C${vacancy.officeCoords.lat}&z=16&pt=${vacancy.officeCoords.lng},${vacancy.officeCoords.lat},pm2rdm`}
               width="100%"
               height="360"
@@ -175,11 +174,14 @@ export default function VacancyDetailBody({ vacancy, extra }: { vacancy: Vacancy
   )
 }
 
-/** Контакты по вакансии — выводится отдельно от основного блока, под формой отклика. */
+/**
+ * Контакты по вакансии — выводится отдельно от основного блока, под формой
+ * отклика. Адрес сюда намеренно не входит — он уже есть в блоке "Адрес" с
+ * картой в основном контенте, повторять его здесь не нужно.
+ */
 export function VacancyContactsBlock({ vacancy }: { vacancy: Vacancy }) {
   const hasContacts = vacancy.contactPhone || vacancy.contactEmail
-  const hasFooter = vacancy.companyWebsite || vacancy.companyAddress
-  if (!hasContacts && !hasFooter) return null
+  if (!hasContacts && !vacancy.companyWebsite) return null
 
   return (
     <div className="rounded-xl border border-ink/10 p-5 text-sm">
@@ -188,14 +190,13 @@ export function VacancyContactsBlock({ vacancy }: { vacancy: Vacancy }) {
           <div className="font-semibold">Контакты по вакансии</div>
           <div className="mt-2 space-y-1 text-ink/70">
             {vacancy.contactPhone && <div>Телефон: {vacancy.contactPhone}</div>}
-            {vacancy.contactEmail && <div>Эл. почта: {vacancy.contactEmail}</div>}
+            {vacancy.contactEmail && <div>Почта: {vacancy.contactEmail}</div>}
           </div>
         </>
       )}
-      {hasFooter && (
+      {vacancy.companyWebsite && (
         <div className={hasContacts ? 'mt-4 border-t border-ink/10 pt-4 text-ink/50' : 'text-ink/50'}>
-          {vacancy.companyWebsite && <div>{vacancy.companyWebsite}</div>}
-          {vacancy.companyAddress && <div>{vacancy.companyAddress}</div>}
+          {vacancy.companyWebsite}
         </div>
       )}
     </div>
