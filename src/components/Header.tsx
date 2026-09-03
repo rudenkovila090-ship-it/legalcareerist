@@ -34,29 +34,62 @@ export default function Header() {
   const onCommunity = pathname.startsWith('/community')
   const onMarketplace = pathname.startsWith('/marketplace')
   const showAccountButton = onCommunity || onMarketplace
-  // Фон подкадровой панели меняется по аудитории: синий для работодателей,
-  // белый для соискателей — визуально разводит два сценария подбора.
   const isCandidates = pathname.startsWith('/kadry/candidates')
+  const kadryStatusLabel = onKadry ? (isCandidates ? 'Соискателям' : 'Работодателям') : null
 
   return (
     <header className="sticky top-0 z-40 border-b border-ink/10 bg-white/70 backdrop-blur-xl [transform:translateZ(0)] [will-change:transform]">
       <div className="container-page flex h-16 items-center justify-between">
-        <NavLink to="/" className="flex items-center gap-2.5">
-          <svg viewBox="0 0 100 100" className="h-7 w-7 text-ink" fill="none" stroke="currentColor" strokeWidth="11" strokeLinecap="round" aria-hidden="true">
-            <line x1="15" y1="78" x2="15" y2="55" />
-            <line x1="38" y1="78" x2="38" y2="18" />
-            <line x1="61" y1="78" x2="61" y2="25" />
-            <line x1="84" y1="62" x2="84" y2="38" />
-          </svg>
-          <span className="font-semibold tracking-tight">Карьерный Юрист</span>
-        </NavLink>
+        <div className="flex items-center gap-3">
+          <NavLink to="/" className="flex items-center gap-2.5">
+            <svg viewBox="0 0 100 100" className="h-7 w-7 text-ink" fill="none" stroke="currentColor" strokeWidth="11" strokeLinecap="round" aria-hidden="true">
+              <line x1="15" y1="78" x2="15" y2="55" />
+              <line x1="38" y1="78" x2="38" y2="18" />
+              <line x1="61" y1="78" x2="61" y2="25" />
+              <line x1="84" y1="62" x2="84" y2="38" />
+            </svg>
+            <span className="font-semibold tracking-tight">Карьерный Юрист</span>
+          </NavLink>
+          {/* Статус аудитории раздела «Кадры» — вместо отдельной строки-переключателя
+              под шапкой (занимала лишнюю высоту на каждой странице раздела). */}
+          {kadryStatusLabel && (
+            <span className="hidden rounded-full bg-ink px-3 py-1 text-xs font-semibold text-white sm:inline-block">
+              {kadryStatusLabel}
+            </span>
+          )}
+        </div>
 
         <nav className="hidden items-center gap-6 md:flex">
-          {nav.map((item) => (
-            <NavLink key={item.to} to={item.to} className={linkClass}>
-              {item.label}
-            </NavLink>
-          ))}
+          {nav.map((item) =>
+            item.label === 'Кадры' ? (
+              // «Кадры» — по наведению открывает выбор аудитории (Работодателям/
+              // Соискателям) вместо отдельной всегда видимой панели под шапкой.
+              <div key={item.to} className="group relative">
+                <NavLink to={item.to} className={linkClass}>{item.label}</NavLink>
+                <div className="invisible absolute left-0 top-full z-50 pt-2 opacity-0 transition-opacity duration-150 group-hover:visible group-hover:opacity-100">
+                  <div className="w-48 rounded-xl border border-ink/10 bg-white p-1.5 shadow-xl">
+                    {kadryAudience.map((a) => (
+                      <NavLink
+                        key={a.to}
+                        to={a.to}
+                        className={({ isActive }) =>
+                          `block rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                            isActive ? 'bg-ink/5 text-ink' : 'text-ink/60 hover:bg-ink/5 hover:text-ink'
+                          }`
+                        }
+                      >
+                        {a.label}
+                      </NavLink>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <NavLink key={item.to} to={item.to} className={linkClass}>
+                {item.label}
+              </NavLink>
+            ),
+          )}
         </nav>
 
         <div className="flex items-center gap-3">
@@ -75,39 +108,29 @@ export default function Header() {
           </NavLink>
         </div>
       </div>
-      <nav className="container-page flex gap-4 overflow-x-auto pb-3 md:hidden">
+      <nav className="container-page flex items-center gap-4 overflow-x-auto pb-3 md:hidden">
         {nav.map((item) => (
           <NavLink key={item.to} to={item.to} className={linkClass}>
             {item.label}
           </NavLink>
         ))}
+        {/* На тач-устройствах нет наведения — переключатель аудитории «Кадры»
+            показываем явными ссылками, а не только скрытым по ховеру меню. */}
+        {onKadry &&
+          kadryAudience.map((a) => (
+            <NavLink
+              key={a.to}
+              to={a.to}
+              className={({ isActive }) =>
+                `shrink-0 rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+                  isActive ? 'bg-ink text-white' : 'border border-ink/15 text-ink/60'
+                }`
+              }
+            >
+              {a.label}
+            </NavLink>
+          ))}
       </nav>
-
-      {onKadry && (
-        <div className={`border-t transition-colors ${isCandidates ? 'border-ink/10 bg-white' : 'border-white/10 bg-ink'}`}>
-          <div className="container-page flex justify-end gap-3 py-4">
-            {kadryAudience.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                className={({ isActive }) =>
-                  `rounded-full px-6 py-2.5 text-base font-semibold transition-colors ${
-                    isActive
-                      ? isCandidates
-                        ? 'bg-ink text-white'
-                        : 'bg-white text-ink'
-                      : isCandidates
-                        ? 'border border-ink/15 text-ink/60 hover:text-ink'
-                        : 'border border-white/25 text-white/70 hover:text-white'
-                  }`
-                }
-              >
-                {item.label}
-              </NavLink>
-            ))}
-          </div>
-        </div>
-      )}
     </header>
   )
 }

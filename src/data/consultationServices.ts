@@ -52,6 +52,7 @@ export const consultationCategories: ConsultationCategory[] = [
     title: 'Личный бренд',
     services: [
       { id: 'personal-brand', title: 'Построение персонального бренда юриста', price: 4000 },
+      { id: 'personal-brand-promo', title: 'Продвижение личного бренда', price: 3000 },
     ],
   },
 ]

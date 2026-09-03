@@ -145,6 +145,7 @@ const serviceIcons: Record<string, typeof IconDocPlus> = {
   burnout: IconBattery,
   'career-transition': IconSwap,
   'personal-brand': IconBadge,
+  'personal-brand-promo': IconRoute,
 }
 
 // Расширенное описание «что получаете» — показывается при наведении на
@@ -165,6 +166,7 @@ const serviceDetails: Record<string, string> = {
   burnout: 'Разбираем причины потери мотивации и ощущения застоя в профессии, находим, что именно перестало работать, и помогаем восстановить интерес к делу или осознанно сменить траекторию.',
   'career-transition': 'Получаете четкий план смены направления или сферы деятельности без потери накопленного опыта.',
   'personal-brand': 'Помогаем сформировать узнаваемый профессиональный образ, который работает на вас: как вас видят коллеги, работодатели и клиенты, и как этот образ усиливает вашу карьеру и репутацию на рынке.',
+  'personal-brand-promo': 'Разработаем стратегию продвижения: площадки, контент, экспертные темы и форматы публикаций. Определим, как через личный бренд привлекать клиентов, партнеров и профессиональные возможности.',
 }
 
 const benefits = [
@@ -312,14 +314,13 @@ export default function CareerConsultation({ embedded = false }: { embedded?: bo
             className="h-20 w-20 rounded-full object-cover shadow-md ring-4 ring-white sm:h-24 sm:w-24"
           />
           <div>
-            <div className="text-xs font-semibold uppercase tracking-wide text-ink/40">Проводит консультацию</div>
+            <div className="text-xs font-semibold uppercase tracking-wide text-ink/40">Карьерный консультант</div>
             <div className="text-lg font-semibold">Руденков Илья — основатель «Карьерного юриста»</div>
             <ul className="mt-2 space-y-1.5 text-sm text-ink/60">
               <li className="flex gap-2"><span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-gold" /><span>Больше 2 лет работает в сфере Legal HR</span></li>
               <li className="flex gap-2"><span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-gold" /><span>Провел более 50 карьерных консультаций</span></li>
               <li className="flex gap-2"><span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-gold" /><span>Юрист по персональным данным и рекламному праву</span></li>
               <li className="flex gap-2"><span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-gold" /><span>Студент магистратуры Legal Tech в НИУ ВШЭ</span></li>
-              <li className="flex gap-2"><span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-gold" /><span>Карьерный консультант</span></li>
             </ul>
           </div>
         </div>

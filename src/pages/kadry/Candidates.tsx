@@ -18,6 +18,7 @@ import KnowledgeList from '../KnowledgeList'
 import CareerReserve from './CareerReserve'
 import CareerConsultation from './CareerConsultation'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
+import { pluralRu } from '../../lib/plural'
 
 const money = new Intl.NumberFormat('ru-RU')
 
@@ -287,10 +288,6 @@ export default function Candidates() {
         <section className="container-page pb-16">
           <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Вакансии</div>
           <h2 className="mb-6 text-2xl font-semibold">Доска вакансий</h2>
-          <div className="mb-6 rounded-lg bg-ink/[0.04] p-4 text-sm text-ink/60">
-            Вакансии открываются по приоритету: сначала их видят резиденты Сообщества, затем — кадровый
-            резерв, и только после этого — открытый доступ (см. вкладку «Кадровый резерв»).
-          </div>
           {/* relative z-20 — у .glass своя изолированная область наложения
               (isolation: isolate), без явного z-index раскрывающиеся списки
               фильтров все равно оказывались под карточками вакансий ниже. */}
@@ -370,7 +367,7 @@ export default function Candidates() {
               </select>
             </div>
 
-            <div className="text-sm text-ink/50">{filteredVacancies.length} вакансий</div>
+            <div className="text-sm text-ink/50">{filteredVacancies.length} {pluralRu(filteredVacancies.length, ['вакансия', 'вакансии', 'вакансий'])}</div>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
