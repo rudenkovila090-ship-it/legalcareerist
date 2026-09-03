@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { SpecTag, IndustryTag } from './Tag'
 import { pluralRu } from '../lib/plural'
-import type { Vacancy } from '../types'
+import { WORK_FORMATS, WORK_SCHEDULES, EMPLOYMENT_TYPES, type Vacancy } from '../types'
 
 const money = new Intl.NumberFormat('ru-RU')
 
@@ -11,6 +11,29 @@ function formatSalary(vacancy: Vacancy) {
     vacancy.salaryFrom ? `от ${money.format(vacancy.salaryFrom)} ₽` : null,
     vacancy.salaryTo ? `до ${money.format(vacancy.salaryTo)} ₽` : null,
   ].filter(Boolean).join(' ')
+}
+
+/**
+ * Обязательный набор пунктов «Условия» — формируется из полей вакансии, а
+ * не вводится вручную по каждой вакансии отдельно, чтобы ни один пункт не
+ * потерялся при заполнении новой реальной вакансии. vacancy.conditions —
+ * доп. пункты сверх этого набора (например, «Опцион», «Оплата обучения»).
+ */
+function buildConditions(vacancy: Vacancy): string[] {
+  const formatLabel = WORK_FORMATS.find((f) => f.id === vacancy.format)?.label ?? vacancy.format
+  const scheduleLabel = WORK_SCHEDULES.find((s) => s.id === vacancy.schedule)?.label ?? vacancy.schedule
+  const employmentLabel = EMPLOYMENT_TYPES.find((e) => e.id === vacancy.employment)?.label ?? vacancy.employment
+
+  return [
+    `Город и адрес: ${vacancy.companyAddress || vacancy.city}`,
+    `Формат работы: ${formatLabel}`,
+    `График работы: ${scheduleLabel}`,
+    `Занятость: ${employmentLabel}`,
+    vacancy.employmentArrangement ? `Оформление: ${vacancy.employmentArrangement}` : null,
+    `Заработная плата: ${formatSalary(vacancy)}`,
+    vacancy.bonuses ? `Бонусы: ${vacancy.bonuses}` : null,
+    ...vacancy.conditions,
+  ].filter((c): c is string => Boolean(c))
 }
 
 /**
@@ -99,7 +122,7 @@ export default function VacancyDetailBody({ vacancy, extra }: { vacancy: Vacancy
 
       {vacancy.aboutCompany ? (
         <div className="mt-6 rounded-xl bg-ink/[0.04] p-5">
-          <h2 className="font-semibold">О компании</h2>
+          <h2 className="font-semibold">О работодателе</h2>
           <p className="mt-2 text-sm leading-relaxed text-ink/70">{vacancy.aboutCompany}</p>
         </div>
       ) : (
@@ -126,13 +149,13 @@ export default function VacancyDetailBody({ vacancy, extra }: { vacancy: Vacancy
       {vacancy.responsibilities && vacancy.responsibilities.length > 0 ? (
         <div className="mt-8 grid gap-6 sm:grid-cols-2">
           <div>
-            <h2 className="font-semibold">Что предстоит делать</h2>
+            <h2 className="font-semibold">Задачи на позиции</h2>
             <ul className="mt-2 list-inside list-disc space-y-1 text-ink/70">
               {vacancy.responsibilities.map((r) => <li key={r}>{r}</li>)}
             </ul>
           </div>
           <div>
-            <h2 className="font-semibold">Кого мы ищем</h2>
+            <h2 className="font-semibold">Требования</h2>
             <ul className="mt-2 list-inside list-disc space-y-1 text-ink/70">
               {vacancy.requirements.map((r) => <li key={r}>{r}</li>)}
             </ul>
@@ -150,7 +173,7 @@ export default function VacancyDetailBody({ vacancy, extra }: { vacancy: Vacancy
       <div className="mt-8 rounded-xl bg-ink/[0.04] p-5">
         <h2 className="font-semibold">Условия</h2>
         <ul className="mt-2 list-inside list-disc space-y-1 text-ink/70">
-          {vacancy.conditions.map((c) => <li key={c}>{c}</li>)}
+          {buildConditions(vacancy).map((c) => <li key={c}>{c}</li>)}
         </ul>
       </div>
 
@@ -161,7 +184,7 @@ export default function VacancyDetailBody({ vacancy, extra }: { vacancy: Vacancy
           <div className="mt-3 overflow-hidden rounded-xl border border-ink/10">
             <iframe
               title="Адрес на карте"
-              src={`https://yandex.ru/map-widget/v1/?ll=${vacancy.officeCoords.lng}%2C${vacancy.officeCoords.lat}&z=16&pt=${vacancy.officeCoords.lng},${vacancy.officeCoords.lat},pm2rdm`}
+              src={`https://yandex.ru/map-widget/v1/?ll=${vacancy.officeCoords.lng}%2C${vacancy.officeCoords.lat}&z=14&pt=${vacancy.officeCoords.lng},${vacancy.officeCoords.lat},pm2rdm`}
               width="100%"
               height="360"
               loading="lazy"
@@ -180,25 +203,15 @@ export default function VacancyDetailBody({ vacancy, extra }: { vacancy: Vacancy
  * картой в основном контенте, повторять его здесь не нужно.
  */
 export function VacancyContactsBlock({ vacancy }: { vacancy: Vacancy }) {
-  const hasContacts = vacancy.contactPhone || vacancy.contactEmail
-  if (!hasContacts && !vacancy.companyWebsite) return null
+  if (!vacancy.contactPhone && !vacancy.contactEmail) return null
 
   return (
     <div className="rounded-xl border border-ink/10 p-5 text-sm">
-      {hasContacts && (
-        <>
-          <div className="font-semibold">Контакты по вакансии</div>
-          <div className="mt-2 space-y-1 text-ink/70">
-            {vacancy.contactPhone && <div>Телефон: {vacancy.contactPhone}</div>}
-            {vacancy.contactEmail && <div>Почта: {vacancy.contactEmail}</div>}
-          </div>
-        </>
-      )}
-      {vacancy.companyWebsite && (
-        <div className={hasContacts ? 'mt-4 border-t border-ink/10 pt-4 text-ink/50' : 'text-ink/50'}>
-          {vacancy.companyWebsite}
-        </div>
-      )}
+      <div className="font-semibold">Контакты по вакансии</div>
+      <div className="mt-2 space-y-1 text-ink/70">
+        {vacancy.contactPhone && <div><span className="font-semibold text-ink">Телефон:</span> {vacancy.contactPhone}</div>}
+        {vacancy.contactEmail && <div><span className="font-semibold text-ink">Почта:</span> {vacancy.contactEmail}</div>}
+      </div>
     </div>
   )
 }

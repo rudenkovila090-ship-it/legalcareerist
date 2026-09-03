@@ -5,7 +5,7 @@ import { vacancies } from '../../data/vacancies'
 import { IndustryFilter, EducationFilter } from '../../components/VacancyFilters'
 import { pluralRu } from '../../lib/plural'
 import {
-  SPECIALIZATIONS, EMPLOYMENT_TYPES, WORK_SCHEDULES, EXPERIENCE_BUCKETS,
+  SPECIALIZATIONS, EMPLOYMENT_TYPES, WORK_SCHEDULES, WORK_FORMATS, EXPERIENCE_BUCKETS,
   type Specialization, type WorkFormat, type EmploymentType, type WorkSchedule,
   type ExperienceBucket, type EducationLevel,
 } from '../../types'
@@ -14,12 +14,6 @@ import {
 // специализаций: только направления, актуальные для этого раздела.
 const vacancySpecIds: Specialization[] = ['inhouse', 'consulting', 'advocacy', 'notary', 'law_enforcement', 'government']
 const vacancySpecs = vacancySpecIds.map((id) => SPECIALIZATIONS.find((s) => s.id === id)!)
-
-const formatOptions: { id: WorkFormat; label: string }[] = [
-  { id: 'office', label: 'Офис' },
-  { id: 'hybrid', label: 'Гибрид' },
-  { id: 'remote', label: 'Дистанционно' },
-]
 
 const cityOptions = ['Москва', 'Санкт-Петербург', 'Екатеринбург']
 
@@ -123,7 +117,7 @@ export default function Vacancies() {
             >
               <option value="any" disabled hidden>Формат</option>
               {format !== 'any' && <option value="any">Любой формат</option>}
-              {formatOptions.map((f) => (
+              {WORK_FORMATS.map((f) => (
                 <option key={f.id} value={f.id}>{f.label}</option>
               ))}
             </select>

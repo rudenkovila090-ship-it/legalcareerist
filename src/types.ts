@@ -95,6 +95,11 @@ export interface User {
 export type CandidateVisibility = 'open' | 'anonymous'
 export type CandidateLevel = 'junior' | 'middle' | 'senior'
 export type WorkFormat = 'office' | 'remote' | 'hybrid'
+export const WORK_FORMATS: { id: WorkFormat; label: string }[] = [
+  { id: 'office', label: 'Офис' },
+  { id: 'hybrid', label: 'Гибрид' },
+  { id: 'remote', label: 'Дистанционно' },
+]
 export type CandidateStatus = 'looking' | 'considering' | 'not_looking'
 
 export interface CandidateProfile extends Tagged {
@@ -187,6 +192,9 @@ export interface Vacancy extends Tagged {
   companyIndustry: string[]
   description: string
   requirements: string[]
+  /** Доп. пункты «Условия» сверх обязательного набора (город/адрес, формат,
+   *  график, занятость, оформление, зарплата, бонусы — эти формируются
+   *  автоматически из полей вакансии, см. VacancyDetailBody). */
   conditions: string[]
   status: VacancyStatus
   visibilityStage: VacancyVisibilityStage
@@ -203,12 +211,15 @@ export interface Vacancy extends Tagged {
   practiceAreas?: string[]
   contactPhone?: string
   contactEmail?: string
-  companyWebsite?: string
   companyAddress?: string
   /** Координаты офиса для карты на странице вакансии (Яндекс.Карты). */
   officeCoords?: { lat: number; lng: number }
-  /** «О компании» — короткий блок на странице вакансии (на месте, где раньше была зарплата). */
+  /** «О работодателе» — короткий блок на странице вакансии (на месте, где раньше была зарплата). */
   aboutCompany?: string
+  /** «Оформление» в блоке «Условия» — трудовой договор / ГПХ / самозанятость и т.п. */
+  employmentArrangement?: string
+  /** «Бонусы» в блоке «Условия» — премии, ДМС, опцион и т.п. */
+  bonuses?: string
   /** Помечает вакансию как технический пример структуры страницы — не реальное предложение о работе. */
   technicalExample?: boolean
 }

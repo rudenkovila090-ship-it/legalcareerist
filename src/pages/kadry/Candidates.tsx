@@ -243,7 +243,7 @@ export default function Candidates() {
           <button
             type="button"
             onClick={() => setSelectedVacancySlug(null)}
-            className="text-xl font-semibold text-ink/50 hover:text-ink"
+            className="text-xl font-semibold text-gold hover:text-ink"
           >
             ← Все вакансии
           </button>

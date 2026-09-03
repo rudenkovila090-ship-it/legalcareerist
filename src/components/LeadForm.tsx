@@ -195,7 +195,7 @@ export default function LeadForm({
       >
         Отправить заявку
       </button>
-      <p className="mt-2 text-xs text-ink/40">Нажимая «Отправить», вы соглашаетесь на обработку персональных данных.</p>
+      <p className="mt-2 text-center text-xs text-ink/40">Нажимая «Отправить», вы соглашаетесь на обработку персональных данных.</p>
     </form>
   )
 }
