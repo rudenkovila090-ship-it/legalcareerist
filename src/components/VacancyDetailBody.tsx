@@ -19,21 +19,20 @@ function formatSalary(vacancy: Vacancy) {
  * потерялся при заполнении новой реальной вакансии. vacancy.conditions —
  * доп. пункты сверх этого набора (например, «Опцион», «Оплата обучения»).
  */
-function buildConditions(vacancy: Vacancy): string[] {
+function buildConditions(vacancy: Vacancy): { label: string; value: string }[] {
   const formatLabel = WORK_FORMATS.find((f) => f.id === vacancy.format)?.label ?? vacancy.format
   const scheduleLabel = WORK_SCHEDULES.find((s) => s.id === vacancy.schedule)?.label ?? vacancy.schedule
   const employmentLabel = EMPLOYMENT_TYPES.find((e) => e.id === vacancy.employment)?.label ?? vacancy.employment
 
   return [
-    `Город и адрес: ${vacancy.companyAddress || vacancy.city}`,
-    `Формат работы: ${formatLabel}`,
-    `График работы: ${scheduleLabel}`,
-    `Занятость: ${employmentLabel}`,
-    vacancy.employmentArrangement ? `Оформление: ${vacancy.employmentArrangement}` : null,
-    `Заработная плата: ${formatSalary(vacancy)}`,
-    vacancy.bonuses ? `Бонусы: ${vacancy.bonuses}` : null,
-    ...vacancy.conditions,
-  ].filter((c): c is string => Boolean(c))
+    { label: 'Адрес', value: vacancy.companyAddress || vacancy.city },
+    { label: 'Формат работы', value: formatLabel },
+    { label: 'График работы', value: scheduleLabel },
+    { label: 'Занятость', value: employmentLabel },
+    vacancy.employmentArrangement ? { label: 'Оформление', value: vacancy.employmentArrangement } : null,
+    { label: 'Заработная плата', value: formatSalary(vacancy) },
+    vacancy.bonuses ? { label: 'Бонусы', value: vacancy.bonuses } : null,
+  ].filter((c): c is { label: string; value: string } => Boolean(c))
 }
 
 /**
@@ -173,7 +172,10 @@ export default function VacancyDetailBody({ vacancy, extra }: { vacancy: Vacancy
       <div className="mt-8 rounded-xl bg-ink/[0.04] p-5">
         <h2 className="font-semibold">Условия</h2>
         <ul className="mt-2 list-inside list-disc space-y-1 text-ink/70">
-          {buildConditions(vacancy).map((c) => <li key={c}>{c}</li>)}
+          {buildConditions(vacancy).map((c) => (
+            <li key={c.label}><span className="font-semibold text-ink">{c.label}:</span> {c.value}</li>
+          ))}
+          {vacancy.conditions.map((c) => <li key={c}>{c}</li>)}
         </ul>
       </div>
 
@@ -193,6 +195,16 @@ export default function VacancyDetailBody({ vacancy, extra }: { vacancy: Vacancy
           </div>
         </div>
       )}
+
+      {/* Настоящих отзывов пока нет — честная заглушка вместо придуманных
+          цитат (тот же принцип, что и в общем разделе «Отзывы», см.
+          Testimonials.tsx). Появятся тексты — заменить на реальные. */}
+      <div className="mt-8">
+        <h2 className="font-semibold">Отзывы о работодателе</h2>
+        <div className="mt-3 rounded-xl border border-dashed border-ink/20 bg-ink/[0.03] p-6 text-sm text-ink/50">
+          Раздел готов к наполнению — как только появятся отзывы сотрудников, разместим их здесь.
+        </div>
+      </div>
     </>
   )
 }

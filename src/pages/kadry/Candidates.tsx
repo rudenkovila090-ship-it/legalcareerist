@@ -253,23 +253,25 @@ export default function Candidates() {
               <VacancyDetailBody vacancy={selectedVacancy} />
             </div>
 
-            <aside className="space-y-6">
-              <LeadForm
-                sourceBlock="kadry"
-                formType="vacancy_application"
-                title="Откликнуться на вакансию"
-                description={`«${selectedVacancy.title}»`}
-                contactLabel="Почта"
-                showPhone
-                showTelegram
-                showResumeUpload
-                showMotivationUpload
-                showCoverLetterUpload
-                showRecommendationUpload
-                requireAll
-                vacancySlug={selectedVacancy.slug}
-              />
-              <VacancyContactsBlock vacancy={selectedVacancy} />
+            <aside>
+              <div className="space-y-6 lg:sticky lg:top-6">
+                <LeadForm
+                  sourceBlock="kadry"
+                  formType="vacancy_application"
+                  title="Откликнуться на вакансию"
+                  description={`«${selectedVacancy.title}»`}
+                  contactLabel="Почта"
+                  showPhone
+                  showTelegram
+                  showResumeUpload
+                  showMotivationUpload
+                  showCoverLetterUpload
+                  showRecommendationUpload
+                  requireAll
+                  vacancySlug={selectedVacancy.slug}
+                />
+                <VacancyContactsBlock vacancy={selectedVacancy} />
+              </div>
             </aside>
           </div>
         </section>
