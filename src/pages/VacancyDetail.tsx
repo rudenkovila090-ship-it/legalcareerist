@@ -97,7 +97,9 @@ export default function VacancyDetail() {
         </div>
 
         <aside>
-          <div className="space-y-6 lg:sticky lg:top-6">
+          {/* top-20 — под закрепленной шапкой сайта (h-16 = 64px) с запасом,
+              иначе заголовок формы уезжает под нее при прокрутке. */}
+          <div className="space-y-6 lg:sticky lg:top-20">
             <LeadForm
               sourceBlock="kadry"
               formType="vacancy_application"

@@ -254,7 +254,11 @@ export default function Candidates() {
             </div>
 
             <aside>
-              <div className="space-y-6 lg:sticky lg:top-6">
+              {/* top-[220px] — под двумя закрепленными панелями этой
+                  страницы (шапка сайта + таб-бар раздела «Соискателям»,
+                  который начинает липнуть с top-[142px]), иначе заголовок
+                  формы уезжает под них при прокрутке. */}
+              <div className="space-y-6 lg:sticky lg:top-[220px]">
                 <LeadForm
                   sourceBlock="kadry"
                   formType="vacancy_application"
