@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import type { Article, CommunityClub, EventItem, MaterialItem, Vacancy } from '../types'
 import { TagRow } from './Tag'
-import { articleViews } from '../lib/articleViews'
+import { useArticleViewCount } from '../lib/useArticleViews'
 import { materialKindLabel } from '../lib/materialLabels'
 
 const money = new Intl.NumberFormat('ru-RU')
@@ -32,12 +32,13 @@ export function VacancyCard({ v }: { v: Vacancy }) {
 // с compact): открывает материал инлайн вместо перехода на отдельный роут,
 // чтобы не терять контекст вкладки (та же проблема, что была с вакансиями).
 export function ArticleCard({ a, onSelect }: { a: Article; onSelect?: (slug: string) => void }) {
+  const views = useArticleViewCount(a.slug)
   const content = (
     <>
       <span className="text-xs font-medium uppercase tracking-wide text-gold">{kindLabel(a.kind)}</span>
       <h3 className="mt-1 font-semibold leading-snug">{a.title}</h3>
       <p className="mt-2 text-sm text-ink/60">{a.excerpt}</p>
-      <div className="mt-2 text-xs text-ink/40">{articleViews(a.id)} просмотров</div>
+      <div className="mt-2 text-xs text-ink/40">{views ?? 0} просмотров</div>
     </>
   )
   if (onSelect) {

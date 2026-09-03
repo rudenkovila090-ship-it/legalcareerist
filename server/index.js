@@ -17,6 +17,8 @@
 //    о покупке).
 // 7. POST /api/vacancy/:slug/view — реальный счётчик просмотров вакансии
 //    (+1 при каждом открытии страницы).
+// 8. POST /api/article/:slug/view — реальный счётчик просмотров статьи
+//    базы знаний (+1 при каждом открытии).
 // Токены и секретные ключи — только в server/.env, в репозиторий не попадают.
 import express from 'express'
 import cors from 'cors'
@@ -25,6 +27,7 @@ import { HmacHelper } from './lib/hmac.js'
 import { createPendingJoin, setTgUserId, markPaidByPhone } from './lib/store.js'
 import { createPendingPurchase, getPurchase, markPurchasePaidByPhone } from './lib/materialsStore.js'
 import { incrementView, incrementApplication } from './lib/vacancyStats.js'
+import { incrementArticleView, getArticleViews } from './lib/articleStats.js'
 
 const app = express()
 app.use(cors())
@@ -75,6 +78,19 @@ async function sendInviteLink(chatId, join) {
 app.post('/api/vacancy/:slug/view', (req, res) => {
   const stats = incrementView(req.params.slug)
   res.json({ ok: true, ...stats })
+})
+
+// Открытие статьи базы знаний → +1 к счётчику просмотров (тот же принцип,
+// что у вакансий: реальный счётчик, а не демо-число).
+app.post('/api/article/:slug/view', (req, res) => {
+  const stats = incrementArticleView(req.params.slug)
+  res.json({ ok: true, ...stats })
+})
+
+// Только чтение — для карточек статьи в списке (не увеличивает счётчик,
+// иначе каждый рендер списка накручивал бы просмотры).
+app.get('/api/article/:slug/views', (req, res) => {
+  res.json({ ok: true, views: getArticleViews(req.params.slug) })
 })
 
 app.post('/api/notify', async (req, res) => {

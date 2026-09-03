@@ -8,6 +8,7 @@ import { submitLead } from '../../lib/leads'
 import { openTelegramBot } from '../../lib/telegram'
 import ilyaPhoto from '../../assets/ilya-rudenkov.jpg'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
+import { tariffs } from '../../data/tariffs'
 
 const railItems = [
   { id: 'hero', label: 'Обзор' },
@@ -195,16 +196,6 @@ function buildFaqItems(onActivateDemo: () => void) {
     { q: 'Как устроены закрытые вакансии?', a: 'Карьерный юрист сначала предлагает вакансии резидентам сообщества — и только потом кадровому резерву и открытому рынку.' },
   ]
 }
-
-// priceLabel — полная стоимость тарифа (то, что списывается при оплате);
-// note — цена в пересчете на месяц, показывает выгоду, но не является
-// суммой к оплате.
-const tariffs = [
-  { id: '1m', period: '1 месяц', price: 690, priceLabel: '690 ₽', note: 'Стандартная' },
-  { id: '3m', period: '3 месяца', price: 1770, priceLabel: '1 770 ₽', note: '590 ₽/мес · выгоднее на 14%' },
-  { id: '6m', period: '6 месяцев', price: 3180, priceLabel: '3 180 ₽', note: '530 ₽/мес · выгоднее на 23%' },
-  { id: 'demo', period: 'Демодоступ', price: 0, priceLabel: 'Бесплатно', note: '7 дней, чтобы попробовать формат перед оплатой' },
-] as const
 
 // Лендинг «Вступить»: выбор тарифа → форма (имя, телефон, telegram) →
 // POST /api/community/subscribe генерирует подписанную ссылку на оплату

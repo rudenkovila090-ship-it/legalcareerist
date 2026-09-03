@@ -2,8 +2,10 @@ import { useMemo, useState } from 'react'
 import PageHero from '../components/PageHero'
 import { ArticleCard } from '../components/cards'
 import RelatedContentBlock from '../components/RelatedContentBlock'
+import ArticleBody from '../components/ArticleBody'
+import TariffJoinBlock from '../components/TariffJoinBlock'
 import { getRelatedContent } from '../lib/related'
-import { articleViews } from '../lib/articleViews'
+import { useArticleViews } from '../lib/useArticleViews'
 import { articles } from '../data/articles'
 import { useDocumentTitle } from '../lib/useDocumentTitle'
 import type { Audience, ArticleKind } from '../types'
@@ -45,6 +47,7 @@ export default function KnowledgeList({
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null)
   const selected = compact ? articles.find((a) => a.slug === selectedSlug) ?? null : null
   const related = selected ? getRelatedContent(selected, 'article', selected.id) : []
+  const views = useArticleViews(selected?.slug ?? '')
 
   const filtered = useMemo(
     () => articles.filter((a) => a.audience.includes(audience) && a.kind !== 'faq' && (kind === 'all' || a.kind === kind)),
@@ -61,9 +64,19 @@ export default function KnowledgeList({
           <span className="text-sm font-medium uppercase tracking-wide text-gold">{kindLabelFull[selected.kind]}</span>
           <h1 className="mt-2 text-3xl font-semibold">{selected.title}</h1>
           <div className="mt-2 text-sm text-ink/50">
-            {new Date(selected.date).toLocaleDateString('ru-RU')} · {articleViews(selected.id)} просмотров
+            {new Date(selected.date).toLocaleDateString('ru-RU')} · {views ?? '…'} просмотров
           </div>
-          <p className="mt-6 whitespace-pre-line leading-relaxed text-ink/80">{selected.body}</p>
+
+          <div className="mt-8">
+            <ArticleBody body={selected.body} />
+          </div>
+
+          {selected.cta === 'community-tariff' && (
+            <div className="mt-10">
+              <TariffJoinBlock />
+            </div>
+          )}
+
           <RelatedContentBlock items={related} />
         </div>
       </div>

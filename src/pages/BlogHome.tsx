@@ -81,9 +81,8 @@ export default function BlogHome() {
 
       {tab === 'community' && (
         <div className="container-page py-12">
-          <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Сообщество</div>
-          <h2 className="mb-6 text-2xl font-semibold">База знаний сообщества</h2>
-          <KnowledgeList audience="community" eyebrow="Блог · Сообщество" title="База знаний сообщества" compact />
+          <h2 className="mb-6 text-2xl font-semibold">Сообщество</h2>
+          <KnowledgeList audience="community" eyebrow="Блог · Сообщество" title="Сообщество" compact />
         </div>
       )}
     </div>

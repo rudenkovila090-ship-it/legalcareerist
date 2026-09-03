@@ -242,10 +242,15 @@ export interface Article extends Tagged {
   audience: Audience[]
   kind: ArticleKind
   excerpt: string
+  /** Поддерживает легкую разметку: строка вида "## Заголовок" — подзаголовок,
+   *  "**текст**" — акцент. См. компонент ArticleBody. */
   body: string
   author: string
   date: string
   tags: string[]
+  /** Виджет-приглашение, который рендерится под текстом статьи. Пока
+   *  единственный вариант — выбор и оплата тарифа сообщества (TariffJoinBlock). */
+  cta?: 'community-tariff'
 }
 
 export type EventType = 'conference' | 'webinar' | 'breakfast' | 'intensive' | 'tour'
