@@ -66,16 +66,6 @@ export default function App() {
           <Route path="/community" element={<CommunityHome />} />
           <Route path="/community/success" element={<JoinSuccess />} />
           <Route path="/community/clubs/:slug" element={<ClubDetail />} />
-          <Route
-            path="/community/knowledge"
-            element={
-              <KnowledgeList
-                audience="community"
-                eyebrow="Сообщество · База знаний"
-                title="Материалы для студентов-юристов"
-              />
-            }
-          />
           <Route path="/community/contacts" element={<Contacts eyebrow="Сообщество" sourceBlock="community" />} />
 
           {/* Мероприятия */}

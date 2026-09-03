@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import PageHero from '../components/PageHero'
+import KnowledgeList from './KnowledgeList'
 import { news } from '../data/news'
 import { useDocumentTitle } from '../lib/useDocumentTitle'
 
 const blogTabs = [
   { id: 'news', label: 'Новости Карьерного юриста' },
   { id: 'podcast', label: 'Подкаст' },
+  { id: 'community', label: 'Сообщество' },
 ] as const
 
 // /blog — демо-каркас, добавлен по запросу рядом с Кадрами/Сообществом/
@@ -75,6 +77,14 @@ export default function BlogHome() {
             </div>
           </div>
         </section>
+      )}
+
+      {tab === 'community' && (
+        <div className="container-page py-12">
+          <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Сообщество</div>
+          <h2 className="mb-6 text-2xl font-semibold">База знаний сообщества</h2>
+          <KnowledgeList audience="community" eyebrow="Блог · Сообщество" title="База знаний сообщества" compact />
+        </div>
       )}
     </div>
   )
