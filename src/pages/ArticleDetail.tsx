@@ -3,12 +3,14 @@ import { articles } from '../data/articles'
 import RelatedContentBlock from '../components/RelatedContentBlock'
 import { getRelatedContent } from '../lib/related'
 import { articleViews } from '../lib/articleViews'
+import { useDocumentTitle } from '../lib/useDocumentTitle'
 
 const kindLabel = { article: 'Статья', faq: 'FAQ', glossary: 'Глоссарий', checklist: 'Чек-лист' }
 
 export default function ArticleDetail() {
   const { slug } = useParams()
   const article = articles.find((a) => a.slug === slug)
+  useDocumentTitle(article?.title ?? 'Материал не найден')
 
   if (!article) {
     return (

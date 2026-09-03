@@ -5,6 +5,7 @@ import Testimonials from '../../components/Testimonials'
 import FAQSection from '../../components/FAQSection'
 import SectionRail from '../../components/SectionRail'
 import { submitLead } from '../../lib/leads'
+import { useDocumentTitle } from '../../lib/useDocumentTitle'
 
 const proof = [
   { value: '8 000+', label: 'кандидатов в кадровом резерве' },
@@ -81,6 +82,7 @@ const railItems = [
 ]
 
 export default function CareerReserve({ embedded = false }: { embedded?: boolean }) {
+  useDocumentTitle('Кадровый резерв')
   const [form, setForm] = useState({ name: '', email: '', phone: '', telegram: '', position: '' })
   const [resumeFile, setResumeFile] = useState<File | null>(null)
   const [sent, setSent] = useState(false)

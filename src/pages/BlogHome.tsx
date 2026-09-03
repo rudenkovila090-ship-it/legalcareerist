@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import PageHero from '../components/PageHero'
 import { news } from '../data/news'
+import { useDocumentTitle } from '../lib/useDocumentTitle'
 
 const blogTabs = [
   { id: 'news', label: 'Новости Карьерного юриста' },
@@ -10,6 +11,7 @@ const blogTabs = [
 // /blog — демо-каркас, добавлен по запросу рядом с Кадрами/Сообществом/
 // Мероприятиями/Маркетплейсом. Наполнение еще не согласовано с бизнесом.
 export default function BlogHome() {
+  useDocumentTitle('Блог')
   const [tab, setTab] = useState<(typeof blogTabs)[number]['id']>('news')
 
   return (

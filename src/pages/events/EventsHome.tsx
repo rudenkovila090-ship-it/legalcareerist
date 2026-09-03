@@ -2,6 +2,7 @@ import { useMemo, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { events } from '../../data/events'
 import { submitLead } from '../../lib/leads'
+import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import type { EventItem } from '../../types'
 
 const money = new Intl.NumberFormat('ru-RU')
@@ -201,6 +202,7 @@ function IconTiktok() {
 }
 
 export default function EventsHome() {
+  useDocumentTitle('Мероприятия')
   const [tab, setTab] = useState<(typeof eventTabs)[number]['id']>('poster')
 
   const [quick, setQuick] = useState<QuickCategory>('all')

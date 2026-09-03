@@ -4,6 +4,7 @@ import { VacancyCard } from '../../components/cards'
 import { vacancies } from '../../data/vacancies'
 import { IndustryFilter, EducationFilter } from '../../components/VacancyFilters'
 import { pluralRu } from '../../lib/plural'
+import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import {
   SPECIALIZATIONS, EMPLOYMENT_TYPES, WORK_SCHEDULES, WORK_FORMATS, EXPERIENCE_BUCKETS,
   type Specialization, type WorkFormat, type EmploymentType, type WorkSchedule,
@@ -22,6 +23,7 @@ function parseMinSalary(text: string) {
 }
 
 export default function Vacancies() {
+  useDocumentTitle('Доска вакансий')
   const [spec, setSpec] = useState<Specialization | 'all'>('all')
   const [format, setFormat] = useState<WorkFormat | 'any'>('any')
   const [schedule, setSchedule] = useState<WorkSchedule | 'any'>('any')

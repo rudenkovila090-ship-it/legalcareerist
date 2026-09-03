@@ -5,11 +5,13 @@ import { vacancies } from '../../data/vacancies'
 import RelatedContentBlock from '../../components/RelatedContentBlock'
 import { getRelatedContent } from '../../lib/related'
 import { SPECIALIZATIONS, type Specialization } from '../../types'
+import { useDocumentTitle } from '../../lib/useDocumentTitle'
 
 // /kadry/salary — Зарплатный навигатор (раздел 6.7): не было в исходном ТЗ,
 // добавлено по итогам анализа конкурентов. Диапазон считается из mock-выборки
 // вакансий (в проде — агрегированная статистика по базе + ручные апдейты).
 export default function Salary() {
+  useDocumentTitle('Зарплатный навигатор')
   const [spec, setSpec] = useState<Specialization>('inhouse')
   const [city, setCity] = useState('Москва')
 

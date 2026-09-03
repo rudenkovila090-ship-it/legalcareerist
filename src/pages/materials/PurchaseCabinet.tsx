@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import PageHero from '../../components/PageHero'
+import { useDocumentTitle } from '../../lib/useDocumentTitle'
 
 interface PurchaseData {
   name: string
@@ -14,6 +15,7 @@ interface PurchaseData {
 // Данные хранятся по token на сервере (server/lib/materialsStore.js), без
 // логина/пароля — доступ по ссылке.
 export default function PurchaseCabinet() {
+  useDocumentTitle('Личный кабинет')
   const [params] = useSearchParams()
   const token = params.get('token')
   const [data, setData] = useState<PurchaseData | null>(null)

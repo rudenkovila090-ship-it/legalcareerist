@@ -1,6 +1,8 @@
 import PageHero from '../components/PageHero'
+import { useDocumentTitle } from '../lib/useDocumentTitle'
 
 export default function About() {
+  useDocumentTitle('О нас')
   return (
     <div>
       <PageHero eyebrow="Карьерный Юрист" title="О нас" description="Кадровое агентство и сообщество для юридического рынка — под одним брендом." />

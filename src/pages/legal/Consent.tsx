@@ -1,6 +1,8 @@
 import PageHero from '../../components/PageHero'
+import { useDocumentTitle } from '../../lib/useDocumentTitle'
 
 export default function Consent() {
+  useDocumentTitle('Согласие на обработку персональных данных')
   return (
     <div>
       <PageHero eyebrow="Документы" title="Согласия на обработку персональных данных" />

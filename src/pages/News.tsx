@@ -1,7 +1,9 @@
 import PageHero from '../components/PageHero'
 import { news } from '../data/news'
+import { useDocumentTitle } from '../lib/useDocumentTitle'
 
 export default function News() {
+  useDocumentTitle('Новости')
   return (
     <div>
       <PageHero eyebrow="Карьерный Юрист" title="Новости" description="Что изменилось у бота, на сайте, в подкасте и на встречах с резидентами." />

@@ -7,6 +7,7 @@ import FAQSection from '../../components/FAQSection'
 import SectionRail from '../../components/SectionRail'
 import KnowledgeList from '../KnowledgeList'
 import { submitLead } from '../../lib/leads'
+import { useDocumentTitle } from '../../lib/useDocumentTitle'
 
 const railItems = [
   { id: 'hero', label: 'Обзор' },
@@ -373,6 +374,7 @@ function FilterSelect({ placeholder, resetLabel, value, options, onChange }: {
 }
 
 export default function KadryHome() {
+  useDocumentTitle('Кадры — Работодателям')
   const [salary, setSalary] = useState(50000)
   const fee = Math.round(salary * 0.3)
   const prepay = Math.round(fee * 0.75)
@@ -493,19 +495,19 @@ export default function KadryHome() {
       {/* Вкладки раздела: рекрутинг / кандидаты / база знаний / личный кабинет.
           Закреплены (sticky), остаются на экране при скролле. top-16 —
           сразу под шапкой сайта (h-16). */}
-      <div className="sticky top-16 z-20 border-b border-white/10 bg-ink/95 py-4 backdrop-blur-xl [transform:translateZ(0)] [will-change:transform]">
+      <div className="sticky top-16 z-20 border-b border-white/10 bg-ink/95 py-3 backdrop-blur-xl [transform:translateZ(0)] [will-change:transform]">
         <div className="container-page">
-        <div className="flex items-center justify-between gap-3">
-          <span className="shrink-0 rounded-full border border-white/25 bg-white/10 px-3 py-1.5 text-sm font-semibold text-white">Работодателям</span>
+        <div className="flex items-center justify-between gap-2">
+          <span className="shrink-0 rounded-full border border-white/25 bg-white/10 px-2.5 py-1 text-xs font-semibold text-white">Работодателям</span>
           {/* Без flex-wrap — высота панели всегда постоянна, при нехватке
               ширины вкладки скроллятся по горизонтали, а не переносятся. */}
-          <div className="flex justify-end gap-3 overflow-x-auto">
+          <div className="flex justify-end gap-2 overflow-x-auto">
           {employerTabs.map((t) => (
             <button
               key={t.id}
               type="button"
               onClick={() => setTab(t.id)}
-              className={`flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full px-5 py-2.5 text-sm font-semibold transition-colors ${
+              className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-2 text-xs font-semibold transition-colors sm:text-sm ${
                 tab === t.id ? 'bg-white text-ink' : 'border border-white/25 text-white/70 hover:text-white'
               }`}
             >

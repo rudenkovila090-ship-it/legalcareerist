@@ -1,6 +1,8 @@
 import PageHero from '../components/PageHero'
+import { useDocumentTitle } from '../lib/useDocumentTitle'
 
 export default function Documents() {
+  useDocumentTitle('Документы')
   return (
     <div>
       <PageHero eyebrow="Мероприятия" title="Документы" description="Договоры, правила участия и другие документы мероприятий." />

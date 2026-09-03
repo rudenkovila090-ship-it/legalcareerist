@@ -8,6 +8,7 @@ import RelatedContentBlock from '../../components/RelatedContentBlock'
 import { getRelatedContent } from '../../lib/related'
 import { demoMemberships } from '../../lib/account'
 import { submitLead } from '../../lib/leads'
+import { useDocumentTitle } from '../../lib/useDocumentTitle'
 
 const eventTypeLabel = { conference: 'Ключевое мероприятие', webinar: 'Вебинар', breakfast: 'Бизнес-завтрак', intensive: 'Интенсив', tour: 'Экскурсия' }
 
@@ -26,6 +27,7 @@ const COMMUNITY_DISCOUNT = 0.2
 export default function EventDetail() {
   const { slug } = useParams()
   const event = events.find((e) => e.slug === slug)
+  useDocumentTitle(event?.title ?? 'Мероприятие не найдено')
   const [registered, setRegistered] = useState(false)
 
   const eligibleMembership = useMemo(() => {

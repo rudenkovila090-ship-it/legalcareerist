@@ -5,6 +5,7 @@ import { TagRow } from '../../components/Tag'
 import RelatedContentBlock from '../../components/RelatedContentBlock'
 import { getRelatedContent } from '../../lib/related'
 import { materialKindLabel as kindLabel } from '../../lib/materialLabels'
+import { useDocumentTitle } from '../../lib/useDocumentTitle'
 
 const money = new Intl.NumberFormat('ru-RU')
 
@@ -23,6 +24,7 @@ function Stars({ rating }: { rating: number }) {
 export default function MaterialDetail() {
   const { slug } = useParams()
   const material = materials.find((m) => m.slug === slug)
+  useDocumentTitle(material?.title ?? 'Материал не найден')
   const [purchased, setPurchased] = useState(false)
 
   // Клик по любому варианту получения (бесплатно или платно) сначала открывает

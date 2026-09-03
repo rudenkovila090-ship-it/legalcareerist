@@ -1,8 +1,10 @@
 import PageHero from '../../components/PageHero'
+import { useDocumentTitle } from '../../lib/useDocumentTitle'
 
 // Полный текст Политики обработки персональных данных из присланного PDF
 // (редакция от 26.06.2026 г.), без сокращений — раздел за разделом, пункт за пунктом.
 export default function Privacy() {
+  useDocumentTitle('Политика обработки персональных данных')
   return (
     <div>
       <PageHero eyebrow="Документы" title="Политика в области обработки персональных данных" description="Редакция от 26.06.2026 г." />

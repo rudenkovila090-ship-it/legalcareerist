@@ -140,7 +140,7 @@ export default function Candidates() {
   const minSalary = parseMinSalary(salaryText)
   const [selectedVacancySlug, setSelectedVacancySlug] = useState<string | null>(null)
   const selectedVacancy = vacancies.find((v) => v.slug === selectedVacancySlug) ?? null
-  useDocumentTitle(selectedVacancy?.title)
+  useDocumentTitle(selectedVacancy?.title ?? 'Кадры — Соискателям')
   // Открытие конкретной вакансии подменяет список ее карточкой прямо на месте
   // (без перехода по роуту) — список короче карточки, поэтому без сброса
   // скролла страницу утаскивало вниз, к старой позиции клика.
@@ -168,20 +168,20 @@ export default function Candidates() {
     <div>
       {/* Вкладки раздела «Соискателям» — закреплены (sticky), остаются на
           экране при скролле. top-16 — сразу под шапкой сайта (h-16). */}
-      <div className="sticky top-16 z-20 border-b border-ink/10 bg-white/95 py-4 backdrop-blur-xl [transform:translateZ(0)] [will-change:transform]">
+      <div className="sticky top-16 z-20 border-b border-ink/10 bg-white/95 py-3 backdrop-blur-xl [transform:translateZ(0)] [will-change:transform]">
         <div className="container-page">
-        <div className="flex items-center justify-between gap-3">
-          <span className="shrink-0 rounded-full bg-ink px-3 py-1.5 text-sm font-semibold text-white">Соискателям</span>
+        <div className="flex items-center justify-between gap-2">
+          <span className="shrink-0 rounded-full bg-ink px-2.5 py-1 text-xs font-semibold text-white">Соискателям</span>
           {/* Без flex-wrap — высота панели всегда постоянна (важна для
               top-[Npx] у sticky-формы отклика справа), при нехватке
               ширины вкладки скроллятся по горизонтали, а не переносятся. */}
-          <div className="flex justify-end gap-3 overflow-x-auto">
+          <div className="flex justify-end gap-2 overflow-x-auto">
           {candidateTabs.map((t) => (
             <button
               key={t.id}
               type="button"
               onClick={() => setTab(t.id)}
-              className={`flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full px-5 py-2.5 text-sm font-semibold transition-colors ${
+              className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-2 text-xs font-semibold transition-colors sm:text-sm ${
                 tab === t.id ? 'bg-ink text-white' : 'border border-ink/15 text-ink/60 hover:text-ink'
               }`}
             >
@@ -263,12 +263,12 @@ export default function Candidates() {
             </div>
 
             <aside>
-              {/* top-[140px] — под двумя закрепленными панелями этой
-                  страницы (шапка сайта h-16=64px + таб-бар раздела
+              {/* top-[128px] — под двумя закрепленными панелями этой
+                  страницы (шапка сайта h-16≈65px + таб-бар раздела
                   «Соискателям», который начинает липнуть с top-16 и сам
-                  занимает ~72px), иначе заголовок формы уезжает под них
-                  при прокрутке. */}
-              <div className="space-y-6 lg:sticky lg:top-[140px]">
+                  занимает ~63px), иначе заголовок формы уезжает под них
+                  при прокрутке. Замерено через getBoundingClientRect(). */}
+              <div className="space-y-6 lg:sticky lg:top-[128px]">
                 <LeadForm
                   sourceBlock="kadry"
                   formType="vacancy_application"

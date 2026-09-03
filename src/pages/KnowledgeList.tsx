@@ -5,6 +5,7 @@ import RelatedContentBlock from '../components/RelatedContentBlock'
 import { getRelatedContent } from '../lib/related'
 import { articleViews } from '../lib/articleViews'
 import { articles } from '../data/articles'
+import { useDocumentTitle } from '../lib/useDocumentTitle'
 import type { Audience, ArticleKind } from '../types'
 
 const kindLabelFull: Record<ArticleKind, string> = {
@@ -36,6 +37,7 @@ export default function KnowledgeList({
   /** Без собственного PageHero — для встраивания внутрь вкладки другой страницы. */
   compact?: boolean
 }) {
+  useDocumentTitle(eyebrow)
   const [kind, setKind] = useState<ArticleKind | 'all'>('all')
   // При встраивании внутрь вкладки (compact) открываем материал инлайн, а не
   // по реальному роуту — иначе переход на /knowledge/:slug уносит со страницы

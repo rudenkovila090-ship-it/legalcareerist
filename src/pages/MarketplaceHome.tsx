@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import PageHero from '../components/PageHero'
 import { materials } from '../data/materials'
 import { materialKindLabel } from '../lib/materialLabels'
+import { useDocumentTitle } from '../lib/useDocumentTitle'
 import { MARKETPLACE_DIRECTIONS, type MaterialItem, type MaterialKind, type MarketplaceDirection } from '../types'
 
 const money = new Intl.NumberFormat('ru-RU')
@@ -116,6 +117,7 @@ function ProductCard({ m }: { m: MaterialItem }) {
 }
 
 export default function MarketplaceHome() {
+  useDocumentTitle('Маркет')
   const [category, setCategory] = useState<Set<MaterialKind>>(new Set())
   const [directions, setDirections] = useState<Set<MarketplaceDirection>>(new Set())
   const [priceFrom, setPriceFrom] = useState('')

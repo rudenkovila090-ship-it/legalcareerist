@@ -1,8 +1,10 @@
 import PageHero from '../../components/PageHero'
 import { MaterialCard } from '../../components/cards'
 import { materials } from '../../data/materials'
+import { useDocumentTitle } from '../../lib/useDocumentTitle'
 
 export default function Materials() {
+  useDocumentTitle('Полезные материалы')
   return (
     <div>
       <PageHero eyebrow="Мероприятия" title="Полезные материалы" description="Гайды, чек-листы и записи прошедших мероприятий." prototype />

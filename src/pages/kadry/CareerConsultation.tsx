@@ -8,6 +8,7 @@ import { submitLead } from '../../lib/leads'
 import { consultationCategories, allConsultationServices, tierDiscountPct } from '../../data/consultationServices'
 import { consultationTestimonials } from '../../data/testimonials'
 import ilyaPhoto from '../../assets/ilya-rudenkov.jpg'
+import { useDocumentTitle } from '../../lib/useDocumentTitle'
 
 // Минималистичные иконки — своя на каждую услугу конструктора, без внешних
 // библиотек, без повторов.
@@ -218,6 +219,7 @@ const railItems = [
 ]
 
 export default function CareerConsultation({ embedded = false }: { embedded?: boolean }) {
+  useDocumentTitle('Карьерная консультация')
   const [selected, setSelected] = useState<Record<string, boolean>>({})
   const [promo, setPromo] = useState('')
   const [modalOpen, setModalOpen] = useState(false)

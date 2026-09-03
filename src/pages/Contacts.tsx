@@ -1,8 +1,10 @@
 import PageHero from '../components/PageHero'
 import LeadForm from '../components/LeadForm'
+import { useDocumentTitle } from '../lib/useDocumentTitle'
 import type { LeadSourceBlock } from '../types'
 
 export default function Contacts({ eyebrow, sourceBlock }: { eyebrow: string; sourceBlock: LeadSourceBlock }) {
+  useDocumentTitle(`${eyebrow} — Контакты`)
   return (
     <div>
       <PageHero eyebrow={eyebrow} title="Контакты" description="Свяжитесь с нами удобным способом." prototype />

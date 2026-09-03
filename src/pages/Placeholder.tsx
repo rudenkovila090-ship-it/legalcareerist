@@ -1,7 +1,9 @@
 import PageHero from '../components/PageHero'
+import { useDocumentTitle } from '../lib/useDocumentTitle'
 
 // Общая страница-заглушка для пунктов навигации, чье наполнение еще не согласовано.
 export default function Placeholder({ eyebrow, title }: { eyebrow: string; title: string }) {
+  useDocumentTitle(title)
   return (
     <div>
       <PageHero eyebrow={eyebrow} title={title} />

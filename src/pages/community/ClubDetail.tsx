@@ -3,10 +3,12 @@ import { clubs } from '../../data/clubs'
 import { TagRow } from '../../components/Tag'
 import RelatedContentBlock from '../../components/RelatedContentBlock'
 import { getRelatedContent } from '../../lib/related'
+import { useDocumentTitle } from '../../lib/useDocumentTitle'
 
 export default function ClubDetail() {
   const { slug } = useParams()
   const club = clubs.find((c) => c.slug === slug)
+  useDocumentTitle(club?.name ?? 'Клуб не найден')
 
   if (!club) {
     return (

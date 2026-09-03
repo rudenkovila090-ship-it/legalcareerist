@@ -1,5 +1,6 @@
 import PageHero from '../components/PageHero'
 import { SpecTag } from '../components/Tag'
+import { useDocumentTitle } from '../lib/useDocumentTitle'
 import {
   demoApplications,
   demoEventRegistrations,
@@ -15,6 +16,7 @@ const registrationStatusLabel = { registered: 'Зарегистрирован', 
 // /account — единый личный кабинет вне зависимости от роли (раздел 5, критерий приемки раздел 10):
 // один и тот же пользователь видит отклики, покупки материалов и членство в клубе в одном месте.
 export default function Account() {
+  useDocumentTitle('Личный кабинет')
   return (
     <div>
       <PageHero eyebrow="Личный кабинет" title={demoUser.name} description="Демонстрационные данные — показывают связность разделов внутри единого аккаунта." prototype />

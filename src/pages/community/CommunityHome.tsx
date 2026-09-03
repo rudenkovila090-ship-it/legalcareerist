@@ -7,6 +7,7 @@ import SectionRail from '../../components/SectionRail'
 import { submitLead } from '../../lib/leads'
 import { openTelegramBot } from '../../lib/telegram'
 import ilyaPhoto from '../../assets/ilya-rudenkov.jpg'
+import { useDocumentTitle } from '../../lib/useDocumentTitle'
 
 const railItems = [
   { id: 'hero', label: 'Обзор' },
@@ -214,6 +215,7 @@ const tariffs = [
 // ссылку на вступление в сообщество. Демодоступ (без оплаты) — как раньше,
 // сразу открывает бота.
 export default function CommunityHome() {
+  useDocumentTitle('Сообщество')
   const [tariffId, setTariffId] = useState<(typeof tariffs)[number]['id']>('1m')
   const [paid, setPaid] = useState(false)
   const [name, setName] = useState('')

@@ -34,30 +34,19 @@ export default function Header() {
   const onCommunity = pathname.startsWith('/community')
   const onMarketplace = pathname.startsWith('/marketplace')
   const showAccountButton = onCommunity || onMarketplace
-  const isCandidates = pathname.startsWith('/kadry/candidates')
-  const kadryStatusLabel = onKadry ? (isCandidates ? 'Соискателям' : 'Работодателям') : null
 
   return (
     <header className="sticky top-0 z-40 border-b border-ink/10 bg-white/70 backdrop-blur-xl [transform:translateZ(0)] [will-change:transform]">
       <div className="container-page flex h-16 items-center justify-between">
-        <div className="flex items-center gap-3">
-          <NavLink to="/" className="flex items-center gap-2.5">
-            <svg viewBox="0 0 100 100" className="h-7 w-7 text-ink" fill="none" stroke="currentColor" strokeWidth="11" strokeLinecap="round" aria-hidden="true">
-              <line x1="15" y1="78" x2="15" y2="55" />
-              <line x1="38" y1="78" x2="38" y2="18" />
-              <line x1="61" y1="78" x2="61" y2="25" />
-              <line x1="84" y1="62" x2="84" y2="38" />
-            </svg>
-            <span className="font-semibold tracking-tight">Карьерный Юрист</span>
-          </NavLink>
-          {/* Статус аудитории раздела «Кадры» — вместо отдельной строки-переключателя
-              под шапкой (занимала лишнюю высоту на каждой странице раздела). */}
-          {kadryStatusLabel && (
-            <span className="hidden rounded-full bg-ink px-3 py-1 text-xs font-semibold text-white sm:inline-block">
-              {kadryStatusLabel}
-            </span>
-          )}
-        </div>
+        <NavLink to="/" className="flex items-center gap-2.5">
+          <svg viewBox="0 0 100 100" className="h-7 w-7 text-ink" fill="none" stroke="currentColor" strokeWidth="11" strokeLinecap="round" aria-hidden="true">
+            <line x1="15" y1="78" x2="15" y2="55" />
+            <line x1="38" y1="78" x2="38" y2="18" />
+            <line x1="61" y1="78" x2="61" y2="25" />
+            <line x1="84" y1="62" x2="84" y2="38" />
+          </svg>
+          <span className="font-semibold tracking-tight">Карьерный Юрист</span>
+        </NavLink>
 
         <nav className="hidden items-center gap-6 md:flex">
           {nav.map((item) =>
