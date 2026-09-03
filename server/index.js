@@ -15,6 +15,8 @@
 //    подписок сообщества (находит заявку по телефону+тарифу, шлёт ссылку
 //    в бота), и для разовых покупок материалов (шлёт админу уведомление
 //    о покупке).
+// 7. POST /api/vacancy/:slug/view — реальный счётчик просмотров вакансии
+//    (+1 при каждом открытии страницы).
 // Токены и секретные ключи — только в server/.env, в репозиторий не попадают.
 import express from 'express'
 import cors from 'cors'
@@ -22,6 +24,7 @@ import { createPaymentLink, TARIFFS, tariffIdBySubscriptionId, createProductPaym
 import { HmacHelper } from './lib/hmac.js'
 import { createPendingJoin, setTgUserId, markPaidByPhone } from './lib/store.js'
 import { createPendingPurchase, getPurchase, markPurchasePaidByPhone } from './lib/materialsStore.js'
+import { incrementView, incrementApplication } from './lib/vacancyStats.js'
 
 const app = express()
 app.use(cors())
@@ -66,13 +69,32 @@ async function sendInviteLink(chatId, join) {
   )
 }
 
+// Открытие страницы вакансии → +1 к счётчику просмотров. Считаем реальные
+// заходы (не демо-число), но не завязываем это на успех/провал остального
+// стека — счётчик пишется сам по себе, до всех проверок ниже.
+app.post('/api/vacancy/:slug/view', (req, res) => {
+  const stats = incrementView(req.params.slug)
+  res.json({ ok: true, ...stats })
+})
+
 app.post('/api/notify', async (req, res) => {
+  const { source, formType, name, contact, interest, vacancySlug } = req.body ?? {}
+
+  // Отклик на вакансию — считаем реальный счётчик независимо от того,
+  // настроен ли Telegram-бот ниже: заявка не должна "теряться" из
+  // статистики только потому, что уведомление не смогло уйти.
+  if (vacancySlug) {
+    try {
+      incrementApplication(vacancySlug)
+    } catch (err) {
+      console.error('[notify] ошибка счётчика откликов:', err)
+    }
+  }
+
   if (!BOT_TOKEN || !ADMIN_CHAT_ID) {
     console.error('[notify] TELEGRAM_BOT_TOKEN/TELEGRAM_ADMIN_CHAT_ID не заданы в server/.env')
     return res.status(500).json({ ok: false, error: 'not_configured' })
   }
-
-  const { source, formType, name, contact, interest } = req.body ?? {}
 
   const lines = [
     '🔔 Новая заявка с сайта',

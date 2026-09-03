@@ -22,6 +22,8 @@ export interface LeadInput {
   name: string
   contact: string
   interest?: string[]
+  /** Slug вакансии — если задан, бэкенд считает это в реальный счётчик откликов вакансии. */
+  vacancySlug?: string
 }
 
 export function submitLead(input: LeadInput): Lead {
@@ -41,13 +43,14 @@ export function submitLead(input: LeadInput): Lead {
   localStorage.setItem(LEADS_KEY, JSON.stringify(all))
 
   trackEvent('lead_submit', { source: input.sourceBlock, form: input.formType })
-  notifyTelegram(lead)
+  notifyTelegram(lead, input.vacancySlug)
 
   return lead
 }
 
-/** Уведомление админу в Telegram — не блокирует отправку формы при ошибке/недоступности бэкенда. */
-function notifyTelegram(lead: Lead) {
+/** Уведомление админу в Telegram — не блокирует отправку формы при ошибке/недоступности бэкенда.
+ *  vacancySlug (если есть) заодно учитывается бэкендом в реальном счётчике откликов вакансии. */
+function notifyTelegram(lead: Lead, vacancySlug?: string) {
   if (typeof fetch === 'undefined') return
   fetch('/api/notify', {
     method: 'POST',
@@ -58,6 +61,7 @@ function notifyTelegram(lead: Lead) {
       name: lead.name,
       contact: lead.contact,
       interest: lead.interest,
+      vacancySlug,
     }),
   }).catch(() => {
     // Бэкенд недоступен/не настроен — заявка все равно сохранена в localStorage, не мешаем пользователю.

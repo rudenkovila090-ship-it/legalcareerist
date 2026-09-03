@@ -6,7 +6,7 @@ import { consultationTestimonials } from '../../data/testimonials'
 import FAQSection from '../../components/FAQSection'
 import { TagRow } from '../../components/Tag'
 import LeadForm from '../../components/LeadForm'
-import VacancyDetailBody from '../../components/VacancyDetailBody'
+import VacancyDetailBody, { VacancyContactsBlock } from '../../components/VacancyDetailBody'
 import { vacancies } from '../../data/vacancies'
 import { IndustryFilter, EducationFilter } from '../../components/VacancyFilters'
 import {
@@ -250,13 +250,10 @@ export default function Candidates() {
 
           <div className="mt-4 grid gap-8 lg:grid-cols-[2fr_1fr]">
             <div>
-              <VacancyDetailBody
-                vacancy={selectedVacancy}
-                extra={<div className="mt-1 text-sm text-ink/40">{vacancyViews(selectedVacancy.id)} просмотров</div>}
-              />
+              <VacancyDetailBody vacancy={selectedVacancy} />
             </div>
 
-            <aside>
+            <aside className="space-y-6">
               <LeadForm
                 sourceBlock="kadry"
                 formType="vacancy_application"
@@ -266,7 +263,13 @@ export default function Candidates() {
                 showPhone
                 showTelegram
                 showResumeUpload
+                showMotivationUpload
+                showCoverLetterUpload
+                showRecommendationUpload
+                requireAll
+                vacancySlug={selectedVacancy.slug}
               />
+              <VacancyContactsBlock vacancy={selectedVacancy} />
             </aside>
           </div>
         </section>

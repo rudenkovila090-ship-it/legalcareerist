@@ -205,6 +205,10 @@ export interface Vacancy extends Tagged {
   contactEmail?: string
   companyWebsite?: string
   companyAddress?: string
+  /** Координаты офиса для карты на странице вакансии (Яндекс.Карты). */
+  officeCoords?: { lat: number; lng: number }
+  /** «О компании» — короткий блок на странице вакансии (на месте, где раньше была зарплата). */
+  aboutCompany?: string
   /** Помечает вакансию как технический пример структуры страницы — не реальное предложение о работе. */
   technicalExample?: boolean
 }

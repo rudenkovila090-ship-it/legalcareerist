@@ -1,7 +1,7 @@
 import { Link, useParams } from 'react-router-dom'
 import { vacancies } from '../data/vacancies'
 import { VacancyCard } from '../components/cards'
-import VacancyDetailBody from '../components/VacancyDetailBody'
+import VacancyDetailBody, { VacancyContactsBlock } from '../components/VacancyDetailBody'
 import RelatedContentBlock from '../components/RelatedContentBlock'
 import LeadForm from '../components/LeadForm'
 import { getRelatedContent, getSimilar } from '../lib/related'
@@ -41,7 +41,7 @@ export default function VacancyDetail() {
           <RelatedContentBlock items={related} />
         </div>
 
-        <aside>
+        <aside className="space-y-6">
           <LeadForm
             sourceBlock="kadry"
             formType="vacancy_application"
@@ -51,7 +51,13 @@ export default function VacancyDetail() {
             showPhone
             showTelegram
             showResumeUpload
+            showMotivationUpload
+            showCoverLetterUpload
+            showRecommendationUpload
+            requireAll
+            vacancySlug={vacancy.slug}
           />
+          <VacancyContactsBlock vacancy={vacancy} />
         </aside>
       </div>
     </div>
