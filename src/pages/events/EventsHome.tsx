@@ -266,8 +266,7 @@ export default function EventsHome() {
   return (
     <div>
       {/* Подменю раздела — Афиша / Создать свое событие / Заказать мероприятие / Личный кабинет.
-          top-16 — под шапкой сайта (h-16); на страницах /kadry используют top-[142px] из-за
-          дополнительной панели аудитории под шапкой, которой здесь нет. */}
+          top-16 — сразу под шапкой сайта (h-16), как и на страницах /kadry. */}
       <div className="sticky top-16 z-20 border-b border-ink/10 bg-white/95 py-4 backdrop-blur-xl">
         <div className="container-page">
           <div className="flex flex-wrap justify-end gap-3">

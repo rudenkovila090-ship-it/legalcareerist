@@ -490,18 +490,22 @@ export default function KadryHome() {
     <div className="bg-ink text-white">
       {tab === 'recruiting' && <SectionRail items={railItems} dark />}
 
-      {/* Вкладки раздела: рекрутинг / кандидаты / база знаний / личный кабинет —
-          сразу под панелью аудитории «Работодателям / Соискателям» из шапки.
-          Закреплена (sticky) — остается на экране при скролле. */}
-      <div className="sticky top-[142px] z-20 border-b border-white/10 bg-ink/95 py-4 backdrop-blur-xl [transform:translateZ(0)] [will-change:transform]">
+      {/* Вкладки раздела: рекрутинг / кандидаты / база знаний / личный кабинет.
+          Закреплены (sticky), остаются на экране при скролле. top-16 —
+          сразу под шапкой сайта (h-16). */}
+      <div className="sticky top-16 z-20 border-b border-white/10 bg-ink/95 py-4 backdrop-blur-xl [transform:translateZ(0)] [will-change:transform]">
         <div className="container-page">
-        <div className="flex flex-wrap justify-end gap-3">
+        <div className="flex items-center justify-between gap-3">
+          <span className="shrink-0 rounded-full border border-white/25 bg-white/10 px-3 py-1.5 text-sm font-semibold text-white">Работодателям</span>
+          {/* Без flex-wrap — высота панели всегда постоянна, при нехватке
+              ширины вкладки скроллятся по горизонтали, а не переносятся. */}
+          <div className="flex justify-end gap-3 overflow-x-auto">
           {employerTabs.map((t) => (
             <button
               key={t.id}
               type="button"
               onClick={() => setTab(t.id)}
-              className={`flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition-colors ${
+              className={`flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full px-5 py-2.5 text-sm font-semibold transition-colors ${
                 tab === t.id ? 'bg-white text-ink' : 'border border-white/25 text-white/70 hover:text-white'
               }`}
             >
@@ -509,6 +513,7 @@ export default function KadryHome() {
               {t.label}
             </button>
           ))}
+          </div>
         </div>
         </div>
       </div>

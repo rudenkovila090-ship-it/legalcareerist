@@ -166,17 +166,22 @@ export default function Candidates() {
 
   return (
     <div>
-      {/* Вкладки раздела — сразу под панелью аудитории «Работодателям / Соискателям» из шапки.
-          Закреплена (sticky) — остается на экране при скролле. */}
-      <div className="sticky top-[142px] z-20 border-b border-ink/10 bg-white/95 py-4 backdrop-blur-xl [transform:translateZ(0)] [will-change:transform]">
+      {/* Вкладки раздела «Соискателям» — закреплены (sticky), остаются на
+          экране при скролле. top-16 — сразу под шапкой сайта (h-16). */}
+      <div className="sticky top-16 z-20 border-b border-ink/10 bg-white/95 py-4 backdrop-blur-xl [transform:translateZ(0)] [will-change:transform]">
         <div className="container-page">
-        <div className="flex flex-wrap justify-end gap-3">
+        <div className="flex items-center justify-between gap-3">
+          <span className="shrink-0 rounded-full bg-ink px-3 py-1.5 text-sm font-semibold text-white">Соискателям</span>
+          {/* Без flex-wrap — высота панели всегда постоянна (важна для
+              top-[Npx] у sticky-формы отклика справа), при нехватке
+              ширины вкладки скроллятся по горизонтали, а не переносятся. */}
+          <div className="flex justify-end gap-3 overflow-x-auto">
           {candidateTabs.map((t) => (
             <button
               key={t.id}
               type="button"
               onClick={() => setTab(t.id)}
-              className={`flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition-colors ${
+              className={`flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full px-5 py-2.5 text-sm font-semibold transition-colors ${
                 tab === t.id ? 'bg-ink text-white' : 'border border-ink/15 text-ink/60 hover:text-ink'
               }`}
             >
@@ -184,6 +189,7 @@ export default function Candidates() {
               {t.label}
             </button>
           ))}
+          </div>
         </div>
         </div>
       </div>
@@ -257,11 +263,12 @@ export default function Candidates() {
             </div>
 
             <aside>
-              {/* top-[220px] — под двумя закрепленными панелями этой
-                  страницы (шапка сайта + таб-бар раздела «Соискателям»,
-                  который начинает липнуть с top-[142px]), иначе заголовок
-                  формы уезжает под них при прокрутке. */}
-              <div className="space-y-6 lg:sticky lg:top-[220px]">
+              {/* top-[140px] — под двумя закрепленными панелями этой
+                  страницы (шапка сайта h-16=64px + таб-бар раздела
+                  «Соискателям», который начинает липнуть с top-16 и сам
+                  занимает ~72px), иначе заголовок формы уезжает под них
+                  при прокрутке. */}
+              <div className="space-y-6 lg:sticky lg:top-[140px]">
                 <LeadForm
                   sourceBlock="kadry"
                   formType="vacancy_application"
