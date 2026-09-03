@@ -17,6 +17,7 @@ import {
 import KnowledgeList from '../KnowledgeList'
 import CareerReserve from './CareerReserve'
 import CareerConsultation from './CareerConsultation'
+import { useDocumentTitle } from '../../lib/useDocumentTitle'
 
 const money = new Intl.NumberFormat('ru-RU')
 
@@ -138,6 +139,7 @@ export default function Candidates() {
   const minSalary = parseMinSalary(salaryText)
   const [selectedVacancySlug, setSelectedVacancySlug] = useState<string | null>(null)
   const selectedVacancy = vacancies.find((v) => v.slug === selectedVacancySlug) ?? null
+  useDocumentTitle(selectedVacancy?.title)
   // Открытие конкретной вакансии подменяет список ее карточкой прямо на месте
   // (без перехода по роуту) — список короче карточки, поэтому без сброса
   // скролла страницу утаскивало вниз, к старой позиции клика.

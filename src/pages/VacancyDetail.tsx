@@ -5,10 +5,12 @@ import VacancyDetailBody, { VacancyContactsBlock } from '../components/VacancyDe
 import LeadForm from '../components/LeadForm'
 import { getRelatedContent, getSimilar } from '../lib/related'
 import { trackEvent } from '../lib/leads'
+import { useDocumentTitle } from '../lib/useDocumentTitle'
 
 export default function VacancyDetail() {
   const { slug } = useParams()
   const vacancy = vacancies.find((v) => v.slug === slug)
+  useDocumentTitle(vacancy?.title)
 
   if (!vacancy) {
     return (
