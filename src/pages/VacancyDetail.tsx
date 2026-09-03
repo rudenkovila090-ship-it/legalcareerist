@@ -25,7 +25,7 @@ export default function VacancyDetail() {
     <div className="container-page py-12">
       <Link to="/kadry/vacancies" className="text-sm text-ink/50 hover:text-ink">← Все вакансии</Link>
 
-      <div className="mt-4 grid gap-8 lg:grid-cols-[2fr_1fr]">
+      <div className="mt-4 grid gap-8 lg:grid-cols-[3fr_2fr]">
         <div>
           <VacancyDetailBody vacancy={vacancy} />
 

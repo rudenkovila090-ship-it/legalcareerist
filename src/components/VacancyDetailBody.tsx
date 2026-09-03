@@ -77,7 +77,7 @@ export default function VacancyDetailBody({ vacancy, extra }: { vacancy: Vacancy
       <div className="mt-1 text-sm text-ink/40">Опубликовано {publishedDate}</div>
       {extra}
       {stats && (
-        <div className="mt-1 text-sm text-ink/40">
+        <div className="mt-1 text-sm font-semibold text-gold">
           {stats.views} {pluralRu(stats.views, ['просмотр', 'просмотра', 'просмотров'])} ·{' '}
           {stats.applications} {pluralRu(stats.applications, ['отклик', 'отклика', 'откликов'])}
         </div>
@@ -87,14 +87,17 @@ export default function VacancyDetailBody({ vacancy, extra }: { vacancy: Vacancy
         <TagRow specialization={vacancy.specialization} industry={vacancy.industry} />
       </div>
 
-      {vacancy.aboutCompany && (
+      {vacancy.aboutCompany ? (
         <div className="mt-6 rounded-xl bg-ink/[0.04] p-5">
           <h2 className="font-semibold">О компании</h2>
           <p className="mt-2 text-sm leading-relaxed text-ink/70">{vacancy.aboutCompany}</p>
         </div>
+      ) : (
+        // Без отдельного блока "О компании" описание вакансии выполняет роль
+        // вводного абзаца; когда aboutCompany задан, он уже вводит контекст,
+        // и повторять то же самое отдельным абзацем не нужно.
+        <p className="mt-6 leading-relaxed text-ink/80">{vacancy.description}</p>
       )}
-
-      <p className="mt-6 leading-relaxed text-ink/80">{vacancy.description}</p>
 
       {vacancy.highlights && vacancy.highlights.length > 0 && (
         <div className="mt-8">
