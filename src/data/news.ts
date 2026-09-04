@@ -1,4 +1,4 @@
-import certificateRasoLbf from '../assets/certificate-raso-lbf-2026.png'
+import certificateRasoLbf from '../assets/certificate-raso-lbf-2026.jpg'
 import type { NewsItem } from '../types'
 
 // Новости «Карьерного юриста» — что изменилось у бота, на сайте, в подкасте
