@@ -1,0 +1,187 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=PT+Sans:wght@400;700&display=swap');
+@import "tailwindcss";
+
+/* Палитра — только белый и фирменный синий (283953), никакого бежевого.
+   "gold"/"gold-light"/"paper" — исторические имена токенов из ранней версии
+   (см. git-историю), сохранены как названия классов, чтобы не переписывать
+   разметку во всех компонентах, но теперь ссылаются на оттенки синего. */
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --color-ink: #283953;
+  --color-gold: #45608a;
+  --color-gold-light: #6f93c4;
+  --color-paper: #ffffff;
+}
+
+/* Логотип в шапке набран Helios — для кириллицы это исторически PT Sans
+   (ParaType делал его как цифровой аналог классического Helios). Только
+   для текста лого, весь остальной сайт остаётся на Inter. */
+.font-logo {
+  font-family: "PT Sans", var(--font-sans);
+}
+
+body {
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+.container-page {
+  max-width: 76rem;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1.25rem;
+  padding-right: 1.25rem;
+}
+
+/* Liquid Glass — стеклянная поверхность с бликом, следующим за курсором.
+   .glass — для карточек на светлом фоне, .glass-dark — на тёмном (bg-ink).
+   Фон вынесен в @layer base, чтобы явные bg-* утилиты Tailwind (более
+   высокий слой) всегда могли его переопределить — например, когда плитка
+   должна остаться сплошной bg-ink, но получить блик и подъём при наведении. */
+@layer base {
+  .glass {
+    position: relative;
+    background: rgba(255, 255, 255, 0.55);
+  }
+  .glass-dark {
+    position: relative;
+    background: rgba(255, 255, 255, 0.06);
+  }
+}
+
+/* overflow:hidden не используем на самой карточке — иначе обрезает бейджи,
+   вынесенные за край (например, «Популярный выбор» на тарифе). Вместо этого
+   у ::before свой border-radius: inherit, так блик остаётся внутри скруглений. */
+.glass {
+  isolation: isolate;
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid rgba(40, 57, 83, 0.1);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+.glass::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  opacity: 0;
+  background: radial-gradient(220px circle at var(--mx, 50%) var(--my, 50%), rgba(255, 255, 255, 0.9), transparent 60%);
+  transition: opacity 0.35s ease;
+  pointer-events: none;
+}
+.glass:hover {
+  transform: translateY(-2px);
+  border-color: rgba(40, 57, 83, 0.22);
+  box-shadow: 0 20px 40px -20px rgba(40, 57, 83, 0.35);
+}
+.glass:hover::before {
+  opacity: 1;
+}
+
+.glass-dark {
+  isolation: isolate;
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+.glass-dark::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  opacity: 0;
+  background: radial-gradient(220px circle at var(--mx, 50%) var(--my, 50%), rgba(255, 255, 255, 0.22), transparent 60%);
+  transition: opacity 0.35s ease;
+  pointer-events: none;
+}
+.glass-dark:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.32);
+  box-shadow: 0 20px 40px -20px rgba(0, 0, 0, 0.5);
+}
+.glass-dark:hover::before {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glass,
+  .glass-dark {
+    transition: none;
+  }
+  .glass:hover,
+  .glass-dark:hover {
+    transform: none;
+  }
+}
+
+/* Маршрут «Как мы находим вам сотрудников»: линия «строится» от точки заявки
+   к точке найденного кандидата (stroke-dasharray/dashoffset по pathLength=100)
+   синхронно с бегущей точкой (SVG animateMotion, 7с) — как навигатор
+   прокладывает маршрут. Карточки каналов поиска подсвечиваются по очереди
+   (.route-pulse), с задержкой i * 1.75с — так, чтобы огонёк на карточке
+   совпадал с прохождением точки мимо неё. */
+@keyframes route-build {
+  0% {
+    stroke-dasharray: 100;
+    stroke-dashoffset: 100;
+  }
+  100% {
+    stroke-dasharray: 100;
+    stroke-dashoffset: 0;
+  }
+}
+.route-build {
+  animation: route-build 7s linear infinite;
+}
+@keyframes route-pulse-anim {
+  0%,
+  82%,
+  100% {
+    border-color: rgba(255, 255, 255, 0.14);
+    box-shadow: none;
+  }
+  8% {
+    border-color: rgba(111, 147, 196, 0.7);
+    box-shadow: 0 0 0 6px rgba(111, 147, 196, 0.2);
+  }
+  22% {
+    border-color: rgba(255, 255, 255, 0.14);
+    box-shadow: none;
+  }
+}
+.route-pulse {
+  animation: route-pulse-anim 7s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .route-build,
+  .route-pulse {
+    animation: none;
+  }
+}
+
+/* Карусель отзывов (компактный режим, /kadry): список отзывов удвоен в
+   разметке, дорожка едет справа налево и на удвоении (-50%) бесшовно
+   уходит в начало. Останавливается при наведении и prefers-reduced-motion. */
+@keyframes marquee-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+.animate-marquee {
+  animation: marquee-scroll 36s linear infinite;
+}
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee {
+    animation: none;
+  }
+}

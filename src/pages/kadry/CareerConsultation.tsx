@@ -1,0 +1,754 @@
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { Link } from 'react-router-dom'
+import PageHero from '../../components/PageHero'
+import Testimonials from '../../components/Testimonials'
+import FAQSection from '../../components/FAQSection'
+import SectionRail from '../../components/SectionRail'
+import { submitLead } from '../../lib/leads'
+import { consultationCategories, allConsultationServices, tierDiscountPct } from '../../data/consultationServices'
+import { consultationTestimonials } from '../../data/testimonials'
+import ilyaPhoto from '../../assets/ilya-rudenkov.jpg'
+import { useDocumentTitle } from '../../lib/useDocumentTitle'
+
+// Минималистичные иконки — своя на каждую услугу конструктора, без внешних
+// библиотек, без повторов.
+function IconDocPlus() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <rect x="4.5" y="3.5" width="15" height="17" rx="1.5" />
+      <path d="M8 8h8M8 12h3M14.5 18.5v-4M12.5 16.5h4" />
+    </svg>
+  )
+}
+function IconDocEdit() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <rect x="4.5" y="3.5" width="15" height="17" rx="1.5" />
+      <path d="M8 8h8M8 12h5" />
+      <path d="M13.5 19l1-3 3.3-3.3a1.2 1.2 0 0 1 1.7 1.7L16.5 17.7l-3 1z" />
+    </svg>
+  )
+}
+function IconEnvelope() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <rect x="3.5" y="5.5" width="17" height="13" rx="1.5" />
+      <path d="M4.5 6.5l7.5 6.5 7.5-6.5" />
+    </svg>
+  )
+}
+function IconChatCheck() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <path d="M4 5.5h16v10H9l-4 3.5v-3.5H4z" />
+      <path d="M8.5 10.5l2 2 4-4" />
+    </svg>
+  )
+}
+function IconRoute() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <circle cx="5.5" cy="18.5" r="2" />
+      <circle cx="18.5" cy="5.5" r="2" />
+      <path d="M7 17.5C11 13 9 9 13 7c2-1 4-1 5.5-1.5" strokeDasharray="1.5 2.2" />
+    </svg>
+  )
+}
+function IconFlag() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <path d="M6 21V4" />
+      <path d="M6 4.5h12l-3 3.5 3 3.5H6" />
+    </svg>
+  )
+}
+function IconDialogue() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <path d="M3.5 5.5h11v7h-7l-4 3v-3h0z" />
+      <path d="M11 16.5h1.5l3.5 2.5v-2.5h4.5v-6h-3" />
+    </svg>
+  )
+}
+function IconFork() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <path d="M12 21V11" />
+      <path d="M5 3c0 4 3 6.5 7 8 4-1.5 7-4 7-8" />
+      <circle cx="5" cy="3" r="0.6" fill="currentColor" />
+      <circle cx="19" cy="3" r="0.6" fill="currentColor" />
+    </svg>
+  )
+}
+function IconBulb() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <path d="M9 18h6M10 21h4" />
+      <path d="M12 3a6 6 0 0 0-3.5 10.9c.6.45 1 1.15 1 1.9v.2h5v-.2c0-.75.4-1.45 1-1.9A6 6 0 0 0 12 3z" />
+    </svg>
+  )
+}
+function IconMap() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <path d="M9 4.5L4 6.5v13l5-2 6 2 5-2v-13l-5 2-6-2z" />
+      <path d="M9 4.5v13M15 6.5v13" />
+    </svg>
+  )
+}
+function IconLifebuoy() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <circle cx="12" cy="12" r="8.5" />
+      <circle cx="12" cy="12" r="3.5" />
+      <path d="M6 6l3.5 3.5M18 6l-3.5 3.5M6 18l3.5-3.5M18 18l-3.5-3.5" />
+    </svg>
+  )
+}
+function IconBattery() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <rect x="2.5" y="8" width="16" height="8" rx="1.5" />
+      <path d="M21 10.5v3" />
+      <path d="M11.5 9.5l-2.7 3.5h3l-2.3 3" />
+    </svg>
+  )
+}
+function IconSwap() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <path d="M4 8h13.5M14 4.5L17.5 8 14 11.5" />
+      <path d="M20 16H6.5M10 12.5L6.5 16 10 19.5" />
+    </svg>
+  )
+}
+function IconBadge() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <circle cx="12" cy="9" r="5.5" />
+      <path d="M9 13.5L7.5 21l4.5-2.5 4.5 2.5-1.5-7.5" />
+    </svg>
+  )
+}
+
+const serviceIcons: Record<string, typeof IconDocPlus> = {
+  'resume-write': IconDocPlus,
+  'resume-fix': IconDocEdit,
+  'cover-letter': IconEnvelope,
+  'interview-prep': IconChatCheck,
+  'job-search-support': IconRoute,
+  'job-search-strategy': IconFlag,
+  'career-consult': IconDialogue,
+  'specialization-choice': IconFork,
+  'self-determination': IconBulb,
+  'career-scenario': IconMap,
+  'career-crisis': IconLifebuoy,
+  burnout: IconBattery,
+  'career-transition': IconSwap,
+  'personal-brand': IconBadge,
+  'personal-brand-promo': IconRoute,
+}
+
+// Расширенное описание «что получаете» — показывается при наведении на
+// карточку услуги. Заполнено только там, где есть готовый текст от клиента;
+// остальные карточки работают как обычно, без всплывающей подсказки.
+const serviceDetails: Record<string, string> = {
+  'resume-write': 'Получаете готовое резюме с нуля, которое понятно презентует ваш опыт и выделяет вас среди других кандидатов.',
+  'resume-fix': 'Получаете усиленную версию своего резюме, адаптированную под конкретную вакансию или отклик.',
+  'cover-letter': 'Получаете написанное с нуля сопроводительное письмо, которое повышает шансы дойти до собеседования.',
+  'interview-prep': 'Получаете уверенность на собеседовании за счет отработанных ответов и понимания, как себя вести.',
+  'job-search-support': 'Получаете пошаговое сопровождение на старте карьеры без лишних потерь времени.',
+  'job-search-strategy': 'Получаете структурированный план действий, который экономит время и увеличивает эффективность поиска работы.',
+  'career-consult': 'Формат для тех, кому нужна точка опоры в карьерных решениях здесь и сейчас: разбираем вашу текущую ситуацию, отвечаем на конкретные вопросы и вместе находим ближайшие шаги, которые помогут сдвинуться с места.',
+  'specialization-choice': 'Получаете ясность, какое направление права подходит именно вам, вместо метода проб и ошибок.',
+  'self-determination': 'Помогаем разобраться, какая юридическая специализация или формат работы действительно вам подходит, опираясь на ваши сильные стороны, ценности и интересы, а не на случайный выбор или чужие ожидания.',
+  'career-scenario': 'Выстраиваем пошаговый план развития на ближайшие месяцы и годы: от текущей точки до желаемой позиции, с конкретными этапами, навыками для прокачки и реалистичными сроками.',
+  'career-crisis': 'Получаете разбор причин кризиса и понятный план, как вернуть движение вперед в карьере.',
+  burnout: 'Разбираем причины потери мотивации и ощущения застоя в профессии, находим, что именно перестало работать, и помогаем восстановить интерес к делу или осознанно сменить траекторию.',
+  'career-transition': 'Получаете четкий план смены направления или сферы деятельности без потери накопленного опыта.',
+  'personal-brand': 'Помогаем сформировать узнаваемый профессиональный образ, который работает на вас: как вас видят коллеги, работодатели и клиенты, и как этот образ усиливает вашу карьеру и репутацию на рынке.',
+  'personal-brand-promo': 'Разработаем стратегию продвижения: площадки, контент, экспертные темы и форматы публикаций. Определим, как через личный бренд привлекать клиентов, партнеров и профессиональные возможности.',
+}
+
+const benefits = [
+  { icon: IconFlag, title: 'Конкретный план, а не общие слова', text: 'Уходите с созвона со списком следующих шагов, а не с абстрактной мотивацией.' },
+  { icon: IconRoute, title: 'Понимание рынка изнутри', text: 'Ведет консультант, который сам подбирает юристов и знает, на что смотрят работодатели.' },
+  { icon: IconBadge, title: 'Свой набор услуг', text: 'Берете только то, что нужно именно вам — от разбора резюме до полного сопровождения поиска.' },
+]
+
+const who = [
+  'Студентам-юристам, которые не знают, с чего начать поиск первой работы',
+  'Юристам, которые хотят сменить специализацию или направление',
+  'Тем, кто готовится к важному собеседованию',
+  'Тем, кто чувствует выгорание или карьерный тупик',
+  'Тем, кому нужен свежий взгляд на резюме и стратегию поиска',
+]
+
+const outcomes = [
+  'Понимание, что делать дальше',
+  'Уверенность в своих сильных сторонах',
+  'Ответы на вопросы по поиску работы и собеседованиям',
+  'Конкретный план действий',
+  'Понимание, как презентовать себя работодателю',
+  'Ощущение, что вы не один на один со своей карьерной ситуацией',
+]
+
+const process = [
+  'Узнаем ваш запрос и текущую ситуацию',
+  'Объясняем, какой формат подойдет именно вам',
+  'Выбираем удобную дату и время',
+  'На созвоне подробно разбираем вашу ситуацию в формате открытого диалога',
+  'Отвечаем на дополнительные вопросы',
+  'После консультации у вас остается план действий',
+]
+
+const faqItems = [
+  { q: 'Можно взять только одну услугу?', a: 'Да, конструктор работает от одной позиции — скидка появляется от двух услуг в заказе.' },
+  { q: 'Как считаются скидки?', a: 'От 2 услуг в заказе — скидка 5%, от 3 услуг — скидка 10%. Скидка применяется автоматически ко всей корзине.' },
+  { q: 'Что дает промокод резидента?', a: 'По промокоду KQresident одна услуга в заказе (самая недорогая) предоставляется бесплатно — доступно резидентам Сообщества.' },
+  { q: 'Как проходит консультация?', a: 'По видеосвязи в удобное для вас время, 60 минут — открытый диалог, а не лекция.' },
+]
+
+const railItems = [
+  { id: 'hero', label: 'Консультация' },
+  { id: 'who', label: 'Кому подойдет' },
+  { id: 'services', label: 'Услуги' },
+  { id: 'outcomes', label: 'Что получите' },
+  { id: 'reviews', label: 'Отзывы' },
+  { id: 'faq', label: 'FAQ' },
+]
+
+export default function CareerConsultation({ embedded = false }: { embedded?: boolean }) {
+  useDocumentTitle('Карьерная консультация')
+  const [selected, setSelected] = useState<Record<string, boolean>>({})
+  const [promo, setPromo] = useState('')
+  const [modalOpen, setModalOpen] = useState(false)
+  const [cartOpen, setCartOpen] = useState(false)
+  const [form, setForm] = useState({ name: '', email: '', telegram: '', phone: '' })
+  const [sent, setSent] = useState(false)
+
+  const [activeStep, setActiveStep] = useState(0)
+  useEffect(() => {
+    const id = setInterval(() => setActiveStep((s) => (s + 1) % process.length), 2600)
+    return () => clearInterval(id)
+  }, [])
+
+  const [helpForm, setHelpForm] = useState({ name: '', email: '', phone: '', telegram: '', question: '' })
+  const [helpSent, setHelpSent] = useState(false)
+
+  function handleHelpSubmit(e: FormEvent) {
+    e.preventDefault()
+    if (!helpForm.name.trim() || !helpForm.question.trim()) return
+    submitLead({
+      sourceBlock: 'kadry',
+      formType: 'consultation_help_request',
+      name: helpForm.name,
+      contact: [helpForm.email, helpForm.phone, helpForm.telegram].filter(Boolean).join(' / '),
+      interest: [helpForm.question],
+    })
+    setHelpSent(true)
+  }
+
+  const selectedServices = useMemo(() => allConsultationServices.filter((s) => selected[s.id]), [selected])
+  const count = selectedServices.length
+  const subtotal = selectedServices.reduce((sum, s) => sum + s.price, 0)
+  const tierPct = tierDiscountPct(count)
+  const tierDiscount = Math.round((subtotal * tierPct) / 100)
+  const isResidentPromo = promo.trim().toLowerCase() === 'kqresident'
+  const cheapest = count ? Math.min(...selectedServices.map((s) => s.price)) : 0
+  const promoDiscount = isResidentPromo ? cheapest : 0
+  const total = Math.max(0, subtotal - tierDiscount - promoDiscount)
+
+  function toggle(id: string) {
+    setSelected((s) => ({ ...s, [id]: !s[id] }))
+  }
+
+  function handleSubmit(e: FormEvent) {
+    e.preventDefault()
+    if (!form.name.trim() || !count) return
+    submitLead({
+      sourceBlock: 'kadry',
+      formType: 'consultation_order',
+      name: form.name,
+      contact: [form.email, form.telegram, form.phone].filter(Boolean).join(' / '),
+      interest: [
+        ...selectedServices.map((s) => s.title),
+        promo.trim() ? `Промокод: ${promo.trim()}` : '',
+        `Итого: ${total.toLocaleString('ru-RU')} ₽`,
+      ].filter(Boolean),
+    })
+    setSent(true)
+  }
+
+  return (
+    <div>
+      {!embedded && <SectionRail items={railItems} />}
+
+      {!embedded && (
+        <div id="hero">
+          <PageHero
+            eyebrow="Кадры · Соискателям"
+            title="Карьерная консультация: понятный план вместо общих советов"
+            description="Разбираем вашу карьерную ситуацию, готовим к собеседованиям и помогаем выстроить стратегию поиска работы — соберите свой набор услуг под задачу."
+          />
+        </div>
+      )}
+
+      {!embedded && (
+        <div className="container-page flex flex-wrap gap-3 pt-8">
+          <Link to="/kadry/candidates" className="rounded-full border border-ink/15 px-4 py-1.5 text-sm font-medium text-ink/60 hover:text-ink">
+            ← Соискателям
+          </Link>
+          <Link to="/kadry/candidates/reserve" className="rounded-full border border-ink/15 px-4 py-1.5 text-sm font-medium text-ink/60 hover:text-ink">
+            Кадровый резерв
+          </Link>
+          <span className="rounded-full bg-ink px-4 py-1.5 text-sm font-medium text-white">Карьерная консультация</span>
+        </div>
+      )}
+
+      {/* Проводит консультацию — первым делом знакомим с консультантом */}
+      <section className="container-page py-12">
+        <div className="grid gap-6 rounded-2xl border border-ink/10 p-6 sm:grid-cols-[auto_1fr] sm:items-center sm:p-8">
+          <img
+            src={ilyaPhoto}
+            alt="Илья Руденков"
+            style={{ objectPosition: '50% 22%' }}
+            className="h-20 w-20 rounded-full object-cover shadow-md ring-4 ring-white sm:h-24 sm:w-24"
+          />
+          <div>
+            <div className="text-xs font-semibold uppercase tracking-wide text-ink/40">Карьерный консультант</div>
+            <div className="text-lg font-semibold">Руденков Илья — основатель «Карьерного юриста»</div>
+            <ul className="mt-2 space-y-1.5 text-sm text-ink/60">
+              <li className="flex gap-2"><span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-gold" /><span>Больше 2 лет работает в сфере Legal HR</span></li>
+              <li className="flex gap-2"><span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-gold" /><span>Провел более 50 карьерных консультаций</span></li>
+              <li className="flex gap-2"><span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-gold" /><span>Юрист по персональным данным и рекламному праву</span></li>
+              <li className="flex gap-2"><span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-gold" /><span>Студент магистратуры Legal Tech в НИУ ВШЭ</span></li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      {/* Преимущества */}
+      <section className="border-y border-ink/10 bg-white py-12">
+        <div className="container-page">
+          <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Преимущества</div>
+          <h2 className="mb-6 text-2xl font-semibold">Почему стоит прийти на консультацию</h2>
+          <div className="grid gap-4 sm:grid-cols-3">
+            {benefits.map((b) => (
+              <div key={b.title} className="glass rounded-xl p-5">
+                <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-full bg-gold-light/25 text-ink">
+                  <b.icon />
+                </div>
+                <div className="font-semibold">{b.title}</div>
+                <p className="mt-2 text-sm text-ink/60">{b.text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Кому подойдет */}
+      <section id="who" className="container-page py-12">
+        <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Кому подойдет</div>
+        <h2 className="mb-6 text-2xl font-semibold">Это для вас, если</h2>
+        <ul className="grid gap-3 sm:grid-cols-2">
+          {who.map((item) => (
+            <li key={item} className="flex gap-2 rounded-lg bg-ink/[0.04] p-4 text-sm">
+              <span className="text-ink">✓</span>
+              {item}
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      {/* Что вы получите — намеренно другая визуальная форма (плашки-теги
+          вместо списка), чтобы не повторять блок «Кому подойдет» выше */}
+      <section id="outcomes" className="bg-ink py-12 text-white">
+        <div className="container-page">
+          <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold-light">Что вы получите</div>
+          <h2 className="mb-6 text-2xl font-semibold">После консультации у вас будет</h2>
+          <div className="flex flex-wrap gap-2.5">
+            {outcomes.map((item) => (
+              <span key={item} className="glass-dark flex items-center gap-2 rounded-full px-4 py-2 text-sm">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-gold-light text-xs font-bold text-ink">✓</span>
+                {item}
+              </span>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Конструктор услуг */}
+      <section id="services" className="border-y border-ink/10 bg-white py-12">
+        <div className="container-page">
+          <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Услуги</div>
+          <h2 className="mb-8 text-2xl font-semibold">Соберите свою консультацию</h2>
+
+          <div className="space-y-8">
+            {consultationCategories.map((cat) => {
+              return (
+                <div key={cat.title}>
+                  <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink/50">{cat.title}</h3>
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {cat.services.map((s) => {
+                      const isSelected = !!selected[s.id]
+                      const ServiceIcon = serviceIcons[s.id]
+                      const detail = serviceDetails[s.id]
+                      return (
+                        <button
+                          key={s.id}
+                          type="button"
+                          onClick={() => toggle(s.id)}
+                          className={`group relative flex flex-col items-start gap-3 rounded-xl border p-4 text-left text-sm transition-colors ${
+                            isSelected ? 'border-ink bg-ink text-white' : 'border-ink/10 bg-white hover:border-ink/30'
+                          }`}
+                        >
+                          <span
+                            className={`flex h-9 w-9 items-center justify-center rounded-full ${
+                              isSelected ? 'bg-white/15 text-white' : 'bg-gold-light/20 text-ink'
+                            }`}
+                          >
+                            <ServiceIcon />
+                          </span>
+                          <span className="font-medium">{s.title}</span>
+                          <span className="flex w-full items-center justify-between">
+                            <span className={isSelected ? 'text-white/70' : 'text-ink/50'}>{s.price.toLocaleString('ru-RU')} ₽</span>
+                            <span
+                              className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${
+                                isSelected ? 'bg-white text-ink' : 'bg-ink/10 text-ink'
+                              }`}
+                            >
+                              {isSelected ? '✓' : '+'}
+                            </span>
+                          </span>
+                          {detail && (
+                            <span className="pointer-events-none absolute inset-x-0 top-full z-20 mt-2 rounded-lg bg-ink p-3 text-xs leading-relaxed text-white opacity-0 shadow-xl transition-opacity duration-200 group-hover:opacity-100">
+                              {detail}
+                            </span>
+                          )}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* Как проходит работа — плавная автоматическая подсветка шагов, как загрузка */}
+      <section className="container-page py-12">
+        <h3 className="mb-1 text-sm font-medium uppercase tracking-wide text-gold">Как проходит работа</h3>
+        <h2 className="mb-8 text-2xl font-semibold">6 шагов от заявки до плана действий</h2>
+
+        <div className="mx-auto max-w-3xl">
+          <div className="h-1 w-full overflow-hidden rounded-full bg-ink/10">
+            <div
+              className="h-full rounded-full bg-gold transition-all duration-[2400ms] ease-in-out"
+              style={{ width: `${((activeStep + 1) / process.length) * 100}%` }}
+            />
+          </div>
+
+          <ol className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {process.map((item, i) => (
+              <li
+                key={item}
+                className={`rounded-xl border p-4 text-sm transition-all duration-[1200ms] ease-in-out ${
+                  i === activeStep
+                    ? 'border-ink bg-ink text-white shadow-md'
+                    : i < activeStep
+                      ? 'border-ink/10 bg-ink/[0.04] text-ink/50'
+                      : 'border-ink/10 bg-white text-ink/70'
+                }`}
+              >
+                <span className={`mr-2 font-semibold ${i === activeStep ? 'text-gold-light' : 'text-gold'}`}>{i + 1}.</span>
+                {item}
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+
+      {/* Итог заказа — появляется после блока о консультанте, если есть выбранные услуги */}
+      {count > 0 && (
+        <section className="border-y border-ink/10 bg-white py-10">
+          <div className="container-page">
+            <div className="mx-auto max-w-xl rounded-2xl border border-ink/10 p-6 sm:p-8">
+              <h3 className="mb-4 text-lg font-semibold">Ваш заказ</h3>
+              <ul className="mb-4 space-y-2 text-sm">
+                {selectedServices.map((s) => (
+                  <li key={s.id} className="flex items-center justify-between">
+                    <span className="text-ink/70">{s.title}</span>
+                    <span>{s.price.toLocaleString('ru-RU')} ₽</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="space-y-1 border-t border-ink/10 pt-3 text-sm">
+                <div className="flex justify-between text-ink/60">
+                  <span>Сумма</span>
+                  <span>{subtotal.toLocaleString('ru-RU')} ₽</span>
+                </div>
+                {tierDiscount > 0 && (
+                  <div className="flex justify-between text-ink/60">
+                    <span>Ваша скидка {tierPct}%</span>
+                    <span>−{tierDiscount.toLocaleString('ru-RU')} ₽</span>
+                  </div>
+                )}
+              </div>
+
+              <input
+                className="mt-3 w-full rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+                placeholder="Промокод (необязательно)"
+                value={promo}
+                onChange={(e) => setPromo(e.target.value)}
+              />
+
+              <div className="mt-3 space-y-1 border-t border-ink/10 pt-3 text-sm">
+                {promoDiscount > 0 && (
+                  <div className="flex justify-between text-ink/60">
+                    <span>Промокод резидента</span>
+                    <span>−{promoDiscount.toLocaleString('ru-RU')} ₽</span>
+                  </div>
+                )}
+                <div className="flex justify-between pt-1 text-base font-semibold text-ink">
+                  <span>Итого</span>
+                  <span>{total.toLocaleString('ru-RU')} ₽</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setModalOpen(true)}
+                className="mt-5 w-full rounded-full bg-ink py-3 text-sm font-semibold text-white transition-colors hover:bg-ink/90"
+              >
+                Заказать
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Отзывы */}
+      <div id="reviews">
+        <Testimonials items={consultationTestimonials} compact />
+      </div>
+
+      {/* FAQ */}
+      <div id="faq">
+        <FAQSection items={faqItems} title="Вопросы о консультациях" />
+      </div>
+
+      {/* Доп. призыв к действию — лид-форма для тех, кто не определился с услугой */}
+      <section className="container-page pb-16">
+        <div className="mx-auto max-w-xl rounded-2xl bg-ink px-6 py-10 text-white sm:px-10">
+          <div className="text-center">
+            <div className="text-xl font-semibold">Не уверены, какая услуга нужна?</div>
+            <p className="mx-auto mt-2 max-w-lg text-sm text-white/70">
+              Опишите свою ситуацию — подскажем, с чего лучше начать, и поможем собрать заказ.
+            </p>
+          </div>
+
+          {helpSent ? (
+            <div className="mx-auto mt-6 max-w-md rounded-xl bg-white/10 p-6 text-center">
+              <div className="font-semibold">Заявка отправлена</div>
+              <p className="mt-1 text-sm text-white/70">Мы свяжемся с вами и поможем определиться с услугой.</p>
+            </div>
+          ) : (
+            <form className="mx-auto mt-6 grid max-w-md gap-3" onSubmit={handleHelpSubmit}>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <input
+                  className="rounded-lg border border-white/15 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
+                  placeholder="Имя"
+                  value={helpForm.name}
+                  onChange={(e) => setHelpForm((f) => ({ ...f, name: e.target.value }))}
+                />
+                <input
+                  className="rounded-lg border border-white/15 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
+                  placeholder="Почта"
+                  value={helpForm.email}
+                  onChange={(e) => setHelpForm((f) => ({ ...f, email: e.target.value }))}
+                />
+                <input
+                  className="rounded-lg border border-white/15 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
+                  placeholder="Номер телефона"
+                  value={helpForm.phone}
+                  onChange={(e) => setHelpForm((f) => ({ ...f, phone: e.target.value }))}
+                />
+                <input
+                  className="rounded-lg border border-white/15 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
+                  placeholder="Telegram"
+                  value={helpForm.telegram}
+                  onChange={(e) => setHelpForm((f) => ({ ...f, telegram: e.target.value }))}
+                />
+              </div>
+              <textarea
+                className="min-h-24 rounded-lg border border-white/15 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
+                placeholder="Опишите свой вопрос"
+                value={helpForm.question}
+                onChange={(e) => setHelpForm((f) => ({ ...f, question: e.target.value }))}
+              />
+              <button
+                type="submit"
+                className="rounded-full bg-gold-light py-3 text-sm font-semibold text-ink transition-colors hover:bg-white"
+              >
+                Отправить вопрос
+              </button>
+              <p className="text-center text-xs text-white/50">
+                Нажимая «Отправить вопрос», вы соглашаетесь на обработку персональных данных.
+              </p>
+            </form>
+          )}
+        </div>
+      </section>
+
+      {/* Плавающая корзина — по клику разворачивается в полный состав заказа
+          (услуги, сумма, скидка, промокод, итог), как в блоке «Ваш заказ» на
+          странице. К форме с контактами переходим только по кнопке «Заказать». */}
+      {count > 0 && !modalOpen && (
+        <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-3">
+          {cartOpen && (
+            <div className="w-80 max-w-[calc(100vw-3rem)] rounded-2xl border border-ink/10 bg-white p-5 shadow-2xl">
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="font-semibold">Ваш заказ</h3>
+                <button type="button" onClick={() => setCartOpen(false)} className="text-ink/40 hover:text-ink" aria-label="Свернуть">✕</button>
+              </div>
+              <ul className="mb-3 space-y-2 text-sm">
+                {selectedServices.map((s) => (
+                  <li key={s.id} className="flex items-center justify-between gap-2">
+                    <span className="text-ink/70">{s.title}</span>
+                    <span className="shrink-0">{s.price.toLocaleString('ru-RU')} ₽</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="space-y-1 border-t border-ink/10 pt-3 text-sm">
+                <div className="flex justify-between text-ink/60">
+                  <span>Сумма</span>
+                  <span>{subtotal.toLocaleString('ru-RU')} ₽</span>
+                </div>
+                {tierDiscount > 0 && (
+                  <div className="flex justify-between text-ink/60">
+                    <span>Ваша скидка {tierPct}%</span>
+                    <span>−{tierDiscount.toLocaleString('ru-RU')} ₽</span>
+                  </div>
+                )}
+              </div>
+              <input
+                className="mt-3 w-full rounded-lg border border-ink/15 px-3 py-2 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+                placeholder="Промокод (необязательно)"
+                value={promo}
+                onChange={(e) => setPromo(e.target.value)}
+              />
+              <div className="mt-3 space-y-1 border-t border-ink/10 pt-3 text-sm">
+                {promoDiscount > 0 && (
+                  <div className="flex justify-between text-ink/60">
+                    <span>Промокод резидента</span>
+                    <span>−{promoDiscount.toLocaleString('ru-RU')} ₽</span>
+                  </div>
+                )}
+                <div className="flex justify-between pt-1 text-base font-semibold text-ink">
+                  <span>Итого</span>
+                  <span>{total.toLocaleString('ru-RU')} ₽</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setCartOpen(false)
+                  setModalOpen(true)
+                }}
+                className="mt-4 w-full rounded-full bg-ink py-2.5 text-sm font-semibold text-white hover:bg-ink/90"
+              >
+                Заказать
+              </button>
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={() => setCartOpen((v) => !v)}
+            className="glass-dark flex items-center gap-4 rounded-full bg-ink px-7 py-4 text-white shadow-xl"
+          >
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gold-light text-sm font-bold text-ink">{count}</span>
+            <span className="text-base font-semibold">{total.toLocaleString('ru-RU')} ₽</span>
+          </button>
+        </div>
+      )}
+
+      {/* Модалка оформления заказа */}
+      {modalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-ink/60 p-0 sm:items-center sm:p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setModalOpen(false)
+          }}
+        >
+          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-t-2xl bg-white p-6 sm:rounded-2xl sm:p-8">
+            {sent ? (
+              <div className="py-8 text-center">
+                <div className="text-lg font-semibold">Заявка отправлена</div>
+                <p className="mt-2 text-sm text-ink/60">Мы свяжемся с вами, чтобы согласовать дату и время консультации.</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setModalOpen(false)
+                    setSent(false)
+                    setSelected({})
+                  }}
+                  className="mt-6 rounded-full bg-ink px-6 py-2.5 text-sm font-semibold text-white"
+                >
+                  Закрыть
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="mb-4 flex items-center justify-between">
+                  <h3 className="text-lg font-semibold">Заказать</h3>
+                  <button type="button" onClick={() => setModalOpen(false)} className="text-ink/40 hover:text-ink" aria-label="Закрыть">
+                    ✕
+                  </button>
+                </div>
+
+                <div className="mb-5 flex items-center justify-between rounded-lg bg-ink/[0.04] px-4 py-3 text-sm">
+                  <span className="text-ink/60">{count} {count === 1 ? 'услуга' : 'услуги'} в заказе</span>
+                  <span className="text-base font-semibold text-ink">{total.toLocaleString('ru-RU')} ₽</span>
+                </div>
+
+                <form className="grid gap-3" onSubmit={handleSubmit}>
+                  <input
+                    className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+                    placeholder="ФИО"
+                    value={form.name}
+                    onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                  />
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <input
+                      className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+                      placeholder="Почта"
+                      value={form.email}
+                      onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                    />
+                    <input
+                      className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+                      placeholder="Telegram"
+                      value={form.telegram}
+                      onChange={(e) => setForm((f) => ({ ...f, telegram: e.target.value }))}
+                    />
+                    <input
+                      className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+                      placeholder="Телефон"
+                      value={form.phone}
+                      onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+                    />
+                  </div>
+                  <button type="submit" className="rounded-full bg-ink py-3 text-sm font-semibold text-white transition-colors hover:bg-ink/90">
+                    Заказать
+                  </button>
+                  <p className="text-xs text-ink/50">Нажимая «Заказать», вы соглашаетесь на обработку персональных данных.</p>
+                </form>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
