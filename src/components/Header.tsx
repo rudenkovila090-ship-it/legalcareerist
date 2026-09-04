@@ -40,10 +40,10 @@ export default function Header() {
       <div className="container-page flex h-16 items-center justify-between">
         <NavLink to="/" className="flex items-center gap-2.5">
           <svg viewBox="0 0 100 100" className="h-7 w-7 text-ink" fill="none" stroke="currentColor" strokeWidth="11" strokeLinecap="round" aria-hidden="true">
-            <line x1="15" y1="78" x2="15" y2="55" />
-            <line x1="38" y1="78" x2="38" y2="18" />
-            <line x1="61" y1="55" x2="61" y2="25" />
-            <line x1="84" y1="62" x2="84" y2="38" />
+            <line x1="15" y1="88" x2="15" y2="48" />
+            <line x1="38" y1="74" x2="38" y2="34" />
+            <line x1="61" y1="60" x2="61" y2="20" />
+            <line x1="84" y1="46" x2="84" y2="6" />
           </svg>
           <span className="font-semibold tracking-tight">Карьерный Юрист</span>
         </NavLink>
