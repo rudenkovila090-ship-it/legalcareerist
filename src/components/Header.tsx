@@ -38,17 +38,18 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-40 border-b border-ink/10 bg-white/70 backdrop-blur-xl [transform:translateZ(0)] [will-change:transform]">
       <div className="container-page flex h-16 items-center justify-between">
-        <NavLink to="/" className="flex items-center gap-3">
+        <NavLink to="/" className="flex items-center gap-2">
           {/* На референсе иконка заметно выше двухстрочного текста — выступает
               и сверху, и снизу за его пределы, а не равна ему по высоте.
-              См. legalcareerist-design/SKILL.md. */}
-          <svg viewBox="0 0 100 100" className="h-14 w-14 shrink-0 text-ink" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" aria-hidden="true">
+              Цвет — жестко #283953 (не currentColor/text-ink), чтобы не
+              выцветал ни при каких обстоятельствах. См. legalcareerist-design/SKILL.md. */}
+          <svg viewBox="0 0 100 100" className="h-14 w-14 shrink-0" fill="none" stroke="#283953" strokeWidth="4" strokeLinecap="round" aria-hidden="true">
             <line x1="26" y1="88" x2="26" y2="48" />
-            <line x1="42" y1="74" x2="42" y2="34" />
-            <line x1="58" y1="60" x2="58" y2="20" />
-            <line x1="74" y1="46" x2="74" y2="6" />
+            <line x1="39" y1="74" x2="39" y2="34" />
+            <line x1="52" y1="60" x2="52" y2="20" />
+            <line x1="65" y1="46" x2="65" y2="6" />
           </svg>
-          <span className="font-logo text-lg font-bold leading-[1.15] tracking-tight">
+          <span className="font-logo text-lg font-bold leading-[1.15] tracking-tight text-ink">
             Карьерный
             <br />
             юрист
