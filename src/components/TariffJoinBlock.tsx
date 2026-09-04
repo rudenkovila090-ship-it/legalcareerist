@@ -100,7 +100,7 @@ export default function TariffJoinBlock() {
           return (
             <div
               key={t.id}
-              className="glass-dark relative flex flex-col items-center rounded-xl p-5 pt-7 text-center"
+              className="glass-dark relative flex min-h-60 flex-col items-center rounded-xl p-5 pt-7 text-center"
             >
               {recommended && (
                 <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-gold-light px-3 py-1 text-xs font-semibold text-ink">
@@ -110,11 +110,16 @@ export default function TariffJoinBlock() {
               <div className="text-xs font-medium uppercase tracking-wide text-white/50">Подписка</div>
               <div className="mt-1 text-base font-semibold">{t.period}</div>
               <div className="mt-2 text-2xl font-semibold text-gold-light">{t.priceLabel}</div>
+              <div className="mt-3 flex-1" />
               {t.id === '1m' ? (
-                <p className="mt-3 text-xs leading-relaxed text-white/50">{t.note}</p>
+                <p className="text-xs leading-relaxed text-white/50">{t.note}</p>
               ) : (
-                <span className="mt-3 rounded-full bg-emerald-400/15 px-3 py-1.5 text-xs font-semibold text-emerald-300">
-                  {t.note}
+                <span className="rounded-full bg-emerald-400/15 px-3 py-1.5 text-xs font-semibold leading-snug text-emerald-300">
+                  {t.note.split(' · ').map((line, i) => (
+                    <span key={i} className="block">
+                      {line}
+                    </span>
+                  ))}
                 </span>
               )}
               <button

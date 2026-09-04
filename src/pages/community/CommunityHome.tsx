@@ -554,8 +554,12 @@ export default function CommunityHome() {
                       {t.id === '1m' ? (
                         <p className="text-xs leading-relaxed text-white/50">{t.note}</p>
                       ) : (
-                        <span className="rounded-full bg-emerald-400/15 px-3 py-1.5 text-xs font-semibold text-emerald-300">
-                          {t.note}
+                        <span className="rounded-full bg-emerald-400/15 px-3 py-1.5 text-xs font-semibold leading-snug text-emerald-300">
+                          {t.note.split(' · ').map((line, i) => (
+                            <span key={i} className="block">
+                              {line}
+                            </span>
+                          ))}
                         </span>
                       )}
                       <button
