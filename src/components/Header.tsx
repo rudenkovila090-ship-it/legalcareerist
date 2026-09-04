@@ -38,14 +38,20 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-40 border-b border-ink/10 bg-white/70 backdrop-blur-xl [transform:translateZ(0)] [will-change:transform]">
       <div className="container-page flex h-16 items-center justify-between">
-        <NavLink to="/" className="flex items-center gap-2.5">
-          <svg viewBox="0 0 100 100" className="h-7 w-7 text-ink" fill="none" stroke="currentColor" strokeWidth="11" strokeLinecap="round" aria-hidden="true">
+        <NavLink to="/" className="flex items-center gap-3">
+          {/* Высота иконки подогнана под высоту двухстрочного лого-текста
+              справа (leading-[1.15] text-sm × 2 строки) — см. legalcareerist-design/SKILL.md. */}
+          <svg viewBox="0 0 100 100" className="h-8 w-8 shrink-0 text-ink" fill="none" stroke="currentColor" strokeWidth="9" strokeLinecap="round" aria-hidden="true">
             <line x1="15" y1="88" x2="15" y2="48" />
             <line x1="38" y1="74" x2="38" y2="34" />
             <line x1="61" y1="60" x2="61" y2="20" />
             <line x1="84" y1="46" x2="84" y2="6" />
           </svg>
-          <span className="font-semibold tracking-tight">Карьерный Юрист</span>
+          <span className="font-logo text-sm font-bold leading-[1.15] tracking-tight">
+            Карьерный
+            <br />
+            юрист
+          </span>
         </NavLink>
 
         <nav className="hidden items-center gap-6 md:flex">

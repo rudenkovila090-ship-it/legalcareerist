@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=PT+Sans:wght@700&display=swap');
 @import "tailwindcss";
 
 /* Палитра — только белый и фирменный синий (283953), никакого бежевого.
@@ -11,6 +11,13 @@
   --color-gold: #45608a;
   --color-gold-light: #6f93c4;
   --color-paper: #ffffff;
+}
+
+/* Логотип в шапке набран Helios — для кириллицы это исторически PT Sans
+   (ParaType делал его как цифровой аналог классического Helios). Только
+   для текста лого, весь остальной сайт остаётся на Inter. */
+.font-logo {
+  font-family: "PT Sans", var(--font-sans);
 }
 
 body {
