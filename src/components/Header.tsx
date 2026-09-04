@@ -43,7 +43,7 @@ export default function Header() {
               и сверху, и снизу за его пределы, а не равна ему по высоте.
               Цвет — жестко #283953 (не currentColor/text-ink), чтобы не
               выцветал ни при каких обстоятельствах. См. legalcareerist-design/SKILL.md. */}
-          <svg viewBox="0 0 100 100" className="h-14 w-14 shrink-0" fill="none" stroke="#283953" strokeWidth="4" strokeLinecap="round" aria-hidden="true">
+          <svg viewBox="0 0 100 100" className="h-14 w-14 shrink-0" fill="none" stroke="#283953" strokeWidth="3" strokeLinecap="round" aria-hidden="true">
             <line x1="26" y1="88" x2="26" y2="48" />
             <line x1="39" y1="74" x2="39" y2="34" />
             <line x1="52" y1="60" x2="52" y2="20" />
