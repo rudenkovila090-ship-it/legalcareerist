@@ -19,6 +19,8 @@
 //    (+1 при каждом открытии страницы).
 // 8. POST /api/article/:slug/view — реальный счётчик просмотров статьи
 //    базы знаний (+1 при каждом открытии).
+// 9. POST /api/news/:slug/view — реальный счётчик просмотров новости
+//    (+1 при каждом открытии).
 // Токены и секретные ключи — только в server/.env, в репозиторий не попадают.
 import express from 'express'
 import cors from 'cors'
@@ -28,6 +30,7 @@ import { createPendingJoin, setTgUserId, markPaidByPhone } from './lib/store.js'
 import { createPendingPurchase, getPurchase, markPurchasePaidByPhone } from './lib/materialsStore.js'
 import { incrementView, incrementApplication } from './lib/vacancyStats.js'
 import { incrementArticleView, getArticleViews } from './lib/articleStats.js'
+import { incrementNewsView, getNewsViews } from './lib/newsStats.js'
 
 const app = express()
 app.use(cors())
@@ -91,6 +94,16 @@ app.post('/api/article/:slug/view', (req, res) => {
 // иначе каждый рендер списка накручивал бы просмотры).
 app.get('/api/article/:slug/views', (req, res) => {
   res.json({ ok: true, views: getArticleViews(req.params.slug) })
+})
+
+// Открытие новости → +1 к счётчику просмотров, тот же принцип, что у статей.
+app.post('/api/news/:slug/view', (req, res) => {
+  const stats = incrementNewsView(req.params.slug)
+  res.json({ ok: true, ...stats })
+})
+
+app.get('/api/news/:slug/views', (req, res) => {
+  res.json({ ok: true, views: getNewsViews(req.params.slug) })
 })
 
 app.post('/api/notify', async (req, res) => {

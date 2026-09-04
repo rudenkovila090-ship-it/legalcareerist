@@ -29,7 +29,7 @@ export default function ArticleBody({ body }: { body: string }) {
           )
         }
         return (
-          <p key={i} className="text-[15px]">
+          <p key={i} className="whitespace-pre-line text-[15px]">
             {renderInline(block)}
           </p>
         )

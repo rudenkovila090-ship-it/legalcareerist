@@ -253,6 +253,20 @@ export interface Article extends Tagged {
   cta?: 'community-tariff'
 }
 
+export interface NewsItem {
+  id: string
+  slug: string
+  tag: string
+  date: string
+  title: string
+  /** Полный текст новости на детальной странице (/news/:slug) — поддерживает
+   *  ту же легкую разметку, что и Article.body (см. ArticleBody). */
+  text: string
+  /** Путь к приложенному изображению (сертификат, скриншот, диплом) —
+   *  показывается на детальной странице новости, если задано. */
+  image?: string
+}
+
 export type EventType = 'conference' | 'webinar' | 'breakfast' | 'intensive' | 'tour'
 export type EventFormat = 'online' | 'offline'
 export type EventStatus = 'open' | 'completed'

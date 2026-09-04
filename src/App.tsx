@@ -30,6 +30,7 @@ const Privacy = lazy(() => import('./pages/legal/Privacy'))
 const Consent = lazy(() => import('./pages/legal/Consent'))
 const About = lazy(() => import('./pages/About'))
 const News = lazy(() => import('./pages/News'))
+const NewsDetail = lazy(() => import('./pages/NewsDetail'))
 const Documents = lazy(() => import('./pages/Documents'))
 const Placeholder = lazy(() => import('./pages/Placeholder'))
 
@@ -95,6 +96,7 @@ export default function App() {
           {/* Общие информационные страницы */}
           <Route path="/about" element={<About />} />
           <Route path="/news" element={<News />} />
+          <Route path="/news/:slug" element={<NewsDetail />} />
 
           {/* Общая статья Базы знаний (единая сущность для всех трех разделов) */}
           <Route path="/knowledge/:slug" element={<ArticleDetail />} />

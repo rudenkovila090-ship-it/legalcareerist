@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom'
-import type { Article, CommunityClub, EventItem, MaterialItem, Vacancy } from '../types'
+import type { Article, CommunityClub, EventItem, MaterialItem, NewsItem, Vacancy } from '../types'
 import { TagRow } from './Tag'
 import { useArticleViewCount } from '../lib/useArticleViews'
+import { useNewsViewCount } from '../lib/useNewsViews'
 import { materialKindLabel } from '../lib/materialLabels'
 
 const money = new Intl.NumberFormat('ru-RU')
@@ -57,6 +58,23 @@ export function ArticleCard({ a, onSelect }: { a: Article; onSelect?: (slug: str
 
 function kindLabel(kind: Article['kind']) {
   return { article: 'Статья', faq: 'FAQ', glossary: 'Глоссарий', checklist: 'Чек-лист' }[kind]
+}
+
+// Компактная ячейка — заголовок, дата, просмотры, без превью текста. Клик
+// открывает детальную страницу /news/:slug с полным текстом и приложенными
+// изображениями (см. NewsDetail.tsx).
+export function NewsCard({ n }: { n: NewsItem }) {
+  const views = useNewsViewCount(n.slug)
+  return (
+    <Link to={`/news/${n.slug}`} className="glass block rounded-xl p-5">
+      <div className="flex items-center justify-between gap-3">
+        <span className="rounded-full bg-ink/[0.06] px-2.5 py-1 text-xs font-medium text-ink/70">{n.tag}</span>
+        <span className="text-xs text-ink/40">{n.date}</span>
+      </div>
+      <h3 className="mt-3 font-semibold leading-snug">{n.title}</h3>
+      <div className="mt-2 text-xs text-ink/40">{views ?? 0} просмотров</div>
+    </Link>
+  )
 }
 
 const eventTypeLabel: Record<EventItem['type'], string> = {

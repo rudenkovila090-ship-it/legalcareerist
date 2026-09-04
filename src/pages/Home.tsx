@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import FAQSection from '../components/FAQSection'
+import { NewsCard } from '../components/cards'
 import ilyaPhoto from '../assets/ilya-rudenkov.jpg'
 import { news } from '../data/news'
 
@@ -285,14 +286,7 @@ export default function Home() {
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {news.map((n) => (
-              <div key={n.title} className="glass rounded-xl p-5">
-                <div className="flex items-center justify-between gap-3">
-                  <span className="rounded-full bg-ink/[0.06] px-2.5 py-1 text-xs font-medium text-ink/70">{n.tag}</span>
-                  <span className="text-xs text-ink/40">{n.date}</span>
-                </div>
-                <div className="mt-3 font-semibold">{n.title}</div>
-                <p className="mt-1.5 whitespace-pre-line text-sm text-ink/60">{n.text}</p>
-              </div>
+              <NewsCard key={n.slug} n={n} />
             ))}
           </div>
         </div>
