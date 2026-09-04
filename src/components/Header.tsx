@@ -52,7 +52,7 @@ export default function Header() {
             <line x1="48" y1="60" x2="48" y2="20" />
             <line x1="59" y1="46" x2="59" y2="6" />
           </svg>
-          <span className="font-logo text-lg font-bold leading-[1.15] tracking-tight text-ink">
+          <span className="font-logo text-base font-normal leading-[1.15] tracking-tight text-ink">
             Карьерный
             <br />
             юрист
