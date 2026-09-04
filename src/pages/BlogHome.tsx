@@ -22,7 +22,6 @@ export default function BlogHome() {
         eyebrow="Карьерный Юрист"
         title="Блог"
         description="Статьи о карьере в праве, подборе персонала и юридическом рынке — раздел в разработке."
-        prototype
       />
 
       {/* Подвкладки — Новости Карьерного юриста / Подкаст */}
@@ -57,7 +56,7 @@ export default function BlogHome() {
                   <span className="text-xs text-ink/40">{n.date}</span>
                 </div>
                 <div className="mt-3 font-semibold">{n.title}</div>
-                <p className="mt-1.5 text-sm text-ink/60">{n.text}</p>
+                <p className="mt-1.5 whitespace-pre-line text-sm text-ink/60">{n.text}</p>
               </div>
             ))}
           </div>
