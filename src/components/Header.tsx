@@ -38,12 +38,15 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-40 border-b border-ink/10 bg-white/70 backdrop-blur-xl [transform:translateZ(0)] [will-change:transform]">
       <div className="container-page flex h-16 items-center justify-between">
-        <NavLink to="/" className="flex items-center gap-1">
+        <NavLink to="/" className="flex items-center gap-0.5">
           {/* На референсе иконка заметно выше двухстрочного текста — выступает
               и сверху, и снизу за его пределы, а не равна ему по высоте.
+              viewBox обрезан по содержимому (было 0 0 100 100 с пустым полем
+              справа от x=65 до 100) — иначе flex-gap не мог подвинуть текст
+              вплотную, потому что упирался в пустой хвост самого SVG-бокса.
               Цвет — жестко #283953 (не currentColor/text-ink), чтобы не
               выцветал ни при каких обстоятельствах. См. legalcareerist-design/SKILL.md. */}
-          <svg viewBox="0 0 100 100" className="h-14 w-14 shrink-0" fill="none" stroke="#283953" strokeWidth="3" strokeLinecap="round" aria-hidden="true">
+          <svg viewBox="20 0 50 100" className="h-14 w-7 shrink-0" fill="none" stroke="#283953" strokeWidth="5" strokeLinecap="round" aria-hidden="true">
             <line x1="26" y1="88" x2="26" y2="48" />
             <line x1="39" y1="74" x2="39" y2="34" />
             <line x1="52" y1="60" x2="52" y2="20" />
