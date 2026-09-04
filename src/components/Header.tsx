@@ -48,9 +48,9 @@ export default function Header() {
               выцветал ни при каких обстоятельствах. См. legalcareerist-design/SKILL.md. */}
           <svg viewBox="20 0 50 100" className="h-14 w-7 shrink-0" fill="none" stroke="#283953" strokeWidth="3.5" strokeLinecap="round" aria-hidden="true">
             <line x1="26" y1="88" x2="26" y2="48" />
-            <line x1="39" y1="74" x2="39" y2="34" />
-            <line x1="52" y1="60" x2="52" y2="20" />
-            <line x1="65" y1="46" x2="65" y2="6" />
+            <line x1="37" y1="74" x2="37" y2="34" />
+            <line x1="48" y1="60" x2="48" y2="20" />
+            <line x1="59" y1="46" x2="59" y2="6" />
           </svg>
           <span className="font-logo text-lg font-bold leading-[1.15] tracking-tight text-ink">
             Карьерный
