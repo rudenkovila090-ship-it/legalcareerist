@@ -42,13 +42,13 @@ export default function Header() {
           {/* На референсе иконка заметно выше двухстрочного текста — выступает
               и сверху, и снизу за его пределы, а не равна ему по высоте.
               См. legalcareerist-design/SKILL.md. */}
-          <svg viewBox="0 0 100 100" className="h-14 w-14 shrink-0 text-ink" fill="none" stroke="currentColor" strokeWidth="6" strokeLinecap="round" aria-hidden="true">
+          <svg viewBox="0 0 100 100" className="h-14 w-14 shrink-0 text-ink" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" aria-hidden="true">
             <line x1="26" y1="88" x2="26" y2="48" />
             <line x1="42" y1="74" x2="42" y2="34" />
             <line x1="58" y1="60" x2="58" y2="20" />
             <line x1="74" y1="46" x2="74" y2="6" />
           </svg>
-          <span className="font-logo text-sm font-bold leading-[1.15] tracking-tight">
+          <span className="font-logo text-lg font-bold leading-[1.15] tracking-tight">
             Карьерный
             <br />
             юрист
