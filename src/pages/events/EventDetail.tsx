@@ -28,6 +28,38 @@ function initials(name: string) {
   return name.split(' ').map((p) => p[0]).join('').toUpperCase()
 }
 
+// Иконки для карточек «Что вы получите после мероприятия» — по порядку
+// пунктов takeaways (запись, чек-лист/материал, доступ к сообществу).
+// Минималистичные, тот же стиль обводки (stroke, viewBox 24×24), что и
+// иконки на других страницах сайта.
+function IconPlay() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M10 8.5l6 3.5-6 3.5v-7z" />
+    </svg>
+  )
+}
+function IconChecklist() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <rect x="4.5" y="3.5" width="15" height="17" rx="2" />
+      <path d="M8 8.5l1.3 1.3L11.5 7.5M8 15l1.3 1.3L11.5 14M14 8.5h5.5M14 15h5.5" />
+    </svg>
+  )
+}
+function IconChat() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <path d="M4 5.5h16v10H9l-4 3.5v-3.5H4z" />
+      <circle cx="9" cy="10.5" r="0.8" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="10.5" r="0.8" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="10.5" r="0.8" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
+const takeawayIcons = [IconPlay, IconChecklist, IconChat]
+
 export default function EventDetail() {
   const { slug } = useParams()
   const event = events.find((e) => e.slug === slug)
@@ -36,6 +68,12 @@ export default function EventDetail() {
   const [tariffId, setTariffId] = useState<EventTariff['id']>(event?.tariffs[0]?.id ?? 'light')
   const [form, setForm] = useState({ fio: '', phone: '', email: '', telegram: '' })
   const [registered, setRegistered] = useState(false)
+
+  // «Стать партнером мероприятия» — лид-заявка: пока просто уведомление,
+  // что такой-то человек из такой-то компании хочет стать партнером
+  // именно этого мероприятия (без логики согласования/статусов).
+  const [partnerForm, setPartnerForm] = useState({ fio: '', company: '', phone: '', email: '' })
+  const [partnerSent, setPartnerSent] = useState(false)
 
   if (!event) {
     return (
@@ -65,6 +103,20 @@ export default function EventDetail() {
       interest: [event.title, tariff.name],
     })
     setRegistered(true)
+  }
+
+  function handlePartnerSubmit(e: FormEvent) {
+    e.preventDefault()
+    if (!event) return
+    if (!partnerForm.fio.trim() || !partnerForm.company.trim() || (!partnerForm.phone.trim() && !partnerForm.email.trim())) return
+    submitLead({
+      sourceBlock: 'events',
+      formType: 'event_partner_application',
+      name: partnerForm.fio,
+      contact: [partnerForm.phone, partnerForm.email].filter(Boolean).join(' / '),
+      interest: [event.title, partnerForm.company],
+    })
+    setPartnerSent(true)
   }
 
   return (
@@ -168,14 +220,19 @@ export default function EventDetail() {
 
           <div className="mt-8">
             <h2 className="text-xl font-semibold">Что вы получите после мероприятия</h2>
-            <ul className="mt-3 space-y-2 text-ink/70">
-              {event.takeaways.map((t) => (
-                <li key={t} className="flex gap-2">
-                  <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-gold" />
-                  {t}
-                </li>
-              ))}
-            </ul>
+            <div className="mt-4 grid gap-4 sm:grid-cols-3">
+              {event.takeaways.map((t, i) => {
+                const Icon = takeawayIcons[i % takeawayIcons.length]
+                return (
+                  <div key={t} className="rounded-2xl border border-ink/10 bg-ink/[0.02] p-5">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-ink text-white">
+                      <Icon />
+                    </div>
+                    <p className="mt-3 text-sm text-ink/70">{t}</p>
+                  </div>
+                )
+              })}
+            </div>
           </div>
 
           {/* Спикеры — кружок (фото или плейсхолдер), под ним имя и регалии,
@@ -196,6 +253,56 @@ export default function EventDetail() {
               </div>
             </div>
           )}
+
+          {/* Стать партнером мероприятия — лид-заявка: пока просто фиксируем
+              отклик (кто и от какой компании хочет стать партнером именно
+              этого мероприятия), без логики согласования. */}
+          <div className="mt-8">
+            <h2 className="text-xl font-semibold">Стать партнером мероприятия</h2>
+            <p className="mt-2 text-sm text-ink/60">
+              Оставьте заявку — мы свяжемся, чтобы обсудить формат партнерства для этого мероприятия.
+            </p>
+            {partnerSent ? (
+              <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
+                <div className="font-semibold">Заявка отправлена</div>
+                <p className="mt-1">Мы свяжемся с вами, чтобы обсудить детали партнерства.</p>
+              </div>
+            ) : (
+              <form onSubmit={handlePartnerSubmit} className="mt-4 grid gap-3 rounded-2xl border border-ink/10 bg-ink/[0.02] p-5 sm:grid-cols-2">
+                <input
+                  value={partnerForm.fio}
+                  onChange={(e) => setPartnerForm((f) => ({ ...f, fio: e.target.value }))}
+                  placeholder="ФИО"
+                  required
+                  className="rounded-lg border border-ink/15 px-3.5 py-2.5 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40"
+                />
+                <input
+                  value={partnerForm.company}
+                  onChange={(e) => setPartnerForm((f) => ({ ...f, company: e.target.value }))}
+                  placeholder="Компания"
+                  required
+                  className="rounded-lg border border-ink/15 px-3.5 py-2.5 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40"
+                />
+                <input
+                  type="tel"
+                  value={partnerForm.phone}
+                  onChange={(e) => setPartnerForm((f) => ({ ...f, phone: e.target.value }))}
+                  placeholder="Номер телефона"
+                  className="rounded-lg border border-ink/15 px-3.5 py-2.5 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40"
+                />
+                <input
+                  type="email"
+                  value={partnerForm.email}
+                  onChange={(e) => setPartnerForm((f) => ({ ...f, email: e.target.value }))}
+                  placeholder="Почта"
+                  className="rounded-lg border border-ink/15 px-3.5 py-2.5 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40"
+                />
+                <button type="submit" className="rounded-lg bg-ink py-2.5 text-sm font-semibold text-white hover:bg-ink/90 sm:col-span-2">
+                  Отправить заявку
+                </button>
+              </form>
+            )}
+          </div>
 
           {/* «Может быть полезно» — только релевантное теме мероприятия
               (мероприятия/база знаний/вакансии по тем же тегам специализации
