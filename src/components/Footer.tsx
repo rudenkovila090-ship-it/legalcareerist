@@ -61,7 +61,7 @@ export default function Footer() {
       </div>
       <div className="border-t border-white/10 py-5">
         <div className="container-page text-center text-xs text-white/40">
-          <span>© {new Date().getFullYear()} ИП Руденков И.В. Карьерный Юрист.</span>
+          <span>© {new Date().getFullYear()} ИП Руденков И.В. Карьерный Юрист. ИНН 262607024144 ОГРНИП 325784700110048</span>
         </div>
       </div>
     </footer>

@@ -8,6 +8,7 @@ import { submitLead } from '../../lib/leads'
 import ilyaPhoto from '../../assets/ilya-rudenkov.jpg'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import { tariffs } from '../../data/tariffs'
+import CommunityFooter from './CommunityFooter'
 
 const railItems = [
   { id: 'hero', label: 'Обзор' },
@@ -454,7 +455,7 @@ export default function CommunityHome() {
       </section>
 
       {/* Стать амбассадором */}
-      <section className="border-y border-ink/10 bg-white py-12 text-center">
+      <section id="ambassador-form" className="scroll-mt-16 border-y border-ink/10 bg-white py-12 text-center">
         <div className="container-page">
           <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Стать амбассадором</div>
           <h2 className="mb-2 text-2xl font-semibold">Хотите представлять сообщество в своем вузе или городе?</h2>
@@ -740,6 +741,8 @@ export default function CommunityHome() {
       <div id="faq">
         <FAQSection items={buildFaqItems()} />
       </div>
+
+      <CommunityFooter />
     </div>
   )
 }

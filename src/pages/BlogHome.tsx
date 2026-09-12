@@ -6,7 +6,7 @@ import { news } from '../data/news'
 import { useDocumentTitle } from '../lib/useDocumentTitle'
 
 const blogTabs = [
-  { id: 'news', label: 'Новости Карьерного юриста' },
+  { id: 'news', label: 'Новости' },
   { id: 'podcast', label: 'Подкаст' },
   { id: 'community', label: 'Сообщество' },
 ] as const
@@ -25,7 +25,7 @@ export default function BlogHome() {
         description="Статьи о карьере в праве, подборе персонала и юридическом рынке — раздел в разработке."
       />
 
-      {/* Подвкладки — Новости Карьерного юриста / Подкаст */}
+      {/* Подвкладки — Новости / Подкаст */}
       <div className="border-b border-ink/10 bg-white py-4">
         <div className="container-page">
           <div className="flex flex-wrap gap-3">
@@ -47,7 +47,7 @@ export default function BlogHome() {
 
       {tab === 'news' && (
         <div className="container-page py-12">
-          <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Новости Карьерного юриста</div>
+          <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Новости</div>
           <h2 className="mb-6 text-2xl font-semibold">Что нового у «Карьерного юриста»</h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {news.map((n) => (

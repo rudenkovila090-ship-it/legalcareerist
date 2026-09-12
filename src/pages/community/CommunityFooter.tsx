@@ -1,13 +1,10 @@
 import { Link } from 'react-router-dom'
 
-// Единый подвал раздела «Мероприятия» — рендерится и на /events (все ее
-// вкладки: афиша/создать/заказать/партнерам/поддержка/личный кабинет —
-// см. EventsHome.tsx), и на детальной странице мероприятия (EventDetail.tsx),
-// чтобы подвал был буквально одним и тем же компонентом, а не похожими
-// копиями в двух местах. Ссылки на вкладки EventsHome ведут через
-// query-параметр (?tab=...), который EventsHome читает при монтировании и
-// при каждом изменении — так переключение работает и с других страниц, не
-// только кликом внутри уже открытого /events.
+// Единый подвал раздела «Сообщество» — построен по тому же принципу, что и
+// EventsFooter (см. комментарий там): один компонент рендерится и на
+// /community, и на детальной странице клуба (ClubDetail.tsx), ссылки на
+// внутренние разделы страницы /community ведут через якоря (#id), а не
+// callback-пропсы, поэтому подвал работает одинаково с любой страницы.
 
 function IconTelegram() {
   return (
@@ -45,13 +42,9 @@ function IconX() {
     </svg>
   )
 }
-// Закон.ру — площадка без стандартной line-иконки в проекте, монограмма в
-// кружке (тот же прием, что и у аватаров без фото — см. initials в
-// CommunityHome/EventDetail), а не попытка воспроизвести точный логотип.
 function IconZakon() {
   return <span className="text-[11px] font-bold leading-none">Zn</span>
 }
-// Дзен — четырехлепестковый «сюрикен»/сияние, узнаваемый знак Дзена.
 function IconDzen() {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
@@ -67,56 +60,40 @@ function IconPodcast() {
   )
 }
 
-export default function EventsFooter() {
+export default function CommunityFooter() {
   return (
     <footer className="border-t border-white/10 bg-ink text-white/40">
-      {/* Заголовки колонок — яркие (text-white, font-bold), сами ссылки —
-          приглушенные, сероватые (text-white/40), чтобы структура
-          считывалась с первого взгляда. Порядок: Мероприятия, Все события,
-          Партнерам, Организаторам, Помощь, Юридический блок; соцсети —
-          отдельной строкой ниже на всю ширину, чтобы поместились в один ряд. */}
-      <div className="container-page grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-6">
+      <div className="container-page grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-5">
         <div>
-          <div className="mb-3 text-sm font-bold uppercase tracking-wide text-white">Мероприятия</div>
+          <div className="mb-3 text-sm font-bold uppercase tracking-wide text-white">Сообщество</div>
           <ul className="space-y-2 text-sm">
-            <li><Link className="hover:text-white" to="/about">О нас</Link></li>
+            <li><Link className="hover:text-white" to="/community#main">О сообществе</Link></li>
             <li><Link className="hover:text-white" to="/blog">Блог</Link></li>
             <li><Link className="hover:text-white" to="/news">Новости</Link></li>
-            <li><Link className="hover:text-white" to="/events/documents">Документы</Link></li>
+            <li><Link className="hover:text-white" to="/community/documents">Документы</Link></li>
           </ul>
         </div>
 
         <div>
-          <div className="mb-3 text-sm font-bold uppercase tracking-wide text-white">Все события</div>
+          <div className="mb-3 text-sm font-bold uppercase tracking-wide text-white">Вступление</div>
           <ul className="space-y-2 text-sm">
-            <li><Link className="hover:text-white" to="/events?tab=poster">Афиша</Link></li>
-            <li><Link className="hover:text-white" to="/events/ticket-refund">Возврат билета</Link></li>
-            <li><Link className="hover:text-white" to="/events/research">Участие в исследованиях</Link></li>
-            <li><Link className="hover:text-white" to="/events/ticketing">Билетная система</Link></li>
+            <li><Link className="hover:text-white" to="/community#join">Тарифы</Link></li>
+            <li><Link className="hover:text-white" to="/community/opportunities">Возможности</Link></li>
           </ul>
         </div>
 
         <div>
           <div className="mb-3 text-sm font-bold uppercase tracking-wide text-white">Партнерам</div>
           <ul className="space-y-2 text-sm">
-            <li><Link className="hover:text-white" to="/events?tab=partner">Стать партнером</Link></li>
-          </ul>
-        </div>
-
-        <div>
-          <div className="mb-3 text-sm font-bold uppercase tracking-wide text-white">Организаторам</div>
-          <ul className="space-y-2 text-sm">
-            <li><Link className="hover:text-white" to="/events?tab=create">Создать событие</Link></li>
-            <li><Link className="hover:text-white" to="/events/opportunities">Возможности</Link></li>
-            <li><Link className="hover:text-white" to="/events/advertising">Реклама</Link></li>
+            <li><Link className="hover:text-white" to="/community#ambassador-form">Стать амбассадором сообщества</Link></li>
           </ul>
         </div>
 
         <div>
           <div className="mb-3 text-sm font-bold uppercase tracking-wide text-white">Помощь</div>
           <ul className="space-y-2 text-sm">
-            <li><Link className="hover:text-white" to="/events?tab=support">Поддержка</Link></li>
-            <li><Link className="hover:text-white" to="/events/knowledge">База знаний</Link></li>
+            <li><Link className="hover:text-white" to="/community/contacts">Поддержка</Link></li>
+            <li><Link className="hover:text-white" to="/community#benefits">База знаний</Link></li>
           </ul>
         </div>
 
@@ -125,13 +102,14 @@ export default function EventsFooter() {
           <ul className="space-y-2 text-sm">
             <li><Link className="hover:text-white" to="/legal/privacy">Политика обработки персональных данных</Link></li>
             <li><Link className="hover:text-white" to="/legal/consent">Согласие на обработку персональных данных</Link></li>
+            <li><Link className="hover:text-white" to="/legal/offer">Оферта</Link></li>
           </ul>
         </div>
       </div>
 
       {/* Соцсети — отдельной полноширинной строкой, не колонкой сетки выше:
           8 иконок в один ряд не помещались бы в узкую колонку и переносились
-          на вторую строку. */}
+          на вторую строку (тот же прием, что и в EventsFooter). */}
       <div className="border-t border-white/10 py-8">
         <div className="container-page">
           <div className="mb-3 text-sm font-bold uppercase tracking-wide text-white">Социальные сети</div>

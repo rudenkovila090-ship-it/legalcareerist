@@ -32,11 +32,34 @@ function useGlassCursor() {
 }
 
 export default function Layout() {
-  const { pathname } = useLocation()
+  const { pathname, hash } = useLocation()
 
   useEffect(() => {
-    window.scrollTo(0, 0)
-  }, [pathname])
+    // Переход с якорем (например, из подвала «Сообщества» на /community#join
+    // с другой страницы) — ждем, пока смонтируется ленивый чанк страницы и
+    // нужный элемент появится в DOM, и только тогда скроллим к нему.
+    // Без якоря — как раньше, сразу наверх страницы.
+    if (!hash) {
+      window.scrollTo(0, 0)
+      return
+    }
+    const id = hash.slice(1)
+    let attempts = 0
+    let raf = 0
+    function tryScroll() {
+      const el = document.getElementById(id)
+      if (el) {
+        const headerHeight = document.querySelector('header')?.getBoundingClientRect().height ?? 0
+        const top = el.getBoundingClientRect().top + window.scrollY - headerHeight - 16
+        window.scrollTo({ top, behavior: 'smooth' })
+        return
+      }
+      attempts += 1
+      if (attempts < 40) raf = requestAnimationFrame(tryScroll)
+    }
+    raf = requestAnimationFrame(tryScroll)
+    return () => cancelAnimationFrame(raf)
+  }, [pathname, hash])
 
   useGlassCursor()
 
@@ -50,9 +73,17 @@ export default function Layout() {
     '/events/ticket-refund', '/events/research', '/events/ticketing',
     '/events/opportunities', '/events/advertising',
   ]
+  // То же для «Сообщества»: свой единый подвал (CommunityFooter: CommunityHome
+  // + детальная страница клуба), статичные подстраницы раздела остаются на
+  // общем футере сайта.
+  const communityStaticSubpages = [
+    '/community/success', '/community/contacts', '/community/documents', '/community/opportunities',
+  ]
   const hideGlobalFooter =
     pathname === '/events' ||
-    (pathname.startsWith('/events/') && !eventsStaticSubpages.includes(pathname))
+    (pathname.startsWith('/events/') && !eventsStaticSubpages.includes(pathname)) ||
+    pathname === '/community' ||
+    (pathname.startsWith('/community/') && !communityStaticSubpages.includes(pathname))
 
   return (
     <div className="flex min-h-screen flex-col">

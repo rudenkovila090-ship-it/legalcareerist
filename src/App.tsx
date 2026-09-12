@@ -68,6 +68,8 @@ export default function App() {
           <Route path="/community/success" element={<JoinSuccess />} />
           <Route path="/community/clubs/:slug" element={<ClubDetail />} />
           <Route path="/community/contacts" element={<Contacts eyebrow="Сообщество" sourceBlock="community" />} />
+          <Route path="/community/documents" element={<Placeholder eyebrow="Сообщество" title="Документы" />} />
+          <Route path="/community/opportunities" element={<Placeholder eyebrow="Сообщество" title="Возможности" />} />
 
           {/* Мероприятия */}
           <Route path="/events" element={<EventsHome />} />
@@ -113,6 +115,7 @@ export default function App() {
           {/* Юридические документы */}
           <Route path="/legal/privacy" element={<Privacy />} />
           <Route path="/legal/consent" element={<Consent />} />
+          <Route path="/legal/offer" element={<Placeholder eyebrow="Юридический блок" title="Оферта" />} />
         </Route>
       </Routes>
     </Suspense>

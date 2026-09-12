@@ -171,6 +171,7 @@ export default function MarketplaceHome() {
         eyebrow="Карьерный Юрист"
         title="Маркет"
         description="Каталог полезных материалов для юридической карьеры: гайды, чек-листы, лонглисты, статьи и вебинары."
+        wide
       />
 
       <div className="container-page py-10">
