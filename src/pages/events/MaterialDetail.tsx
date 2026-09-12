@@ -201,7 +201,7 @@ export default function MaterialDetail() {
               <input
                 type="tel"
                 required
-                placeholder="Телефон, например +79990000000"
+                placeholder="Телефон, например 89990000000"
                 value={purchaseForm.phone}
                 onChange={(e) => setPurchaseForm((f) => ({ ...f, phone: e.target.value }))}
                 className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"

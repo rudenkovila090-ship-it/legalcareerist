@@ -78,7 +78,7 @@ export default function CommunityFooter() {
           <div className="mb-3 text-sm font-bold uppercase tracking-wide text-white">Вступление</div>
           <ul className="space-y-2 text-sm">
             <li><Link className="hover:text-white" to="/community#join">Тарифы</Link></li>
-            <li><Link className="hover:text-white" to="/community/opportunities">Возможности</Link></li>
+            <li><Link className="hover:text-white" to="/community#benefits">Возможности</Link></li>
           </ul>
         </div>
 
@@ -93,7 +93,6 @@ export default function CommunityFooter() {
           <div className="mb-3 text-sm font-bold uppercase tracking-wide text-white">Помощь</div>
           <ul className="space-y-2 text-sm">
             <li><Link className="hover:text-white" to="/community/contacts">Поддержка</Link></li>
-            <li><Link className="hover:text-white" to="/community#benefits">База знаний</Link></li>
           </ul>
         </div>
 

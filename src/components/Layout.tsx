@@ -77,7 +77,7 @@ export default function Layout() {
   // + детальная страница клуба), статичные подстраницы раздела остаются на
   // общем футере сайта.
   const communityStaticSubpages = [
-    '/community/success', '/community/contacts', '/community/documents', '/community/opportunities',
+    '/community/success', '/community/contacts', '/community/documents',
   ]
   const hideGlobalFooter =
     pathname === '/events' ||
