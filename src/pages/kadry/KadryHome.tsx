@@ -400,13 +400,13 @@ function FilterSelect({ placeholder, resetLabel, value, options, onChange }: {
   }, [])
 
   return (
-    <div ref={ref} className="relative">
+    <div ref={ref} className="relative h-full">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className={`flex w-full items-center justify-between gap-2 rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-left text-sm outline-none focus:border-white/40 ${value ? 'text-white' : 'text-white/50'}`}
+        className={`flex h-full w-full items-center justify-between gap-2 rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-left text-sm outline-none focus:border-white/40 ${value ? 'text-white' : 'text-white/50'}`}
       >
-        <span className="truncate">{value || placeholder}</span>
+        <span className="leading-snug">{value || placeholder}</span>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`h-4 w-4 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}>
           <path d="M6 9l6 6 6-6" />
         </svg>
@@ -625,9 +625,9 @@ export default function KadryHome() {
       {tab === 'candidates' && (
         <section className="container-page pb-16">
           <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold-light">Найти сотрудника</div>
-          <h2 className="mb-6 text-2xl font-semibold text-white">Свежие анкеты из кадрового резерва</h2>
+          <h2 className="mb-6 text-2xl font-semibold text-white">Доступ к базе кандидатов</h2>
 
-          <div className="glass-dark mb-6 grid gap-3 rounded-xl p-5 sm:grid-cols-3 lg:grid-cols-6">
+          <div className="glass-dark mb-6 grid items-stretch gap-3 rounded-xl p-5 sm:grid-cols-3 lg:grid-cols-6">
             <FilterSelect placeholder="Город" resetLabel="Все города" value={fCity} options={cities} onChange={setFCity} />
             <FilterSelect placeholder="Учебное заведение" resetLabel="Любое учебное заведение" value={fSchool} options={schools} onChange={setFSchool} />
             <FilterSelect placeholder="Занятость" resetLabel="Любая занятость" value={fEmployment} options={employments} onChange={setFEmployment} />
@@ -684,8 +684,6 @@ export default function KadryHome() {
                     ))}
                   </div>
 
-                  <div className="mt-3 text-sm font-semibold text-gold-light">Контакт — {candidateContactPrice(c).toLocaleString('ru-RU')} ₽</div>
-
                   {isOpen && (
                     <div className="mt-4 space-y-3 border-t border-white/10 pt-4 text-sm">
                       {c.highlights && (
@@ -718,13 +716,26 @@ export default function KadryHome() {
                     </div>
                   )}
 
-                  <button
-                    type="button"
-                    onClick={() => toggleCandidate(c.id)}
-                    className="mt-4 text-sm font-medium text-gold-light hover:text-white"
-                  >
-                    {isOpen ? 'Свернуть' : 'Подробнее'}
-                  </button>
+                  {/* Два блока напротив друг друга — цена сразу видна рядом с
+                      действием, а не спрятана отдельной строкой выше. */}
+                  <div className="mt-4 flex items-center justify-between gap-2 border-t border-white/10 pt-4">
+                    <button
+                      type="button"
+                      onClick={() => toggleCandidate(c.id)}
+                      className="text-sm font-medium text-white/70 hover:text-white"
+                    >
+                      {isOpen ? 'Свернуть' : 'Подробнее'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => toggleSelect(c.id)}
+                      className={`shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+                        isSelected ? 'bg-white/10 text-white' : 'bg-gold-light text-ink hover:opacity-90'
+                      }`}
+                    >
+                      {isSelected ? 'В заявке ✓' : `Купить за ${candidateContactPrice(c).toLocaleString('ru-RU')} ₽`}
+                    </button>
+                  </div>
                 </div>
               )
             })}
@@ -1074,7 +1085,7 @@ export default function KadryHome() {
                     Кликабельна — увеличенная прозрачная область поверх облегчает
                     попадание пальцем/курсором. */}
                 <path
-                  d="M4,20 C2,7 15,3 14,15 C13,25 2,24 22,17 L74,15 C82,25 96,27 90,13 C88,7 92,5 96,20"
+                  d="M4,20 C2,7 15,3 14,15 C13,25 2,24 22,17 C30,10 36,22 44,14 C52,6 58,22 66,14 C70,10 72,18 74,15 C82,25 96,27 90,13 C88,7 92,5 96,20"
                   fill="none"
                   stroke="transparent"
                   strokeWidth="7"
@@ -1082,14 +1093,14 @@ export default function KadryHome() {
                   onClick={() => setRouteMode('without')}
                 />
                 <path
-                  d="M4,20 C2,7 15,3 14,15 C13,25 2,24 22,17 L74,15 C82,25 96,27 90,13 C88,7 92,5 96,20"
+                  d="M4,20 C2,7 15,3 14,15 C13,25 2,24 22,17 C30,10 36,22 44,14 C52,6 58,22 66,14 C70,10 72,18 74,15 C82,25 96,27 90,13 C88,7 92,5 96,20"
                   fill="none"
-                  stroke={routeMode === 'without' ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.32)'}
-                  strokeWidth="2.2"
+                  stroke={routeMode === 'without' ? 'rgba(255,255,255,0.65)' : 'rgba(255,255,255,0.32)'}
+                  strokeWidth={routeMode === 'without' ? 3.4 : 2.2}
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   vectorEffect="non-scaling-stroke"
-                  className="pointer-events-none transition-colors"
+                  className="pointer-events-none transition-all"
                 />
 
                 {/* С нами — короткий прямой маршрут, подсвечен и анимирован */}
@@ -1104,13 +1115,15 @@ export default function KadryHome() {
                   style={{ cursor: 'pointer' }}
                   onClick={() => setRouteMode('with')}
                 />
+                {/* Единая сплошная неоновая линия (не «строится» пунктиром — при
+                    неравномерном масштабировании viewBox дэш-анимация выглядела
+                    рваной, отдельными штрихами). */}
                 <path
-                  className="route-build pointer-events-none"
+                  className="pointer-events-none"
                   d="M 4 20 L 50 19 L 96 20"
-                  pathLength={100}
                   fill="none"
                   stroke="#5ea1ff"
-                  strokeWidth="1.4"
+                  strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   vectorEffect="non-scaling-stroke"
@@ -1143,7 +1156,7 @@ export default function KadryHome() {
 
             {/* Сравнение сроков — как выбор маршрута на карте: свой вариант подсвечен,
                 клик по любому переключает и путь на схеме выше, и карточки под ней. */}
-            <div className="mb-8 mt-6 flex flex-wrap gap-3">
+            <div className="mb-8 mt-6 flex flex-wrap justify-center gap-3">
               <button
                 type="button"
                 onClick={() => setRouteMode('with')}
@@ -1217,20 +1230,22 @@ export default function KadryHome() {
                   <input
                     value={calcPosition}
                     onChange={(e) => setCalcPosition(e.target.value)}
-                    placeholder="Например, юрист-стажёр"
+                    placeholder="Должность"
                     className="mt-2 w-full rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm font-normal text-white outline-none placeholder:text-white/40 focus:border-white/40"
                   />
                 </label>
 
                 <label className="block text-sm font-semibold text-white">
                   Цель поиска
-                  <FilterSelect
-                    placeholder="Выберите цель"
-                    resetLabel=""
-                    value={searchGoal}
-                    options={searchGoalOptions}
-                    onChange={(v) => setSearchGoal(v || searchGoalOptions[0])}
-                  />
+                  <div className="mt-2">
+                    <FilterSelect
+                      placeholder="Выберите цель"
+                      resetLabel=""
+                      value={searchGoal}
+                      options={searchGoalOptions}
+                      onChange={(v) => setSearchGoal(v || searchGoalOptions[0])}
+                    />
+                  </div>
                   {searchGoal === CUSTOM_GOAL && (
                     <input
                       value={customGoal}
@@ -1268,7 +1283,7 @@ export default function KadryHome() {
                   <span className="text-sm text-white/50">₽/мес</span>
                 </div>
                 <p className="mt-2 text-xs leading-relaxed text-white/40">
-                  Сумма, которую компания готова предложить сотруднику в месяц.
+                  Сумма, которую вы готовы предложить сотруднику в месяц.
                 </p>
               </div>
 
