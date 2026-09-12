@@ -1,10 +1,8 @@
-import { useMemo, useState, type FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { events } from '../../data/events'
-import { clubs } from '../../data/clubs'
 import RelatedContentBlock from '../../components/RelatedContentBlock'
 import { getRelatedContent } from '../../lib/related'
-import { demoMemberships } from '../../lib/account'
 import { submitLead } from '../../lib/leads'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import { SPECIALIZATIONS, INDUSTRIES, type EventTariff } from '../../types'
@@ -26,10 +24,6 @@ const posterTone: Record<string, string> = {
   tour: 'from-gold-light to-ink',
 }
 
-// Связка «Сообщество → Мероприятия» (раздел 6.6): участникам клуба с той же
-// специализацией автоматически применяется скидка при регистрации.
-const COMMUNITY_DISCOUNT = 0.2
-
 function initials(name: string) {
   return name.split(' ').map((p) => p[0]).join('').toUpperCase()
 }
@@ -43,14 +37,6 @@ export default function EventDetail() {
   const [form, setForm] = useState({ fio: '', phone: '', email: '', telegram: '' })
   const [registered, setRegistered] = useState(false)
 
-  const eligibleMembership = useMemo(() => {
-    if (!event) return null
-    return demoMemberships.find((m) => {
-      const club = clubs.find((c) => c.name === m.clubName)
-      return m.active && club?.specialization.some((s) => event.specialization.includes(s))
-    })
-  }, [event])
-
   if (!event) {
     return (
       <div className="container-page py-16">
@@ -59,9 +45,9 @@ export default function EventDetail() {
     )
   }
 
-  const related = getRelatedContent(event, 'event', event.id)
+  // Только мероприятия и база знаний — без вакансий и клубов сообщества.
+  const related = getRelatedContent(event, 'event', event.id).filter((r) => r.type !== 'vacancy' && r.type !== 'club')
   const tariff = event.tariffs.find((t) => t.id === tariffId) ?? event.tariffs[0]
-  const finalPrice = eligibleMembership && tariff.price > 0 ? Math.round(tariff.price * (1 - COMMUNITY_DISCOUNT)) : tariff.price
 
   function scrollToRegister() {
     document.getElementById('register')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -98,15 +84,21 @@ export default function EventDetail() {
               <span className="rounded-full bg-white/15 px-2.5 py-1 text-xs font-medium">Партнер: {event.partner}</span>
             )}
           </div>
-          <div className="mt-4 text-sm font-medium text-white/80">
-            {new Date(event.dateTime).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
-            {' · '}
-            {new Date(event.dateTime).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })} по Москве
-            {' · '}
-            {event.format === 'online' ? 'Онлайн' : event.city}
+          {/* Дата/время/формат — самый заметный акцент на афише: крупнее и
+              ярче обычного текста (не text-white/80, а сплошной белый,
+              жирным), разделитель — вертикальная линия, не точка. */}
+          <div className="mt-5 flex flex-wrap items-center gap-3 text-xl font-bold text-white sm:text-2xl">
+            <span>{new Date(event.dateTime).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+            <span className="h-6 w-px shrink-0 bg-white/40" aria-hidden="true" />
+            <span>{new Date(event.dateTime).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })} по Москве</span>
+            <span className="h-6 w-px shrink-0 bg-white/40" aria-hidden="true" />
+            <span>{event.format === 'online' ? 'Онлайн' : event.city}</span>
           </div>
-          <h1 className="mt-2 max-w-3xl text-3xl font-semibold sm:text-4xl">{event.title}</h1>
-          <p className="mt-4 max-w-2xl text-white/80">{event.description}</p>
+          {/* Без max-w — заголовок и описание растянуты на всю ширину афиши,
+              иначе строка обрывается посреди слова («…Карьера в M&A» уходило
+              переносом на новую строку некрасиво). */}
+          <h1 className="mt-3 text-3xl font-semibold sm:text-4xl">{event.title}</h1>
+          <p className="mt-4 text-white/80">{event.description}</p>
 
           {/* Свои пилюли, не общий TagRow — тот рассчитан на светлый фон
               (bg-ink/5 text-ink/70), на темной афише был бы нечитаем. */}
@@ -127,7 +119,7 @@ export default function EventDetail() {
             onClick={scrollToRegister}
             className="mt-8 rounded-full bg-white px-8 py-3 text-sm font-semibold text-ink hover:opacity-90"
           >
-            Записаться
+            Приобрести билет
           </button>
         </div>
       </div>
@@ -145,6 +137,34 @@ export default function EventDetail() {
               ))}
             </ul>
           </div>
+
+          {event.audienceFit.length > 0 && (
+            <div className="mt-8">
+              <h2 className="text-xl font-semibold">Это мероприятие для вас, если</h2>
+              <ul className="mt-3 space-y-2 text-ink/70">
+                {event.audienceFit.map((a) => (
+                  <li key={a} className="flex gap-2">
+                    <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-ink/40" />
+                    {a}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {event.bonuses.length > 0 && (
+            <div className="mt-8">
+              <h2 className="text-xl font-semibold">Дополнительные бонусы участникам</h2>
+              <ul className="mt-3 space-y-2 text-ink/70">
+                {event.bonuses.map((b) => (
+                  <li key={b} className="flex gap-2">
+                    <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-gold" />
+                    {b}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           <div className="mt-8">
             <h2 className="text-xl font-semibold">Что вы получите после мероприятия</h2>
@@ -243,11 +263,6 @@ export default function EventDetail() {
                   })}
                 </div>
 
-                {eligibleMembership && tariff.price > 0 && (
-                  <div className="mt-3 text-xs text-emerald-600">
-                    Скидка {Math.round(COMMUNITY_DISCOUNT * 100)}% как участнику клуба «{eligibleMembership.clubName}» — {finalPrice.toLocaleString('ru-RU')} ₽
-                  </div>
-                )}
                 {event.promoCode && (
                   <div className="mt-2 text-xs text-ink/50">Промокод: {event.promoCode}</div>
                 )}
@@ -284,7 +299,7 @@ export default function EventDetail() {
                       className="rounded-lg border border-ink/15 px-3.5 py-2.5 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40"
                     />
                     <button type="submit" className="mt-1 rounded-lg bg-ink py-2.5 text-sm font-semibold text-white hover:bg-ink/90">
-                      {tariff.price === 0 ? 'Записаться' : `Записаться — ${finalPrice.toLocaleString('ru-RU')} ₽`}
+                      {tariff.price === 0 ? 'Приобрести билет' : `Приобрести билет — ${tariff.price.toLocaleString('ru-RU')} ₽`}
                     </button>
                   </form>
                 )}
