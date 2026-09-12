@@ -278,8 +278,10 @@ export interface EventSpeaker {
   photo?: string
 }
 
-/** Тариф участия: Light (билет + материал), Career Plus (+ запись на месяц),
- *  Legal Career (+ запись на 2 месяца) — см. блок регистрации на детальной странице. */
+/** Тариф участия: «Участник» (билет + материал), «Карьера+» (+ запись на
+ *  месяц), «Юрист карьеры» (+ запись на 2 месяца) — см. блок регистрации
+ *  на детальной странице. id остаются на английском (light/career_plus/
+ *  legal_career) — это внутренние ключи, не видны пользователю. */
 export interface EventTariff {
   id: 'light' | 'career_plus' | 'legal_career'
   name: string
