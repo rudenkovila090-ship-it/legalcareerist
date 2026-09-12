@@ -532,6 +532,17 @@ export default function CommunityHome() {
                 <filter id="ru-map-tile-shadow" x="-60%" y="-60%" width="220%" height="220%">
                   <feDropShadow dx="0" dy="1.2" stdDeviation="0.9" floodColor="#283953" floodOpacity="0.3" />
                 </filter>
+                {/* Белое неоновое свечение вокруг ink-квадрата — размытая
+                    перекрашенная в белый копия формы под оригиналом. */}
+                <filter id="ru-map-marker-glow" x="-150%" y="-150%" width="400%" height="400%">
+                  <feGaussianBlur stdDeviation="2.2" result="blur" />
+                  <feColorMatrix in="blur" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1 0" result="glow" />
+                  <feMerge>
+                    <feMergeNode in="glow" />
+                    <feMergeNode in="glow" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
               </defs>
               {ruMapRows.map((row, ri) =>
                 row.split('').map((cell, ci) =>
@@ -551,21 +562,33 @@ export default function CommunityHome() {
                   ) : null,
                 ),
               )}
+              {/* Точки городов — квадраты той же геометрии, что и клетки
+                  суши выше (не круги), поэтому идеально попадают в сетку. */}
+              {cities.map((c) => (
+                <rect
+                  key={c.id}
+                  x={c.col * RU_MAP_CELL + 1.5}
+                  y={c.row * RU_MAP_CELL + 1.5}
+                  width={RU_MAP_CELL - 3}
+                  height={RU_MAP_CELL - 3}
+                  rx={3.5}
+                  fill="#283953"
+                  filter="url(#ru-map-marker-glow)"
+                />
+              ))}
             </svg>
             {cities.map((c) => (
               <div
                 key={c.id}
-                className="group absolute -translate-x-1/2 -translate-y-1/2"
+                className="group absolute cursor-pointer"
                 style={{
-                  left: `${((c.col * RU_MAP_CELL + RU_MAP_CELL / 2) / RU_MAP_W) * 100}%`,
-                  top: `${((c.row * RU_MAP_CELL + RU_MAP_CELL / 2) / RU_MAP_H) * 100}%`,
+                  left: `${(c.col * RU_MAP_CELL / RU_MAP_W) * 100}%`,
+                  top: `${(c.row * RU_MAP_CELL / RU_MAP_H) * 100}%`,
+                  width: `${(RU_MAP_CELL / RU_MAP_W) * 100}%`,
+                  height: `${(RU_MAP_CELL / RU_MAP_H) * 100}%`,
                 }}
               >
-                <span
-                  className="block h-3.5 w-3.5 cursor-pointer rounded-full bg-ink transition-transform group-hover:scale-125"
-                  style={{ boxShadow: '0 0 0 4px rgba(255,255,255,0.9), 0 0 10px 3px rgba(255,255,255,0.85), 0 0 18px 7px rgba(255,255,255,0.45)' }}
-                />
-                <div className="mt-2 whitespace-nowrap text-center text-xs font-medium text-ink/60">{c.name}</div>
+                <div className="absolute left-1/2 top-full mt-1.5 -translate-x-1/2 whitespace-nowrap text-center text-xs font-medium text-ink/60">{c.name}</div>
                 <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 w-52 -translate-x-1/2 rounded-lg bg-ink p-3 text-left text-xs text-white opacity-0 shadow-xl transition-opacity group-hover:opacity-100">
                   <div className="mb-1 font-semibold">{c.name}</div>
                   <ul className="space-y-0.5 text-white/70">
