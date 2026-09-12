@@ -40,9 +40,19 @@ export default function Layout() {
 
   useGlassCursor()
 
-  // Страница «Мероприятия» — свой подвал раздела (см. EventsHome), с
-  // навигацией по разделу и своим юридическим блоком, вместо общего футера.
-  const hideGlobalFooter = pathname === '/events'
+  // Раздел «Мероприятия» — свой единый подвал (EventsFooter: EventsHome +
+  // детальная страница мероприятия), с навигацией по разделу и своим
+  // юридическим блоком, вместо общего футера. Отдельные статичные
+  // подстраницы раздела (эти пути) на общий подвал сайта не претендуют —
+  // сами являются частью подвала как ссылки, и остаются на общем футере.
+  const eventsStaticSubpages = [
+    '/events/knowledge', '/events/materials', '/events/contacts', '/events/documents',
+    '/events/ticket-refund', '/events/research', '/events/ticketing',
+    '/events/opportunities', '/events/advertising',
+  ]
+  const hideGlobalFooter =
+    pathname === '/events' ||
+    (pathname.startsWith('/events/') && !eventsStaticSubpages.includes(pathname))
 
   return (
     <div className="flex min-h-screen flex-col">

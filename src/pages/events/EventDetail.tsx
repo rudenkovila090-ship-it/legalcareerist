@@ -5,6 +5,7 @@ import RelatedContentBlock from '../../components/RelatedContentBlock'
 import { getRelatedContent } from '../../lib/related'
 import { submitLead } from '../../lib/leads'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
+import EventsFooter from './EventsFooter'
 import { SPECIALIZATIONS, INDUSTRIES, type EventTariff } from '../../types'
 
 const specLabel = new Map(SPECIALIZATIONS.map((s) => [s.id, s.label]))
@@ -77,8 +78,11 @@ export default function EventDetail() {
 
   if (!event) {
     return (
-      <div className="container-page py-16">
-        <p>Мероприятие не найдено. <Link className="underline" to="/events">Все мероприятия</Link></p>
+      <div>
+        <div className="container-page py-16">
+          <p>Мероприятие не найдено. <Link className="underline" to="/events">Все мероприятия</Link></p>
+        </div>
+        <EventsFooter />
       </div>
     )
   }
@@ -415,6 +419,8 @@ export default function EventDetail() {
           </div>
         </aside>
       </div>
+
+      <EventsFooter />
     </div>
   )
 }
