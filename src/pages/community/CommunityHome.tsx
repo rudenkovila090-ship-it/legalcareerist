@@ -5,7 +5,6 @@ import { communityTestimonials } from '../../data/testimonials'
 import FAQSection from '../../components/FAQSection'
 import SectionRail from '../../components/SectionRail'
 import { submitLead } from '../../lib/leads'
-import { openTelegramBot } from '../../lib/telegram'
 import ilyaPhoto from '../../assets/ilya-rudenkov.jpg'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import { tariffs } from '../../data/tariffs'
@@ -173,23 +172,9 @@ const cities = [
   { id: 'ekb', name: 'Екатеринбург', schools: ['УрГЮУ'] },
 ] as const
 
-// Ответ на вопрос про демодоступ — со ссылкой-кнопкой на активацию, поэтому
-// собирается прямо в компоненте (нужен доступ к handleActivateDemo).
-function buildFaqItems(onActivateDemo: () => void) {
+function buildFaqItems() {
   return [
     { q: 'Что такое сообщество и чем оно отличается от юридических клубов, СНО?', a: 'Сообщество «Карьерного юриста» объединяет студентов и начинающих юристов из разных вузов и городов вокруг одной цели — карьеры в праве, а не привязано к конкретному учебному заведению, как студенческие клубы или СНО. Здесь закрытые вакансии, база знаний, менторская поддержка и живое общение с теми, кто уже прошел этот путь.' },
-    {
-      q: 'Можно ли познакомиться с сообществом до вступления?',
-      a: (
-        <>
-          Да, вы можете познакомиться с сообществом по демодоступу на 7 дней — оценить формат перед
-          оплатой.{' '}
-          <button type="button" onClick={onActivateDemo} className="font-medium text-ink underline">
-            Попробовать по демодоступу
-          </button>
-        </>
-      ),
-    },
     { q: 'Что я получу сразу после оплаты?', a: 'После оплаты вы вернетесь на сайт — там будет кнопка «Перейти в бота». Нажмите Start в чате с ботом @LegalcareeristBot, и он сразу пришлет ссылку на вступление в закрытое сообщество.' },
     { q: 'Что если я передумаю?', a: 'Подписка автоматически продлевается по окончании выбранного срока — отключить автопродление можно в любой момент в личном кабинете.' },
     { q: 'Нужна ли специализация или опыт?', a: 'Нет — сообщество открыто студентам и начинающим юристам из любого города, вуза и колледжа, независимо от специализации.' },
@@ -213,7 +198,6 @@ export default function CommunityHome() {
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
   const [telegram, setTelegram] = useState('')
-  const [submitted, setSubmitted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState(false)
 
@@ -246,16 +230,9 @@ export default function CommunityHome() {
     document.getElementById('join')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
-  function handleActivateDemo() {
-    setTariffId('demo')
-    setPaid(true)
-    scrollToJoin()
-  }
-
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    if (!name.trim() || !telegram.trim()) return
-    if (tariff.price > 0 && !phone.trim()) return
+    if (!name.trim() || !telegram.trim() || !phone.trim()) return
 
     submitLead({
       sourceBlock: 'community',
@@ -265,14 +242,7 @@ export default function CommunityHome() {
       interest: [tariff.period],
     })
 
-    if (tariff.price === 0) {
-      // Демодоступ — без оплаты, просто открываем бота за ссылкой на вступление.
-      openTelegramBot(`resident_${tariffId}`)
-      setSubmitted(true)
-      return
-    }
-
-    // Платный тариф — уходим на настоящую страницу оплаты Prodamus. После
+    // Уходим на настоящую страницу оплаты Prodamus. После
     // оплаты человек вернется на /community/success, откуда перейдет в бота
     // за ссылкой на вступление (бот не может писать первым — нужен Start).
     setSubmitting(true)
@@ -520,10 +490,10 @@ export default function CommunityHome() {
       {/* Присоединиться: лид-заявка + тарифы */}
       <section id="join" className="scroll-mt-16 bg-ink py-14 text-white">
         <div className="container-page text-center">
-          <div className="mb-8 text-sm font-medium uppercase tracking-wide text-gold-light">Присоединиться</div>
+          <div className="mb-8 text-sm font-bold uppercase tracking-wide text-gold-light">Присоединиться</div>
 
           <div className="mx-auto grid max-w-3xl gap-4 sm:grid-cols-3">
-                {tariffs.filter((t) => t.id !== 'demo').map((t) => {
+                {tariffs.map((t) => {
                   const recommended = t.id === '3m'
                   const selected = tariffId === t.id
                   return (
@@ -588,89 +558,60 @@ export default function CommunityHome() {
             }}
           >
             <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-white p-6 text-ink sm:rounded-2xl sm:p-8">
-              {submitted ? (
-                <div className="py-4 text-center">
-                  <div className="mb-3 flex justify-center">
-                    <span className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-2xl text-emerald-600">✓</span>
-                  </div>
-                  <p className="text-sm leading-relaxed text-ink/70">
-                    Мы открыли чат с ботом в новой вкладке — нажмите там Start, и он пришлет вам ссылку на вступление в закрытое сообщество.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setPaid(false)
-                      setSubmitted(false)
-                      setName('')
-                      setPhone('')
-                      setEmail('')
-                      setTelegram('')
-                    }}
-                    className="mt-6 rounded-full bg-ink px-6 py-2.5 text-sm font-semibold text-white"
-                  >
-                    Закрыть
-                  </button>
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="text-lg font-semibold">Тариф «{tariff.period}» — {tariff.priceLabel}</h3>
+                <button type="button" onClick={() => setPaid(false)} className="text-ink/40 hover:text-ink" aria-label="Закрыть">
+                  ✕
+                </button>
+              </div>
+              <div className="mb-5 flex items-center justify-between rounded-lg bg-ink/[0.04] px-4 py-3 text-sm">
+                <span className="text-ink/60">{tariff.period}</span>
+                <span className="text-base font-semibold text-ink">{tariff.priceLabel}</span>
+              </div>
+              <form onSubmit={handleSubmit} className="grid gap-3">
+                <input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Имя"
+                  required
+                  className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+                />
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <input
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="Телефон, например +79990000000"
+                    required
+                    className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+                  />
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Почта (необязательно)"
+                    className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+                  />
                 </div>
-              ) : (
-                <>
-                  <div className="mb-4 flex items-center justify-between">
-                    <h3 className="text-lg font-semibold">Тариф «{tariff.period}» — {tariff.priceLabel}</h3>
-                    <button type="button" onClick={() => setPaid(false)} className="text-ink/40 hover:text-ink" aria-label="Закрыть">
-                      ✕
-                    </button>
-                  </div>
-                  <div className="mb-5 flex items-center justify-between rounded-lg bg-ink/[0.04] px-4 py-3 text-sm">
-                    <span className="text-ink/60">{tariff.period}</span>
-                    <span className="text-base font-semibold text-ink">{tariff.priceLabel}</span>
-                  </div>
-                  <form onSubmit={handleSubmit} className="grid gap-3">
-                    <input
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="Имя"
-                      required
-                      className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
-                    />
-                    {tariff.price > 0 && (
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        <input
-                          type="tel"
-                          value={phone}
-                          onChange={(e) => setPhone(e.target.value)}
-                          placeholder="Телефон, например +79990000000"
-                          required
-                          className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
-                        />
-                        <input
-                          type="email"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          placeholder="Почта (необязательно)"
-                          className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
-                        />
-                      </div>
-                    )}
-                    <input
-                      value={telegram}
-                      onChange={(e) => setTelegram(e.target.value)}
-                      placeholder="Ник в Telegram, например @ivanov"
-                      required
-                      className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
-                    />
-                    {submitError && (
-                      <p className="text-sm text-red-600">Не получилось перейти к оплате — попробуйте еще раз через минуту.</p>
-                    )}
-                    <button
-                      type="submit"
-                      disabled={submitting}
-                      className="rounded-full bg-ink py-3 text-sm font-semibold text-white transition-colors hover:bg-ink/90 disabled:opacity-60"
-                    >
-                      {submitting ? 'Переходим к оплате…' : tariff.price > 0 ? 'Перейти к оплате' : 'Вступить в сообщество'}
-                    </button>
-                    <p className="text-xs text-ink/50">Нажимая «{tariff.price > 0 ? 'Перейти к оплате' : 'Вступить в сообщество'}», вы соглашаетесь на обработку персональных данных.</p>
-                  </form>
-                </>
-              )}
+                <input
+                  value={telegram}
+                  onChange={(e) => setTelegram(e.target.value)}
+                  placeholder="Ник в Telegram, например @ivanov"
+                  required
+                  className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+                />
+                {submitError && (
+                  <p className="text-sm text-red-600">Не получилось перейти к оплате — попробуйте еще раз через минуту.</p>
+                )}
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="rounded-full bg-ink py-3 text-sm font-semibold text-white transition-colors hover:bg-ink/90 disabled:opacity-60"
+                >
+                  {submitting ? 'Переходим к оплате…' : 'Перейти к оплате'}
+                </button>
+                <p className="text-xs text-ink/50">Нажимая «Перейти к оплате», вы соглашаетесь на обработку персональных данных.</p>
+              </form>
             </div>
           </div>
         )}
@@ -683,7 +624,7 @@ export default function CommunityHome() {
 
       {/* FAQ */}
       <div id="faq">
-        <FAQSection items={buildFaqItems(handleActivateDemo)} />
+        <FAQSection items={buildFaqItems()} />
       </div>
     </div>
   )

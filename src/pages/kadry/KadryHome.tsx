@@ -1017,38 +1017,7 @@ export default function KadryHome() {
           </p>
 
           <div className="mx-auto max-w-3xl">
-            {/* Сравнение сроков — как выбор маршрута на карте: свой вариант подсвечен,
-                клик по любому переключает и подписи на схеме, и карточки под ней. */}
-            <div className="mb-6 flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={() => setRouteMode('with')}
-                className={`flex items-center gap-2.5 rounded-xl px-4 py-2.5 text-left transition-colors ${
-                  routeMode === 'with' ? 'bg-gold-light text-ink' : 'border border-white/15 text-white/50 hover:text-white'
-                }`}
-              >
-                <IconClock />
-                <div>
-                  <div className="text-xs font-medium opacity-70">С нами</div>
-                  <div className="text-sm font-bold">5–7 дней</div>
-                </div>
-              </button>
-              <button
-                type="button"
-                onClick={() => setRouteMode('without')}
-                className={`flex items-center gap-2.5 rounded-xl px-4 py-2.5 text-left transition-colors ${
-                  routeMode === 'without' ? 'border border-white/25 bg-white/10 text-white' : 'border border-white/15 text-white/40 hover:text-white/70'
-                }`}
-              >
-                <IconClock />
-                <div>
-                  <div className="text-xs font-medium opacity-70">Без нас</div>
-                  <div className="text-sm font-bold">недели, а то и месяцы</div>
-                </div>
-              </button>
-            </div>
-
-            <div className="relative h-36 w-full sm:h-44">
+            <div className="relative h-40 w-full sm:h-48">
               <svg viewBox="0 0 100 40" preserveAspectRatio="none" className="absolute inset-0 h-full w-full overflow-visible" aria-hidden="true">
                 <defs>
                   <filter id="route-glow" x="-50%" y="-50%" width="200%" height="200%">
@@ -1060,11 +1029,13 @@ export default function KadryHome() {
                   </filter>
                 </defs>
 
-                {/* Без нас — плавный извилистый маршрут открытого рынка: сплошная,
-                    жирная и чуть запутанная линия (не пунктир). Кликабельна — увеличенная
-                    прозрачная область поверх облегчает попадание пальцем/курсором. */}
+                {/* Без нас — запутанный клубок у каждого конца маршрута (там, где
+                    без агентства теряется больше всего времени — на старте и на
+                    финальном отборе), сплошная жирная серая линия, не пунктир.
+                    Кликабельна — увеличенная прозрачная область поверх облегчает
+                    попадание пальцем/курсором. */}
                 <path
-                  d="M 4 20 Q 18 2 32 20 T 60 20 T 88 20 L 96 20"
+                  d="M4,20 C6,6 16,6 14,16 C12,24 22,24 24,14 L76,14 C78,24 88,24 86,16 C84,6 94,6 96,20"
                   fill="none"
                   stroke="transparent"
                   strokeWidth="7"
@@ -1072,11 +1043,12 @@ export default function KadryHome() {
                   onClick={() => setRouteMode('without')}
                 />
                 <path
-                  d="M 4 20 Q 18 2 32 20 T 60 20 T 88 20 L 96 20"
+                  d="M4,20 C6,6 16,6 14,16 C12,24 22,24 24,14 L76,14 C78,24 88,24 86,16 C84,6 94,6 96,20"
                   fill="none"
                   stroke={routeMode === 'without' ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.32)'}
                   strokeWidth="2.2"
                   strokeLinecap="round"
+                  strokeLinejoin="round"
                   vectorEffect="non-scaling-stroke"
                   className="pointer-events-none transition-colors"
                 />
@@ -1121,31 +1093,44 @@ export default function KadryHome() {
                 <IconUserCheck />
               </div>
 
-              {/* Подписи маршрутов — как на карте: цветная плашка у своего пути, кликабельны */}
+              {/* Подписи — центрированы точно под своей иконкой */}
+              <div className="absolute w-28 -translate-x-1/2 text-center text-[11px] text-white/50" style={{ left: '4%', top: '78%' }}>
+                Заявка от работодателя
+              </div>
+              <div className="absolute w-28 -translate-x-1/2 text-center text-[11px] text-white/50" style={{ left: '96%', top: '78%' }}>
+                Кандидат найден
+              </div>
+            </div>
+
+            {/* Сравнение сроков — как выбор маршрута на карте: свой вариант подсвечен,
+                клик по любому переключает и путь на схеме выше, и карточки под ней. */}
+            <div className="mb-8 mt-6 flex flex-wrap gap-3">
               <button
                 type="button"
                 onClick={() => setRouteMode('with')}
-                className={`absolute flex -translate-x-1/2 -translate-y-1/2 items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold shadow-lg transition-colors ${
-                  routeMode === 'with' ? 'bg-gold-light text-ink' : 'bg-gold-light/40 text-ink/60'
+                className={`flex items-center gap-2.5 rounded-xl px-4 py-2.5 text-left transition-colors ${
+                  routeMode === 'with' ? 'bg-gold-light text-ink' : 'border border-white/15 text-white/50 hover:text-white'
                 }`}
-                style={{ left: '50%', top: '43%' }}
               >
-                С нами — короче и дешевле
+                <IconClock />
+                <div>
+                  <div className="text-xs font-medium opacity-70">С Карьерным юристом</div>
+                  <div className="text-sm font-bold">5–7 дней</div>
+                </div>
               </button>
               <button
                 type="button"
                 onClick={() => setRouteMode('without')}
-                className={`absolute flex -translate-x-1/2 -translate-y-1/2 items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${
-                  routeMode === 'without' ? 'border-white/30 bg-ink text-white' : 'border-white/15 bg-ink/80 text-white/50'
+                className={`flex items-center gap-2.5 rounded-xl px-4 py-2.5 text-left transition-colors ${
+                  routeMode === 'without' ? 'border border-white/25 bg-white/10 text-white' : 'border border-white/15 text-white/40 hover:text-white/70'
                 }`}
-                style={{ left: '50%', top: '10%' }}
               >
-                Без нас — дольше и дороже
+                <IconClock />
+                <div>
+                  <div className="text-xs font-medium opacity-70">Без нас</div>
+                  <div className="text-sm font-bold">недели, а то и месяцы</div>
+                </div>
               </button>
-            </div>
-            <div className="relative mb-8 h-4 text-[11px] text-white/50">
-              <span className="absolute" style={{ left: '4%' }}>Заявка от работодателя</span>
-              <span className="absolute text-right" style={{ right: '4%' }}>Кандидат найден</span>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-4">
@@ -1229,7 +1214,7 @@ export default function KadryHome() {
                       onClick={() => setSalaryType('net')}
                       className={`rounded-full px-2.5 py-1 transition-colors ${salaryType === 'net' ? 'bg-white text-ink' : 'text-white/60'}`}
                     >
-                      На руки
+                      нет
                     </button>
                   </div>
                 </div>
@@ -1243,11 +1228,23 @@ export default function KadryHome() {
                   onChange={(e) => setSalary(Number(e.target.value))}
                   className="mt-3 w-full accent-gold-light"
                 />
-                <div className="mt-1 text-base font-medium text-white/70">{salary.toLocaleString('ru-RU')} ₽/мес</div>
+                {/* Свою сумму можно ввести напрямую — не только ползунком, диапазон
+                    ползунка (20 000–150 000) не ограничивает то, что можно вписать. */}
+                <div className="mt-2 flex items-center gap-2">
+                  <input
+                    type="number"
+                    min={0}
+                    step={1000}
+                    value={salary}
+                    onChange={(e) => setSalary(Math.max(0, Number(e.target.value) || 0))}
+                    className="w-32 rounded-lg border border-white/15 bg-white/10 px-3 py-1.5 text-base font-medium text-white outline-none focus:border-white/40"
+                  />
+                  <span className="text-sm text-white/50">₽/мес</span>
+                </div>
                 <p className="mt-2 text-xs leading-relaxed text-white/40">
                   {salaryType === 'gross'
                     ? 'Гросс — сумма до вычета НДФЛ (13%), которую компания закладывает в вакансию.'
-                    : 'На руки — сумма, которую сотрудник получает после вычета НДФЛ (13%) из гросс-оклада.'}
+                    : 'Нет (на руки) — сумма, которую сотрудник получает после вычета НДФЛ (13%) из гросс-оклада.'}
                 </p>
               </div>
 
@@ -1293,6 +1290,7 @@ export default function KadryHome() {
 
             {/* Результат — персональные условия */}
             <div className="glass-dark mx-auto w-full max-w-sm rounded-2xl p-6">
+              <div className="mb-3 text-xs font-bold uppercase tracking-wide text-gold-light">Калькулятор рекрутинга</div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="rounded-xl border border-white/15 bg-white/10 p-3">
                   <div className="text-xs text-white/50">Ставка агентства</div>
@@ -1314,13 +1312,13 @@ export default function KadryHome() {
               )}
 
               <div className="mt-3 grid grid-cols-2 items-stretch gap-2.5">
-                <div className="rounded-xl border border-white/15 bg-white/10 p-3 text-white">
+                <div className="flex flex-col rounded-xl border border-white/15 bg-white/10 p-3 text-white">
                   <div className="text-xs text-white/60">75% предоплата</div>
-                  <div className="mt-0.5 text-xl font-bold text-white">{prepay.toLocaleString('ru-RU')} ₽</div>
+                  <div className="mt-auto pt-0.5 text-xl font-bold text-white">{prepay.toLocaleString('ru-RU')} ₽</div>
                 </div>
-                <div className="rounded-xl border border-white/15 bg-white/10 p-3 text-white">
+                <div className="flex flex-col rounded-xl border border-white/15 bg-white/10 p-3 text-white">
                   <div className="text-[11px] leading-snug text-white/60">25% после испытательного срока</div>
-                  <div className="mt-0.5 text-xl font-bold text-white">{afterProbation.toLocaleString('ru-RU')} ₽</div>
+                  <div className="mt-auto pt-0.5 text-xl font-bold text-white">{afterProbation.toLocaleString('ru-RU')} ₽</div>
                 </div>
               </div>
 
@@ -1404,7 +1402,7 @@ export default function KadryHome() {
                     value={form.position}
                     onChange={(e) => setForm((f) => ({ ...f, position: e.target.value }))}
                     placeholder="Кого ищем"
-                    className="rounded-lg border border-white/15 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/40 focus:border-white/40 sm:col-span-2"
+                    className="rounded-lg border border-white/15 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/40 focus:border-white/40"
                   />
                 </div>
                 <button
