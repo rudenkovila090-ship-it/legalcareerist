@@ -67,7 +67,7 @@ function useVacancyStats(slug: string) {
  * внутри «Кадры → Соискателям» (Candidates.tsx), чтобы структура не
  * расходилась между двумя местами, где вакансия показывается подробно.
  * Блок контактов сюда не входит — см. VacancyContactsBlock, он выводится
- * отдельно, под формой отклика (см. обе страницы-обёртки).
+ * отдельно, под формой отклика (см. обе страницы-обертки).
  * extra — точка вставки специфичного для страницы контента.
  */
 export default function VacancyDetailBody({ vacancy, extra }: { vacancy: Vacancy; extra?: ReactNode }) {

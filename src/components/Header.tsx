@@ -135,7 +135,7 @@ export default function Header() {
         </nav>
         {/* Подсказка, что строка прокручивается вправо — overflow-x-auto на
             тач-устройствах не показывает скроллбар сам, без этой стрелки
-            человек не узнает, что справа есть ещё пункты меню. */}
+            человек не узнает, что справа есть еще пункты меню. */}
         <div className="pointer-events-none absolute inset-y-0 right-0 flex w-10 items-center justify-end bg-gradient-to-l from-white to-transparent pb-3">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-ink/40">
             <path d="M9 6l6 6-6 6" />

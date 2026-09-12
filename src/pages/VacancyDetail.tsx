@@ -21,7 +21,7 @@ export default function VacancyDetail() {
   }
 
   // Лимит побольше, чем нужно на экран (2 мероприятия + 2 статьи) — из
-  // общей релевантной подборки берём по типу отдельно, а не всё подряд.
+  // общей релевантной подборки берем по типу отдельно, а не все подряд.
   const related = getRelatedContent(vacancy, 'vacancy', vacancy.id, 12)
   const relatedEvents = related.filter((r) => r.type === 'event').slice(0, 2)
   const relatedArticles = related.filter((r) => r.type === 'article').slice(0, 2)

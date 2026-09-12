@@ -144,20 +144,37 @@ const residentBenefits = [
   { icon: IconUsersMeet, title: 'Встречи', text: 'Встречаемся с приглашенными экспертами, обсуждаем темы месяца, а также проводим встречи резидентов.' },
 ]
 
+function initials(name: string) {
+  return name.split(' ').map((part) => part[0]).join('').toUpperCase()
+}
+
+// Технический пример — реальных фото и биографий амбассадоров пока нет,
+// на карточке плейсхолдер вместо фото (инициалы на градиенте) и один
+// общий текст-заглушка для наведения, чтобы показать сам механизм карточки.
 const ambassadors = [
   'Анна Соколова', 'Максим Волков', 'Дарья Новикова', 'Иван Кузнецов',
   'Полина Морозова', 'Артем Соловьев', 'Мария Егорова', 'Никита Орлов',
-].map((name) => ({ name, status: 'Great-амбассадор' }))
+].map((name) => ({
+  name,
+  status: 'Great-амбассадор',
+  bio: 'Технический пример карточки — здесь будет фото резидента и короткий рассказ: вуз, город, чем помогает сообществу.',
+}))
 
+// x/y — координаты точки на упрощенном контуре карты РФ ниже (viewBox
+// "0 0 400 220"), подобраны так, чтобы три города были геогрфически
+// сопоставимы: Санкт-Петербург — северо-запад, Москва — южнее и чуть
+// восточнее, Екатеринбург — за Уралом, заметно восточнее обоих.
 const cities = [
   {
     id: 'spb',
     name: 'Санкт-Петербург',
+    x: 84, y: 62,
     schools: ['СПбГУ', 'НИУ ВШЭ', 'РГУП', 'РПА', 'СПбГЭУ'],
   },
   {
     id: 'msk',
     name: 'Москва',
+    x: 128, y: 114,
     schools: [
       'МГУ',
       'МГЮА',
@@ -169,7 +186,7 @@ const cities = [
       'Институт законодательства и сравнительного правоведения',
     ],
   },
-  { id: 'ekb', name: 'Екатеринбург', schools: ['УрГЮУ'] },
+  { id: 'ekb', name: 'Екатеринбург', x: 244, y: 128, schools: ['УрГЮУ'] },
 ] as const
 
 function buildFaqItems() {
@@ -216,7 +233,7 @@ export default function CommunityHome() {
     return () => window.removeEventListener('pageshow', handlePageShow)
   }, [])
 
-  const [ambassadorForm, setAmbassadorForm] = useState({ name: '', phone: '', telegram: '', about: '' })
+  const [ambassadorForm, setAmbassadorForm] = useState({ name: '', phone: '', email: '', telegram: '', about: '' })
   const [ambassadorSent, setAmbassadorSent] = useState(false)
 
   const tariff = tariffs.find((t) => t.id === tariffId)!
@@ -269,7 +286,7 @@ export default function CommunityHome() {
       sourceBlock: 'community',
       formType: 'ambassador_application',
       name: ambassadorForm.name,
-      contact: [ambassadorForm.phone, ambassadorForm.telegram].filter(Boolean).join(' / '),
+      contact: [ambassadorForm.phone, ambassadorForm.email, ambassadorForm.telegram].filter(Boolean).join(' / '),
       interest: [ambassadorForm.about].filter(Boolean),
     })
     setAmbassadorSent(true)
@@ -383,29 +400,29 @@ export default function CommunityHome() {
         </div>
       </section>
 
-      {/* Амбассадоры сообщества — неоновая бегущая линия вместо ручного листания карточек */}
+      {/* Амбассадоры сообщества — карточка с фото, имя внизу; при наведении
+          панель с основной информацией об амбассадоре выезжает снизу вверх,
+          закрывая собой фото (см. комментарий у ambassadors выше про то,
+          что фото/био пока технический пример). */}
       <section id="ambassadors" className="container-page py-12">
         <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Амбассадоры сообщества</div>
         <h2 className="mb-8 text-2xl font-semibold">Резиденты, которые представляют сообщество</h2>
-        <div className="relative overflow-hidden py-3">
-          <div
-            className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2"
-            style={{ background: '#5ea1ff', boxShadow: '0 0 8px 1px #5ea1ff, 0 0 20px 4px rgba(94,161,255,0.5)' }}
-          />
-          <div className="animate-marquee relative flex w-max items-center gap-10">
-            {[...ambassadors, ...ambassadors].map((a, i) => (
-              <div key={`${a.name}-${i}`} className="flex shrink-0 items-center gap-3">
-                <span
-                  className="h-2.5 w-2.5 shrink-0 rounded-full"
-                  style={{ background: '#5ea1ff', boxShadow: '0 0 6px 2px #5ea1ff' }}
-                />
-                <div>
-                  <div className="whitespace-nowrap text-sm font-semibold text-ink">{a.name}</div>
-                  <div className="text-xs text-ink/40">{a.status}</div>
-                </div>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          {ambassadors.map((a) => (
+            <div key={a.name} className="group relative aspect-[3/4] overflow-hidden rounded-xl">
+              <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-ink to-gold text-3xl font-semibold text-white/60">
+                {initials(a.name)}
               </div>
-            ))}
-          </div>
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink/90 via-ink/30 to-transparent p-3 pt-10">
+                <div className="text-sm font-semibold text-white">{a.name}</div>
+                <div className="text-xs text-white/60">{a.status}</div>
+              </div>
+              <div className="absolute inset-0 flex translate-y-full flex-col justify-end bg-ink/95 p-4 text-left transition-transform duration-300 group-hover:translate-y-0">
+                <div className="text-sm font-semibold text-white">{a.name}</div>
+                <p className="mt-2 text-xs leading-relaxed text-white/70">{a.bio}</p>
+              </div>
+            </div>
+          ))}
         </div>
       </section>
 
@@ -440,10 +457,17 @@ export default function CommunityHome() {
                 className="rounded-lg border border-ink/15 px-3 py-2 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40"
               />
               <input
+                type="email"
+                value={ambassadorForm.email}
+                onChange={(e) => setAmbassadorForm((f) => ({ ...f, email: e.target.value }))}
+                placeholder="Почта"
+                className="rounded-lg border border-ink/15 px-3 py-2 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40"
+              />
+              <input
                 value={ambassadorForm.telegram}
                 onChange={(e) => setAmbassadorForm((f) => ({ ...f, telegram: e.target.value }))}
                 placeholder="Telegram"
-                className="rounded-lg border border-ink/15 px-3 py-2 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40 sm:col-span-2"
+                className="rounded-lg border border-ink/15 px-3 py-2 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40"
               />
               <textarea
                 value={ambassadorForm.about}
@@ -463,24 +487,38 @@ export default function CommunityHome() {
         </div>
       </section>
 
-      {/* Представители по городам */}
+      {/* Представители по городам — контур карты РФ с тремя точками
+          (геогрфически сопоставимыми с реальной картой: СПб на
+          северо-западе, Москва южнее и восточнее, Екатеринбург за
+          Уралом), список вузов — во всплывающей подсказке при наведении. */}
       <section id="map" className="border-y border-ink/10 bg-white py-12">
         <div className="container-page">
           <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Представители</div>
           <h2 className="mb-8 text-2xl font-semibold">Резиденты есть в этих городах</h2>
-          <div className="grid gap-5 sm:grid-cols-3">
+          <div className="relative mx-auto max-w-xl">
+            <svg viewBox="0 0 400 220" className="w-full" aria-hidden="true">
+              <path
+                d="M60,70 L90,40 L150,20 L230,15 L300,10 L340,30 L380,60 L395,110 L370,150 L350,190 L330,160 L300,175 L270,190 L240,200 L200,190 L160,175 L120,190 L90,180 L70,160 L55,175 L40,150 L35,110 L45,80 Z"
+                fill="rgba(40,57,83,0.05)"
+                stroke="rgba(40,57,83,0.25)"
+                strokeWidth="1.5"
+                strokeLinejoin="round"
+              />
+            </svg>
             {cities.map((c) => (
-              <div key={c.id} className="rounded-2xl border border-ink/10 bg-ink/[0.02] p-6">
-                <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-ink text-white">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
-                    <path d="M12 21s7-6.1 7-11.5A7 7 0 0 0 5 9.5C5 14.9 12 21 12 21Z" />
-                    <circle cx="12" cy="9.5" r="2.4" />
-                  </svg>
+              <div
+                key={c.id}
+                className="group absolute -translate-x-1/2 -translate-y-1/2"
+                style={{ left: `${(c.x / 400) * 100}%`, top: `${(c.y / 220) * 100}%` }}
+              >
+                <span className="block h-3 w-3 cursor-pointer rounded-full bg-ink ring-4 ring-ink/15 transition-transform group-hover:scale-125" />
+                <div className="mt-1.5 whitespace-nowrap text-center text-xs font-medium text-ink/60">{c.name}</div>
+                <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 w-52 -translate-x-1/2 rounded-lg bg-ink p-3 text-left text-xs text-white opacity-0 shadow-xl transition-opacity group-hover:opacity-100">
+                  <div className="mb-1 font-semibold">{c.name}</div>
+                  <ul className="space-y-0.5 text-white/70">
+                    {c.schools.map((s) => <li key={s}>· {s}</li>)}
+                  </ul>
                 </div>
-                <div className="mb-3 text-lg font-semibold text-ink">{c.name}</div>
-                <ul className="space-y-1 text-sm text-ink/60">
-                  {c.schools.map((s) => <li key={s}>· {s}</li>)}
-                </ul>
               </div>
             ))}
           </div>

@@ -184,7 +184,7 @@ const pricingSegments = [
 ]
 
 const cities = ['Москва', 'Санкт-Петербург']
-const schedules = ['Гибкий', 'Полный']
+const schedules = ['Полный', 'Гибкий']
 const employments = ['Полная занятость', 'Частичная занятость', 'Проектная занятость']
 const formats: string[] = ['Офис', 'Гибрид', 'Дистанционно']
 
@@ -196,27 +196,27 @@ const demoCandidates = [
     position: 'Помощник юриста',
     sphere: 'Гражданское право, уголовный процесс, трудовое право',
     exp: 'Выпуск 2025 г.',
-    salaryFrom: '55 000 ₽',
+    salaryFrom: '',
     city: 'Санкт-Петербург',
-    schedule: 'По договорённости',
-    employment: 'Стажировка / полная занятость',
+    schedule: 'График по договоренности',
+    employment: 'Занятость: полная',
     format: 'Офис/гибрид',
     workplace: 'Консультант, Юридическая клиника СПбГУ',
     duties: [
-      'Подготовка дел полным циклом: план опроса, резюме опроса, план консультации, итоговый отчёт, апелляционная жалоба, меморандум',
-      'Дежурство в приёмной клиники, консультирование обратившихся граждан',
-      'Координация работы «Виртуальной приёмной СПбГУ»: проверка, подготовка и составление ответов на юридические вопросы',
+      'Подготовка дел полным циклом: план опроса, резюме опроса, план консультации, итоговый отчет, апелляционная жалоба, меморандум',
+      'Дежурство в приемной клиники, консультирование обратившихся граждан',
+      'Координация работы «Виртуальной приемной СПбГУ»: проверка, подготовка и составление ответов на юридические вопросы',
       'Прохождение групповых тренингов для консультантов, участие в разборе типовых ошибок при консультировании',
     ],
     highlights: [
-      'Провёл полный цикл работы по делам в Юридической клинике СПбГУ: от плана опроса клиента до итогового отчёта и апелляционной жалобы',
-      'Координировал ответы по обращениям в проекте «Виртуальная приёмная СПбГУ»',
+      'Провел полный цикл работы по делам в Юридической клинике СПбГУ: от плана опроса клиента до итогового отчета и апелляционной жалобы',
+      'Координировал ответы по обращениям в проекте «Виртуальная приемная СПбГУ»',
       'Автор 3 научных публикаций (РИНЦ/ВАК) и участник международных научно-практических конференций СПбГУ',
       'Куратор (наставник) студентов юридического факультета СПбГУ, член Кураторской комиссии факультета',
     ],
     publications: [
       '«Специальные знания в уголовном судопроизводстве (эксперт, специалист)» — доклад на конференции СПбГУ, опубликован в РИНЦ',
-      '«BANI-реалии теории дискриминации в отношении молодёжи» — лучшее выступление на научной конференции, диплом (РИНЦ, в печати)',
+      '«BANI-реалии теории дискриминации в отношении молодежи» — лучшее выступление на научной конференции, диплом (РИНЦ, в печати)',
       '«Оспаривание генерального плана муниципального образования» — научная статья по муниципальному праву, в соавторстве (ВАК, в печати)',
       'Участник Петербургского международного юридического форума (ПМЮФ) — 2022, 2023 гг.',
     ],
@@ -624,7 +624,7 @@ export default function KadryHome() {
                   <div className="mt-1 pr-10 font-semibold text-white">{c.position}</div>
                   <div className="mt-1 text-sm text-white/60">Сфера: {c.sphere}</div>
                   <div className="mt-1 text-sm text-white/60">Опыт: {c.exp}</div>
-                  <div className="mt-1 text-sm text-white/40">{c.city} · от {c.salaryFrom}</div>
+                  <div className="mt-1 text-sm text-white/40">{c.city}{c.salaryFrom && ` · от ${c.salaryFrom}`}</div>
                   <div className="mt-1 text-sm text-white/40">{c.school}</div>
                   <div className="mt-3 flex flex-wrap gap-1.5">
                     {[c.schedule, c.employment, c.format].map((tag) => (
@@ -633,36 +633,40 @@ export default function KadryHome() {
                   </div>
 
                   {isOpen && (
-                    <div className="mt-4 space-y-3 border-t border-white/10 pt-4 text-sm">
+                    <div className="mt-4 space-y-2.5 border-t border-white/10 pt-4 text-sm">
+                      {/* Визуальная иерархия по важности: 1) ключевые результаты —
+                          акцентная рамка и более яркий фон; 2) опыт работы — фон
+                          без акцента; 3) образование/научная активность — без
+                          заливки, самый тихий уровень; навыки — просто теги. */}
                       {c.highlights && (
-                        <div>
-                          <div className="text-xs font-semibold uppercase tracking-wide text-white/40">Ключевые результаты</div>
-                          <ul className="mt-1 space-y-0.5 text-white/60">
+                        <div className="rounded-lg border-l-2 border-gold-light bg-gold-light/10 p-3">
+                          <div className="text-xs font-semibold uppercase tracking-wide text-gold-light">Ключевые результаты</div>
+                          <ul className="mt-1 space-y-0.5 text-white/80">
                             {c.highlights.map((h) => <li key={h}>· {h}</li>)}
                           </ul>
                         </div>
                       )}
-                      <div>
-                        <div className="text-xs font-semibold uppercase tracking-wide text-white/40">Опыт работы</div>
+                      <div className="rounded-lg bg-white/[0.06] p-3">
+                        <div className="text-xs font-semibold uppercase tracking-wide text-white/50">Опыт работы</div>
                         <p className="mt-1 text-white/70">{c.workplace}</p>
                         <ul className="mt-1 space-y-0.5 text-white/60">
                           {c.duties.map((d) => <li key={d}>· {d}</li>)}
                         </ul>
                       </div>
                       <div>
-                        <div className="text-xs font-semibold uppercase tracking-wide text-white/40">Образование</div>
-                        <p className="mt-1 text-white/70">{c.school}, {c.course}</p>
+                        <div className="text-xs font-semibold uppercase tracking-wide text-white/30">Образование</div>
+                        <p className="mt-1 text-white/60">{c.school}, {c.course}</p>
                       </div>
                       {c.publications && (
                         <div>
-                          <div className="text-xs font-semibold uppercase tracking-wide text-white/40">Научная активность</div>
-                          <ul className="mt-1 space-y-0.5 text-white/60">
+                          <div className="text-xs font-semibold uppercase tracking-wide text-white/30">Научная активность</div>
+                          <ul className="mt-1 space-y-0.5 text-white/50">
                             {c.publications.map((p) => <li key={p}>· {p}</li>)}
                           </ul>
                         </div>
                       )}
                       <div>
-                        <div className="text-xs font-semibold uppercase tracking-wide text-white/40">Навыки</div>
+                        <div className="text-xs font-semibold uppercase tracking-wide text-white/30">Навыки</div>
                         <div className="mt-1 flex flex-wrap gap-1.5">
                           {c.skills.map((s) => (
                             <span key={s} className="rounded-full bg-white/10 px-2.5 py-1 text-xs text-white/70">{s}</span>
@@ -721,7 +725,10 @@ export default function KadryHome() {
               кандидата до вычета НДФЛ, деленные на среднее число контактов, которые нужно продать до одного найма,
               с поправкой на сегмент и опыт кандидата.
             </p>
-            <div className="mb-4 overflow-x-auto rounded-xl bg-white/5 px-4 py-3 font-mono text-xs text-white/70 sm:text-sm">
+            <div
+              className="mb-4 overflow-x-auto rounded-xl border border-gold-light/20 bg-white/5 px-4 py-3 text-center font-mono text-xs text-white sm:text-sm"
+              style={{ textShadow: '0 0 12px rgba(111,147,196,0.85), 0 0 26px rgba(111,147,196,0.5)' }}
+            >
               Цена контакта = (Оклад/мес × 30%) ÷ N контактов на найм × K сегмента
             </div>
             <div className="overflow-x-auto">
@@ -801,13 +808,21 @@ export default function KadryHome() {
             </div>
           )}
           {/* Яркая кнопка суммы заявки — намеренно не bg-ink, на темном фоне
-              страницы такая сливалась и была плохо заметна. */}
+              страницы такая сливалась и была плохо заметна. Иконка покупки —
+              белый кружок (не голубой/темно-синий, как раньше) для контраста. */}
           <button
             type="button"
             onClick={() => setCartOpen((v) => !v)}
-            className="flex items-center gap-4 rounded-full bg-gold-light px-7 py-4 text-ink shadow-xl shadow-gold-light/30 transition-opacity hover:opacity-90"
+            className="flex items-center gap-4 rounded-full bg-gold-light py-2 pl-2 pr-7 text-ink shadow-xl shadow-gold-light/30 transition-opacity hover:opacity-90"
           >
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-ink text-sm font-bold text-white">{selectedCount}</span>
+            <span className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white shadow-md">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#283953" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+                <circle cx="9" cy="21" r="1" />
+                <circle cx="20" cy="21" r="1" />
+                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+              </svg>
+              <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-ink text-[11px] font-bold text-white">{selectedCount}</span>
+            </span>
             <span className="text-base font-semibold">{candidatesTotal.toLocaleString('ru-RU')} ₽</span>
           </button>
         </div>

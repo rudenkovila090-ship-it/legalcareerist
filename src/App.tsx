@@ -2,7 +2,7 @@ import { lazy, Suspense } from 'react'
 import { Route, Routes } from 'react-router-dom'
 import Layout from './components/Layout'
 
-// Каждая страница — отдельный чанк, подгружается только при переходе на неё.
+// Каждая страница — отдельный чанк, подгружается только при переходе на нее.
 // Экономит первый экран: раньше весь сайт грузился одним файлом ~650 КБ.
 const Home = lazy(() => import('./pages/Home'))
 const KadryHome = lazy(() => import('./pages/kadry/KadryHome'))

@@ -22,7 +22,7 @@ export interface LeadInput {
   name: string
   contact: string
   interest?: string[]
-  /** Slug вакансии — если задан, бэкенд считает это в реальный счётчик откликов вакансии. */
+  /** Slug вакансии — если задан, бэкенд считает это в реальный счетчик откликов вакансии. */
   vacancySlug?: string
 }
 
@@ -49,7 +49,7 @@ export function submitLead(input: LeadInput): Lead {
 }
 
 /** Уведомление админу в Telegram — не блокирует отправку формы при ошибке/недоступности бэкенда.
- *  vacancySlug (если есть) заодно учитывается бэкендом в реальном счётчике откликов вакансии. */
+ *  vacancySlug (если есть) заодно учитывается бэкендом в реальном счетчике откликов вакансии. */
 function notifyTelegram(lead: Lead, vacancySlug?: string) {
   if (typeof fetch === 'undefined') return
   fetch('/api/notify', {

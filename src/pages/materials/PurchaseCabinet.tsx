@@ -52,7 +52,7 @@ export default function PurchaseCabinet() {
 
           {status === 'ready' && data && !data.paid && (
             <div className="text-center">
-              <p className="text-sm text-ink/60">Ждём подтверждения оплаты от банка — обычно это занимает меньше минуты. Обновите страницу через немного.</p>
+              <p className="text-sm text-ink/60">Ждем подтверждения оплаты от банка — обычно это занимает меньше минуты. Обновите страницу через немного.</p>
             </div>
           )}
 
@@ -73,7 +73,7 @@ export default function PurchaseCabinet() {
                   Открыть материал
                 </a>
               ) : (
-                <p className="mt-4 text-sm text-ink/50">Ссылку на материал пришлём отдельно — свяжемся с вами в ближайшее время.</p>
+                <p className="mt-4 text-sm text-ink/50">Ссылку на материал пришлем отдельно — свяжемся с вами в ближайшее время.</p>
               )}
             </div>
           )}
