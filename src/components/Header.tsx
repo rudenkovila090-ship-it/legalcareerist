@@ -30,7 +30,6 @@ function linkClass({ isActive }: { isActive: boolean }) {
 
 export default function Header() {
   const { pathname } = useLocation()
-  const onKadry = pathname.startsWith('/kadry')
   const onCommunity = pathname.startsWith('/community')
   const onMarketplace = pathname.startsWith('/marketplace')
   const showAccountButton = onCommunity || onMarketplace
@@ -108,16 +107,19 @@ export default function Header() {
           </NavLink>
         </div>
       </div>
-      <nav className="container-page flex items-center gap-4 overflow-x-auto pb-3 md:hidden">
-        {nav.map((item) => (
-          <NavLink key={item.to} to={item.to} className={linkClass}>
-            {item.label}
-          </NavLink>
-        ))}
-        {/* На тач-устройствах нет наведения — переключатель аудитории «Кадры»
-            показываем явными ссылками, а не только скрытым по ховеру меню. */}
-        {onKadry &&
-          kadryAudience.map((a) => (
+      <div className="relative md:hidden">
+        <nav className="container-page flex items-center gap-4 overflow-x-auto pb-3">
+          {nav.map((item) => (
+            <NavLink key={item.to} to={item.to} className={linkClass}>
+              {item.label}
+            </NavLink>
+          ))}
+          {/* На тач-устройствах нет наведения — переключатель аудитории «Кадры»
+              показываем явными пилюлями-ссылками, а не только скрытым по ховеру
+              меню. Видны всегда (не только когда onKadry) — иначе выбор
+              «Соискателям» негде увидеть до того, как уже попал на страницу
+              «Работодателям» по умолчанию через сам пункт «Кадры». */}
+          {kadryAudience.map((a) => (
             <NavLink
               key={a.to}
               to={a.to}
@@ -130,7 +132,16 @@ export default function Header() {
               {a.label}
             </NavLink>
           ))}
-      </nav>
+        </nav>
+        {/* Подсказка, что строка прокручивается вправо — overflow-x-auto на
+            тач-устройствах не показывает скроллбар сам, без этой стрелки
+            человек не узнает, что справа есть ещё пункты меню. */}
+        <div className="pointer-events-none absolute inset-y-0 right-0 flex w-10 items-center justify-end bg-gradient-to-l from-white to-transparent pb-3">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-ink/40">
+            <path d="M9 6l6 6-6 6" />
+          </svg>
+        </div>
+      </div>
     </header>
   )
 }

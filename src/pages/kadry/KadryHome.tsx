@@ -373,12 +373,35 @@ function FilterSelect({ placeholder, resetLabel, value, options, onChange }: {
   )
 }
 
+const calcCities = ['Москва', 'Санкт-Петербург', 'Екатеринбург', 'Новосибирск', 'Казань', 'Другой город']
+
+const searchGoals = [
+  { id: 'permanent', label: 'Постоянная работа' },
+  { id: 'part_time', label: 'Подработка' },
+  { id: 'project', label: 'Проектная занятость' },
+  { id: 'custom', label: 'Свой вариант' },
+] as const
+
+const BASE_RATE = 30
+
 export default function KadryHome() {
   useDocumentTitle('Кадры — Работодателям')
   const [salary, setSalary] = useState(50000)
-  const fee = Math.round(salary * 0.3)
+  const [salaryType, setSalaryType] = useState<'gross' | 'net'>('gross')
+  const [calcCity, setCalcCity] = useState('Москва')
+  const [searchGoal, setSearchGoal] = useState<(typeof searchGoals)[number]['id']>('permanent')
+  const [customGoal, setCustomGoal] = useState('')
+  const [discountReturning, setDiscountReturning] = useState(false)
+  const [discountContact, setDiscountContact] = useState(false)
+
+  const discountPct = (discountReturning ? 1.5 : 0) + (discountContact ? 1.5 : 0)
+  const rate = BASE_RATE - discountPct
+  const baseFee = Math.round(salary * (BASE_RATE / 100))
+  const fee = Math.round(salary * (rate / 100))
+  const savedByDiscount = baseFee - fee
   const prepay = Math.round(fee * 0.75)
   const afterProbation = fee - prepay
+  const goalLabel = searchGoal === 'custom' ? customGoal || 'Свой вариант' : searchGoals.find((g) => g.id === searchGoal)!.label
 
   // «Оформить услугу» — лид-заявка из калькулятора, центрированная модалка.
   const [serviceModalOpen, setServiceModalOpen] = useState(false)
@@ -393,7 +416,14 @@ export default function KadryHome() {
       formType: 'service_order',
       name: serviceForm.fio,
       contact: [serviceForm.phone, serviceForm.email, serviceForm.telegram].filter(Boolean).join(' / '),
-      interest: [serviceForm.company, `Заработная плата кандидата: ${salary.toLocaleString('ru-RU')} ₽/мес`, `Итого: ${fee.toLocaleString('ru-RU')} ₽`],
+      interest: [
+        serviceForm.company,
+        `Город: ${calcCity}`,
+        `Цель поиска: ${goalLabel}`,
+        `Заработная плата кандидата (${salaryType === 'gross' ? 'гросс' : 'на руки'}): ${salary.toLocaleString('ru-RU')} ₽/мес`,
+        `Ставка агентства: ${rate}%${discountPct > 0 ? ` (скидка ${discountPct}%)` : ''}`,
+        `Итого: ${fee.toLocaleString('ru-RU')} ₽`,
+      ],
     })
     setServiceSent(true)
   }
@@ -951,10 +981,13 @@ export default function KadryHome() {
           </ol>
 
           <h3 className="mb-2 mt-14 text-xl font-semibold text-white">Как мы находим вам сотрудников</h3>
-          <p className="mb-8 text-sm text-white/60">От заявки работодателя до найденного кандидата — как маршрут, который выстраивает навигатор, подсвечивая каналы поиска один за другим.</p>
+          <p className="mb-8 text-sm text-white/60">
+            Мы — кадровое агентство: выстраиваем короткий прямой маршрут от заявки до найма. Без агентства тот же путь
+            обычно длиннее и дороже — собственный поиск петляет между площадками, откликами и собеседованиями.
+          </p>
 
           <div className="mx-auto max-w-3xl">
-            <div className="relative h-28 w-full sm:h-36">
+            <div className="relative h-36 w-full sm:h-44">
               <svg viewBox="0 0 100 40" preserveAspectRatio="none" className="absolute inset-0 h-full w-full overflow-visible" aria-hidden="true">
                 <defs>
                   <filter id="route-glow" x="-50%" y="-50%" width="200%" height="200%">
@@ -965,8 +998,22 @@ export default function KadryHome() {
                     </feMerge>
                   </filter>
                 </defs>
+
+                {/* Без нас — длинный петляющий маршрут открытого рынка, тусклый и пунктирный */}
                 <path
-                  d="M 4 20 L 24 11 L 44 27 L 64 13 L 84 25 L 96 20"
+                  d="M 4 20 L 18 4 L 34 34 L 50 6 L 66 34 L 82 8 L 96 20"
+                  fill="none"
+                  stroke="rgba(255,255,255,0.22)"
+                  strokeWidth="1.2"
+                  strokeDasharray="3 2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  vectorEffect="non-scaling-stroke"
+                />
+
+                {/* С нами — короткий прямой маршрут, подсвечен и анимирован */}
+                <path
+                  d="M 4 20 L 50 19 L 96 20"
                   fill="none"
                   stroke="rgba(111,147,196,0.18)"
                   strokeWidth="3"
@@ -976,14 +1023,14 @@ export default function KadryHome() {
                 />
                 <path
                   id="route-path"
-                  d="M 4 20 L 24 11 L 44 27 L 64 13 L 84 25 L 96 20"
+                  d="M 4 20 L 50 19 L 96 20"
                   fill="none"
                   stroke="transparent"
                   strokeWidth="1.4"
                 />
                 <path
                   className="route-build"
-                  d="M 4 20 L 24 11 L 44 27 L 64 13 L 84 25 L 96 20"
+                  d="M 4 20 L 50 19 L 96 20"
                   pathLength={100}
                   fill="none"
                   stroke="#5ea1ff"
@@ -1005,6 +1052,20 @@ export default function KadryHome() {
               </div>
               <div className="glass-dark absolute flex h-10 w-10 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-ink text-white" style={{ left: '96%', top: '50%' }}>
                 <IconUserCheck />
+              </div>
+
+              {/* Подписи маршрутов — как на карте: цветная плашка у своего пути */}
+              <div
+                className="absolute flex -translate-x-1/2 -translate-y-1/2 items-center gap-1.5 whitespace-nowrap rounded-full bg-gold-light px-2.5 py-1 text-[11px] font-semibold text-ink shadow-lg"
+                style={{ left: '50%', top: '43%' }}
+              >
+                С нами — короче и дешевле
+              </div>
+              <div
+                className="absolute flex -translate-x-1/2 -translate-y-1/2 items-center gap-1.5 whitespace-nowrap rounded-full border border-white/15 bg-ink/80 px-2.5 py-1 text-[11px] font-medium text-white/50"
+                style={{ left: '50%', top: '10%' }}
+              >
+                Без нас — дольше и дороже
               </div>
             </div>
             <div className="relative mb-8 h-4 text-[11px] text-white/50">
@@ -1036,21 +1097,76 @@ export default function KadryHome() {
       {/* Цены */}
       <section id="pricing" className="border-y border-white/10 py-12">
         <div className="container-page">
-          <div className="grid gap-8 lg:grid-cols-2 lg:items-start">
-            <div>
-            <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold-light">Цены</div>
-            <h2 className="mb-6 text-2xl font-semibold text-white">Прозрачная система оплаты и гарантий</h2>
-            <ul className="space-y-3 text-sm text-white/70">
-              <li><strong className="text-white">Оплата за результат</strong> — 30% от одного месячного оклада кандидата: 75% предоплата до начала работ, 25% после прохождения испытательного срока.</li>
-              <li><strong className="text-white">Бесплатная замена</strong> — если кандидат не проходит испытательный срок, подбираем замену бесплатно в согласованные сроки.</li>
-              <li><strong className="text-white">Прозрачная отчетность</strong> — регулярно сообщаем о ходе поиска; если подходящих кандидатов нет — честно предупреждаем.</li>
-            </ul>
-            </div>
+          <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold-light">Цены</div>
+          <h2 className="mb-2 text-2xl font-semibold text-white">Прозрачная система оплаты и гарантий</h2>
+          <p className="mb-8 max-w-2xl text-sm text-white/60">
+            Заполните параметры вакансии — рассчитаем точную стоимость подбора и оставите заявку, чтобы мы связались с вами.
+          </p>
 
-            <div className="glass-dark mx-auto w-full max-w-sm rounded-2xl p-6">
-              <label className="block text-sm font-semibold text-white">
-                Заработная плата, ₽/мес
+          <div className="grid gap-8 lg:grid-cols-[1.1fr_1fr] lg:items-start">
+            {/* Ввод параметров */}
+            <div className="glass-dark rounded-2xl p-6">
+              <ul className="mb-6 space-y-3 text-sm text-white/70">
+                <li><strong className="text-white">Оплата за результат</strong> — 75% предоплата до начала работ, 25% после прохождения испытательного срока.</li>
+                <li><strong className="text-white">Бесплатная замена</strong> — если кандидат не проходит испытательный срок, подбираем замену бесплатно в согласованные сроки.</li>
+                <li><strong className="text-white">Прозрачная отчетность</strong> — регулярно сообщаем о ходе поиска; если подходящих кандидатов нет — честно предупреждаем.</li>
+              </ul>
+
+              <div className="grid gap-4 border-t border-white/10 pt-5 sm:grid-cols-2">
+                <label className="block text-sm font-semibold text-white">
+                  Город
+                  <FilterSelect placeholder="Выберите город" resetLabel="" value={calcCity} options={calcCities} onChange={(v) => setCalcCity(v || calcCities[0])} />
+                </label>
+
+                <div className="text-sm font-semibold text-white">
+                  Цель поиска
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {searchGoals.map((g) => (
+                      <button
+                        key={g.id}
+                        type="button"
+                        onClick={() => setSearchGoal(g.id)}
+                        className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                          searchGoal === g.id ? 'bg-gold-light text-ink' : 'border border-white/15 text-white/60 hover:text-white'
+                        }`}
+                      >
+                        {g.label}
+                      </button>
+                    ))}
+                  </div>
+                  {searchGoal === 'custom' && (
+                    <input
+                      value={customGoal}
+                      onChange={(e) => setCustomGoal(e.target.value)}
+                      placeholder="Опишите цель поиска"
+                      className="mt-2 w-full rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm font-normal text-white outline-none placeholder:text-white/40 focus:border-white/40"
+                    />
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-5 border-t border-white/10 pt-5">
+                <div className="flex items-center justify-between gap-3">
+                  <label className="text-sm font-semibold text-white" htmlFor="calc-salary">Заработная плата, ₽/мес</label>
+                  <div className="flex items-center gap-1 rounded-full border border-white/15 p-0.5 text-xs font-medium">
+                    <button
+                      type="button"
+                      onClick={() => setSalaryType('gross')}
+                      className={`rounded-full px-2.5 py-1 transition-colors ${salaryType === 'gross' ? 'bg-white text-ink' : 'text-white/60'}`}
+                    >
+                      Гросс
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSalaryType('net')}
+                      className={`rounded-full px-2.5 py-1 transition-colors ${salaryType === 'net' ? 'bg-white text-ink' : 'text-white/60'}`}
+                    >
+                      На руки
+                    </button>
+                  </div>
+                </div>
                 <input
+                  id="calc-salary"
                   type="range"
                   min={20000}
                   max={150000}
@@ -1059,15 +1175,87 @@ export default function KadryHome() {
                   onChange={(e) => setSalary(Number(e.target.value))}
                   className="mt-3 w-full accent-gold-light"
                 />
-              </label>
-              <div className="mt-1 text-base font-medium text-white/70">{salary.toLocaleString('ru-RU')} ₽/мес</div>
+                <div className="mt-1 text-base font-medium text-white/70">{salary.toLocaleString('ru-RU')} ₽/мес</div>
+                <p className="mt-2 text-xs leading-relaxed text-white/40">
+                  {salaryType === 'gross'
+                    ? 'Гросс — сумма до вычета НДФЛ (13%), которую компания закладывает в вакансию.'
+                    : 'На руки — сумма, которую сотрудник получает после вычета НДФЛ (13%) из гросс-оклада.'}
+                </p>
+              </div>
 
-              <div className="mt-5">
-                <div className="mx-auto w-fit rounded-xl border border-white/15 bg-white/10 px-5 py-3 text-center text-white">
-                  <div className="text-xs text-white/60">Комиссия 30%</div>
+              <div className="mt-5 border-t border-white/10 pt-5">
+                <div className="mb-1 text-sm font-semibold text-white">Услуги, влияющие на ставку</div>
+                <label className="flex cursor-pointer items-center justify-between gap-3 border-b border-white/10 py-3">
+                  <span className="text-sm text-white/80">Ранее обращались за поиском сотрудника</span>
+                  <span className="flex shrink-0 items-center gap-2">
+                    <span className="text-xs text-white/50">−1,5%</span>
+                    <span className="relative inline-block h-5 w-9">
+                      <input
+                        type="checkbox"
+                        checked={discountReturning}
+                        onChange={(e) => setDiscountReturning(e.target.checked)}
+                        className="peer absolute inset-0 z-10 m-0 cursor-pointer opacity-0"
+                      />
+                      <span className={`pointer-events-none absolute inset-0 rounded-full transition-colors ${discountReturning ? 'bg-gold-light' : 'bg-white/15'}`} />
+                      <span className={`pointer-events-none absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white transition-transform ${discountReturning ? 'translate-x-4' : ''}`} />
+                    </span>
+                  </span>
+                </label>
+                <label className="flex cursor-pointer items-center justify-between gap-3 py-3">
+                  <span className="text-sm text-white/80">Покупали контакт сотрудника</span>
+                  <span className="flex shrink-0 items-center gap-2">
+                    <span className="text-xs text-white/50">−1,5%</span>
+                    <span className="relative inline-block h-5 w-9">
+                      <input
+                        type="checkbox"
+                        checked={discountContact}
+                        onChange={(e) => setDiscountContact(e.target.checked)}
+                        className="peer absolute inset-0 z-10 m-0 cursor-pointer opacity-0"
+                      />
+                      <span className={`pointer-events-none absolute inset-0 rounded-full transition-colors ${discountContact ? 'bg-gold-light' : 'bg-white/15'}`} />
+                      <span className={`pointer-events-none absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white transition-transform ${discountContact ? 'translate-x-4' : ''}`} />
+                    </span>
+                  </span>
+                </label>
+                <p className="mt-3 text-xs text-white/30">
+                  Не является публичной офертой. Ставка рассчитывается индивидуально в пределах диапазона.
+                </p>
+              </div>
+            </div>
+
+            {/* Результат — персональные условия */}
+            <div className="glass-dark mx-auto w-full max-w-sm rounded-2xl p-6">
+              <div className="flex items-center gap-3 border-b border-white/10 pb-4">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gold-light/20 text-gold-light">
+                  <IconBriefcase />
+                </div>
+                <div>
+                  <div className="font-semibold text-white">Подбор сотрудника</div>
+                  <div className="text-xs text-white/50">Ваши персональные условия · {calcCity}</div>
+                </div>
+              </div>
+
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                <div className="rounded-xl border border-white/15 bg-white/10 p-3">
+                  <div className="text-xs text-white/50">Ставка агентства</div>
+                  <div className="mt-0.5 text-xl font-bold text-white">
+                    {discountPct > 0 && <span className="mr-1.5 text-sm font-normal text-white/40 line-through">{BASE_RATE}%</span>}
+                    {rate}%
+                  </div>
+                </div>
+                <div className="rounded-xl border border-white/15 bg-white/10 p-3">
+                  <div className="text-xs text-white/50">Комиссия за подбор</div>
                   <div className="mt-0.5 text-xl font-bold text-white">{fee.toLocaleString('ru-RU')} ₽</div>
                 </div>
+              </div>
 
+              {discountPct > 0 && (
+                <div className="mt-3 rounded-lg bg-emerald-400/15 px-3 py-2 text-xs font-medium text-emerald-300">
+                  Скидка {discountPct}% уже учтена — экономите {savedByDiscount.toLocaleString('ru-RU')} ₽
+                </div>
+              )}
+
+              <div className="mt-4">
                 <svg viewBox="0 0 200 30" className="mx-auto block h-6 w-44" aria-hidden="true">
                   <path
                     d="M100 0 V13 M100 13 H40 M100 13 H160 M40 13 V26 M160 13 V26"
@@ -1098,8 +1286,9 @@ export default function KadryHome() {
                   onClick={() => setServiceModalOpen(true)}
                   className="mt-4 w-full rounded-lg bg-gold-light py-2.5 text-sm font-semibold text-ink hover:opacity-90"
                 >
-                  Ваш заказ
+                  Подать заявку
                 </button>
+                <p className="mt-3 text-[11px] text-white/30">Не является публичной офертой.</p>
               </div>
             </div>
           </div>
@@ -1219,9 +1408,15 @@ export default function KadryHome() {
                   <h3 className="text-lg font-semibold">Ваш заказ</h3>
                   <button type="button" onClick={() => setServiceModalOpen(false)} className="text-ink/40 hover:text-ink" aria-label="Закрыть">✕</button>
                 </div>
-                <div className="mb-5 flex items-center justify-between rounded-lg bg-ink/[0.04] px-4 py-3 text-sm">
-                  <span className="text-ink/60">Заработная плата {salary.toLocaleString('ru-RU')} ₽/мес</span>
-                  <span className="text-base font-semibold text-ink">{fee.toLocaleString('ru-RU')} ₽</span>
+                <div className="mb-5 space-y-1 rounded-lg bg-ink/[0.04] px-4 py-3 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-ink/60">{calcCity} · {goalLabel}</span>
+                    <span className="text-base font-semibold text-ink">{fee.toLocaleString('ru-RU')} ₽</span>
+                  </div>
+                  <div className="text-xs text-ink/50">
+                    Зарплата {salary.toLocaleString('ru-RU')} ₽/мес ({salaryType === 'gross' ? 'гросс' : 'на руки'}) · ставка {rate}%
+                    {discountPct > 0 && ` (скидка ${discountPct}%)`}
+                  </div>
                 </div>
                 <form onSubmit={handleServiceSubmit} className="grid gap-3">
                   <input
