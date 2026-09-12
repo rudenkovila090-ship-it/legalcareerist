@@ -8,6 +8,7 @@ import SectionRail from '../../components/SectionRail'
 import KnowledgeList from '../KnowledgeList'
 import { submitLead } from '../../lib/leads'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
+import PhoneInput from '../../components/PhoneInput'
 
 const railItems = [
   { id: 'hero', label: 'Обзор' },
@@ -882,11 +883,9 @@ export default function KadryHome() {
                     className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
                   />
                   <div className="grid grid-cols-2 gap-3">
-                    <input
-                      type="tel"
+                    <PhoneInput
                       value={requestForm.phone}
-                      onChange={(e) => setRequestForm((f) => ({ ...f, phone: e.target.value }))}
-                      placeholder="Номер телефона"
+                      onChange={(value) => setRequestForm((f) => ({ ...f, phone: value }))}
                       className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
                     />
                     <input
@@ -1429,11 +1428,9 @@ export default function KadryHome() {
                     required
                     className="rounded-lg border border-white/15 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/40 focus:border-white/40"
                   />
-                  <input
-                    type="tel"
+                  <PhoneInput
                     value={form.phone}
-                    onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-                    placeholder="Номер телефона"
+                    onChange={(value) => setForm((f) => ({ ...f, phone: value }))}
                     className="rounded-lg border border-white/15 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/40 focus:border-white/40"
                   />
                   <input
@@ -1528,11 +1525,9 @@ export default function KadryHome() {
                     required
                     className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
                   />
-                  <input
-                    type="tel"
+                  <PhoneInput
                     value={serviceForm.phone}
-                    onChange={(e) => setServiceForm((f) => ({ ...f, phone: e.target.value }))}
-                    placeholder="Номер телефона"
+                    onChange={(value) => setServiceForm((f) => ({ ...f, phone: value }))}
                     className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
                   />
                   <input

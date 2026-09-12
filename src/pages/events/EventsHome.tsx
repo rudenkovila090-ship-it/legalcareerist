@@ -1,7 +1,8 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { events } from '../../data/events'
-import { submitLead } from '../../lib/leads'
+import { submitLead, makeTicketNumber } from '../../lib/leads'
+import PhoneInput from '../../components/PhoneInput'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import EventsFooter from './EventsFooter'
 import type { EventItem } from '../../types'
@@ -278,19 +279,24 @@ export default function EventsHome() {
   // «Написать нам» (Помощь → Поддержка) — та же форма лида, что и везде
   // (ФИО, телефон, почта, Telegram), плюс отдельное поле с вопросом.
   const [supportForm, setSupportForm] = useState({ fio: '', phone: '', email: '', telegram: '', question: '' })
-  const [supportSent, setSupportSent] = useState(false)
+  const [supportTicket, setSupportTicket] = useState<string | null>(null)
+  const [supportMissing, setSupportMissing] = useState(false)
 
   function handleSupportSubmit(e: FormEvent) {
     e.preventDefault()
-    if (!supportForm.fio.trim() || (!supportForm.phone.trim() && !supportForm.email.trim())) return
+    setSupportMissing(false)
+    if (!supportForm.fio.trim() || !supportForm.phone.trim() || !supportForm.question.trim()) {
+      setSupportMissing(true)
+      return
+    }
     submitLead({
       sourceBlock: 'events',
       formType: 'support_request',
       name: supportForm.fio,
       contact: [supportForm.phone, supportForm.email, supportForm.telegram].filter(Boolean).join(' / '),
-      interest: supportForm.question ? [supportForm.question] : [],
+      interest: [supportForm.question],
     })
-    setSupportSent(true)
+    setSupportTicket(makeTicketNumber())
   }
 
   return (
@@ -407,11 +413,9 @@ export default function EventsHome() {
                   className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none focus:border-ink/40"
                 />
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <input
-                    type="tel"
+                  <PhoneInput
                     value={eventForm.phone}
-                    onChange={(e) => setEventForm((f) => ({ ...f, phone: e.target.value }))}
-                    placeholder="Номер телефона"
+                    onChange={(value) => setEventForm((f) => ({ ...f, phone: value }))}
                     className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none focus:border-ink/40"
                   />
                   <input
@@ -466,11 +470,9 @@ export default function EventsHome() {
                   className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none focus:border-ink/40"
                 />
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <input
-                    type="tel"
+                  <PhoneInput
                     value={orderForm.phone}
-                    onChange={(e) => setOrderForm((f) => ({ ...f, phone: e.target.value }))}
-                    placeholder="Номер телефона"
+                    onChange={(value) => setOrderForm((f) => ({ ...f, phone: value }))}
                     className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none focus:border-ink/40"
                   />
                   <input
@@ -532,11 +534,9 @@ export default function EventsHome() {
                   className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none focus:border-ink/40"
                 />
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <input
-                    type="tel"
+                  <PhoneInput
                     value={partnerForm.phone}
-                    onChange={(e) => setPartnerForm((f) => ({ ...f, phone: e.target.value }))}
-                    placeholder="Номер телефона"
+                    onChange={(value) => setPartnerForm((f) => ({ ...f, phone: value }))}
                     className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none focus:border-ink/40"
                   />
                   <input
@@ -568,54 +568,80 @@ export default function EventsHome() {
           <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Поддержка</div>
           <h2 className="mb-6 text-2xl font-semibold">Написать нам</h2>
 
-          <div className="mx-auto max-w-xl">
-            {supportSent ? (
-              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-6 text-emerald-800">
-                <div className="font-semibold">Сообщение отправлено</div>
-                <p className="mt-1 text-sm">Мы свяжемся с вами в ближайшее время.</p>
+          <div className="grid gap-8 lg:grid-cols-2">
+            <div className="space-y-4">
+              <div className="glass rounded-xl p-5">
+                <div className="text-sm text-ink/50">Email</div>
+                <div className="font-medium">info@legalcareerist.ru</div>
+              </div>
+              <div className="glass rounded-xl p-5">
+                <div className="text-sm text-ink/50">Телефон</div>
+                <div className="font-medium">+7 932 262 13 44</div>
+              </div>
+              <div className="glass rounded-xl p-5">
+                <div className="text-sm text-ink/50">Telegram</div>
+                <div className="font-medium">@career_lawyer_bot</div>
+              </div>
+            </div>
+
+            {supportTicket ? (
+              <div className="glass rounded-xl p-6 text-emerald-800">
+                <div className="font-semibold">Заявка отправлена</div>
+                <p className="mt-1 text-sm">
+                  Номер вашей заявки — <span className="font-semibold">№ {supportTicket}</span>. Мы свяжемся с вами в ближайшее время.
+                </p>
               </div>
             ) : (
-              <form onSubmit={handleSupportSubmit} className="glass grid gap-3 rounded-2xl p-6">
-                <input
-                  value={supportForm.fio}
-                  onChange={(e) => setSupportForm((f) => ({ ...f, fio: e.target.value }))}
-                  placeholder="ФИО"
-                  required
-                  className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none focus:border-ink/40"
-                />
-                <div className="grid gap-3 sm:grid-cols-2">
+              <form onSubmit={handleSupportSubmit} className="glass rounded-xl p-6">
+                <div className="font-semibold">Задать вопрос</div>
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
                   <input
-                    type="tel"
+                    value={supportForm.fio}
+                    onChange={(e) => setSupportForm((f) => ({ ...f, fio: e.target.value }))}
+                    placeholder="ФИО"
+                    required
+                    className="rounded-lg border border-ink/15 px-3 py-2 text-sm outline-none focus:border-ink/40"
+                  />
+                  <PhoneInput
                     value={supportForm.phone}
-                    onChange={(e) => setSupportForm((f) => ({ ...f, phone: e.target.value }))}
-                    placeholder="Номер телефона"
-                    className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none focus:border-ink/40"
+                    onChange={(value) => setSupportForm((f) => ({ ...f, phone: value }))}
+                    required
+                    className="rounded-lg border border-ink/15 px-3 py-2 text-sm outline-none focus:border-ink/40"
                   />
                   <input
                     type="email"
                     value={supportForm.email}
                     onChange={(e) => setSupportForm((f) => ({ ...f, email: e.target.value }))}
                     placeholder="Почта"
-                    className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none focus:border-ink/40"
+                    className="rounded-lg border border-ink/15 px-3 py-2 text-sm outline-none focus:border-ink/40"
+                  />
+                  <input
+                    value={supportForm.telegram}
+                    onChange={(e) => setSupportForm((f) => ({ ...f, telegram: e.target.value }))}
+                    placeholder="Telegram"
+                    className="rounded-lg border border-ink/15 px-3 py-2 text-sm outline-none focus:border-ink/40"
                   />
                 </div>
-                <input
-                  value={supportForm.telegram}
-                  onChange={(e) => setSupportForm((f) => ({ ...f, telegram: e.target.value }))}
-                  placeholder="Telegram"
-                  className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none focus:border-ink/40"
-                />
                 <textarea
                   value={supportForm.question}
                   onChange={(e) => setSupportForm((f) => ({ ...f, question: e.target.value }))}
-                  placeholder="Ваш вопрос"
+                  placeholder="Вопрос"
+                  required
                   rows={4}
-                  className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none focus:border-ink/40"
+                  className="mt-3 w-full rounded-lg border border-ink/15 px-3 py-2 text-sm outline-none focus:border-ink/40"
                 />
-                <button type="submit" className="rounded-lg bg-ink py-2.5 text-sm font-semibold text-white hover:bg-ink/90">
+
+                {supportMissing && (
+                  <p className="mt-3 text-sm text-red-600">Заполните ФИО, телефон и вопрос.</p>
+                )}
+
+                <button
+                  type="submit"
+                  className="mt-4 w-full rounded-lg bg-ink py-2.5 text-sm font-semibold text-white hover:bg-ink/90"
+                >
                   Отправить
                 </button>
-                <p className="text-xs text-ink/40">Нажимая «Отправить», вы соглашаетесь на обработку персональных данных.</p>
+                <p className="mt-2 text-center text-xs text-ink/40">Нажимая «Отправить», вы соглашаетесь на обработку персональных данных.</p>
               </form>
             )}
           </div>

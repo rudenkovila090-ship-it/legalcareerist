@@ -9,6 +9,7 @@ import ilyaPhoto from '../../assets/ilya-rudenkov.jpg'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import { tariffs } from '../../data/tariffs'
 import CommunityFooter from './CommunityFooter'
+import PhoneInput from '../../components/PhoneInput'
 
 const railItems = [
   { id: 'hero', label: 'Обзор' },
@@ -477,11 +478,9 @@ export default function CommunityHome() {
                 placeholder="ФИО"
                 className="rounded-lg border border-ink/15 px-3 py-2 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40"
               />
-              <input
-                type="tel"
+              <PhoneInput
                 value={ambassadorForm.phone}
-                onChange={(e) => setAmbassadorForm((f) => ({ ...f, phone: e.target.value }))}
-                placeholder="Номер телефона"
+                onChange={(value) => setAmbassadorForm((f) => ({ ...f, phone: value }))}
                 className="rounded-lg border border-ink/15 px-3 py-2 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40"
               />
               <input
@@ -692,11 +691,9 @@ export default function CommunityHome() {
                   className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
                 />
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <input
-                    type="tel"
+                  <PhoneInput
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="Телефон, например 89990000000"
+                    onChange={setPhone}
                     required
                     className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
                   />

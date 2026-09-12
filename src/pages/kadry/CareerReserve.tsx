@@ -6,6 +6,7 @@ import FAQSection from '../../components/FAQSection'
 import SectionRail from '../../components/SectionRail'
 import { submitLead } from '../../lib/leads'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
+import PhoneInput from '../../components/PhoneInput'
 
 const proof = [
   { value: '8 000+', label: 'кандидатов в кадровом резерве' },
@@ -239,11 +240,10 @@ export default function CareerReserve({ embedded = false }: { embedded?: boolean
                   value={priorityForm.name}
                   onChange={(e) => setPriorityForm((f) => ({ ...f, name: e.target.value }))}
                 />
-                <input
+                <PhoneInput
                   className="rounded-lg border border-white/15 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
-                  placeholder="Номер телефона"
                   value={priorityForm.phone}
-                  onChange={(e) => setPriorityForm((f) => ({ ...f, phone: e.target.value }))}
+                  onChange={(value) => setPriorityForm((f) => ({ ...f, phone: value }))}
                 />
                 <input
                   className="rounded-lg border border-white/15 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
@@ -340,11 +340,10 @@ export default function CareerReserve({ embedded = false }: { embedded?: boolean
                   value={form.email}
                   onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
                 />
-                <input
+                <PhoneInput
                   className="rounded-lg border border-white/15 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
-                  placeholder="Номер телефона"
                   value={form.phone}
-                  onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+                  onChange={(value) => setForm((f) => ({ ...f, phone: value }))}
                 />
                 <input
                   className="rounded-lg border border-white/15 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"

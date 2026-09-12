@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { submitLead } from '../lib/leads'
+import PhoneInput from './PhoneInput'
 import type { LeadSourceBlock } from '../types'
 
 interface LeadFormProps {
@@ -132,11 +133,9 @@ export default function LeadForm({
       {(showPhone || showTelegram) && (
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           {showPhone && (
-            <input
-              type="tel"
+            <PhoneInput
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="Номер телефона"
+              onChange={setPhone}
               required={requireAll}
               className="rounded-lg border border-ink/15 px-3 py-2 text-sm outline-none focus:border-ink/40"
             />

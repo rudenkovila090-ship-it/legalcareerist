@@ -26,6 +26,13 @@ export interface LeadInput {
   vacancySlug?: string
 }
 
+// Номер заявки — короткий, читаемый на слух номер для клиента (не техничный
+// id лида выше), чтобы было что назвать в переписке/по телефону при вопросе
+// в поддержку. Используется формами обратной связи (Контакты, Поддержка).
+export function makeTicketNumber(): string {
+  return String(100000 + (Date.now() % 900000))
+}
+
 export function submitLead(input: LeadInput): Lead {
   const lead: Lead = {
     id: `lead_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,

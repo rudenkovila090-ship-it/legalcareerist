@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { tariffs, type TariffId } from '../data/tariffs'
 import { submitLead } from '../lib/leads'
+import PhoneInput from './PhoneInput'
 
 /**
  * Виджет выбора и оплаты тарифа сообщества — та же логика и тот же бэкенд
@@ -154,11 +155,9 @@ export default function TariffJoinBlock() {
                 className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
               />
               <div className="grid gap-3 sm:grid-cols-2">
-                <input
-                  type="tel"
+                <PhoneInput
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="Телефон, например 89990000000"
+                  onChange={setPhone}
                   required
                   className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
                 />

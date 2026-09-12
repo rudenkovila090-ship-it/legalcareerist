@@ -6,6 +6,7 @@ import RelatedContentBlock from '../../components/RelatedContentBlock'
 import { getRelatedContent } from '../../lib/related'
 import { materialKindLabel as kindLabel } from '../../lib/materialLabels'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
+import PhoneInput from '../../components/PhoneInput'
 
 const money = new Intl.NumberFormat('ru-RU')
 
@@ -198,12 +199,10 @@ export default function MaterialDetail() {
                 onChange={(e) => setPurchaseForm((f) => ({ ...f, name: e.target.value }))}
                 className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
               />
-              <input
-                type="tel"
+              <PhoneInput
                 required
-                placeholder="Телефон, например 89990000000"
                 value={purchaseForm.phone}
-                onChange={(e) => setPurchaseForm((f) => ({ ...f, phone: e.target.value }))}
+                onChange={(value) => setPurchaseForm((f) => ({ ...f, phone: value }))}
                 className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
               />
               <input

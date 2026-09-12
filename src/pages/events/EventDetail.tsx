@@ -5,6 +5,7 @@ import RelatedContentBlock from '../../components/RelatedContentBlock'
 import { getRelatedContent } from '../../lib/related'
 import { submitLead } from '../../lib/leads'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
+import PhoneInput from '../../components/PhoneInput'
 import EventsFooter from './EventsFooter'
 import { SPECIALIZATIONS, INDUSTRIES, type EventTariff } from '../../types'
 
@@ -287,11 +288,9 @@ export default function EventDetail() {
                   required
                   className="rounded-lg border border-ink/15 px-3.5 py-2.5 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40"
                 />
-                <input
-                  type="tel"
+                <PhoneInput
                   value={partnerForm.phone}
-                  onChange={(e) => setPartnerForm((f) => ({ ...f, phone: e.target.value }))}
-                  placeholder="Номер телефона"
+                  onChange={(value) => setPartnerForm((f) => ({ ...f, phone: value }))}
                   className="rounded-lg border border-ink/15 px-3.5 py-2.5 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40"
                 />
                 <input
@@ -389,11 +388,9 @@ export default function EventDetail() {
                       required
                       className="rounded-lg border border-ink/15 px-3.5 py-2.5 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40"
                     />
-                    <input
-                      type="tel"
+                    <PhoneInput
                       value={form.phone}
-                      onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-                      placeholder="Номер телефона"
+                      onChange={(value) => setForm((f) => ({ ...f, phone: value }))}
                       className="rounded-lg border border-ink/15 px-3.5 py-2.5 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40"
                     />
                     <input

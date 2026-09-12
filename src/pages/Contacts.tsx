@@ -1,14 +1,9 @@
 import { useState, type FormEvent } from 'react'
 import PageHero from '../components/PageHero'
-import { submitLead } from '../lib/leads'
+import PhoneInput from '../components/PhoneInput'
+import { submitLead, makeTicketNumber } from '../lib/leads'
 import { useDocumentTitle } from '../lib/useDocumentTitle'
 import type { LeadSourceBlock } from '../types'
-
-// Номер заявки — короткий, читаемый на слух номер для клиента (не техничный
-// id лида из localStorage), чтобы было что назвать в переписке/по телефону.
-function makeTicketNumber(): string {
-  return String(100000 + (Date.now() % 900000))
-}
 
 export default function Contacts({ eyebrow, sourceBlock }: { eyebrow: string; sourceBlock: LeadSourceBlock }) {
   useDocumentTitle(`${eyebrow} — Контакты`)
@@ -77,11 +72,9 @@ export default function Contacts({ eyebrow, sourceBlock }: { eyebrow: string; so
                 required
                 className="rounded-lg border border-ink/15 px-3 py-2 text-sm outline-none focus:border-ink/40"
               />
-              <input
-                type="tel"
+              <PhoneInput
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="Телефон, например 89990000000"
+                onChange={setPhone}
                 required
                 className="rounded-lg border border-ink/15 px-3 py-2 text-sm outline-none focus:border-ink/40"
               />

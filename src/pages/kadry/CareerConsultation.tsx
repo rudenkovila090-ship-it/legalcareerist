@@ -5,6 +5,7 @@ import Testimonials from '../../components/Testimonials'
 import FAQSection from '../../components/FAQSection'
 import SectionRail from '../../components/SectionRail'
 import { submitLead } from '../../lib/leads'
+import PhoneInput from '../../components/PhoneInput'
 import { consultationCategories, allConsultationServices, tierDiscountPct } from '../../data/consultationServices'
 import { consultationTestimonials } from '../../data/testimonials'
 import ilyaPhoto from '../../assets/ilya-rudenkov.jpg'
@@ -568,11 +569,10 @@ export default function CareerConsultation({ embedded = false }: { embedded?: bo
                   value={helpForm.email}
                   onChange={(e) => setHelpForm((f) => ({ ...f, email: e.target.value }))}
                 />
-                <input
+                <PhoneInput
                   className="rounded-lg border border-white/15 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
-                  placeholder="Номер телефона"
                   value={helpForm.phone}
-                  onChange={(e) => setHelpForm((f) => ({ ...f, phone: e.target.value }))}
+                  onChange={(value) => setHelpForm((f) => ({ ...f, phone: value }))}
                 />
                 <input
                   className="rounded-lg border border-white/15 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
@@ -732,11 +732,10 @@ export default function CareerConsultation({ embedded = false }: { embedded?: bo
                       value={form.telegram}
                       onChange={(e) => setForm((f) => ({ ...f, telegram: e.target.value }))}
                     />
-                    <input
+                    <PhoneInput
                       className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
-                      placeholder="Телефон"
                       value={form.phone}
-                      onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+                      onChange={(value) => setForm((f) => ({ ...f, phone: value }))}
                     />
                   </div>
                   <button type="submit" className="rounded-full bg-ink py-3 text-sm font-semibold text-white transition-colors hover:bg-ink/90">
