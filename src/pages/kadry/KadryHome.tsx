@@ -244,11 +244,11 @@ function candidatesTierDiscountPct(count: number): number {
 // пересчитывается динамически по кандидатам (у них цена берется из
 // contactPrice/candidateContactPrice).
 const pricingSegments = [
-  { segment: 'Студент / практикант', salary: '35 000 ₽', price: '≈ 2 100 ₽' },
-  { segment: 'Junior с опытом', salary: '55 000 ₽', price: '≈ 3 100 ₽' },
-  { segment: 'Middle-юрист (1–3 года)', salary: '120 000 ₽', price: '≈ 6 500 ₽' },
-  { segment: 'Senior / узкая специализация', salary: '220 000 ₽', price: '≈ 15 800 ₽' },
-  { segment: 'Топ-эксперт', salary: '400 000 ₽', price: '≈ 48 000 ₽' },
+  { segment: 'Студент', salary: '~ 35 000 ₽', price: '≈ 2 100 ₽' },
+  { segment: 'Помощник юриста', salary: '~ 55 000 ₽', price: '≈ 3 100 ₽' },
+  { segment: 'Младший юрист', salary: '~ 120 000 ₽', price: '≈ 6 500 ₽' },
+  { segment: 'Юрист', salary: '~ 220 000 ₽', price: '≈ 15 800 ₽' },
+  { segment: 'Старший юрист', salary: '~ 300 000 ₽', price: '≈ 25 200 ₽' },
 ]
 
 const cities = ['Москва', 'Санкт-Петербург']
@@ -256,10 +256,10 @@ const schedules = ['Гибкий', 'Полный']
 const employments = ['Полная занятость', 'Частичная занятость', 'Проектная занятость']
 const formats: string[] = ['Офис', 'Гибрид', 'Дистанционно']
 
-// Кандидат №1 — реальная анкета (не из общей ротации шаблонов «базы контактов»),
-// с фиксированной стоимостью открытия контакта.
-const candidateOneOverride = {
-  position: 'Помощник адвоката / юрист-стажёр',
+// Кандидаты №1 и №2 — реальные анкеты (не из общей ротации шаблонов «базы
+// контактов»), с фиксированной стоимостью открытия контакта. Общий профиль
+// (резюме одной и той же студентки), различается только заголовок позиции.
+const realCandidateProfile = {
   sphere: 'Гражданское и семейное право, арбитражный процесс',
   exp: '2 курс, стажёр',
   city: 'Москва',
@@ -281,6 +281,8 @@ const candidateOneOverride = {
   skills: ['КонсультантПлюс, Гарант — поиск и анализ судебной практики', 'MS Office (Word, Excel) — подготовка правовых документов', 'Английский язык'],
   contactPriceOverride: 1500,
 }
+const candidateOneOverride = { ...realCandidateProfile, position: 'Помощник адвоката' }
+const candidateTwoOverride = { ...realCandidateProfile, position: 'Помощник адвоката / юрист-стажёр' }
 
 const demoCandidates = Array.from({ length: 30 }, (_, i) => {
   const t = candidateTemplates[i % candidateTemplates.length]
@@ -294,7 +296,7 @@ const demoCandidates = Array.from({ length: 30 }, (_, i) => {
     highlights: undefined as string[] | undefined,
     contactPriceOverride: undefined as number | undefined,
   }
-}).map((c) => (c.id === 1 ? { ...c, ...candidateOneOverride } : c))
+}).map((c) => (c.id === 1 ? { ...c, ...candidateOneOverride } : c.id === 2 ? { ...c, ...candidateTwoOverride } : c))
 
 const schools = [
   'МГУ', 'СПбГУ', 'НИУ ВШЭ', 'МГИМО', 'МГЮА', 'РАНХиГС',
@@ -772,10 +774,10 @@ export default function KadryHome() {
               контакта, чтобы она не выглядела произвольной. */}
           <div className="glass-dark mt-10 rounded-2xl p-6">
             <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-gold-light">Как мы считаем стоимость контакта</div>
-            <p className="mb-4 max-w-3xl text-sm text-white/60">
-              Цена открытия контакта — доля от нашего гонорара за закрытие вакансии: 30% от первой месячной
-              зарплаты кандидата до вычета НДФЛ, деленные на среднее число контактов, которые нужно продать до
-              одного найма, с поправкой на сегмент и опыт кандидата.
+            <p className="mb-4 text-sm text-white/60">
+              Цена открытия контакта — доля от нашего гонорара за закрытие вакансии: 30% от первой месячной зарплаты
+              кандидата до вычета НДФЛ, деленные на среднее число контактов, которые нужно продать до одного найма,
+              с поправкой на сегмент и опыт кандидата.
             </p>
             <div className="mb-4 overflow-x-auto rounded-xl bg-white/5 px-4 py-3 font-mono text-xs text-white/70 sm:text-sm">
               Цена контакта = (Оклад/мес × 30%) ÷ N контактов на найм × K сегмента
