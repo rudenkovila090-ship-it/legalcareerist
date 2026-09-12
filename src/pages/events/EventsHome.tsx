@@ -200,10 +200,33 @@ function IconTiktok() {
     </svg>
   )
 }
+function IconX() {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
+      <path d="M13.6 10.6 20.4 3h-2l-5.8 6.6L7.9 3H2.5l6.9 10.1L2.5 21h2l6.2-7 5 7h5.4l-7.2-10.4h-.3zm-2.2 2.5-.7-1L5 4.7h2.3l4.6 6.6.7 1 6 8.6h-2.3l-4.9-7z" />
+    </svg>
+  )
+}
+function IconLinkedin() {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
+      <path d="M4.5 3.5a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM3 9.5h3v11H3v-11zM9.5 9.5h2.9v1.5h.04c.4-.76 1.4-1.56 2.9-1.56 3.1 0 3.66 2.04 3.66 4.7v6.36h-3v-5.64c0-1.34-.03-3.06-1.87-3.06-1.87 0-2.16 1.46-2.16 2.97v5.73h-3v-11z" />
+    </svg>
+  )
+}
+// Закон.ру, Дзен, Авито — площадки без стандартной line-иконки в проекте,
+// монограмма в кружке (тот же прием, что и у аватаров без фото — см.
+// initials в CommunityHome/EventDetail), а не попытка воспроизвести
+// точный логотип.
+function IconMonogram({ text }: { text: string }) {
+  return <span className="text-[11px] font-bold leading-none">{text}</span>
+}
 
 export default function EventsHome() {
   useDocumentTitle('Мероприятия')
-  const [tab, setTab] = useState<(typeof eventTabs)[number]['id']>('poster')
+  // 'partner' и 'support' не выведены отдельными кнопками в подменю сверху
+  // (eventTabs) — до них ведут только ссылки в подвале страницы.
+  const [tab, setTab] = useState<(typeof eventTabs)[number]['id'] | 'partner' | 'support'>('poster')
 
   const [quick, setQuick] = useState<QuickCategory>('all')
   const [cityFilter, setCityFilter] = useState('all')
@@ -263,6 +286,42 @@ export default function EventsHome() {
       interest: orderForm.about ? [orderForm.about] : [],
     })
     setOrderSent(true)
+  }
+
+  // «Стать партнером» — лид-заявка на партнерство (общая, не по конкретному
+  // мероприятию — для этого есть отдельная форма на странице мероприятия).
+  const [partnerForm, setPartnerForm] = useState({ company: '', fio: '', phone: '', email: '', telegram: '' })
+  const [partnerSent, setPartnerSent] = useState(false)
+
+  function handlePartnerSubmit(e: FormEvent) {
+    e.preventDefault()
+    if (!partnerForm.fio.trim() || !partnerForm.company.trim() || (!partnerForm.phone.trim() && !partnerForm.email.trim())) return
+    submitLead({
+      sourceBlock: 'events',
+      formType: 'partner_application',
+      name: partnerForm.fio,
+      contact: [partnerForm.phone, partnerForm.email, partnerForm.telegram].filter(Boolean).join(' / '),
+      interest: [partnerForm.company],
+    })
+    setPartnerSent(true)
+  }
+
+  // «Написать нам» (Помощь → Поддержка) — та же форма лида, что и везде
+  // (ФИО, телефон, почта, Telegram), плюс отдельное поле с вопросом.
+  const [supportForm, setSupportForm] = useState({ fio: '', phone: '', email: '', telegram: '', question: '' })
+  const [supportSent, setSupportSent] = useState(false)
+
+  function handleSupportSubmit(e: FormEvent) {
+    e.preventDefault()
+    if (!supportForm.fio.trim() || (!supportForm.phone.trim() && !supportForm.email.trim())) return
+    submitLead({
+      sourceBlock: 'events',
+      formType: 'support_request',
+      name: supportForm.fio,
+      contact: [supportForm.phone, supportForm.email, supportForm.telegram].filter(Boolean).join(' / '),
+      interest: supportForm.question ? [supportForm.question] : [],
+    })
+    setSupportSent(true)
   }
 
   return (
@@ -476,6 +535,124 @@ export default function EventsHome() {
         </section>
       )}
 
+      {tab === 'partner' && (
+        <section className="container-page py-12">
+          <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Партнерам</div>
+          <h2 className="mb-6 text-2xl font-semibold">Стать партнером мероприятий «Карьерного юриста»</h2>
+
+          <div className="mx-auto max-w-xl">
+            {partnerSent ? (
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-6 text-emerald-800">
+                <div className="font-semibold">Заявка отправлена</div>
+                <p className="mt-1 text-sm">Мы свяжемся с вами, чтобы обсудить формат партнерства.</p>
+              </div>
+            ) : (
+              <form onSubmit={handlePartnerSubmit} className="glass grid gap-3 rounded-2xl p-6">
+                <input
+                  value={partnerForm.fio}
+                  onChange={(e) => setPartnerForm((f) => ({ ...f, fio: e.target.value }))}
+                  placeholder="ФИО"
+                  required
+                  className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none focus:border-ink/40"
+                />
+                <input
+                  value={partnerForm.company}
+                  onChange={(e) => setPartnerForm((f) => ({ ...f, company: e.target.value }))}
+                  placeholder="Компания"
+                  required
+                  className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none focus:border-ink/40"
+                />
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <input
+                    type="tel"
+                    value={partnerForm.phone}
+                    onChange={(e) => setPartnerForm((f) => ({ ...f, phone: e.target.value }))}
+                    placeholder="Номер телефона"
+                    className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none focus:border-ink/40"
+                  />
+                  <input
+                    type="email"
+                    value={partnerForm.email}
+                    onChange={(e) => setPartnerForm((f) => ({ ...f, email: e.target.value }))}
+                    placeholder="Почта"
+                    className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none focus:border-ink/40"
+                  />
+                </div>
+                <input
+                  value={partnerForm.telegram}
+                  onChange={(e) => setPartnerForm((f) => ({ ...f, telegram: e.target.value }))}
+                  placeholder="Telegram"
+                  className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none focus:border-ink/40"
+                />
+                <button type="submit" className="rounded-lg bg-ink py-2.5 text-sm font-semibold text-white hover:bg-ink/90">
+                  Отправить заявку
+                </button>
+                <p className="text-xs text-ink/40">Нажимая «Отправить заявку», вы соглашаетесь на обработку персональных данных.</p>
+              </form>
+            )}
+          </div>
+        </section>
+      )}
+
+      {tab === 'support' && (
+        <section className="container-page py-12">
+          <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Поддержка</div>
+          <h2 className="mb-6 text-2xl font-semibold">Написать нам</h2>
+
+          <div className="mx-auto max-w-xl">
+            {supportSent ? (
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-6 text-emerald-800">
+                <div className="font-semibold">Сообщение отправлено</div>
+                <p className="mt-1 text-sm">Мы свяжемся с вами в ближайшее время.</p>
+              </div>
+            ) : (
+              <form onSubmit={handleSupportSubmit} className="glass grid gap-3 rounded-2xl p-6">
+                <input
+                  value={supportForm.fio}
+                  onChange={(e) => setSupportForm((f) => ({ ...f, fio: e.target.value }))}
+                  placeholder="ФИО"
+                  required
+                  className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none focus:border-ink/40"
+                />
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <input
+                    type="tel"
+                    value={supportForm.phone}
+                    onChange={(e) => setSupportForm((f) => ({ ...f, phone: e.target.value }))}
+                    placeholder="Номер телефона"
+                    className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none focus:border-ink/40"
+                  />
+                  <input
+                    type="email"
+                    value={supportForm.email}
+                    onChange={(e) => setSupportForm((f) => ({ ...f, email: e.target.value }))}
+                    placeholder="Почта"
+                    className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none focus:border-ink/40"
+                  />
+                </div>
+                <input
+                  value={supportForm.telegram}
+                  onChange={(e) => setSupportForm((f) => ({ ...f, telegram: e.target.value }))}
+                  placeholder="Telegram"
+                  className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none focus:border-ink/40"
+                />
+                <textarea
+                  value={supportForm.question}
+                  onChange={(e) => setSupportForm((f) => ({ ...f, question: e.target.value }))}
+                  placeholder="Ваш вопрос"
+                  rows={4}
+                  className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none focus:border-ink/40"
+                />
+                <button type="submit" className="rounded-lg bg-ink py-2.5 text-sm font-semibold text-white hover:bg-ink/90">
+                  Отправить
+                </button>
+                <p className="text-xs text-ink/40">Нажимая «Отправить», вы соглашаетесь на обработку персональных данных.</p>
+              </form>
+            )}
+          </div>
+        </section>
+      )}
+
       {tab === 'account' && (
         <section className="container-page py-12">
           <div className="glass rounded-2xl p-8 text-center">
@@ -494,30 +671,15 @@ export default function EventsHome() {
       {/* Подвал раздела «Мероприятия» — вместо общего футера сайта (отключен для
           этой страницы в Layout), поэтому здесь же дублируется юридический блок
           и копирайт. Каждая строка — рабочая ссылка, ни одной серой заглушки. */}
-      <footer className="border-t border-white/10 bg-ink text-white/80">
-        <div className="container-page grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-6">
+      {/* Заголовки колонок — яркие (text-white, font-bold), сами ссылки —
+          приглушенные, сероватые (text-white/40), чтобы структура
+          считывалась с первого взгляда. Порядок колонок: Мероприятия,
+          Все события, Партнерам, Организаторам, Помощь, Юридический блок,
+          Социальные сети. */}
+      <footer className="border-t border-white/10 bg-ink text-white/40">
+        <div className="container-page grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-4">
           <div>
-            <div className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">Афиша</div>
-            <ul className="space-y-2 text-sm">
-              <li><button type="button" onClick={() => { setTab('poster'); setQuick('all'); window.scrollTo(0, 0) }} className="hover:text-white">Все события</button></li>
-              <li><button type="button" onClick={() => { setTab('poster'); document.getElementById('all-events')?.scrollIntoView({ behavior: 'smooth' }) }} className="hover:text-white">Категории мероприятий</button></li>
-              <li><Link className="hover:text-white" to="/events/ticket-refund">Возврат билета</Link></li>
-              <li><Link className="hover:text-white" to="/events/research">Участие в исследованиях</Link></li>
-              <li><Link className="hover:text-white" to="/events/ticketing">Билетная система</Link></li>
-            </ul>
-          </div>
-
-          <div>
-            <div className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">Организаторам</div>
-            <ul className="space-y-2 text-sm">
-              <li><button type="button" onClick={() => { setTab('create'); window.scrollTo(0, 0) }} className="hover:text-white">Создать событие</button></li>
-              <li><Link className="hover:text-white" to="/events/opportunities">Возможности</Link></li>
-              <li><Link className="hover:text-white" to="/events/advertising">Реклама</Link></li>
-            </ul>
-          </div>
-
-          <div>
-            <div className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">Мероприятия</div>
+            <div className="mb-3 text-sm font-bold uppercase tracking-wide text-white">Мероприятия</div>
             <ul className="space-y-2 text-sm">
               <li><Link className="hover:text-white" to="/about">О нас</Link></li>
               <li><Link className="hover:text-white" to="/blog">Блог</Link></li>
@@ -527,16 +689,49 @@ export default function EventsHome() {
           </div>
 
           <div>
-            <div className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">Помощь</div>
+            <div className="mb-3 text-sm font-bold uppercase tracking-wide text-white">Все события</div>
             <ul className="space-y-2 text-sm">
-              <li><Link className="hover:text-white" to="/events/contacts">Задать вопрос</Link></li>
+              <li><Link className="hover:text-white" to="/events/ticket-refund">Возврат билета</Link></li>
+              <li><Link className="hover:text-white" to="/events/research">Участие в исследованиях</Link></li>
+              <li><Link className="hover:text-white" to="/events/ticketing">Билетная система</Link></li>
+            </ul>
+          </div>
+
+          <div>
+            <div className="mb-3 text-sm font-bold uppercase tracking-wide text-white">Партнерам</div>
+            <ul className="space-y-2 text-sm">
+              <li><button type="button" onClick={() => { setTab('partner'); window.scrollTo(0, 0) }} className="hover:text-white">Стать партнером</button></li>
+            </ul>
+          </div>
+
+          <div>
+            <div className="mb-3 text-sm font-bold uppercase tracking-wide text-white">Организаторам</div>
+            <ul className="space-y-2 text-sm">
+              <li><button type="button" onClick={() => { setTab('create'); window.scrollTo(0, 0) }} className="hover:text-white">Создать событие</button></li>
+              <li><Link className="hover:text-white" to="/events/opportunities">Возможности</Link></li>
+              <li><Link className="hover:text-white" to="/events/advertising">Реклама</Link></li>
+            </ul>
+          </div>
+
+          <div>
+            <div className="mb-3 text-sm font-bold uppercase tracking-wide text-white">Помощь</div>
+            <ul className="space-y-2 text-sm">
+              <li><button type="button" onClick={() => { setTab('support'); window.scrollTo(0, 0) }} className="hover:text-white">Поддержка</button></li>
               <li><Link className="hover:text-white" to="/events/knowledge">База знаний</Link></li>
             </ul>
           </div>
 
           <div>
-            <div className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">Новости</div>
-            <div className="flex gap-2.5">
+            <div className="mb-3 text-sm font-bold uppercase tracking-wide text-white">Юридический блок</div>
+            <ul className="space-y-2 text-sm">
+              <li><Link className="hover:text-white" to="/legal/privacy">Политика обработки персональных данных</Link></li>
+              <li><Link className="hover:text-white" to="/legal/consent">Согласие на обработку персональных данных</Link></li>
+            </ul>
+          </div>
+
+          <div>
+            <div className="mb-3 text-sm font-bold uppercase tracking-wide text-white">Социальные сети</div>
+            <div className="flex flex-wrap gap-2.5">
               <a href="https://t.me/legalcareerst_support" target="_blank" rel="noreferrer" aria-label="Telegram" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 hover:text-white">
                 <IconTelegram />
               </a>
@@ -549,15 +744,22 @@ export default function EventsHome() {
               <a href="https://tiktok.com/@legalcareerist" target="_blank" rel="noreferrer" aria-label="TikTok" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 hover:text-white">
                 <IconTiktok />
               </a>
+              <a href="https://x.com/legalcareerist" target="_blank" rel="noreferrer" aria-label="X (Twitter)" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 hover:text-white">
+                <IconX />
+              </a>
+              <a href="https://linkedin.com/company/legalcareerist" target="_blank" rel="noreferrer" aria-label="LinkedIn" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 hover:text-white">
+                <IconLinkedin />
+              </a>
+              <a href="https://zakon.ru" target="_blank" rel="noreferrer" aria-label="Закон.ру" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 hover:text-white">
+                <IconMonogram text="Zn" />
+              </a>
+              <a href="https://dzen.ru/legalcareerist" target="_blank" rel="noreferrer" aria-label="Дзен" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 hover:text-white">
+                <IconMonogram text="Дз" />
+              </a>
+              <a href="https://avito.ru" target="_blank" rel="noreferrer" aria-label="Авито" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 hover:text-white">
+                <IconMonogram text="Av" />
+              </a>
             </div>
-          </div>
-
-          <div>
-            <div className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">Юридический блок</div>
-            <ul className="space-y-2 text-sm">
-              <li><Link className="hover:text-white" to="/legal/privacy">Политика обработки персональных данных</Link></li>
-              <li><Link className="hover:text-white" to="/legal/consent">Согласие на обработку персональных данных</Link></li>
-            </ul>
           </div>
         </div>
         <div className="border-t border-white/10 py-5">
