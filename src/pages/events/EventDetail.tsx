@@ -1,33 +1,46 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { events } from '../../data/events'
 import { clubs } from '../../data/clubs'
-import { TagRow } from '../../components/Tag'
-import ProcessSteps from '../../components/ProcessSteps'
 import RelatedContentBlock from '../../components/RelatedContentBlock'
 import { getRelatedContent } from '../../lib/related'
 import { demoMemberships } from '../../lib/account'
 import { submitLead } from '../../lib/leads'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
+import { SPECIALIZATIONS, INDUSTRIES, type EventTariff } from '../../types'
+
+const specLabel = new Map(SPECIALIZATIONS.map((s) => [s.id, s.label]))
+const industryLabel = new Map(INDUSTRIES.map((i) => [i.id, i.label]))
 
 const eventTypeLabel = { conference: 'Ключевое мероприятие', webinar: 'Вебинар', breakfast: 'Бизнес-завтрак', intensive: 'Интенсив', tour: 'Экскурсия' }
 
-const steps = [
-  { title: 'Регистрация', description: 'Оставляете заявку на участие на этой странице.' },
-  { title: 'Оплата', description: 'Если мероприятие платное — оплачиваете счет или применяете промокод.' },
-  { title: 'Напоминание', description: 'За день и за час до старта пришлем напоминание на email/Telegram.' },
-  { title: 'Участие', description: 'Подключаетесь по ссылке (онлайн) или приходите по адресу (офлайн).' },
-  { title: 'Материалы после', description: 'Запись и презентация публикуются в разделе «Полезные материалы».' },
-]
+// Крупный фон-афиша вверху детальной страницы — тот же принцип цветового
+// кодирования по типу, что и на карточке в афише (posterTone в
+// EventsHome.tsx), но не импортируется оттуда, чтобы не тянуть в чанк
+// детальной страницы весь список мероприятий и фильтры.
+const posterTone: Record<string, string> = {
+  conference: 'from-ink to-[#1a2536]',
+  webinar: 'from-gold to-ink',
+  breakfast: 'from-gold-light to-gold',
+  intensive: 'from-ink to-gold',
+  tour: 'from-gold-light to-ink',
+}
 
 // Связка «Сообщество → Мероприятия» (раздел 6.6): участникам клуба с той же
 // специализацией автоматически применяется скидка при регистрации.
 const COMMUNITY_DISCOUNT = 0.2
 
+function initials(name: string) {
+  return name.split(' ').map((p) => p[0]).join('').toUpperCase()
+}
+
 export default function EventDetail() {
   const { slug } = useParams()
   const event = events.find((e) => e.slug === slug)
   useDocumentTitle(event?.title ?? 'Мероприятие не найдено')
+
+  const [tariffId, setTariffId] = useState<EventTariff['id']>(event?.tariffs[0]?.id ?? 'light')
+  const [form, setForm] = useState({ fio: '', phone: '', email: '', telegram: '' })
   const [registered, setRegistered] = useState(false)
 
   const eligibleMembership = useMemo(() => {
@@ -47,81 +60,134 @@ export default function EventDetail() {
   }
 
   const related = getRelatedContent(event, 'event', event.id)
-  const finalPrice = eligibleMembership && event.price > 0 ? Math.round(event.price * (1 - COMMUNITY_DISCOUNT)) : event.price
+  const tariff = event.tariffs.find((t) => t.id === tariffId) ?? event.tariffs[0]
+  const finalPrice = eligibleMembership && tariff.price > 0 ? Math.round(tariff.price * (1 - COMMUNITY_DISCOUNT)) : tariff.price
 
-  function handleRegister() {
+  function scrollToRegister() {
+    document.getElementById('register')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
+  function handleRegister(e: FormEvent) {
+    e.preventDefault()
     if (!event) return
+    if (!form.fio.trim() || (!form.phone.trim() && !form.email.trim())) return
     submitLead({
       sourceBlock: 'events',
       formType: 'event_registration',
-      name: 'Демо-пользователь',
-      contact: 'demo@example.com',
-      interest: [event.title],
+      name: form.fio,
+      contact: [form.phone, form.email, form.telegram].filter(Boolean).join(' / '),
+      interest: [event.title, tariff.name],
     })
     setRegistered(true)
   }
 
   return (
-    <div className="container-page py-12">
-      <Link to="/events" className="text-sm text-ink/50 hover:text-ink">← Все мероприятия</Link>
+    <div className="pb-12">
+      <div className="container-page pt-8">
+        <Link to="/events" className="text-sm text-ink/50 hover:text-ink">← Все мероприятия</Link>
+      </div>
 
-      <div className="mt-4 grid gap-8 lg:grid-cols-[2fr_1fr]">
-        <div>
-          <span className="text-sm font-medium uppercase tracking-wide text-gold">{eventTypeLabel[event.type]}</span>
-          {event.partner && (
-            <span className="ml-2 rounded-full bg-ink/[0.06] px-2.5 py-1 text-xs font-medium text-ink/60">Партнер: {event.partner}</span>
-          )}
-          <h1 className="mt-1 text-3xl font-semibold">{event.title}</h1>
-          <div className="mt-2 text-ink/60">
-            {new Date(event.dateTime).toLocaleString('ru-RU', { dateStyle: 'long', timeStyle: 'short' })} ·{' '}
+      {/* Большой фон-афиша: дата, время по Москве, название, описание в два
+          предложения, «Сфера» с тегами специализации/отрасли и кнопка
+          «Записаться» — скроллит к блоку регистрации ниже. */}
+      <div className={`mt-4 bg-gradient-to-br p-10 text-white sm:p-14 ${posterTone[event.type] ?? posterTone.webinar}`}>
+        <div className="container-page">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm font-medium uppercase tracking-wide text-white/70">{eventTypeLabel[event.type]}</span>
+            {event.partner && (
+              <span className="rounded-full bg-white/15 px-2.5 py-1 text-xs font-medium">Партнер: {event.partner}</span>
+            )}
+          </div>
+          <div className="mt-4 text-sm font-medium text-white/80">
+            {new Date(event.dateTime).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
+            {' · '}
+            {new Date(event.dateTime).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })} по Москве
+            {' · '}
             {event.format === 'online' ? 'Онлайн' : event.city}
           </div>
-          <div className="mt-3"><TagRow specialization={event.specialization} industry={event.industry} /></div>
+          <h1 className="mt-2 max-w-3xl text-3xl font-semibold sm:text-4xl">{event.title}</h1>
+          <p className="mt-4 max-w-2xl text-white/80">{event.description}</p>
 
-          <p className="mt-6 leading-relaxed text-ink/80">{event.description}</p>
-
+          {/* Свои пилюли, не общий TagRow — тот рассчитан на светлый фон
+              (bg-ink/5 text-ink/70), на темной афише был бы нечитаем. */}
           <div className="mt-6">
-            <h2 className="font-semibold">Программа</h2>
-            <ul className="mt-2 list-inside list-disc space-y-1 text-ink/70">
-              {event.program.map((p) => <li key={p}>{p}</li>)}
+            <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-white/50">Сфера</div>
+            <div className="flex flex-wrap gap-1.5">
+              {event.specialization.map((s) => (
+                <span key={s} className="rounded-full bg-white/20 px-2.5 py-1 text-xs font-medium text-white">{specLabel.get(s)}</span>
+              ))}
+              {event.industry.map((i) => (
+                <span key={i} className="rounded-full bg-white/10 px-2.5 py-1 text-xs font-medium text-white/80">{industryLabel.get(i)}</span>
+              ))}
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={scrollToRegister}
+            className="mt-8 rounded-full bg-white px-8 py-3 text-sm font-semibold text-ink hover:opacity-90"
+          >
+            Записаться
+          </button>
+        </div>
+      </div>
+
+      <div className="container-page mt-10 grid gap-10 lg:grid-cols-[2fr_1fr]">
+        <div>
+          <div>
+            <h2 className="text-xl font-semibold">Программа</h2>
+            <ul className="mt-3 space-y-2 text-ink/70">
+              {event.program.map((p) => (
+                <li key={p} className="flex gap-2">
+                  <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-ink/40" />
+                  {p}
+                </li>
+              ))}
             </ul>
           </div>
 
-          <div className="mt-6">
-            <h2 className="font-semibold">Спикеры</h2>
-            <p className="mt-2 text-ink/70">{event.speakers.join(', ')}</p>
+          <div className="mt-8">
+            <h2 className="text-xl font-semibold">Что вы получите после мероприятия</h2>
+            <ul className="mt-3 space-y-2 text-ink/70">
+              {event.takeaways.map((t) => (
+                <li key={t} className="flex gap-2">
+                  <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-gold" />
+                  {t}
+                </li>
+              ))}
+            </ul>
           </div>
 
-          <div className="mt-10">
-            <h2 className="mb-4 text-xl font-semibold">Как проходит участие</h2>
-            <ProcessSteps steps={steps} />
-          </div>
+          {/* Спикеры — кружок (фото или плейсхолдер), под ним имя и регалии,
+              текст выровнен по левому краю колонки. */}
+          {event.speakers.length > 0 && (
+            <div className="mt-8">
+              <h2 className="text-xl font-semibold">Спикеры</h2>
+              <div className="mt-4 flex flex-wrap gap-6">
+                {event.speakers.map((s) => (
+                  <div key={s.name} className="w-40">
+                    <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-ink to-gold text-lg font-semibold text-white/70">
+                      {initials(s.name)}
+                    </div>
+                    <div className="mt-3 text-left text-sm font-semibold text-ink">{s.name}</div>
+                    <div className="text-left text-xs text-ink/60">{s.title}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
-          <RelatedContentBlock items={related} />
+          {/* «Может быть полезно» — только релевантное теме мероприятия
+              (мероприятия/база знаний/вакансии по тем же тегам специализации
+              и отрасли), см. getRelatedContent. */}
+          <RelatedContentBlock items={related} title="Может быть полезно" />
         </div>
 
-        <aside>
-          <div className="glass rounded-xl p-6">
-            {!(event.status === 'completed' && event.sale) && (
-              <>
-                <div className="text-sm text-ink/50">Стоимость участия</div>
-                <div className="mt-1 text-2xl font-semibold">
-                  {finalPrice === 0 ? 'Бесплатно' : `${finalPrice.toLocaleString('ru-RU')} ₽`}
-                </div>
-                {eligibleMembership && event.price > 0 && (
-                  <div className="mt-1 text-xs text-emerald-600">
-                    Скидка {Math.round(COMMUNITY_DISCOUNT * 100)}% как участнику клуба «{eligibleMembership.clubName}»
-                  </div>
-                )}
-                {event.promoCode && (
-                  <div className="mt-2 text-xs text-ink/50">Промокод: {event.promoCode}</div>
-                )}
-              </>
-            )}
-
+        <aside id="register" className="scroll-mt-24">
+          <div className="glass rounded-2xl p-6">
             {event.status === 'completed' ? (
               event.sale ? (
-                <div className="mt-4 space-y-2">
+                <div className="space-y-2">
                   <div className="text-xs font-semibold uppercase tracking-wide text-ink/40">Мероприятие завершено — доступно к покупке</div>
                   {event.sale.recording !== undefined && (
                     <button className="flex w-full items-center justify-between rounded-lg border border-ink/15 px-4 py-2.5 text-sm hover:border-ink/30">
@@ -143,19 +209,86 @@ export default function EventDetail() {
                   )}
                 </div>
               ) : (
-                <div className="mt-4 rounded-lg bg-ink/[0.04] p-3 text-sm text-ink/60">
+                <div className="rounded-lg bg-ink/[0.04] p-3 text-sm text-ink/60">
                   Мероприятие завершено. Запись — в разделе «Полезные материалы».
                 </div>
               )
-            ) : registered ? (
-              <div className="mt-4 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">Вы зарегистрированы. Напоминание придет заранее.</div>
             ) : (
-              <button
-                onClick={handleRegister}
-                className="mt-4 w-full rounded-lg bg-ink py-2.5 text-sm font-semibold text-white hover:bg-ink/90"
-              >
-                Зарегистрироваться
-              </button>
+              <>
+                <div className="text-sm font-semibold uppercase tracking-wide text-gold">Регистрация</div>
+                <h3 className="mt-1 text-lg font-semibold">Выберите тариф участия</h3>
+
+                <div className="mt-4 grid gap-2.5">
+                  {event.tariffs.map((t) => {
+                    const selected = t.id === tariffId
+                    return (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => setTariffId(t.id)}
+                        className={`rounded-xl border p-3.5 text-left transition-colors ${selected ? 'border-ink bg-ink/[0.03]' : 'border-ink/15 hover:border-ink/30'}`}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="flex items-center gap-2 font-semibold text-ink">
+                            <span className={`h-3.5 w-3.5 shrink-0 rounded-full border-2 ${selected ? 'border-ink bg-ink' : 'border-ink/30'}`} />
+                            {t.name}
+                          </span>
+                          <span className="font-semibold text-ink">{t.price === 0 ? 'Бесплатно' : `${t.price.toLocaleString('ru-RU')} ₽`}</span>
+                        </div>
+                        <ul className="mt-2 space-y-0.5 pl-5 text-xs text-ink/60">
+                          {t.includes.map((i) => <li key={i}>· {i}</li>)}
+                        </ul>
+                      </button>
+                    )
+                  })}
+                </div>
+
+                {eligibleMembership && tariff.price > 0 && (
+                  <div className="mt-3 text-xs text-emerald-600">
+                    Скидка {Math.round(COMMUNITY_DISCOUNT * 100)}% как участнику клуба «{eligibleMembership.clubName}» — {finalPrice.toLocaleString('ru-RU')} ₽
+                  </div>
+                )}
+                {event.promoCode && (
+                  <div className="mt-2 text-xs text-ink/50">Промокод: {event.promoCode}</div>
+                )}
+
+                {registered ? (
+                  <div className="mt-4 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">Вы зарегистрированы. Напоминание придет заранее.</div>
+                ) : (
+                  <form onSubmit={handleRegister} className="mt-4 grid gap-2.5">
+                    <input
+                      value={form.fio}
+                      onChange={(e) => setForm((f) => ({ ...f, fio: e.target.value }))}
+                      placeholder="ФИО"
+                      required
+                      className="rounded-lg border border-ink/15 px-3.5 py-2.5 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40"
+                    />
+                    <input
+                      type="tel"
+                      value={form.phone}
+                      onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+                      placeholder="Номер телефона"
+                      className="rounded-lg border border-ink/15 px-3.5 py-2.5 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40"
+                    />
+                    <input
+                      type="email"
+                      value={form.email}
+                      onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                      placeholder="Почта"
+                      className="rounded-lg border border-ink/15 px-3.5 py-2.5 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40"
+                    />
+                    <input
+                      value={form.telegram}
+                      onChange={(e) => setForm((f) => ({ ...f, telegram: e.target.value }))}
+                      placeholder="Telegram"
+                      className="rounded-lg border border-ink/15 px-3.5 py-2.5 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40"
+                    />
+                    <button type="submit" className="mt-1 rounded-lg bg-ink py-2.5 text-sm font-semibold text-white hover:bg-ink/90">
+                      {tariff.price === 0 ? 'Записаться' : `Записаться — ${finalPrice.toLocaleString('ru-RU')} ₽`}
+                    </button>
+                  </form>
+                )}
+              </>
             )}
           </div>
         </aside>

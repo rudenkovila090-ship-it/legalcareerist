@@ -271,6 +271,22 @@ export type EventType = 'conference' | 'webinar' | 'breakfast' | 'intensive' | '
 export type EventFormat = 'online' | 'offline'
 export type EventStatus = 'open' | 'completed'
 
+/** Спикер мероприятия — кружок с фото (или плейсхолдер), имя и регалии под ним. */
+export interface EventSpeaker {
+  name: string
+  title: string
+  photo?: string
+}
+
+/** Тариф участия: Light (билет + материал), Career Plus (+ запись на месяц),
+ *  Legal Career (+ запись на 2 месяца) — см. блок регистрации на детальной странице. */
+export interface EventTariff {
+  id: 'light' | 'career_plus' | 'legal_career'
+  name: string
+  price: number
+  includes: string[]
+}
+
 export interface EventItem extends Tagged {
   id: string
   slug: string
@@ -282,8 +298,12 @@ export interface EventItem extends Tagged {
   price: number
   promoCode?: string
   status: EventStatus
-  speakers: string[]
+  speakers: EventSpeaker[]
   program: string[]
+  /** Что участник получает после мероприятия (запись, материалы, сертификат и т.п.). */
+  takeaways: string[]
+  /** Тарифы регистрации — блок заявки на детальной странице. */
+  tariffs: EventTariff[]
   location: string
   description: string
   /** Организовано партнером — показывается отдельной строкой на афише мероприятий. */

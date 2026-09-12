@@ -291,35 +291,7 @@ export default function EventsHome() {
 
       {tab === 'poster' && (
         <>
-          {/* Пояснительный блок — наполнение уточняется отдельно */}
-          <section className="container-page py-8">
-            <div className="rounded-2xl border border-dashed border-ink/15 p-10 text-center text-sm text-ink/30">
-              Раздел «О мероприятиях» — наполнение уточняется
-            </div>
-          </section>
-
-          {/* Категории — прямоугольная ячейка-иконка и подпись справа, работают как быстрый фильтр */}
-          <section className="container-page pb-8">
-            <div className="flex flex-wrap gap-3">
-              {quickCategories.map((c) => (
-                <button
-                  key={c.id}
-                  type="button"
-                  onClick={() => setQuick((q) => (q === c.id ? 'all' : c.id))}
-                  className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-sm font-semibold transition-colors ${
-                    quick === c.id ? 'border-ink bg-ink text-white' : 'border-ink/15 text-ink hover:border-ink/40'
-                  }`}
-                >
-                  <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${quick === c.id ? 'bg-white/15' : 'bg-ink/5'}`}>
-                    <c.icon />
-                  </span>
-                  {c.label}
-                </button>
-              ))}
-            </div>
-          </section>
-
-          <section className="container-page pb-8">
+          <section className="container-page pt-8 pb-8">
             <div className="glass flex flex-wrap items-center gap-3 rounded-xl p-4">
               <select value={cityFilter} onChange={(e) => setCityFilter(e.target.value)} className="rounded-lg border border-ink/15 px-3 py-2 text-sm">
                 <option value="all">Город мероприятия</option>
@@ -329,6 +301,10 @@ export default function EventsHome() {
                 <option value="all">Способ участия</option>
                 <option value="online">Онлайн</option>
                 <option value="offline">Офлайн</option>
+              </select>
+              <select value={quick} onChange={(e) => setQuick(e.target.value as QuickCategory)} className="rounded-lg border border-ink/15 px-3 py-2 text-sm">
+                <option value="all">Тип мероприятия</option>
+                {quickCategories.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
               </select>
               <select value={sort} onChange={(e) => setSort(e.target.value as 'popular' | 'price_asc' | 'price_desc')} className="rounded-lg border border-ink/15 px-3 py-2 text-sm">
                 <option value="popular">Популярные</option>

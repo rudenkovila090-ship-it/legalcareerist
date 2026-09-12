@@ -487,20 +487,32 @@ export default function CommunityHome() {
         </div>
       </section>
 
-      {/* Представители по городам — контур карты РФ с тремя точками
-          (геогрфически сопоставимыми с реальной картой: СПб на
-          северо-западе, Москва южнее и восточнее, Екатеринбург за
-          Уралом), список вузов — во всплывающей подсказке при наведении. */}
+      {/* Представители по городам — мозаичный (пиксельный) контур карты РФ:
+          белые квадраты с тонкой границей внутри силуэта страны (тот же
+          контур, что и раньше, просто залит паттерном вместо сплошной
+          заливки), точки городов — цвет ink с белым неоновым свечением.
+          Геогрфически сопоставимо с реальной картой: СПб на северо-западе,
+          Москва южнее и восточнее, Екатеринбург за Уралом. Список вузов —
+          во всплывающей подсказке при наведении на точку. */}
       <section id="map" className="border-y border-ink/10 bg-white py-12">
         <div className="container-page">
           <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Представители</div>
           <h2 className="mb-8 text-2xl font-semibold">Резиденты есть в этих городах</h2>
-          <div className="relative mx-auto max-w-xl">
+          <div className="relative mx-auto max-w-xl rounded-2xl bg-ink/[0.02] p-6">
             <svg viewBox="0 0 400 220" className="w-full" aria-hidden="true">
+              <defs>
+                <clipPath id="ru-map-clip">
+                  <path d="M60,70 L90,40 L150,20 L230,15 L300,10 L340,30 L380,60 L395,110 L370,150 L350,190 L330,160 L300,175 L270,190 L240,200 L200,190 L160,175 L120,190 L90,180 L70,160 L55,175 L40,150 L35,110 L45,80 Z" />
+                </clipPath>
+                <pattern id="ru-map-grid" width="16" height="16" patternUnits="userSpaceOnUse">
+                  <rect x="1" y="1" width="14" height="14" fill="white" stroke="rgba(40,57,83,0.18)" strokeWidth="1" />
+                </pattern>
+              </defs>
+              <rect x="0" y="0" width="400" height="220" fill="url(#ru-map-grid)" clipPath="url(#ru-map-clip)" />
               <path
                 d="M60,70 L90,40 L150,20 L230,15 L300,10 L340,30 L380,60 L395,110 L370,150 L350,190 L330,160 L300,175 L270,190 L240,200 L200,190 L160,175 L120,190 L90,180 L70,160 L55,175 L40,150 L35,110 L45,80 Z"
-                fill="rgba(40,57,83,0.05)"
-                stroke="rgba(40,57,83,0.25)"
+                fill="none"
+                stroke="rgba(40,57,83,0.3)"
                 strokeWidth="1.5"
                 strokeLinejoin="round"
               />
@@ -511,8 +523,11 @@ export default function CommunityHome() {
                 className="group absolute -translate-x-1/2 -translate-y-1/2"
                 style={{ left: `${(c.x / 400) * 100}%`, top: `${(c.y / 220) * 100}%` }}
               >
-                <span className="block h-3 w-3 cursor-pointer rounded-full bg-ink ring-4 ring-ink/15 transition-transform group-hover:scale-125" />
-                <div className="mt-1.5 whitespace-nowrap text-center text-xs font-medium text-ink/60">{c.name}</div>
+                <span
+                  className="block h-3.5 w-3.5 cursor-pointer rounded-full bg-ink transition-transform group-hover:scale-125"
+                  style={{ boxShadow: '0 0 0 4px rgba(255,255,255,0.9), 0 0 10px 3px rgba(255,255,255,0.85), 0 0 18px 7px rgba(255,255,255,0.45)' }}
+                />
+                <div className="mt-2 whitespace-nowrap text-center text-xs font-medium text-ink/60">{c.name}</div>
                 <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 w-52 -translate-x-1/2 rounded-lg bg-ink p-3 text-left text-xs text-white opacity-0 shadow-xl transition-opacity group-hover:opacity-100">
                   <div className="mb-1 font-semibold">{c.name}</div>
                   <ul className="space-y-0.5 text-white/70">
