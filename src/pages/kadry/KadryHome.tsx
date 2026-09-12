@@ -225,6 +225,11 @@ function experienceYears(exp: string) {
 function contactPrice(exp: string) {
   return 1000 + experienceYears(exp) * 500
 }
+// Стоимость контакта у части кандидатов фиксирована отдельно (не по общей
+// прогрессивной шкале от опыта) — например, у кандидата №1.
+function candidateContactPrice(c: { exp: string; contactPriceOverride?: number }) {
+  return c.contactPriceOverride ?? contactPrice(c.exp)
+}
 
 // Скидка за объем — как в конструкторе карьерной консультации, но с другими
 // порогами: заявка на подбор контактов нескольких кандидатов сразу выгоднее.
@@ -239,6 +244,32 @@ const schedules = ['Гибкий', 'Полный']
 const employments = ['Полная занятость', 'Частичная занятость', 'Проектная занятость']
 const formats: string[] = ['Офис', 'Гибрид', 'Дистанционно']
 
+// Кандидат №1 — реальная анкета (не из общей ротации шаблонов «базы контактов»),
+// с фиксированной стоимостью открытия контакта.
+const candidateOneOverride = {
+  position: 'Помощник адвоката / юрист-стажёр',
+  sphere: 'Гражданское и семейное право, арбитражный процесс',
+  exp: '2 курс, стажёр',
+  city: 'Москва',
+  employment: 'Полная занятость / стажировка',
+  format: 'Офис/гибрид',
+  workplace: 'Помощник в сфере банкротства физических лиц',
+  duties: [
+    'Поиск и системный анализ судебной практики по банкротным спорам',
+    'Подготовка юридических заключений и поручений',
+    'Участие в муткортах: арбитражный процесс, семейные споры, банкротство юрлиц',
+  ],
+  highlights: [
+    'Участвовала в подготовке материалов по делам о банкротстве физических лиц',
+    'Представляла позицию в учебных арбитражных процессах (муткорты) по спорам о банкротстве юрлиц, семейным и гражданским делам',
+    'Проанализировала судебную практику по [N] делам для подготовки правовых позиций',
+  ],
+  school: 'НИУ ВШЭ',
+  course: '2 курс (специализация: гражданское право)',
+  skills: ['КонсультантПлюс, Гарант — поиск и анализ судебной практики', 'MS Office (Word, Excel) — подготовка правовых документов', 'Русский — родной, английский'],
+  contactPriceOverride: 1500,
+}
+
 const demoCandidates = Array.from({ length: 30 }, (_, i) => {
   const t = candidateTemplates[i % candidateTemplates.length]
   return {
@@ -248,8 +279,10 @@ const demoCandidates = Array.from({ length: 30 }, (_, i) => {
     schedule: schedules[i % schedules.length],
     employment: employments[(i + 1) % employments.length],
     format: formats[i % formats.length],
+    highlights: undefined as string[] | undefined,
+    contactPriceOverride: undefined as number | undefined,
   }
-})
+}).map((c) => (c.id === 1 ? { ...c, ...candidateOneOverride } : c))
 
 const schools = [
   'МГУ', 'СПбГУ', 'НИУ ВШЭ', 'МГИМО', 'МГЮА', 'РАНХиГС',
@@ -405,17 +438,15 @@ function FilterSelect({ placeholder, resetLabel, value, options, onChange }: {
   )
 }
 
-const calcCities = ['Москва', 'Санкт-Петербург', 'Екатеринбург', 'Новосибирск', 'Казань', 'Другой город']
 const searchGoalOptions = ['Постоянная работа', 'Подработка', 'Проектная занятость', 'Свой вариант']
 const CUSTOM_GOAL = 'Свой вариант'
 
 const BASE_RATE = 30
 
 export default function KadryHome() {
-  useDocumentTitle('Кадры — Работодателям')
+  useDocumentTitle('Кадры · Работодателям')
   const [salary, setSalary] = useState(50000)
-  const [salaryType, setSalaryType] = useState<'gross' | 'net'>('gross')
-  const [calcCity, setCalcCity] = useState('Москва')
+  const [calcPosition, setCalcPosition] = useState('')
   const [searchGoal, setSearchGoal] = useState(searchGoalOptions[0])
   const [customGoal, setCustomGoal] = useState('')
   const [discountReturning, setDiscountReturning] = useState(false)
@@ -448,9 +479,9 @@ export default function KadryHome() {
       contact: [serviceForm.phone, serviceForm.email, serviceForm.telegram].filter(Boolean).join(' / '),
       interest: [
         serviceForm.company,
-        `Город: ${calcCity}`,
+        `Кого ищем: ${calcPosition.trim() || 'не указано'}`,
         `Цель поиска: ${goalLabel}`,
-        `Заработная плата кандидата (${salaryType === 'gross' ? 'гросс' : 'на руки'}): ${salary.toLocaleString('ru-RU')} ₽/мес`,
+        `Заработная плата кандидата: ${salary.toLocaleString('ru-RU')} ₽/мес`,
         `Ставка агентства: ${rate}%${discountPct > 0 ? ` (скидка ${discountPct}%)` : ''}`,
         `Итого: ${fee.toLocaleString('ru-RU')} ₽`,
       ],
@@ -525,7 +556,7 @@ export default function KadryHome() {
 
   const selectedCandidates = demoCandidates.filter((c) => selectedIds[c.id])
   const selectedCount = selectedCandidates.length
-  const candidatesSubtotal = selectedCandidates.reduce((sum, c) => sum + contactPrice(c.exp), 0)
+  const candidatesSubtotal = selectedCandidates.reduce((sum, c) => sum + candidateContactPrice(c), 0)
   const candidatesTierPct = candidatesTierDiscountPct(selectedCount)
   const candidatesDiscount = Math.round((candidatesSubtotal * candidatesTierPct) / 100)
   const candidatesTotal = candidatesSubtotal - candidatesDiscount
@@ -540,7 +571,7 @@ export default function KadryHome() {
       contact: [requestForm.phone, requestForm.email, requestForm.telegram].filter(Boolean).join(' / '),
       interest: [
         requestForm.company,
-        ...selectedCandidates.map((c) => `Кандидат №${c.id} — ${c.position}, ${contactPrice(c.exp).toLocaleString('ru-RU')} ₽`),
+        ...selectedCandidates.map((c) => `Кандидат №${c.id} — ${c.position}, ${candidateContactPrice(c).toLocaleString('ru-RU')} ₽`),
         candidatesTierPct > 0 ? `Скидка ${candidatesTierPct}%` : '',
         `Итого: ${candidatesTotal.toLocaleString('ru-RU')} ₽`,
       ].filter(Boolean),
@@ -653,10 +684,18 @@ export default function KadryHome() {
                     ))}
                   </div>
 
-                  <div className="mt-3 text-sm font-semibold text-gold-light">Контакт — {contactPrice(c.exp).toLocaleString('ru-RU')} ₽</div>
+                  <div className="mt-3 text-sm font-semibold text-gold-light">Контакт — {candidateContactPrice(c).toLocaleString('ru-RU')} ₽</div>
 
                   {isOpen && (
                     <div className="mt-4 space-y-3 border-t border-white/10 pt-4 text-sm">
+                      {c.highlights && (
+                        <div>
+                          <div className="text-xs font-semibold uppercase tracking-wide text-white/40">Ключевые результаты</div>
+                          <ul className="mt-1 space-y-0.5 text-white/60">
+                            {c.highlights.map((h) => <li key={h}>· {h}</li>)}
+                          </ul>
+                        </div>
+                      )}
                       <div>
                         <div className="text-xs font-semibold uppercase tracking-wide text-white/40">Опыт работы</div>
                         <p className="mt-1 text-white/70">{c.workplace}</p>
@@ -723,7 +762,7 @@ export default function KadryHome() {
                 {selectedCandidates.map((c) => (
                   <li key={c.id} className="flex items-center justify-between gap-2">
                     <span className="text-white/70">Кандидат №{c.id} — {c.position}</span>
-                    <span className="shrink-0">{contactPrice(c.exp).toLocaleString('ru-RU')} ₽</span>
+                    <span className="shrink-0">{candidateContactPrice(c).toLocaleString('ru-RU')} ₽</span>
                   </li>
                 ))}
               </ul>
@@ -1035,7 +1074,7 @@ export default function KadryHome() {
                     Кликабельна — увеличенная прозрачная область поверх облегчает
                     попадание пальцем/курсором. */}
                 <path
-                  d="M4,20 C6,6 16,6 14,16 C12,24 22,24 24,14 L76,14 C78,24 88,24 86,16 C84,6 94,6 96,20"
+                  d="M4,20 C2,7 15,3 14,15 C13,25 2,24 22,17 L74,15 C82,25 96,27 90,13 C88,7 92,5 96,20"
                   fill="none"
                   stroke="transparent"
                   strokeWidth="7"
@@ -1043,7 +1082,7 @@ export default function KadryHome() {
                   onClick={() => setRouteMode('without')}
                 />
                 <path
-                  d="M4,20 C6,6 16,6 14,16 C12,24 22,24 24,14 L76,14 C78,24 88,24 86,16 C84,6 94,6 96,20"
+                  d="M4,20 C2,7 15,3 14,15 C13,25 2,24 22,17 L74,15 C82,25 96,27 90,13 C88,7 92,5 96,20"
                   fill="none"
                   stroke={routeMode === 'without' ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.32)'}
                   strokeWidth="2.2"
@@ -1086,7 +1125,7 @@ export default function KadryHome() {
                 style={{ top: '49%' }}
               />
 
-              <div className="route-endpoint-glow glass-dark absolute flex h-10 w-10 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-ink text-white" style={{ left: '4%', top: '50%' }}>
+              <div className="glass-dark absolute flex h-10 w-10 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-ink text-white" style={{ left: '4%', top: '50%' }}>
                 <IconBriefcase />
               </div>
               <div className="route-endpoint-glow glass-dark absolute flex h-10 w-10 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-ink text-white" style={{ left: '96%', top: '50%' }}>
@@ -1174,8 +1213,13 @@ export default function KadryHome() {
 
               <div className="grid gap-4 border-t border-white/10 pt-5 sm:grid-cols-2">
                 <label className="block text-sm font-semibold text-white">
-                  Город
-                  <FilterSelect placeholder="Выберите город" resetLabel="" value={calcCity} options={calcCities} onChange={(v) => setCalcCity(v || calcCities[0])} />
+                  Кого ищем
+                  <input
+                    value={calcPosition}
+                    onChange={(e) => setCalcPosition(e.target.value)}
+                    placeholder="Например, юрист-стажёр"
+                    className="mt-2 w-full rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm font-normal text-white outline-none placeholder:text-white/40 focus:border-white/40"
+                  />
                 </label>
 
                 <label className="block text-sm font-semibold text-white">
@@ -1199,25 +1243,7 @@ export default function KadryHome() {
               </div>
 
               <div className="mt-5 border-t border-white/10 pt-5">
-                <div className="flex items-center justify-between gap-3">
-                  <label className="text-sm font-semibold text-white" htmlFor="calc-salary">Заработная плата, ₽/мес</label>
-                  <div className="flex items-center gap-1 rounded-full border border-white/15 p-0.5 text-xs font-medium">
-                    <button
-                      type="button"
-                      onClick={() => setSalaryType('gross')}
-                      className={`rounded-full px-2.5 py-1 transition-colors ${salaryType === 'gross' ? 'bg-white text-ink' : 'text-white/60'}`}
-                    >
-                      Гросс
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setSalaryType('net')}
-                      className={`rounded-full px-2.5 py-1 transition-colors ${salaryType === 'net' ? 'bg-white text-ink' : 'text-white/60'}`}
-                    >
-                      нет
-                    </button>
-                  </div>
-                </div>
+                <label className="text-sm font-semibold text-white" htmlFor="calc-salary">Заработная плата, ₽/мес</label>
                 <input
                   id="calc-salary"
                   type="range"
@@ -1242,9 +1268,7 @@ export default function KadryHome() {
                   <span className="text-sm text-white/50">₽/мес</span>
                 </div>
                 <p className="mt-2 text-xs leading-relaxed text-white/40">
-                  {salaryType === 'gross'
-                    ? 'Гросс — сумма до вычета НДФЛ (13%), которую компания закладывает в вакансию.'
-                    : 'Нет (на руки) — сумма, которую сотрудник получает после вычета НДФЛ (13%) из гросс-оклада.'}
+                  Сумма, которую компания готова предложить сотруднику в месяц.
                 </p>
               </div>
 
@@ -1454,11 +1478,11 @@ export default function KadryHome() {
                 </div>
                 <div className="mb-5 space-y-1 rounded-lg bg-ink/[0.04] px-4 py-3 text-sm">
                   <div className="flex items-center justify-between">
-                    <span className="text-ink/60">{calcCity} · {goalLabel}</span>
+                    <span className="text-ink/60">{calcPosition.trim() || 'Кого ищем не указано'} · {goalLabel}</span>
                     <span className="text-base font-semibold text-ink">{fee.toLocaleString('ru-RU')} ₽</span>
                   </div>
                   <div className="text-xs text-ink/50">
-                    Зарплата {salary.toLocaleString('ru-RU')} ₽/мес ({salaryType === 'gross' ? 'гросс' : 'на руки'}) · ставка {rate}%
+                    Зарплата {salary.toLocaleString('ru-RU')} ₽/мес · ставка {rate}%
                     {discountPct > 0 && ` (скидка ${discountPct}%)`}
                   </div>
                 </div>
