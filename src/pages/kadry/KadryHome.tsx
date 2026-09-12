@@ -239,6 +239,18 @@ function candidatesTierDiscountPct(count: number): number {
   return 0
 }
 
+// Ориентировочный расчет по сегментам (см. методику ниже) — используется
+// только в информационном блоке «Как мы считаем стоимость контакта», не
+// пересчитывается динамически по кандидатам (у них цена берется из
+// contactPrice/candidateContactPrice).
+const pricingSegments = [
+  { segment: 'Студент / практикант', salary: '35 000 ₽', price: '≈ 2 100 ₽' },
+  { segment: 'Junior с опытом', salary: '55 000 ₽', price: '≈ 3 100 ₽' },
+  { segment: 'Middle-юрист (1–3 года)', salary: '120 000 ₽', price: '≈ 6 500 ₽' },
+  { segment: 'Senior / узкая специализация', salary: '220 000 ₽', price: '≈ 15 800 ₽' },
+  { segment: 'Топ-эксперт', salary: '400 000 ₽', price: '≈ 48 000 ₽' },
+]
+
 const cities = ['Москва', 'Санкт-Петербург']
 const schedules = ['Гибкий', 'Полный']
 const employments = ['Полная занятость', 'Частичная занятость', 'Проектная занятость']
@@ -266,7 +278,7 @@ const candidateOneOverride = {
   ],
   school: 'НИУ ВШЭ',
   course: '2 курс (специализация: гражданское право)',
-  skills: ['КонсультантПлюс, Гарант — поиск и анализ судебной практики', 'MS Office (Word, Excel) — подготовка правовых документов', 'Русский — родной, английский'],
+  skills: ['КонсультантПлюс, Гарант — поиск и анализ судебной практики', 'MS Office (Word, Excel) — подготовка правовых документов', 'Английский язык'],
   contactPriceOverride: 1500,
 }
 
@@ -755,6 +767,45 @@ export default function KadryHome() {
               {selectedCount >= 7 ? 'Скидка 10% за 7 и более кандидатов в заявке.' : 'Скидка 5% за 3 и более кандидатов в заявке — от 7 скидка 10%.'}
             </p>
           )}
+
+          {/* Методика ценообразования — коротко объясняет, откуда берется цена
+              контакта, чтобы она не выглядела произвольной. */}
+          <div className="glass-dark mt-10 rounded-2xl p-6">
+            <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-gold-light">Как мы считаем стоимость контакта</div>
+            <p className="mb-4 max-w-3xl text-sm text-white/60">
+              Цена открытия контакта — доля от нашего гонорара за закрытие вакансии: 30% от первой месячной
+              зарплаты кандидата до вычета НДФЛ, деленные на среднее число контактов, которые нужно продать до
+              одного найма, с поправкой на сегмент и опыт кандидата.
+            </p>
+            <div className="mb-4 overflow-x-auto rounded-xl bg-white/5 px-4 py-3 font-mono text-xs text-white/70 sm:text-sm">
+              Цена контакта = (Оклад/мес × 30%) ÷ N контактов на найм × K сегмента
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[480px] text-left text-sm text-white/70">
+                <thead>
+                  <tr className="border-b border-white/10 text-xs uppercase tracking-wide text-white/40">
+                    <th className="py-2 pr-4 font-medium">Сегмент</th>
+                    <th className="py-2 pr-4 font-medium">Оклад/мес</th>
+                    <th className="py-2 font-medium">Цена контакта</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pricingSegments.map((s) => (
+                    <tr key={s.segment} className="border-b border-white/5 last:border-0">
+                      <td className="py-2 pr-4 text-white">{s.segment}</td>
+                      <td className="py-2 pr-4">{s.salary}</td>
+                      <td className="py-2 font-semibold text-gold-light">{s.price}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="mt-4 text-xs text-white/40">
+              Цена контакта всегда в разы ниже полной комиссии агентства за закрытие вакансии — вы платите
+              только за доступ к уже отфильтрованному кандидату, а не за полный цикл подбора. При заявке на
+              несколько контактов сразу действует скидка за объем (см. выше).
+            </p>
+          </div>
         </section>
       )}
 
@@ -805,12 +856,14 @@ export default function KadryHome() {
               </button>
             </div>
           )}
+          {/* Яркая кнопка суммы заявки — намеренно не bg-ink, на темном фоне
+              страницы такая сливалась и была плохо заметна. */}
           <button
             type="button"
             onClick={() => setCartOpen((v) => !v)}
-            className="glass-dark flex items-center gap-4 rounded-full bg-ink px-7 py-4 text-white shadow-xl"
+            className="flex items-center gap-4 rounded-full bg-gold-light px-7 py-4 text-ink shadow-xl shadow-gold-light/30 transition-opacity hover:opacity-90"
           >
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gold-light text-sm font-bold text-ink">{selectedCount}</span>
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-ink text-sm font-bold text-white">{selectedCount}</span>
             <span className="text-base font-semibold">{candidatesTotal.toLocaleString('ru-RU')} ₽</span>
           </button>
         </div>
