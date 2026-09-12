@@ -156,9 +156,50 @@ body {
 .route-pulse {
   animation: route-pulse-anim 7s ease-in-out infinite;
 }
+
+/* Бегущая точка маршрута — обычный HTML div-круг (не SVG <circle>), поэтому
+   не искажается неравномерным масштабированием viewBox родительского SVG
+   (preserveAspectRatio="none") — раньше из-за этого точка выглядела не
+   кругом, а вытянутым "прямоугольником". Двигается по left% синхронно с
+   .route-build (те же 7с), исчезает у финиша — ровно в момент, когда
+   иконки по бокам маршрута вспыхивают (.route-endpoint-glow), обозначая,
+   что кандидат найден. */
+@keyframes route-dot-move {
+  0% {
+    left: 4%;
+    opacity: 1;
+  }
+  83% {
+    left: 96%;
+    opacity: 1;
+  }
+  90%,
+  100% {
+    left: 96%;
+    opacity: 0;
+  }
+}
+.route-dot {
+  animation: route-dot-move 7s linear infinite;
+}
+@keyframes route-endpoint-glow {
+  0%,
+  80%,
+  100% {
+    box-shadow: none;
+  }
+  90% {
+    box-shadow: 0 0 0 5px rgba(255, 255, 255, 0.25), 0 0 18px 6px rgba(255, 255, 255, 0.45);
+  }
+}
+.route-endpoint-glow {
+  animation: route-endpoint-glow 7s ease-in-out infinite;
+}
 @media (prefers-reduced-motion: reduce) {
   .route-build,
-  .route-pulse {
+  .route-pulse,
+  .route-dot,
+  .route-endpoint-glow {
     animation: none;
   }
 }
