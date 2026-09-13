@@ -110,6 +110,14 @@ export function setResponseStatus(id: string, status: EmployerVacancyResponse['s
   return all[idx]
 }
 
+/** Массовая смена статуса — одна запись в localStorage вместо N (см.
+ *  массовые действия над отликами в EmployerAccount.tsx). */
+export function setResponseStatusBulk(ids: string[], status: EmployerVacancyResponse['status']): void {
+  const idSet = new Set(ids)
+  const all = getResponses().map((r) => (idSet.has(r.id) ? { ...r, status } : r))
+  writeAll(all)
+}
+
 /** Демо-открытие контактов (как и покупка генераций — без реальной оплаты,
  *  заявка фиксируется лидом, см. EmployerAccount.tsx). */
 export function revealContact(id: string): EmployerVacancyResponse | undefined {

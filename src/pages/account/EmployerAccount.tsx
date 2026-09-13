@@ -7,10 +7,10 @@ import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import { getActiveRole, clearActiveRole } from '../../lib/accountRole'
 import { demoEmployer, demoEmployerCompany } from '../../lib/account'
 import {
-  getVacancies, approveVacancy, rejectVacancy, closeVacancy, sendStageMailing, deleteVacancy, setVacancyResponsible,
+  getVacancies, approveVacancy, rejectVacancy, closeVacancy, sendStageMailing, deleteVacancy, setVacancyResponsible, createVacancy,
 } from '../../lib/vacancies'
 import {
-  getResponsesForVacancy, getResponses, setResponseStatus, revealContact, contactPrice,
+  getResponsesForVacancy, getResponses, setResponseStatus, setResponseStatusBulk, revealContact, contactPrice,
 } from '../../lib/applications'
 import {
   getCreditsState, isFreeAvailable, freeAvailableAt, canGenerate, addCredits, formatCountdown, VACANCY_CREDITS_KEY,
@@ -21,7 +21,8 @@ import { getRankings, addRanking, deleteRanking, rankingBonus } from '../../lib/
 import { getNotifications, markNotificationRead, markAllNotificationsRead, unreadCount } from '../../lib/notifications'
 import { getThreads, ensureThread, sendMessage, markThreadRead, unreadForRole } from '../../lib/chat'
 import { getTeamMembers, addTeamMember, removeTeamMember, OWNER_ID } from '../../lib/team'
-import type { ApplicationStatus, VacancyModerationStatus, VacancyVisibilityStage } from '../../types'
+import { INDUSTRIES } from '../../types'
+import type { ApplicationStatus, VacancyModerationStatus, VacancyVisibilityStage, CandidateLevel, Industry } from '../../types'
 
 const responseStatusLabel: Record<ApplicationStatus, string> = {
   new: 'Новый',
@@ -190,6 +191,11 @@ export default function EmployerAccount() {
   // общим списком, чтобы было видно, кто откликнулся именно на нее.
   const [expandedVacancyId, setExpandedVacancyId] = useState<string | null>(null)
   const [responseVersion, setResponseVersion] = useState(0)
+  // Фильтр по откликам (направление/уровень/наличие теста/поиск по имени) +
+  // выбор для массовых действий — общие на разворачиваемый список отклика,
+  // сбрасываются при сворачивании/смене вакансии.
+  const [responseFilters, setResponseFilters] = useState({ industry: '' as '' | Industry, level: '' as '' | CandidateLevel, testedOnly: false, search: '' })
+  const [selectedResponseIds, setSelectedResponseIds] = useState<Set<string>>(new Set())
 
   // Рейтинг работодателя: отзывы соискателей + места в рейтингах, которые
   // работодатель загружает сам (справочник реальных рейтингов пришлет
@@ -250,6 +256,35 @@ export default function EmployerAccount() {
   function handleResponseStatus(id: string, status: ApplicationStatus) {
     setResponseStatus(id, status)
     refreshResponses()
+  }
+
+  function toggleExpandVacancy(vacancyId: string) {
+    setExpandedVacancyId((prev) => (prev === vacancyId ? null : vacancyId))
+    setResponseFilters({ industry: '', level: '', testedOnly: false, search: '' })
+    setSelectedResponseIds(new Set())
+  }
+
+  function toggleSelectResponse(id: string) {
+    setSelectedResponseIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function handleBulkStatus(status: ApplicationStatus) {
+    if (selectedResponseIds.size === 0) return
+    setResponseStatusBulk([...selectedResponseIds], status)
+    setSelectedResponseIds(new Set())
+    refreshResponses()
+    setNotice(`Статус «${responseStatusLabel[status]}» применён к ${selectedResponseIds.size} откликам.`)
+  }
+
+  function handleDuplicateVacancy(data: (typeof vacancies)[number]['data']) {
+    createVacancy({ ...data, title: `${data.title} (копия)` })
+    refresh()
+    setNotice('Вакансия скопирована — новая копия ждет модерации.')
   }
 
   function handleRevealContact(id: string, name: string, price: number) {
@@ -836,27 +871,93 @@ export default function EmployerAccount() {
                                 Изменить
                               </Link>
                             )}
+                            <button type="button" onClick={() => handleDuplicateVacancy(v.data)} className="text-sm font-medium text-ink/60 hover:text-ink">
+                              Создать похожую
+                            </button>
                             <button type="button" onClick={() => handleDelete(v.id)} className="text-ink/40 hover:text-red-600">Удалить</button>
                           </div>
                         </div>
 
                         {v.moderationStatus === 'published' && (() => {
-                          const responses = getResponsesForVacancy(v.id)
+                          const allResponsesForVacancy = getResponsesForVacancy(v.id)
                           const expanded = expandedVacancyId === v.id
+                          const responses = allResponsesForVacancy.filter((r) => {
+                            if (responseFilters.industry && !r.industry.includes(responseFilters.industry)) return false
+                            if (responseFilters.level && r.level !== responseFilters.level) return false
+                            if (responseFilters.testedOnly && r.skillScore === undefined && r.softSkillScore === undefined) return false
+                            if (responseFilters.search && !r.name.toLowerCase().includes(responseFilters.search.toLowerCase())) return false
+                            return true
+                          })
+                          const vacancyFunnel = responseStatusOrder.map((s) => ({
+                            status: s,
+                            count: allResponsesForVacancy.filter((r) => r.status === s).length,
+                          }))
                           return (
                             <div className="mt-3">
                               <button
                                 type="button"
-                                onClick={() => setExpandedVacancyId(expanded ? null : v.id)}
+                                onClick={() => toggleExpandVacancy(v.id)}
                                 className="rounded-full border border-ink/15 px-3 py-1.5 text-xs font-semibold text-ink/70 hover:border-ink/40 hover:text-ink"
                               >
-                                Отклики ({responses.length}) {expanded ? '▲' : '▼'}
+                                Отклики ({allResponsesForVacancy.length}) {expanded ? '▲' : '▼'}
                               </button>
 
                               {expanded && (
-                                <div key={responseVersion} className="mt-3 divide-y divide-ink/10 rounded-lg border border-ink/10">
+                                <div key={responseVersion} className="mt-3">
+                                  {allResponsesForVacancy.length > 0 && (
+                                    <div className="mb-3 flex flex-wrap items-center gap-3 rounded-lg border border-ink/10 px-3 py-2 text-xs text-ink/50">
+                                      {vacancyFunnel.map(({ status, count }) => (
+                                        <span key={status}>{responseStatusLabel[status]}: <span className="font-semibold text-ink">{count}</span></span>
+                                      ))}
+                                    </div>
+                                  )}
+
+                                  {allResponsesForVacancy.length > 0 && (
+                                    <div className="mb-3 flex flex-wrap items-center gap-2">
+                                      <input
+                                        value={responseFilters.search}
+                                        onChange={(e) => setResponseFilters((f) => ({ ...f, search: e.target.value }))}
+                                        placeholder="Поиск по имени"
+                                        className="rounded-full border border-ink/15 px-3 py-1.5 text-xs placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+                                      />
+                                      <select
+                                        value={responseFilters.industry}
+                                        onChange={(e) => setResponseFilters((f) => ({ ...f, industry: e.target.value as '' | Industry }))}
+                                        className="rounded-full border border-ink/15 bg-white px-3 py-1.5 text-xs text-ink/70"
+                                      >
+                                        <option value="">Любое направление</option>
+                                        {INDUSTRIES.map((i) => <option key={i.id} value={i.id}>{i.label}</option>)}
+                                      </select>
+                                      <select
+                                        value={responseFilters.level}
+                                        onChange={(e) => setResponseFilters((f) => ({ ...f, level: e.target.value as '' | CandidateLevel }))}
+                                        className="rounded-full border border-ink/15 bg-white px-3 py-1.5 text-xs text-ink/70"
+                                      >
+                                        <option value="">Любой уровень</option>
+                                        {Object.entries(levelLabel).map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+                                      </select>
+                                      <label className="flex items-center gap-1.5 rounded-full border border-ink/15 px-3 py-1.5 text-xs text-ink/70">
+                                        <input type="checkbox" checked={responseFilters.testedOnly} onChange={(e) => setResponseFilters((f) => ({ ...f, testedOnly: e.target.checked }))} />
+                                        С результатами теста
+                                      </label>
+                                    </div>
+                                  )}
+
+                                  {selectedResponseIds.size > 0 && (
+                                    <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg bg-ink px-3 py-2 text-xs text-white">
+                                      Выбрано: {selectedResponseIds.size}
+                                      {responseStatusOrder.map((s) => (
+                                        <button key={s} type="button" onClick={() => handleBulkStatus(s)} className="rounded-full bg-white/15 px-2.5 py-1 font-semibold hover:bg-white/25">
+                                          → {responseStatusLabel[s]}
+                                        </button>
+                                      ))}
+                                      <button type="button" onClick={() => setSelectedResponseIds(new Set())} className="ml-auto text-white/70 hover:text-white">Снять выбор</button>
+                                    </div>
+                                  )}
+
+                                  <div className="divide-y divide-ink/10 rounded-lg border border-ink/10">
                                   {responses.length === 0 && (
-                                    <p className="p-4 text-sm text-ink/50">Пока никто не откликнулся на эту вакансию.</p>
+                                    <p className="p-4 text-sm text-ink/50">{allResponsesForVacancy.length === 0 ? 'Пока никто не откликнулся на эту вакансию.' : 'Ничего не найдено по фильтру.'}</p>
                                   )}
                                   {responses.map((r) => {
                                     const price = contactPrice(r.experienceYears)
@@ -865,6 +966,12 @@ export default function EmployerAccount() {
                                         <div className="flex flex-wrap items-start justify-between gap-3">
                                           <div>
                                             <div className="flex flex-wrap items-center gap-2">
+                                              <input
+                                                type="checkbox"
+                                                checked={selectedResponseIds.has(r.id)}
+                                                onChange={() => toggleSelectResponse(r.id)}
+                                                aria-label={`Выбрать отклик ${r.name}`}
+                                              />
                                               <span className="font-medium">{r.name}</span>
                                               <span className="text-xs text-ink/40">{r.city} · {levelLabel[r.level]}</span>
                                             </div>
@@ -920,6 +1027,7 @@ export default function EmployerAccount() {
                                       </div>
                                     )
                                   })}
+                                  </div>
                                 </div>
                               )}
                             </div>
