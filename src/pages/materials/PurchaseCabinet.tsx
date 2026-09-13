@@ -37,7 +37,7 @@ export default function PurchaseCabinet() {
 
   return (
     <div>
-      <PageHero eyebrow="Маркет" title="Личный кабинет" description="Здесь хранятся ваши покупки материалов." />
+      <PageHero eyebrow="Маркетплейс" title="Личный кабинет" description="Здесь хранятся ваши покупки материалов." />
 
       <section className="container-page pb-16">
         <div className="glass mx-auto max-w-xl rounded-2xl p-8">
@@ -46,7 +46,7 @@ export default function PurchaseCabinet() {
           {status === 'error' && (
             <div className="text-center">
               <p className="text-sm text-ink/60">Не нашли данные о покупке — если вы только что оплатили, напишите нам, поможем разобраться.</p>
-              <Link to="/marketplace" className="mt-4 inline-block text-sm font-medium text-ink underline">В маркет</Link>
+              <Link to="/marketplace" className="mt-4 inline-block text-sm font-medium text-ink underline">В маркетплейс</Link>
             </div>
           )}
 

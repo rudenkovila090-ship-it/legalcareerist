@@ -129,7 +129,7 @@ function ProductCard({ m }: { m: MaterialItem }) {
 }
 
 export default function MarketplaceHome() {
-  useDocumentTitle('Маркет')
+  useDocumentTitle('Юридический маркетплейс')
   const [category, setCategory] = useState<Set<MaterialKind>>(new Set())
   const [directions, setDirections] = useState<Set<MarketplaceDirection>>(new Set())
   const [priceFrom, setPriceFrom] = useState('')
@@ -181,7 +181,7 @@ export default function MarketplaceHome() {
     <div>
       <PageHero
         eyebrow="Карьерный Юрист"
-        title="Маркет"
+        title="Юридический маркетплейс"
         description="Каталог полезных материалов для юридической карьеры: гайды, чек-листы, лонглисты, статьи и вебинары."
         wide
       />
@@ -224,7 +224,7 @@ export default function MarketplaceHome() {
 
           {/* Каталог */}
           <div>
-            <div className="mb-1 text-sm font-medium uppercase tracking-wide text-gold">Маркет</div>
+            <div className="mb-1 text-sm font-medium uppercase tracking-wide text-gold">Каталог</div>
             <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
               <h2 className="text-2xl font-semibold">Каталог материалов</h2>
               <div className="flex items-center gap-3">

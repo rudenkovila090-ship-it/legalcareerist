@@ -983,7 +983,7 @@ export default function KadryHome() {
         <div className="container-page">
           <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold-light">Кейсы и результаты</div>
           <h2 className="mb-6 text-2xl font-semibold text-white">Наши закрытые вакансии</h2>
-          <div className="mx-auto grid max-w-4xl gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mx-auto grid max-w-5xl gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {cases.map((c, i) => (
               <div key={`${c.title}-${i}`} className="glass-dark rounded-xl p-4">
                 <div className="flex items-center gap-2">
@@ -1040,9 +1040,10 @@ export default function KadryHome() {
           <h2 className="mb-6 text-2xl font-semibold text-white">Закрываем следующие позиции</h2>
           <div className="mx-auto grid max-w-3xl gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {positions.map((p) => (
-              <div key={p.title} className="rounded-lg bg-white/10 px-3 py-2.5 text-xs">
+              <div key={p.title} className="flex h-full flex-col rounded-lg bg-white/10 px-3 py-2.5 text-xs">
                 <div className="font-medium leading-snug text-white">{p.title}</div>
-                <div className="mt-0.5 text-white/50">{p.salary}</div>
+                <div className="flex-1" />
+                <div className="mt-1 text-white/50">{p.salary}</div>
               </div>
             ))}
           </div>

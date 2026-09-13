@@ -4,7 +4,7 @@ const nav = [
   { to: '/kadry/employers', label: 'Кадры' },
   { to: '/community', label: 'Сообщество' },
   { to: '/events', label: 'Мероприятия' },
-  { to: '/marketplace', label: 'Маркет' },
+  { to: '/marketplace', label: 'Маркетплейс' },
   { to: '/blog', label: 'Блог' },
 ]
 
@@ -23,8 +23,8 @@ const kadryAudience = [
 ]
 
 function linkClass({ isActive }: { isActive: boolean }) {
-  return `text-sm font-medium transition-colors ${
-    isActive ? 'text-ink' : 'text-ink/60 hover:text-ink'
+  return `rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
+    isActive ? 'bg-ink/[0.08] text-ink' : 'text-ink/60 hover:bg-ink/[0.04] hover:text-ink'
   }`
 }
 

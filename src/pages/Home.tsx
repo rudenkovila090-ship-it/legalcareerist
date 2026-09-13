@@ -156,7 +156,17 @@ const faqItems = [
   { q: 'Что даст вступление в сообщество, если в вузе уже есть свой студенческий клуб?', a: 'Клуб при вузе держится в рамках одного учебного заведения и обычно распадается после выпуска. Наше сообщество — это весь юридический рынок, а не один университет: закрытые вакансии от разных работодателей, нетворкинг со студентами и юристами из других городов и вузов, связи, которые остаются с вами и после диплома.' },
   { q: 'Не рано ли вступать, если я только на первых курсах?', a: 'Чем раньше, тем лучше — закрытые вакансии и менторская поддержка помогают заранее понять, какое направление права вам ближе, а не разбираться в этом уже после выпуска, когда решения принимать сложнее.' },
   { q: 'Как заказать услугу?', a: 'Оставьте заявку удобным способом: через личный кабинет на сайте, в Telegram-боте или формой на странице нужного раздела — мы свяжемся с вами и уточним детали задачи.' },
-  { q: 'Как понять, какая услуга мне нужна?', a: 'Просто опишите вашу ситуацию — наш специалист разберется в запросе и подберет то, что решит вашу задачу быстрее всего: разовую консультацию, комплексное сопровождение или подбор сотрудника.' },
+  {
+    q: 'Как понять, какая услуга мне нужна?',
+    a: (
+      <>
+        Просто опишите вашу ситуацию — наш специалист разберется в запросе и подберет то, что решит вашу задачу
+        быстрее всего: разовую консультацию, комплексное сопровождение или подбор сотрудника.{' '}
+        <Link to="/kadry/contacts" className="font-medium text-ink underline">Напишите нам</Link> и оставьте
+        контактные данные — мы свяжемся с вами.
+      </>
+    ),
+  },
 ]
 
 export default function Home() {
@@ -180,14 +190,14 @@ export default function Home() {
             </Link>
             <Link to="/community" className="rounded-2xl border-2 border-ink bg-white p-5 text-center shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-[0_0_0_8px_rgba(111,147,196,0.18)]">
               <div className="text-lg font-semibold">Сообщество</div>
-              <div className="mt-1 text-sm text-ink/60">Студент или начинающий юрист?</div>
+              <div className="mt-1 text-sm text-ink/60">Для студентов и начинающих юристов</div>
             </Link>
             <Link to="/events" className="rounded-2xl border-2 border-ink bg-white p-5 text-center shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-[0_0_0_8px_rgba(111,147,196,0.18)]">
               <div className="text-lg font-semibold">Мероприятия</div>
-              <div className="mt-1 text-sm text-ink/60">События для студентов-юристов</div>
+              <div className="mt-1 text-sm text-ink/60">События для юридического рынка</div>
             </Link>
             <Link to="/marketplace" className="rounded-2xl border-2 border-ink bg-white p-5 text-center shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-[0_0_0_8px_rgba(111,147,196,0.18)]">
-              <div className="text-lg font-semibold">Маркет</div>
+              <div className="text-lg font-semibold">Юридический маркетплейс</div>
               <div className="mt-1 text-sm text-ink/60">Каталог полезных материалов</div>
             </Link>
           </div>
