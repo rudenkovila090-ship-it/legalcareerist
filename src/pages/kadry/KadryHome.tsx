@@ -1041,10 +1041,8 @@ export default function KadryHome() {
           <div className="mx-auto grid max-w-3xl gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {positions.map((p) => (
               <div key={p.title} className="rounded-lg bg-white/10 px-3 py-2.5 text-xs">
-                <div className="flex items-center justify-between gap-2 whitespace-nowrap">
-                  <span className="truncate font-medium text-white">{p.title}</span>
-                  <span className="shrink-0 text-white/50">{p.salary}</span>
-                </div>
+                <div className="font-medium leading-snug text-white">{p.title}</div>
+                <div className="mt-0.5 text-white/50">{p.salary}</div>
               </div>
             ))}
           </div>

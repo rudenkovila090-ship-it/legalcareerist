@@ -31,6 +31,20 @@ function IconHeartHands() {
     </svg>
   )
 }
+function IconChevronLeft() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+      <path d="M15 6l-6 6 6 6" />
+    </svg>
+  )
+}
+function IconChevronRight() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+      <path d="M9 6l6 6-6 6" />
+    </svg>
+  )
+}
 
 const valueProps = [
   {
@@ -72,32 +86,65 @@ const achievements = [
 
 function AchievementsBoard() {
   const [active, setActive] = useState(0)
+  const [paused, setPaused] = useState(false)
 
   useEffect(() => {
+    if (paused) return
     const id = setInterval(() => setActive((i) => (i + 1) % achievements.length), 3500)
     return () => clearInterval(id)
-  }, [])
+  }, [paused])
 
   const current = achievements[active]
 
+  function go(delta: number) {
+    setActive((i) => (i + delta + achievements.length) % achievements.length)
+  }
+
   return (
-    <div className="mx-auto max-w-[640px] overflow-hidden rounded-2xl bg-ink text-white">
+    <div
+      className="mx-auto max-w-[640px] overflow-hidden rounded-2xl bg-ink text-white"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+    >
       <div className="flex min-h-[130px] flex-col justify-between p-5 text-center sm:min-h-[150px] sm:p-6">
         <div className="text-xs uppercase tracking-wide text-white/40">{current.source}</div>
-        <div key={active} className="animate-board-fade overflow-x-auto">
-          <div className="text-sm font-semibold sm:whitespace-nowrap">
-            Номинация «{current.nomination}» — <span className="text-gold-light">{current.place}</span>
+        <div className="flex items-center justify-center gap-2">
+          <button
+            type="button"
+            onClick={() => go(-1)}
+            aria-label="Предыдущее достижение"
+            className="shrink-0 rounded-full p-1.5 text-white/40 hover:bg-white/10 hover:text-white"
+          >
+            <IconChevronLeft />
+          </button>
+          <div key={active} className="animate-board-fade overflow-x-auto">
+            <div className="text-sm font-semibold sm:whitespace-nowrap">
+              Номинация «{current.nomination}» — <span className="text-gold-light">{current.place}</span>
+            </div>
           </div>
+          <button
+            type="button"
+            onClick={() => go(1)}
+            aria-label="Следующее достижение"
+            className="shrink-0 rounded-full p-1.5 text-white/40 hover:bg-white/10 hover:text-white"
+          >
+            <IconChevronRight />
+          </button>
         </div>
-        <div className="flex justify-center gap-1.5">
+        {/* Клик по точке — не сам индикатор, а увеличенная область вокруг него
+            (p-1.5 вокруг видимой точки 6px) — иначе тап по крошечной точке
+            промахивался, особенно на мобильном. */}
+        <div className="flex justify-center gap-0.5">
           {achievements.map((a, i) => (
             <button
               key={`${a.source}-${a.nomination}`}
               type="button"
               aria-label={`Показать: ${a.nomination}`}
               onClick={() => setActive(i)}
-              className={`h-1.5 rounded-full transition-all ${i === active ? 'w-6 bg-gold-light' : 'w-1.5 bg-white/25 hover:bg-white/50'}`}
-            />
+              className="flex items-center justify-center p-1.5"
+            >
+              <span className={`block h-1.5 rounded-full transition-all ${i === active ? 'w-6 bg-gold-light' : 'w-1.5 bg-white/25 hover:bg-white/50'}`} />
+            </button>
           ))}
         </div>
       </div>
@@ -106,10 +153,10 @@ function AchievementsBoard() {
 }
 
 const faqItems = [
-  { q: 'Что такое Карьерный юрист?', a: 'Кадровое агентство и сообщество для юридического рынка под одним брендом — под ним объединены подбор персонала для юридических фирм и закрытое сообщество студентов-юристов.' },
-  { q: 'Чем вы занимаетесь?', a: 'Находим сотрудников для юридических фирм, помогаем соискателям с подбором работы и карьерными консультациями, объединяем студентов-юристов в закрытом сообществе.' },
-  { q: 'Как заказать услугу?', a: 'Оставьте заявку удобным для вас способом, мы уточним детали задачи и подберем подходящий формат и специалиста.' },
-  { q: 'Как понять, какая услуга мне нужна?', a: 'Опишите свою ситуацию при обращении — мы поможем определить, что решит вашу задачу быстрее всего: разовая консультация или комплексное сопровождение.' },
+  { q: 'Что даст вступление в сообщество, если в вузе уже есть свой студенческий клуб?', a: 'Клуб при вузе держится в рамках одного учебного заведения и обычно распадается после выпуска. Наше сообщество — это весь юридический рынок, а не один университет: закрытые вакансии от разных работодателей, нетворкинг со студентами и юристами из других городов и вузов, связи, которые остаются с вами и после диплома.' },
+  { q: 'Не рано ли вступать, если я только на первых курсах?', a: 'Чем раньше, тем лучше — закрытые вакансии и менторская поддержка помогают заранее понять, какое направление права вам ближе, а не разбираться в этом уже после выпуска, когда решения принимать сложнее.' },
+  { q: 'Как заказать услугу?', a: 'Оставьте заявку удобным способом: через личный кабинет на сайте, в Telegram-боте или формой на странице нужного раздела — мы свяжемся с вами и уточним детали задачи.' },
+  { q: 'Как понять, какая услуга мне нужна?', a: 'Просто опишите вашу ситуацию — наш специалист разберется в запросе и подберет то, что решит вашу задачу быстрее всего: разовую консультацию, комплексное сопровождение или подбор сотрудника.' },
 ]
 
 export default function Home() {
@@ -120,7 +167,7 @@ export default function Home() {
         <div className="container-page py-16 text-center">
           <div className="mb-3 text-sm font-medium uppercase tracking-wide text-gold">Карьерный Юрист</div>
           <h1 className="mx-auto max-w-3xl text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">
-            Карьера в праве строится легче — рядом со своими людьми
+            Карьера в праве строится легче — в кругу единомышленников
           </h1>
           <p className="mx-auto mt-4 max-w-xl text-ink/60">
             Карьерный юрист — это кадровое агентство, которое помогает студентам и юристам расти,
@@ -179,8 +226,8 @@ export default function Home() {
               </div>
             </div>
             <blockquote className="border-l-2 border-gold pl-4 text-sm italic text-ink/70">
-              «Карьерный юрист — это пространство возможностей для юридического рынка, где каждая
-              аудитория находит свое».
+              «Карьерный юрист — это пространство возможностей для юридического рынка, где каждый
+              человек может найти что-то особенно полезное для себя».
             </blockquote>
           </div>
         </div>
