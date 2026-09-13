@@ -19,6 +19,7 @@ import { submitLead, getLeads } from '../../lib/leads'
 import { getReviews, computeEmployerRating } from '../../lib/reviews'
 import { getRankings, addRanking, deleteRanking, rankingBonus } from '../../lib/rankings'
 import { getNotifications, markNotificationRead, markAllNotificationsRead, unreadCount } from '../../lib/notifications'
+import { getThreads, ensureThread, sendMessage, markThreadRead, unreadForRole } from '../../lib/chat'
 import type { ApplicationStatus, VacancyModerationStatus, VacancyVisibilityStage } from '../../types'
 
 const responseStatusLabel: Record<ApplicationStatus, string> = {
@@ -118,10 +119,18 @@ function IconShield() {
     </svg>
   )
 }
+function IconChat() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+      <path d="M4 5.5h16v11H9l-4 3.5v-3.5H4v-11Z" />
+    </svg>
+  )
+}
 
 const sections: AccountSection[] = [
   { id: 'profile', label: 'Профиль', icon: <IconProfile /> },
   { id: 'work', label: 'Вакансии', icon: <IconBriefcase /> },
+  { id: 'messages', label: 'Сообщения', icon: <IconChat /> },
   { id: 'community', label: 'Сообщество и мероприятия', icon: <IconUsers /> },
   { id: 'orders', label: 'Заказы', icon: <IconOrders /> },
   { id: 'notifications', label: 'Уведомления', icon: <IconBell /> },
@@ -164,6 +173,12 @@ export default function EmployerAccount() {
   // Уведомления
   const [notifications, setNotifications] = useState(() => getNotifications('employer'))
 
+  // Встроенный чат с соискателями — общий localStorage с кабинетом
+  // соискателя (см. lib/chat.ts), тред открывается из отклика на вакансию.
+  const [threads, setThreads] = useState(() => getThreads())
+  const [openThreadId, setOpenThreadId] = useState<string | null>(null)
+  const [chatDraft, setChatDraft] = useState('')
+
   // Настройки — чисто демо, не влияют на реальный интерфейс сайта.
   const [emailNotifications, setEmailNotifications] = useState(demoEmployer.newsletterOptIn)
   const [compactView, setCompactView] = useState(false)
@@ -202,6 +217,24 @@ export default function EmployerAccount() {
     })
     refreshResponses()
     setNotice(`Контакты кандидата «${name}» открыты.`)
+  }
+
+  const chatUnread = threads.reduce((sum, t) => sum + unreadForRole(t, 'employer'), 0)
+  const openThread = threads.find((t) => t.id === openThreadId)
+
+  function handleOpenChat(responseId: string, candidateName: string, vacancyTitle: string) {
+    ensureThread(responseId, { candidateName, vacancyTitle, employerName: demoEmployerCompany.name })
+    markThreadRead(responseId, 'employer')
+    setThreads(getThreads())
+    setOpenThreadId(responseId)
+  }
+
+  function handleSendChat(e: FormEvent) {
+    e.preventDefault()
+    if (!openThreadId || !chatDraft.trim()) return
+    sendMessage(openThreadId, 'employer', chatDraft.trim())
+    setThreads(getThreads())
+    setChatDraft('')
   }
 
   const rating = computeEmployerRating(reviews, rankingBonus(rankings))
@@ -320,7 +353,7 @@ export default function EmployerAccount() {
       />
 
       <div className="container-page grid gap-8 py-10 lg:grid-cols-[220px_1fr]">
-        <AccountSidebarNav sections={sections} active={section} onSelect={setSection} unreadCount={unreadCount(notifications)} />
+        <AccountSidebarNav sections={sections} active={section} onSelect={setSection} badges={{ notifications: unreadCount(notifications), messages: chatUnread }} />
 
         <div className="space-y-8">
           {section === 'profile' && (
@@ -614,6 +647,13 @@ export default function EmployerAccount() {
                                                 Открыть контакты — {price} ₽
                                               </button>
                                             )}
+                                            <button
+                                              type="button"
+                                              onClick={() => handleOpenChat(r.id, r.name, v.data.title || 'Вакансия без названия')}
+                                              className="mt-2 ml-2 rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-white hover:bg-ink/90"
+                                            >
+                                              Написать
+                                            </button>
                                           </div>
                                           <select
                                             value={r.status}
@@ -637,6 +677,37 @@ export default function EmployerAccount() {
                     ))}
                   </div>
                 )}
+              </div>
+            </section>
+          )}
+
+          {section === 'messages' && (
+            <section>
+              <h2 className="mb-3 text-lg font-semibold">Сообщения</h2>
+              <div className="glass divide-y divide-ink/10 rounded-xl">
+                {threads.length === 0 && <p className="p-5 text-sm text-ink/50">Нет переписок — начните из отклика на вакансию кнопкой «Написать».</p>}
+                {threads.map((t) => {
+                  const last = t.messages[t.messages.length - 1]
+                  const unread = unreadForRole(t, 'employer')
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => handleOpenChat(t.id, t.candidateName, t.vacancyTitle)}
+                      className="flex w-full items-start justify-between gap-3 p-4 text-left hover:bg-ink/[0.02]"
+                    >
+                      <div>
+                        <div className="flex items-center gap-2 font-medium">
+                          {t.candidateName}
+                          {!!unread && <span className="rounded-full bg-red-500 px-1.5 py-0.5 text-[11px] font-semibold text-white">{unread}</span>}
+                        </div>
+                        <div className="text-xs text-ink/50">{t.vacancyTitle}</div>
+                        {last && <p className="mt-1 text-sm text-ink/60">{last.text}</p>}
+                      </div>
+                      {last && <div className="shrink-0 text-xs text-ink/40">{new Date(last.sentAt).toLocaleDateString('ru-RU')}</div>}
+                    </button>
+                  )
+                })}
               </div>
             </section>
           )}
@@ -789,6 +860,47 @@ export default function EmployerAccount() {
           )}
         </div>
       </div>
+
+      {/* Чат с соискателем — общий localStorage с кабинетом соискателя (см. lib/chat.ts) */}
+      {openThread && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-ink/70 p-0 sm:items-center sm:p-4"
+          onClick={(e) => { if (e.target === e.currentTarget) setOpenThreadId(null) }}
+        >
+          <div className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-t-2xl bg-white text-ink sm:rounded-2xl">
+            <div className="flex items-center justify-between border-b border-ink/10 p-5">
+              <div>
+                <h3 className="text-lg font-semibold">{openThread.candidateName}</h3>
+                <p className="text-xs text-ink/50">{openThread.vacancyTitle}</p>
+              </div>
+              <button type="button" onClick={() => setOpenThreadId(null)} className="text-ink/40 hover:text-ink" aria-label="Закрыть">✕</button>
+            </div>
+            <div className="flex-1 space-y-3 overflow-y-auto p-5">
+              {openThread.messages.map((m) => (
+                <div key={m.id} className={`flex ${m.senderRole === 'employer' ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm ${m.senderRole === 'employer' ? 'bg-ink text-white' : 'bg-ink/[0.06] text-ink'}`}>
+                    {m.text}
+                    <div className={`mt-1 text-[11px] ${m.senderRole === 'employer' ? 'text-white/50' : 'text-ink/40'}`}>
+                      {new Date(m.sentAt).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <form onSubmit={handleSendChat} className="flex gap-2 border-t border-ink/10 p-4">
+              <input
+                value={chatDraft}
+                onChange={(e) => setChatDraft(e.target.value)}
+                placeholder="Написать сообщение…"
+                className="flex-1 rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+              />
+              <button type="submit" className="rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white hover:bg-ink/90">
+                Отправить
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Покупка пакета генераций */}
       {buyingPack && (

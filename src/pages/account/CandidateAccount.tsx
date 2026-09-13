@@ -20,6 +20,7 @@ import { submitLead, getLeads } from '../../lib/leads'
 import { getTestResults, saveSkillTestResult, saveSoftSkillTestResult } from '../../lib/testing'
 import { skillQuestions, softSkillStatements } from '../../data/skillTests'
 import { getNotifications, markNotificationRead, markAllNotificationsRead, unreadCount } from '../../lib/notifications'
+import { getThreads, markThreadRead, sendMessage, unreadForRole } from '../../lib/chat'
 import { events } from '../../data/events'
 import { INDUSTRIES, type Industry } from '../../types'
 
@@ -112,9 +113,18 @@ function IconShield() {
   )
 }
 
+function IconChat() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+      <path d="M4 5.5h16v11H9l-4 3.5v-3.5H4v-11Z" />
+    </svg>
+  )
+}
+
 const sections: AccountSection[] = [
   { id: 'profile', label: 'Профиль', icon: <IconProfile /> },
   { id: 'work', label: 'Поиск работы', icon: <IconBriefcase /> },
+  { id: 'messages', label: 'Сообщения', icon: <IconChat /> },
   { id: 'community', label: 'Сообщество и мероприятия', icon: <IconUsers /> },
   { id: 'orders', label: 'Заказы', icon: <IconOrders /> },
   { id: 'notifications', label: 'Уведомления', icon: <IconBell /> },
@@ -159,6 +169,13 @@ export default function CandidateAccount() {
 
   // Уведомления
   const [notifications, setNotifications] = useState(() => getNotifications('candidate'))
+
+  // Встроенный чат с работодателем — общий localStorage с кабинетом
+  // работодателя (см. lib/chat.ts): тред создает работодатель из отклика,
+  // здесь соискатель его видит и отвечает.
+  const [threads, setThreads] = useState(() => getThreads())
+  const [openThreadId, setOpenThreadId] = useState<string | null>(null)
+  const [chatDraft, setChatDraft] = useState('')
 
   // Настройки — чисто демо, не влияют на реальный интерфейс сайта.
   const [emailNotifications, setEmailNotifications] = useState(demoUser.newsletterOptIn)
@@ -262,6 +279,24 @@ export default function CandidateAccount() {
     setNotifications(markAllNotificationsRead('candidate'))
   }
 
+  const myThreads = threads.filter((t) => t.candidateName === demoUser.name)
+  const chatUnread = myThreads.reduce((sum, t) => sum + unreadForRole(t, 'candidate'), 0)
+  const openThread = myThreads.find((t) => t.id === openThreadId)
+
+  function handleOpenChat(id: string) {
+    markThreadRead(id, 'candidate')
+    setThreads(getThreads())
+    setOpenThreadId(id)
+  }
+
+  function handleSendChat(e: FormEvent) {
+    e.preventDefault()
+    if (!openThreadId || !chatDraft.trim()) return
+    sendMessage(openThreadId, 'candidate', chatDraft.trim())
+    setThreads(getThreads())
+    setChatDraft('')
+  }
+
   function handleSaveSettings(e: FormEvent) {
     e.preventDefault()
     setSettingsSaved(true)
@@ -279,7 +314,7 @@ export default function CandidateAccount() {
       <PageHero eyebrow="Личный кабинет" title={demoUser.name} description="Демонстрационные данные — показывают связность разделов внутри кабинета соискателя." prototype />
 
       <div className="container-page grid gap-8 py-10 lg:grid-cols-[220px_1fr]">
-        <AccountSidebarNav sections={sections} active={section} onSelect={setSection} unreadCount={unreadCount(notifications)} />
+        <AccountSidebarNav sections={sections} active={section} onSelect={setSection} badges={{ notifications: unreadCount(notifications), messages: chatUnread }} />
 
         <div className="space-y-8">
           {section === 'profile' && (
@@ -528,6 +563,37 @@ export default function CandidateAccount() {
             </div>
           )}
 
+          {section === 'messages' && (
+            <section>
+              <h2 className="mb-3 text-lg font-semibold">Сообщения</h2>
+              <div className="glass divide-y divide-ink/10 rounded-xl">
+                {myThreads.length === 0 && <p className="p-5 text-sm text-ink/50">Пока нет переписок — они появляются, когда работодатель напишет вам по отклику.</p>}
+                {myThreads.map((t) => {
+                  const last = t.messages[t.messages.length - 1]
+                  const unread = unreadForRole(t, 'candidate')
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => handleOpenChat(t.id)}
+                      className="flex w-full items-start justify-between gap-3 p-4 text-left hover:bg-ink/[0.02]"
+                    >
+                      <div>
+                        <div className="flex items-center gap-2 font-medium">
+                          {t.employerName}
+                          {!!unread && <span className="rounded-full bg-red-500 px-1.5 py-0.5 text-[11px] font-semibold text-white">{unread}</span>}
+                        </div>
+                        <div className="text-xs text-ink/50">{t.vacancyTitle}</div>
+                        {last && <p className="mt-1 text-sm text-ink/60">{last.text}</p>}
+                      </div>
+                      {last && <div className="shrink-0 text-xs text-ink/40">{new Date(last.sentAt).toLocaleDateString('ru-RU')}</div>}
+                    </button>
+                  )
+                })}
+              </div>
+            </section>
+          )}
+
           {section === 'community' && (
             <div className="space-y-8">
               <section>
@@ -693,6 +759,47 @@ export default function CandidateAccount() {
           )}
         </div>
       </div>
+
+      {/* Чат с работодателем — общий localStorage с кабинетом работодателя (см. lib/chat.ts) */}
+      {openThread && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-ink/70 p-0 sm:items-center sm:p-4"
+          onClick={(e) => { if (e.target === e.currentTarget) setOpenThreadId(null) }}
+        >
+          <div className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-t-2xl bg-white text-ink sm:rounded-2xl">
+            <div className="flex items-center justify-between border-b border-ink/10 p-5">
+              <div>
+                <h3 className="text-lg font-semibold">{openThread.employerName}</h3>
+                <p className="text-xs text-ink/50">{openThread.vacancyTitle}</p>
+              </div>
+              <button type="button" onClick={() => setOpenThreadId(null)} className="text-ink/40 hover:text-ink" aria-label="Закрыть">✕</button>
+            </div>
+            <div className="flex-1 space-y-3 overflow-y-auto p-5">
+              {openThread.messages.map((m) => (
+                <div key={m.id} className={`flex ${m.senderRole === 'candidate' ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm ${m.senderRole === 'candidate' ? 'bg-ink text-white' : 'bg-ink/[0.06] text-ink'}`}>
+                    {m.text}
+                    <div className={`mt-1 text-[11px] ${m.senderRole === 'candidate' ? 'text-white/50' : 'text-ink/40'}`}>
+                      {new Date(m.sentAt).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <form onSubmit={handleSendChat} className="flex gap-2 border-t border-ink/10 p-4">
+              <input
+                value={chatDraft}
+                onChange={(e) => setChatDraft(e.target.value)}
+                placeholder="Написать сообщение…"
+                className="flex-1 rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+              />
+              <button type="submit" className="rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white hover:bg-ink/90">
+                Отправить
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Проверка навыков по направлению */}
       {skillModalOpen && (
