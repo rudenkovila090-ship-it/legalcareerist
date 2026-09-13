@@ -2,6 +2,7 @@
 // и лиды (lib/leads.ts), в этом фронтенд-прототипе живет в localStorage,
 // эмулируя таблицу на сервере.
 import type { VacancyFormData, SavedVacancy, VacancyVisibilityStage } from '../types'
+import { OWNER_ID } from './team'
 
 const KEY = 'ky_employer_vacancies'
 
@@ -28,6 +29,7 @@ function technicalExampleVacancy(): SavedVacancy {
     id: TECHNICAL_VACANCY_ID,
     createdAt: '2026-05-10T09:00:00.000Z',
     technicalExample: true,
+    responsibleId: OWNER_ID,
     data: {
       title: 'Юрист M&A, инхаус',
       company: '«Гарант-Право»',
@@ -100,6 +102,7 @@ export function createVacancy(data: VacancyFormData): SavedVacancy {
     moderationStatus: 'pending_moderation',
     visibilityStage: 'residents',
     mailings: [],
+    responsibleId: OWNER_ID,
   }
   const all = getVacancies()
   all.unshift(vacancy)
@@ -125,6 +128,11 @@ export function closeVacancy(id: string): SavedVacancy | undefined {
 
 export function deleteVacancy(id: string) {
   writeAll(getVacancies().filter((v) => v.id !== id))
+}
+
+/** Кто в команде компании ведет эту вакансию (см. lib/team.ts). */
+export function setVacancyResponsible(id: string, responsibleId: string): SavedVacancy | undefined {
+  return updateOne(id, { responsibleId })
 }
 
 /** Рассылка по текущему этапу каскада видимости + переход к следующему (см. базу знаний — «Правила опубликования вакансии»). */

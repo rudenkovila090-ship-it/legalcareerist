@@ -7,10 +7,10 @@ import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import { getActiveRole, clearActiveRole } from '../../lib/accountRole'
 import { demoEmployer, demoEmployerCompany } from '../../lib/account'
 import {
-  getVacancies, approveVacancy, rejectVacancy, closeVacancy, sendStageMailing, deleteVacancy,
+  getVacancies, approveVacancy, rejectVacancy, closeVacancy, sendStageMailing, deleteVacancy, setVacancyResponsible,
 } from '../../lib/vacancies'
 import {
-  getResponsesForVacancy, setResponseStatus, revealContact, contactPrice,
+  getResponsesForVacancy, getResponses, setResponseStatus, revealContact, contactPrice,
 } from '../../lib/applications'
 import {
   getCreditsState, isFreeAvailable, freeAvailableAt, canGenerate, addCredits, formatCountdown, VACANCY_CREDITS_KEY,
@@ -20,6 +20,7 @@ import { getReviews, computeEmployerRating } from '../../lib/reviews'
 import { getRankings, addRanking, deleteRanking, rankingBonus } from '../../lib/rankings'
 import { getNotifications, markNotificationRead, markAllNotificationsRead, unreadCount } from '../../lib/notifications'
 import { getThreads, ensureThread, sendMessage, markThreadRead, unreadForRole } from '../../lib/chat'
+import { getTeamMembers, addTeamMember, removeTeamMember, OWNER_ID } from '../../lib/team'
 import type { ApplicationStatus, VacancyModerationStatus, VacancyVisibilityStage } from '../../types'
 
 const responseStatusLabel: Record<ApplicationStatus, string> = {
@@ -66,6 +67,13 @@ function IconProfile() {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
       <circle cx="12" cy="8" r="3.5" />
       <path d="M4.5 20c0-3.9 3.4-6.5 7.5-6.5s7.5 2.6 7.5 6.5" />
+    </svg>
+  )
+}
+function IconPencil() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5">
+      <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
     </svg>
   )
 }
@@ -193,6 +201,24 @@ export default function EmployerAccount() {
   // Уведомления
   const [notifications, setNotifications] = useState(() => getNotifications('employer'))
 
+  // Профиль → редактирование компании/контактов прямо в карточке (по клику
+  // на карандашик), как и в кабинете соискателя — без реального сохранения
+  // на сервер.
+  const [profileFields, setProfileFields] = useState({
+    companyName: demoEmployerCompany.name,
+    companyPosition: demoEmployerCompany.position,
+    email: demoEmployer.email,
+    phone: demoEmployer.phone ?? '',
+    telegramId: demoEmployer.telegramId ?? '',
+  })
+  const [editingField, setEditingField] = useState<keyof typeof profileFields | null>(null)
+  const [draftValue, setDraftValue] = useState('')
+
+  // Команда компании — несколько сотрудников на один аккаунт, вакансии
+  // можно закреплять за конкретным человеком (см. lib/team.ts).
+  const [team, setTeam] = useState(() => getTeamMembers())
+  const [teamForm, setTeamForm] = useState({ name: '', position: '', email: '' })
+
   // Встроенный чат с соискателями — общий localStorage с кабинетом
   // соискателя (см. lib/chat.ts), тред открывается из отклика на вакансию.
   const [threads, setThreads] = useState(() => getThreads())
@@ -274,6 +300,56 @@ export default function EmployerAccount() {
     .filter((l) => ['vacancy_credits_purchase', 'candidate_contact_purchase'].includes(l.formType) && l.name === demoEmployer.name)
     .map((l) => ({ id: l.id, title: l.interest[0] ?? l.formType, date: l.date, status: 'Оплачено' }))
     .sort((a, b) => b.date.localeCompare(a.date))
+
+  // Воронка по откликам — реальный подсчет по вакансиям и откликам
+  // работодателя, не выдуманные проценты: сколько откликов на каждом
+  // статусе и сколько дней прошло от публикации вакансии до первого отклика.
+  const allResponses = getResponses().filter((r) => vacancies.some((v) => v.id === r.vacancyId))
+  const funnel = {
+    total: allResponses.length,
+    new: allResponses.filter((r) => r.status === 'new').length,
+    inReview: allResponses.filter((r) => r.status === 'in_review').length,
+    offer: allResponses.filter((r) => r.status === 'offer').length,
+    rejected: allResponses.filter((r) => r.status === 'rejected').length,
+  }
+  const daysToFirstResponse = vacancies
+    .filter((v) => v.publishedAt)
+    .map((v) => {
+      const responses = allResponses.filter((r) => r.vacancyId === v.id)
+      if (responses.length === 0) return null
+      const first = responses.reduce((a, b) => (a.appliedAt < b.appliedAt ? a : b))
+      return (new Date(first.appliedAt).getTime() - new Date(v.publishedAt!).getTime()) / 86400000
+    })
+    .filter((d): d is number => d !== null && d >= 0)
+  const avgDaysToFirstResponse = daysToFirstResponse.length > 0
+    ? Math.round((daysToFirstResponse.reduce((s, d) => s + d, 0) / daysToFirstResponse.length) * 10) / 10
+    : null
+
+  function startEditProfile(field: keyof typeof profileFields) {
+    setEditingField(field)
+    setDraftValue(profileFields[field])
+  }
+  function saveEditProfile() {
+    if (!editingField) return
+    setProfileFields((prev) => ({ ...prev, [editingField]: draftValue.trim() || prev[editingField] }))
+    setEditingField(null)
+  }
+
+  function handleAddTeamMember(e: FormEvent) {
+    e.preventDefault()
+    if (!teamForm.name.trim() || !teamForm.position.trim()) return
+    const created = addTeamMember({ name: teamForm.name.trim(), position: teamForm.position.trim(), email: teamForm.email.trim() })
+    setTeam((prev) => [...prev, created])
+    setTeamForm({ name: '', position: '', email: '' })
+  }
+  function handleRemoveTeamMember(id: string) {
+    removeTeamMember(id)
+    setTeam((prev) => prev.filter((m) => m.id !== id))
+  }
+  function handleSetResponsible(vacancyId: string, responsibleId: string) {
+    setVacancyResponsible(vacancyId, responsibleId)
+    refresh()
+  }
 
   function handleAddRanking(e: FormEvent) {
     e.preventDefault()
@@ -401,14 +477,59 @@ export default function EmployerAccount() {
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="glass rounded-xl p-5">
                   <div className="text-sm text-ink/50">Компания</div>
-                  <div className="mt-2 text-sm font-medium">{demoEmployerCompany.name}</div>
-                  <div className="text-sm text-ink/60">{demoEmployerCompany.position}</div>
+                  <div className="mt-2 space-y-1.5">
+                    {(['companyName', 'companyPosition'] as const).map((field) => (
+                      <div key={field} className="flex items-center gap-2">
+                        {editingField === field ? (
+                          <>
+                            <input
+                              autoFocus
+                              value={draftValue}
+                              onChange={(e) => setDraftValue(e.target.value)}
+                              onKeyDown={(e) => e.key === 'Enter' && saveEditProfile()}
+                              className="w-full rounded-lg border border-ink/15 px-2.5 py-1.5 text-sm focus:border-ink/40 focus:outline-none"
+                            />
+                            <button type="button" onClick={saveEditProfile} className="shrink-0 text-xs font-semibold text-ink/60 hover:text-ink">✓</button>
+                          </>
+                        ) : (
+                          <>
+                            <button type="button" onClick={() => startEditProfile(field)} aria-label="Редактировать" className="shrink-0 text-ink/25 hover:text-ink/60">
+                              <IconPencil />
+                            </button>
+                            <span className={`text-sm ${field === 'companyName' ? 'font-medium' : 'text-ink/60'}`}>{profileFields[field]}</span>
+                          </>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
                 <div className="glass rounded-xl p-5">
                   <div className="text-sm text-ink/50">Контакты</div>
-                  <div className="mt-2 text-sm">{demoEmployer.email}</div>
-                  <div className="text-sm">{demoEmployer.phone}</div>
-                  <div className="text-sm">{demoEmployer.telegramId}</div>
+                  <div className="mt-2 space-y-1.5">
+                    {(['email', 'phone', 'telegramId'] as const).map((field) => (
+                      <div key={field} className="flex items-center gap-2">
+                        {editingField === field ? (
+                          <>
+                            <input
+                              autoFocus
+                              value={draftValue}
+                              onChange={(e) => setDraftValue(e.target.value)}
+                              onKeyDown={(e) => e.key === 'Enter' && saveEditProfile()}
+                              className="w-full rounded-lg border border-ink/15 px-2.5 py-1.5 text-sm focus:border-ink/40 focus:outline-none"
+                            />
+                            <button type="button" onClick={saveEditProfile} className="shrink-0 text-xs font-semibold text-ink/60 hover:text-ink">✓</button>
+                          </>
+                        ) : (
+                          <>
+                            <button type="button" onClick={() => startEditProfile(field)} aria-label="Редактировать" className="shrink-0 text-ink/25 hover:text-ink/60">
+                              <IconPencil />
+                            </button>
+                            <span className="text-sm">{profileFields[field]}</span>
+                          </>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Рейтинг: средняя оценка по отзывам (до 80 очков) + бонус за
@@ -436,6 +557,54 @@ export default function EmployerAccount() {
                   </div>
                 )}
               </div>
+
+              <section>
+                <h2 className="mb-3 text-lg font-semibold">Команда компании</h2>
+                <div className="glass rounded-xl p-5">
+                  <p className="text-sm text-ink/60">Несколько сотрудников на один аккаунт — каждую вакансию можно закрепить за конкретным человеком (см. вкладку «Вакансии»).</p>
+                  <div className="mt-4 divide-y divide-ink/10 border-t border-ink/10">
+                    {team.map((m) => (
+                      <div key={m.id} className="flex items-center justify-between py-3">
+                        <div>
+                          <div className="text-sm font-medium">{m.name} {m.role === 'owner' && <span className="ml-1 rounded-full bg-ink/[0.06] px-2 py-0.5 text-[11px] font-semibold text-ink/50">Владелец</span>}</div>
+                          <div className="text-xs text-ink/50">{m.position}{m.email && ` · ${m.email}`}</div>
+                        </div>
+                        {m.role !== 'owner' && (
+                          <button type="button" onClick={() => handleRemoveTeamMember(m.id)} className="text-ink/40 hover:text-red-600">Удалить</button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <form onSubmit={handleAddTeamMember} className="mt-4 grid gap-3 border-t border-ink/10 pt-4 sm:grid-cols-3">
+                    <input
+                      value={teamForm.name}
+                      onChange={(e) => setTeamForm((f) => ({ ...f, name: e.target.value }))}
+                      placeholder="Имя сотрудника"
+                      required
+                      className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+                    />
+                    <input
+                      value={teamForm.position}
+                      onChange={(e) => setTeamForm((f) => ({ ...f, position: e.target.value }))}
+                      placeholder="Должность"
+                      required
+                      className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+                    />
+                    <div className="flex gap-2">
+                      <input
+                        type="email"
+                        value={teamForm.email}
+                        onChange={(e) => setTeamForm((f) => ({ ...f, email: e.target.value }))}
+                        placeholder="Email"
+                        className="w-full rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+                      />
+                      <button type="submit" className="shrink-0 rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white hover:bg-ink/90">
+                        Добавить
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </section>
 
               <section>
                 <h2 className="mb-3 text-lg font-semibold">Отзывы соискателей</h2>
@@ -512,6 +681,37 @@ export default function EmployerAccount() {
           )}
 
           {section === 'work' && (
+            <div className="space-y-6">
+              {funnel.total > 0 && (
+                <section>
+                  <h2 className="mb-3 text-lg font-semibold">Воронка по откликам</h2>
+                  <div className="glass rounded-xl p-5">
+                    <div className="grid gap-3 sm:grid-cols-4">
+                      {([
+                        ['Новые', funnel.new, 'bg-ink/15'],
+                        ['На рассмотрении', funnel.inReview, 'bg-amber-200'],
+                        ['Оффер', funnel.offer, 'bg-emerald-300'],
+                        ['Отказ', funnel.rejected, 'bg-red-200'],
+                      ] as const).map(([label, count, barClass]) => (
+                        <div key={label}>
+                          <div className="text-xs text-ink/50">{label}</div>
+                          <div className="mt-1 text-xl font-semibold text-ink">{count}</div>
+                          <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-ink/[0.06]">
+                            <div className={`h-full ${barClass}`} style={{ width: `${funnel.total > 0 ? (count / funnel.total) * 100 : 0}%` }} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-4 border-t border-ink/10 pt-4 text-sm text-ink/60">
+                      Всего откликов: <span className="font-semibold text-ink">{funnel.total}</span>
+                      {avgDaysToFirstResponse !== null && (
+                        <> · Среднее время до первого отклика: <span className="font-semibold text-ink">{avgDaysToFirstResponse} дн.</span></>
+                      )}
+                    </div>
+                  </div>
+                </section>
+              )}
+
             <section>
               <h2 className="mb-3 text-lg font-semibold">Вакансии</h2>
               <div className="glass rounded-xl p-5">
@@ -596,6 +796,18 @@ export default function EmployerAccount() {
                                 Рассылок: {v.mailings.length} (последняя — {v.mailings[v.mailings.length - 1].recipientsCount} получателей)
                               </div>
                             )}
+                            <div className="mt-1.5 flex items-center gap-1.5 text-xs text-ink/50">
+                              Ответственный:
+                              <select
+                                value={v.responsibleId ?? OWNER_ID}
+                                onChange={(e) => handleSetResponsible(v.id, e.target.value)}
+                                className="rounded-full border border-ink/15 bg-white px-2 py-1 text-xs font-medium text-ink/70"
+                              >
+                                {team.map((m) => (
+                                  <option key={m.id} value={m.id}>{m.name}</option>
+                                ))}
+                              </select>
+                            </div>
                           </div>
 
                           <div className="flex shrink-0 flex-wrap items-center gap-2">
@@ -719,6 +931,7 @@ export default function EmployerAccount() {
                 )}
               </div>
             </section>
+            </div>
           )}
 
           {section === 'messages' && (

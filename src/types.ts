@@ -272,6 +272,21 @@ export interface SavedVacancy {
   /** Технический пример — показывает работодателю, как выглядят отклики
    *  на опубликованную вакансию, не реальная вакансия компании. */
   technicalExample?: boolean
+  /** Кто в команде компании ведет эту вакансию (см. lib/team.ts) — если не
+   *  задан, ведет владелец аккаунта. */
+  responsibleId?: string
+}
+
+// ---- Команда компании работодателя (личный кабинет) ----
+
+export type TeamRole = 'owner' | 'recruiter'
+
+export interface TeamMember {
+  id: string
+  name: string
+  position: string
+  email: string
+  role: TeamRole
 }
 
 export type ApplicationStatus = 'new' | 'in_review' | 'rejected' | 'offer'
