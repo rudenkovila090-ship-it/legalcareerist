@@ -269,6 +269,9 @@ export interface SavedVacancy {
   publishedAt?: string
   closedAt?: string
   mailings: VacancyMailing[]
+  /** Технический пример — показывает работодателю, как выглядят отклики
+   *  на опубликованную вакансию, не реальная вакансия компании. */
+  technicalExample?: boolean
 }
 
 export type ApplicationStatus = 'new' | 'in_review' | 'rejected' | 'offer'
@@ -280,6 +283,28 @@ export interface Application {
   date: string
   status: ApplicationStatus
   coverLetter?: string
+}
+
+// ---- Отклики на вакансию работодателя (личный кабинет работодателя) ----
+
+/** Демо-отклик соискателя на вакансию из личного кабинета работодателя —
+ *  в этом фронтенд-прототипе не связан с реальными кандидатами сайта,
+ *  показывает, как работодатель видит и обрабатывает отклики. */
+export interface EmployerVacancyResponse {
+  id: string
+  vacancyId: string
+  name: string
+  city: string
+  level: CandidateLevel
+  experienceYears: number
+  specialization: Specialization[]
+  industry: Industry[]
+  coverLetter: string
+  appliedAt: string
+  status: ApplicationStatus
+  contactRevealed: boolean
+  phone: string
+  email: string
 }
 
 // ---- Резюме (личный кабинет соискателя, конструктор без ИИ) ----

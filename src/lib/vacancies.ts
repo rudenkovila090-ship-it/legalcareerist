@@ -16,10 +16,59 @@ const stageAudienceSize: Record<VacancyVisibilityStage, number> = {
   public: 0, // открытый сайт — не рассылка, а постоянная видимость в поиске
 }
 
+const TECHNICAL_VACANCY_ID = 'vac_technical_example'
+
+/** Технический пример опубликованной вакансии с откликами — работодатель
+ *  видит на нем, как выглядит раздел «Отклики» в кабинете, не дожидаясь
+ *  первого реального отклика (см. lib/applications.ts). Сеется один раз
+ *  при первом обращении к хранилищу и дальше ведет себя как обычная
+ *  запись (можно закрыть/удалить, как и любую вакансию работодателя). */
+function technicalExampleVacancy(): SavedVacancy {
+  return {
+    id: TECHNICAL_VACANCY_ID,
+    createdAt: '2026-05-10T09:00:00.000Z',
+    technicalExample: true,
+    data: {
+      title: 'Юрист M&A, инхаус',
+      company: '«Гарант-Право»',
+      anonymous: false,
+      city: 'Москва',
+      format: 'hybrid',
+      employment: 'full',
+      schedule: '5/2',
+      level: 'middle',
+      experience: 'from1to3',
+      education: ['bachelor'],
+      specialization: ['inhouse'],
+      industry: ['corporate'],
+      salaryFrom: 150000,
+      salaryTo: 220000,
+      description: 'Сопровождение сделок M&A: due diligence, договорная работа, корпоративное управление.\nВзаимодействие с внешними консультантами и регуляторами.',
+      requirements: 'Опыт в корпоративном праве от 1 года.\nАнглийский язык от Intermediate.',
+      conditions: 'Оформление по ТК РФ.\nДМС после испытательного срока.',
+      contactPhone: '+7 999 555-12-34',
+      contactEmail: 'i.sokolova@garant-pravo.example',
+    },
+    moderationStatus: 'published',
+    visibilityStage: 'public',
+    publishedAt: '2026-05-12T09:00:00.000Z',
+    mailings: [
+      { stage: 'residents', sentAt: '2026-05-12T09:05:00.000Z', recipientsCount: stageAudienceSize.residents },
+      { stage: 'talent_pool', sentAt: '2026-05-14T09:05:00.000Z', recipientsCount: stageAudienceSize.talent_pool },
+    ],
+  }
+}
+
 export function getVacancies(): SavedVacancy[] {
   try {
     const raw = localStorage.getItem(KEY)
-    return raw ? (JSON.parse(raw) as SavedVacancy[]) : []
+    const all = raw ? (JSON.parse(raw) as SavedVacancy[]) : []
+    if (!all.some((v) => v.technicalExample)) {
+      const seeded = [...all, technicalExampleVacancy()]
+      writeAll(seeded)
+      return seeded
+    }
+    return all
   } catch {
     return []
   }

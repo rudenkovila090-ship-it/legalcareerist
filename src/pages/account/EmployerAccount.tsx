@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import PageHero from '../../components/PageHero'
+import { SpecTag, IndustryTag } from '../../components/Tag'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import { getActiveRole, clearActiveRole } from '../../lib/accountRole'
 import { demoEmployer, demoEmployerCompany } from '../../lib/account'
@@ -8,10 +9,22 @@ import {
   getVacancies, approveVacancy, rejectVacancy, closeVacancy, sendStageMailing, deleteVacancy,
 } from '../../lib/vacancies'
 import {
+  getResponsesForVacancy, setResponseStatus, revealContact, contactPrice,
+} from '../../lib/applications'
+import {
   getCreditsState, isFreeAvailable, freeAvailableAt, canGenerate, addCredits, formatCountdown, VACANCY_CREDITS_KEY,
 } from '../../lib/generationCredits'
 import { submitLead } from '../../lib/leads'
-import type { VacancyModerationStatus, VacancyVisibilityStage } from '../../types'
+import type { ApplicationStatus, VacancyModerationStatus, VacancyVisibilityStage } from '../../types'
+
+const responseStatusLabel: Record<ApplicationStatus, string> = {
+  new: 'Новый',
+  in_review: 'На рассмотрении',
+  rejected: 'Отказ',
+  offer: 'Оффер',
+}
+const responseStatusOrder: ApplicationStatus[] = ['new', 'in_review', 'offer', 'rejected']
+const levelLabel = { junior: 'Junior', middle: 'Middle', senior: 'Senior' }
 
 const money = new Intl.NumberFormat('ru-RU')
 
@@ -53,7 +66,7 @@ export default function EmployerAccount() {
   const role = getActiveRole()
   const navigate = useNavigate()
 
-  const [vacancies, setVacancies] = useState(getVacancies())
+  const [vacancies, setVacancies] = useState(() => getVacancies())
   const [creditsState, setCreditsState] = useState(getCreditsState(VACANCY_CREDITS_KEY))
   const [buyingPack, setBuyingPack] = useState<(typeof vacancyCreditPacks)[number] | null>(null)
   const [buyerPhone, setBuyerPhone] = useState('')
@@ -61,6 +74,10 @@ export default function EmployerAccount() {
   const [rejectReason, setRejectReason] = useState('')
   const [notice, setNotice] = useState<string | null>(null)
   const [now] = useState(() => Date.now())
+  // Отклики на вакансию — разворачиваются под конкретной вакансией, а не
+  // общим списком, чтобы было видно, кто откликнулся именно на нее.
+  const [expandedVacancyId, setExpandedVacancyId] = useState<string | null>(null)
+  const [responseVersion, setResponseVersion] = useState(0)
 
   if (role !== 'employer') return <Navigate to="/account" replace />
 
@@ -69,6 +86,27 @@ export default function EmployerAccount() {
   }
   function refreshCredits() {
     setCreditsState(getCreditsState(VACANCY_CREDITS_KEY))
+  }
+  function refreshResponses() {
+    setResponseVersion((v) => v + 1)
+  }
+
+  function handleResponseStatus(id: string, status: ApplicationStatus) {
+    setResponseStatus(id, status)
+    refreshResponses()
+  }
+
+  function handleRevealContact(id: string, name: string, price: number) {
+    revealContact(id)
+    submitLead({
+      sourceBlock: 'kadry',
+      formType: 'candidate_contact_purchase',
+      name: demoEmployer.name,
+      contact: demoEmployer.phone ?? demoEmployer.email,
+      interest: [`Контакты кандидата «${name}» — ${price} ₽`],
+    })
+    refreshResponses()
+    setNotice(`Контакты кандидата «${name}» открыты.`)
   }
 
   const freeAvailable = isFreeAvailable(creditsState)
@@ -269,6 +307,75 @@ export default function EmployerAccount() {
                           <button type="button" onClick={() => handleDelete(v.id)} className="text-ink/40 hover:text-red-600">Удалить</button>
                         </div>
                       </div>
+
+                      {v.moderationStatus === 'published' && (() => {
+                        const responses = getResponsesForVacancy(v.id)
+                        const expanded = expandedVacancyId === v.id
+                        return (
+                          <div className="mt-3">
+                            <button
+                              type="button"
+                              onClick={() => setExpandedVacancyId(expanded ? null : v.id)}
+                              className="rounded-full border border-ink/15 px-3 py-1.5 text-xs font-semibold text-ink/70 hover:border-ink/40 hover:text-ink"
+                            >
+                              Отклики ({responses.length}) {expanded ? '▲' : '▼'}
+                            </button>
+
+                            {expanded && (
+                              <div key={responseVersion} className="mt-3 divide-y divide-ink/10 rounded-lg border border-ink/10">
+                                {responses.length === 0 && (
+                                  <p className="p-4 text-sm text-ink/50">Пока никто не откликнулся на эту вакансию.</p>
+                                )}
+                                {responses.map((r) => {
+                                  const price = contactPrice(r.experienceYears)
+                                  return (
+                                    <div key={r.id} className="p-4">
+                                      <div className="flex flex-wrap items-start justify-between gap-3">
+                                        <div>
+                                          <div className="flex flex-wrap items-center gap-2">
+                                            <span className="font-medium">{r.name}</span>
+                                            <span className="text-xs text-ink/40">{r.city} · {levelLabel[r.level]}</span>
+                                          </div>
+                                          <p className="mt-1 text-sm text-ink/60">{r.coverLetter}</p>
+                                          <div className="mt-1.5 flex flex-wrap gap-1">
+                                            {r.specialization.map((s) => <SpecTag key={s} id={s} />)}
+                                            {r.industry.map((i) => <IndustryTag key={i} id={i} />)}
+                                          </div>
+                                          <div className="mt-2 text-xs text-ink/50">
+                                            Откликнулся {new Date(r.appliedAt).toLocaleDateString('ru-RU')}
+                                          </div>
+                                          {r.contactRevealed ? (
+                                            <div className="mt-1 text-sm">
+                                              <span className="font-medium text-emerald-600">{r.phone}</span> · {r.email}
+                                            </div>
+                                          ) : (
+                                            <button
+                                              type="button"
+                                              onClick={() => handleRevealContact(r.id, r.name, price)}
+                                              className="mt-2 rounded-full border border-ink/15 px-3 py-1.5 text-xs font-semibold text-ink/70 hover:border-ink/40 hover:text-ink"
+                                            >
+                                              Открыть контакты — {price} ₽
+                                            </button>
+                                          )}
+                                        </div>
+                                        <select
+                                          value={r.status}
+                                          onChange={(e) => handleResponseStatus(r.id, e.target.value as ApplicationStatus)}
+                                          className="shrink-0 rounded-full border border-ink/15 bg-white px-3 py-1.5 text-xs font-semibold text-ink/70"
+                                        >
+                                          {responseStatusOrder.map((s) => (
+                                            <option key={s} value={s}>{responseStatusLabel[s]}</option>
+                                          ))}
+                                        </select>
+                                      </div>
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })()}
                     </div>
                   ))}
                 </div>
