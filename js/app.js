@@ -42,6 +42,34 @@ function clampPct(v) {
 function findWeekById(id) {
   return allWeeks(state.blocks).find((w) => w.id === id);
 }
+
+function weekLabel(w) {
+  return `Блок ${w.blockId}, неделя ${w.weekIndex} (${w.start}–${w.end})`;
+}
+function weekLabelShort(w) {
+  return `Неделя ${w.weekIndex} (${w.start}–${w.end})`;
+}
+
+// Устойчивые (латиница, без пробелов) CSS-классы для цветных статус-пилюль.
+const STATUS_CLASS = {
+  'не начато': 'not-started',
+  'в работе': 'in-progress',
+  'выполнено': 'done',
+  'частично выполнено': 'partial',
+  'отменено': 'cancelled',
+  'в графике': 'ontrack',
+  'риск': 'risk',
+  'нет плана': 'not-started',
+};
+
+function statusPill(text) {
+  const cls = STATUS_CLASS[text] || 'not-started';
+  return `<span class="status-pill ${cls}">${text}</span>`;
+}
+
+// Короткие названия целей для тесных колонок таблиц.
+const GOAL_SHORT = { G1: 'Выручка КЮ', G2: 'Личный доход', G3: 'Накопления' };
+
 function findBlockById(id) {
   return state.blocks.find((b) => b.id === id);
 }
@@ -71,6 +99,8 @@ function renderContent() {
     case 'daily': app.innerHTML = renderDaily(); bindDailyEvents(); break;
     case 'metrics': app.innerHTML = renderMetrics(); bindMetricsEvents(); break;
     case 'finance': app.innerHTML = renderFinance(); bindFinanceEvents(); break;
+    case 'kadry': app.innerHTML = renderKadry(); bindKadryEvents(); break;
+    case 'community': app.innerHTML = renderCommunity(); bindCommunityEvents(); break;
     case 'blocks': app.innerHTML = renderBlocks(); bindBlocksEvents(); break;
     case 'settings': app.innerHTML = renderSettings(); bindSettingsEvents(); break;
     default: app.innerHTML = '<p>Неизвестная вкладка</p>';
@@ -109,7 +139,7 @@ function renderDashboard() {
         <span class="progress-pct">${progressToCycleGoal(state, g.id, today) === null ? '—' : fmtPct(progressToCycleGoal(state, g.id, today))}</span>
       </div>
       <div class="goal-meta">Факт: ${fmtMoney(fact)} ${g.unit} · Цель блока: ${fmtMoney(block.targets[g.id])} · Финал: ${fmtMoney(g.target)} ${g.unit}</div>
-      <div class="goal-meta">Execution score недели: ${sig.execScore === null ? '—' : fmtPct(sig.execScore)}</div>
+      <div class="goal-meta">Выполнение плана за неделю: ${sig.execScore === null ? '—' : fmtPct(sig.execScore)}</div>
       <div class="goal-signal-text">${sig.text}</div>
     </div>`;
   }).join('');
@@ -117,7 +147,7 @@ function renderDashboard() {
   const streamRows = STREAMS.filter((s) => s.kind === 'flow').map((s) => {
     const score = executionScoreForStream(state, week.id, s.id);
     const status = executionStatus(score);
-    return `<tr><td>${s.name}</td><td>${score === null ? '—' : fmtPct(score)}</td><td><span class="status-pill">${status}</span></td></tr>`;
+    return `<tr><td>${s.name}</td><td>${score === null ? '—' : fmtPct(score)}</td><td>${statusPill(status)}</td></tr>`;
   }).join('');
 
   const weekTasks = state.tasks.filter((t) => t.weekId === week.id);
@@ -126,12 +156,12 @@ function renderDashboard() {
       <td>${t.title}</td>
       <td class="small muted">${STREAMS.find((s) => s.id === t.streamId)?.name || ''}</td>
       <td class="small muted">${t.priority}</td>
-      <td><span class="status-pill">${t.status}</span></td>
+      <td>${statusPill(t.status)}</td>
     </tr>`).join('') : `<tr><td colspan="4" class="muted small">Нет задач на эту неделю</td></tr>`;
 
   const attention = attentionItems(state, week, block);
 
-  const weekOptions = allWeeks(state.blocks).map((w) => `<option value="${w.id}" ${w.id === week.id ? 'selected' : ''}>${w.id} (${w.start}–${w.end})</option>`).join('');
+  const weekOptions = weeksOfBlock(block).map((w) => `<option value="${w.id}" ${w.id === week.id ? 'selected' : ''}>${weekLabelShort(w)}</option>`).join('');
   const blockOptions = state.blocks.map((b) => `<option value="${b.id}" ${b.id === block.id ? 'selected' : ''}>Блок ${b.id} (${b.start}–${b.end})</option>`).join('');
 
   return `
@@ -146,8 +176,8 @@ function renderDashboard() {
 
     <div class="two-col">
       <div class="card">
-        <h3>Execution score недели по направлениям</h3>
-        <table><thead><tr><th>Направление</th><th>Score</th><th>Статус</th></tr></thead><tbody>${streamRows}</tbody></table>
+        <h3>Выполнение плана по направлениям</h3>
+        <table><thead><tr><th>Направление</th><th>Выполнение</th><th>Статус</th></tr></thead><tbody>${streamRows}</tbody></table>
       </div>
       <div class="card">
         <h3>Задачи текущей недели</h3>
@@ -217,7 +247,7 @@ function goalOptionsFor(streamId, selected) {
   }).join('');
 }
 function weekOptionsAll(selected) {
-  return allWeeks(state.blocks).map((w) => `<option value="${w.id}" ${w.id === selected ? 'selected' : ''}>${w.id}</option>`).join('');
+  return allWeeks(state.blocks).map((w) => `<option value="${w.id}" ${w.id === selected ? 'selected' : ''}>${weekLabel(w)}</option>`).join('');
 }
 function priorityOptions(selected) {
   return TASK_PRIORITIES.map((p) => `<option value="${p}" ${p === selected ? 'selected' : ''}>${p}</option>`).join('');
@@ -239,8 +269,8 @@ function renderTasks() {
     <tr data-id="${t.id}">
       <td>${t.title}</td>
       <td class="small">${STREAMS.find((s) => s.id === t.streamId)?.name || ''}</td>
-      <td class="small">${t.goalId}</td>
-      <td class="small">${t.weekId}</td>
+      <td class="small">${GOAL_SHORT[t.goalId] || t.goalId}</td>
+      <td class="small">${findWeekById(t.weekId) ? weekLabel(findWeekById(t.weekId)) : t.weekId}</td>
       <td class="small">${t.priority}</td>
       <td class="small">${t.linkType}</td>
       <td>
@@ -414,14 +444,13 @@ function renderMetrics() {
 
   const streamScores = STREAMS.filter((s) => s.kind === 'flow').map((s) => {
     const score = executionScoreForStream(state, weekId, s.id);
-    return `<tr><td>${s.name}</td><td>${score === null ? '—' : fmtPct(score)}</td><td><span class="status-pill">${executionStatus(score)}</span></td></tr>`;
+    return `<tr><td>${s.name}</td><td>${score === null ? '—' : fmtPct(score)}</td><td>${statusPill(executionStatus(score))}</td></tr>`;
   }).join('');
   const overall = executionScoreOverall(state, weekId);
 
   return `
     <div class="week-picker">
       <label>Неделя: <select id="metrics-week-select">${weekOptionsAll(weekId)}</select></label>
-      <span class="muted small">${week ? `${week.start} – ${week.end}` : ''}</span>
     </div>
     <div class="card">
       <h2>План / факт по лид-показателям</h2>
@@ -429,12 +458,11 @@ function renderMetrics() {
         <thead><tr><th>Показатель</th><th>Направление</th><th>План/нед</th><th>Факт</th><th>Ед.</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
-      <p class="small muted">Значения сохраняются автоматически при изменении.</p>
     </div>
     <div class="card">
-      <h3>Execution score по направлениям (порог нормы — ${EXECUTION_THRESHOLD}%)</h3>
-      <table><thead><tr><th>Направление</th><th>Score</th><th>Статус</th></tr></thead><tbody>${streamScores}</tbody></table>
-      <p><b>Сводный execution score недели: ${overall === null ? '—' : fmtPct(overall)}</b></p>
+      <h3>Выполнение плана по направлениям (норма — ${EXECUTION_THRESHOLD}%)</h3>
+      <table><thead><tr><th>Направление</th><th>Выполнение</th><th>Статус</th></tr></thead><tbody>${streamScores}</tbody></table>
+      <p><b>Сводное выполнение за неделю: ${overall === null ? '—' : fmtPct(overall)}</b></p>
     </div>
   `;
 }
@@ -492,7 +520,7 @@ function renderFinance() {
         <div class="field"><label>Комментарий</label><input type="text" name="note" placeholder="необязательно"></div>
         <button type="submit" class="primary">Добавить</button>
       </form>
-      <p class="small muted">Для «Накопления (остаток)» вводите текущий остаток на конец периода (не сумму за период), для остальных направлений — выручку/доход за период.</p>
+      <p class="small muted">Для «Накопления (остаток)» — текущий остаток, для остальных направлений — выручка за период.</p>
     </div>
 
     <div class="two-col">
@@ -576,7 +604,7 @@ function renderBlocks() {
         <thead><tr><th>Блок</th><th>Даты</th>${GOALS.map((g) => `<th>${g.id}</th>`).join('')}</tr></thead>
         <tbody>${blockRows}</tbody>
       </table>
-      <p class="small muted">Пересчитывайте вручную по итогам каждого блока.</p>
+      <p class="small muted">Правьте по итогам каждого блока.</p>
     </div>
 
     <div class="card">
@@ -584,7 +612,7 @@ function renderBlocks() {
       <label class="small">Блок: <select id="report-block-select">${blockOptions}</select></label>
       <h3 style="margin-top:12px">Факт vs промежуточная цель</h3>
       <table><thead><tr><th>Цель</th><th>Факт</th><th>Цель блока</th><th>%</th></tr></thead><tbody>${goalsReportRows}</tbody></table>
-      <p><b>Средний execution score за блок: ${report.avgExecScore === null ? '—' : fmtPct(report.avgExecScore)}</b></p>
+      <p><b>Среднее выполнение плана за блок: ${report.avgExecScore === null ? '—' : fmtPct(report.avgExecScore)}</b></p>
 
       <h3>Невыполненные задачи</h3>
       <table><thead><tr><th>Задача</th><th>Статус</th><th></th></tr></thead><tbody>${unfinishedRows}</tbody></table>
@@ -637,18 +665,18 @@ function bindBlocksEvents() {
 function renderSettings() {
   return `
     <div class="card">
-      <h2>Экспорт данных в CSV</h2>
+      <h2>Экспорт в CSV</h2>
       <div class="export-buttons">
         <button class="secondary" id="exp-tasks">Задачи</button>
         <button class="secondary" id="exp-metrics">Лид-показатели</button>
         <button class="secondary" id="exp-finance">Финансы</button>
         <button class="secondary" id="exp-daily">Ежедневные заметки</button>
-        <button class="primary" id="exp-all">Экспортировать всё</button>
+        <button class="primary" id="exp-all">Всё сразу</button>
       </div>
     </div>
     <div class="card">
       <h2>Данные</h2>
-      <p class="small muted">Все данные хранятся локально в вашем браузере (localStorage), без облака и без сервера.</p>
+      <p class="small muted">Хранятся только в этом браузере — без сервера и облака.</p>
       <button class="ghost-danger" id="reset-data">Сбросить все данные</button>
     </div>
   `;

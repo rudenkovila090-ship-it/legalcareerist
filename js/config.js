@@ -72,3 +72,97 @@ const SIGNALS = {
   BLUE: { code: 'blue', label: 'Синий', text: 'Результат идёт по инерции или из другого источника — не снижать активность, зафиксировать нетипичность.' },
   NA: { code: 'na', label: 'Нет данных', text: 'Недостаточно данных за неделю для расчёта сигнала.' },
 };
+
+// =======================================================================
+// КЮ Кадры — годовая воронка найма (помесячный план/факт), 2026 год
+// =======================================================================
+
+const MONTH_NAMES_RU = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+
+const MONTHS_2026 = MONTH_NAMES_RU.map((name, i) => ({
+  key: `2026-${String(i + 1).padStart(2, '0')}`,
+  name,
+}));
+
+function monthKeyOf(dateStr) {
+  return dateStr ? dateStr.slice(0, 7) : null;
+}
+
+const KADRY_KPIS = [
+  { id: 'baseCandidates', name: 'База кандидатов', unit: 'шт', yearlyTarget: 16000 },
+  { id: 'resumeB2C', name: 'Резюме B2C', unit: 'шт', yearlyTarget: 270 },
+  { id: 'lettersB2B', name: 'Письма B2B', unit: 'шт', yearlyTarget: 1600 },
+  { id: 'vacanciesB2B', name: 'Вакансий B2B', unit: 'шт', yearlyTarget: 100 },
+  { id: 'employment', name: 'Трудоустройств', unit: 'шт', yearlyTarget: 100 },
+  { id: 'paidPlacements', name: 'Платные размещения', unit: 'шт', yearlyTarget: 30 },
+  { id: 'careerConsults', name: 'Карьерные консультации', unit: 'шт', yearlyTarget: null },
+  { id: 'psychologyClients', name: 'Найдено клиентов психологу', unit: 'шт', yearlyTarget: null },
+  { id: 'revenue', name: 'Выручка', unit: '₽', yearlyTarget: 500000 },
+];
+
+// Справочно: факт с начала года по вашей таблице (для сверки после заполнения
+// помесячной сетки ниже) — сумма месяцев с данными на момент переноса.
+const KADRY_YTD_REFERENCE = {
+  baseCandidates: 4161,
+  resumeB2C: 127,
+  lettersB2B: 356,
+  vacanciesB2B: 15,
+  employment: 8,
+  paidPlacements: 1,
+  revenue: 25698,
+};
+
+// =======================================================================
+// КЮ Сообщество — резиденты, тарифы подписки, дневной P&L
+// =======================================================================
+
+// Когорта резидентов сообщества — перенесена из вашей таблицы (цепочка
+// «начало → конец» сходится помесячно, поэтому проставлена сразу).
+const COMMUNITY_RESIDENTS_SEED = {
+  '2026-04': { start: 41, new: 4, churn: 2 },
+  '2026-05': { new: 2, churn: 6 },
+  '2026-06': { new: 0, churn: 3 },
+  '2026-07': { new: 5, churn: 0 },
+  '2026-08': { new: 11, churn: 7 },
+  '2026-09': { new: 1, churn: 3 },
+  '2026-10': { new: 0, churn: 0 },
+  '2026-11': { new: 0, churn: 0 },
+  '2026-12': { new: 0, churn: 0 },
+};
+
+const COMMUNITY_DEFAULT_TARIFFS = [
+  { id: 'discount1m', name: '1 месяц со скидкой', price: 350 },
+  { id: 'm1', name: '1 месяц', price: 500 },
+  { id: 'm3', name: '3 месяца', price: 1350 },
+  { id: 'm6', name: '6 месяцев', price: 2520 },
+];
+
+// План продаж (шт) по тарифам — перенесён из вашей таблицы для месяцев,
+// где сумма по тарифам сходится с итоговым «План продаж месяц».
+const COMMUNITY_TARIFF_PLAN_SEED = {
+  '2026-04': { discount1m: 5, m1: 1, m3: 1, m6: 0 },
+  '2026-05': { discount1m: 5, m1: 1, m3: 1, m6: 1 },
+  '2026-06': { discount1m: 5, m1: 1, m3: 1, m6: 1 },
+  '2026-07': { discount1m: 5, m1: 1, m3: 1, m6: 1 },
+  '2026-08': { discount1m: 5, m1: 2, m3: 5, m6: 1 },
+  '2026-09': { discount1m: 5, m1: 3, m3: 5, m6: 2 },
+};
+
+// Факт продаж — только июль, где ваши цифры точно сходятся с ценами тарифов
+// (остальные месяцы оставлены пустыми для точного переноса вами).
+const COMMUNITY_TARIFF_FACT_SEED = {
+  '2026-07': { discount1m: 3, m1: 1, m3: 1, m6: 1 },
+};
+
+const ACQUIRING_RATE = 0.048; // эквайринг
+const TAX_RATE = 0.063; // налог
+const RESERVE_RATE = 0.10; // резерв
+// По умолчанию для месяца без данных — расходов нет (не додумываем зарплаты
+// за периоды, которых ещё не было).
+const COMMUNITY_DEFAULT_MONTHLY_COSTS = { managerSalary: 0, techSalary: 0, botHelp: 0, yoNote: 0 };
+// Известные фиксированные расходы — перенесены из вашей таблицы (июль–сентябрь).
+const COMMUNITY_MONTHLY_COSTS_SEED = {
+  '2026-07': { managerSalary: 0, techSalary: 1599, botHelp: 249, yoNote: 249 },
+  '2026-08': { managerSalary: 0, techSalary: 1599, botHelp: 249, yoNote: 249 },
+  '2026-09': { managerSalary: 0, techSalary: 1599, botHelp: 249, yoNote: 249 },
+};

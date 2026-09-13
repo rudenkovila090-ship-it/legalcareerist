@@ -16,7 +16,36 @@ function defaultState() {
     settings: {
       lastBlockReportSeenBlockId: 0,
     },
+    // --- КЮ Кадры: помесячная воронка найма (план/факт), 2026 год ---
+    kadry: {
+      months: {}, // 'YYYY-MM' -> { [kpiId]: { plan, fact } } — заполняется вручную
+    },
+    // --- КЮ Сообщество: когорта резидентов, тарифы подписки, дневной P&L ---
+    community: {
+      residents: JSON.parse(JSON.stringify(COMMUNITY_RESIDENTS_SEED)), // перенесено из вашей таблицы
+      tariffs: JSON.parse(JSON.stringify(COMMUNITY_DEFAULT_TARIFFS)), // редактируемые тарифы и цены
+      tariffSales: seedTariffSales(),
+      journal: [], // { id, date, applications, joined, left, joinedDemo, purchases:{tariffId:amount}, reviewsTaken, reviewsAnswered, comment }
+      monthlyCosts: JSON.parse(JSON.stringify(COMMUNITY_MONTHLY_COSTS_SEED)), // 'YYYY-MM' -> { managerSalary, techSalary, botHelp, yoNote }
+    },
   };
+}
+
+function seedTariffSales() {
+  const result = {};
+  Object.keys(COMMUNITY_TARIFF_PLAN_SEED).forEach((month) => {
+    result[month] = result[month] || {};
+    Object.entries(COMMUNITY_TARIFF_PLAN_SEED[month]).forEach(([tariffId, planUnits]) => {
+      result[month][tariffId] = { planUnits, factUnits: null };
+    });
+  });
+  Object.keys(COMMUNITY_TARIFF_FACT_SEED).forEach((month) => {
+    result[month] = result[month] || {};
+    Object.entries(COMMUNITY_TARIFF_FACT_SEED[month]).forEach(([tariffId, factUnits]) => {
+      result[month][tariffId] = { ...(result[month][tariffId] || { planUnits: null }), factUnits };
+    });
+  });
+  return result;
 }
 
 function loadState() {
@@ -35,6 +64,22 @@ function loadState() {
     if (!parsed.leadMetricEntries) parsed.leadMetricEntries = {};
     if (!parsed.financialSnapshots) parsed.financialSnapshots = [];
     if (!parsed.settings) parsed.settings = { lastBlockReportSeenBlockId: 0 };
+    if (!parsed.kadry) parsed.kadry = { months: {} };
+    if (!parsed.community) {
+      parsed.community = {
+        residents: {},
+        tariffs: JSON.parse(JSON.stringify(COMMUNITY_DEFAULT_TARIFFS)),
+        tariffSales: {},
+        journal: [],
+        monthlyCosts: {},
+      };
+    }
+    if (!parsed.community.tariffs || !parsed.community.tariffs.length) {
+      parsed.community.tariffs = JSON.parse(JSON.stringify(COMMUNITY_DEFAULT_TARIFFS));
+    }
+    if (!parsed.community.tariffSales) parsed.community.tariffSales = {};
+    if (!parsed.community.journal) parsed.community.journal = [];
+    if (!parsed.community.monthlyCosts) parsed.community.monthlyCosts = {};
     return parsed;
   } catch (e) {
     console.error('Не удалось загрузить данные, создаю новое хранилище', e);

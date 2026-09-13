@@ -85,7 +85,7 @@ function executionScoreOverall(state, weekId) {
 }
 
 function executionStatus(score) {
-  if (score === null || score === undefined) return 'na';
+  if (score === null || score === undefined) return 'нет плана';
   return score >= EXECUTION_THRESHOLD ? 'в графике' : 'риск';
 }
 
