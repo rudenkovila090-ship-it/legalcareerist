@@ -1156,11 +1156,15 @@ export default function KadryHome() {
                 <IconUserCheck />
               </div>
 
-              {/* Подписи — центрированы точно под своей иконкой */}
-              <div className="absolute w-28 -translate-x-1/2 text-center text-[11px] text-white/50" style={{ left: '4%', top: '78%' }}>
+              {/* Подписи — у своей иконки, но заякорены к краю самого блока
+                  (left-0/right-0), а не к проценту его ширины со сдвигом на
+                  половину своей — на узких экранах такое центрирование у
+                  самого края (иконки стоят на 4%/96%) толкало подпись за
+                  границу блока и разъезжалась вся страница по горизонтали. */}
+              <div className="absolute left-0 w-28 text-left text-[11px] text-white/50" style={{ top: '78%' }}>
                 Заявка от работодателя
               </div>
-              <div className="absolute w-28 -translate-x-1/2 text-center text-[11px] text-white/50" style={{ left: '96%', top: '78%' }}>
+              <div className="absolute right-0 w-28 text-right text-[11px] text-white/50" style={{ top: '78%' }}>
                 Кандидат найден
               </div>
             </div>
