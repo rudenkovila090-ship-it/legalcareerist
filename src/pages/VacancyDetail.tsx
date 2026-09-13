@@ -6,11 +6,17 @@ import LeadForm from '../components/LeadForm'
 import { getRelatedContent, getSimilar } from '../lib/related'
 import { trackEvent } from '../lib/leads'
 import { useDocumentTitle } from '../lib/useDocumentTitle'
+import { useSocialMeta } from '../lib/useSocialMeta'
 
 export default function VacancyDetail() {
   const { slug } = useParams()
   const vacancy = vacancies.find((v) => v.slug === slug)
   useDocumentTitle(vacancy?.title)
+  useSocialMeta({
+    title: vacancy?.title,
+    description: vacancy ? `${vacancy.anonymous ? 'Вакансия' : vacancy.company}${vacancy.city ? ` · ${vacancy.city}` : ''}` : undefined,
+    path: slug ? `/vacancies/${slug}` : undefined,
+  })
 
   if (!vacancy) {
     return (

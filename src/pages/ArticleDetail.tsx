@@ -6,6 +6,7 @@ import TariffJoinBlock from '../components/TariffJoinBlock'
 import { getRelatedContent } from '../lib/related'
 import { useArticleViews } from '../lib/useArticleViews'
 import { useDocumentTitle } from '../lib/useDocumentTitle'
+import { useSocialMeta } from '../lib/useSocialMeta'
 
 const kindLabel = { article: 'Статья', faq: 'FAQ', glossary: 'Глоссарий', checklist: 'Чек-лист' }
 
@@ -13,6 +14,7 @@ export default function ArticleDetail() {
   const { slug } = useParams()
   const article = articles.find((a) => a.slug === slug)
   useDocumentTitle(article?.title ?? 'Материал не найден')
+  useSocialMeta({ title: article?.title, description: article?.excerpt, path: slug ? `/knowledge/${slug}` : undefined })
   const views = useArticleViews(article?.slug ?? '')
 
   if (!article) {

@@ -2,6 +2,7 @@ import { Outlet, useLocation } from 'react-router-dom'
 import { useEffect } from 'react'
 import Header from './Header'
 import Footer from './Footer'
+import ErrorBoundary from './ErrorBoundary'
 
 // Liquid Glass: один делегированный слушатель на весь документ вместо
 // слушателя на каждой карточке — обновляет позицию блика (--mx/--my)
@@ -89,7 +90,9 @@ export default function Layout() {
     <div className="flex min-h-screen flex-col">
       <Header />
       <main className="flex-1">
-        <Outlet />
+        <ErrorBoundary key={pathname}>
+          <Outlet />
+        </ErrorBoundary>
       </main>
       {!hideGlobalFooter && <Footer />}
     </div>

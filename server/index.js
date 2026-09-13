@@ -25,6 +25,10 @@
 //     (+1 при каждом открытии).
 // 11. POST /api/event/:slug/register — реальный счётчик переходов к
 //     регистрации на мероприятие (внешняя ссылка или внутренняя форма).
+// 12. GET /api/store/sync, PUT /api/store/:key — синхронизация демо-данных
+//     кабинетов между localStorage браузера и сервером (см.
+//     src/lib/serverSync.ts) — раньше данные кабинета были видны только в
+//     том браузере, где их создали.
 // Токены и секретные ключи — только в server/.env, в репозиторий не попадают.
 import express from 'express'
 import cors from 'cors'
@@ -36,6 +40,7 @@ import { incrementView, incrementApplication } from './lib/vacancyStats.js'
 import { incrementArticleView, getArticleViews } from './lib/articleStats.js'
 import { incrementNewsView, getNewsViews } from './lib/newsStats.js'
 import { incrementEventView, incrementEventRegistration, getEventStats } from './lib/eventStats.js'
+import { isValidKey, writeCollection, readAllCollections } from './lib/collectionStore.js'
 
 const app = express()
 app.use(cors())
@@ -130,6 +135,23 @@ app.get('/api/event/:slug/views', (req, res) => {
 app.post('/api/event/:slug/register', (req, res) => {
   const stats = incrementEventRegistration(req.params.slug)
   res.json({ ok: true, ...stats })
+})
+
+// Синхронизация localStorage кабинетов ↔ сервер (см. src/lib/serverSync.ts):
+// GET забирает все ky_*-ключи разом при загрузке приложения, PUT сохраняет
+// один ключ при каждой локальной записи. Без этого демо-данные кабинета
+// (вакансии, отклики, резюме, избранное, мероприятия организатора и т.п.)
+// были видны только в том браузере, где их создали.
+app.get('/api/store/sync', (req, res) => {
+  res.json(readAllCollections())
+})
+
+app.put('/api/store/:key', (req, res) => {
+  if (!isValidKey(req.params.key)) {
+    return res.status(400).json({ ok: false, error: 'bad_key' })
+  }
+  writeCollection(req.params.key, req.body)
+  res.json({ ok: true })
 })
 
 app.post('/api/notify', async (req, res) => {

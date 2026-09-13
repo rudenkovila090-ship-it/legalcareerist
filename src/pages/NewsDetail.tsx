@@ -3,11 +3,17 @@ import { news } from '../data/news'
 import ArticleBody from '../components/ArticleBody'
 import { useNewsViews } from '../lib/useNewsViews'
 import { useDocumentTitle } from '../lib/useDocumentTitle'
+import { useSocialMeta } from '../lib/useSocialMeta'
 
 export default function NewsDetail() {
   const { slug } = useParams()
   const item = news.find((n) => n.slug === slug)
   useDocumentTitle(item?.title ?? 'Новость не найдена')
+  useSocialMeta({
+    title: item?.title,
+    description: item?.text.replace(/[#*]/g, '').slice(0, 160),
+    path: slug ? `/news/${slug}` : undefined,
+  })
   const views = useNewsViews(item?.slug ?? '')
 
   if (!item) {

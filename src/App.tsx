@@ -39,6 +39,7 @@ const News = lazy(() => import('./pages/News'))
 const NewsDetail = lazy(() => import('./pages/NewsDetail'))
 const Documents = lazy(() => import('./pages/Documents'))
 const Placeholder = lazy(() => import('./pages/Placeholder'))
+const NotFound = lazy(() => import('./pages/NotFound'))
 
 export default function App() {
   return (
@@ -130,6 +131,8 @@ export default function App() {
           <Route path="/legal/privacy" element={<Privacy />} />
           <Route path="/legal/consent" element={<Consent />} />
           <Route path="/legal/offer" element={<Placeholder eyebrow="Юридический блок" title="Оферта" />} />
+
+          <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
     </Suspense>

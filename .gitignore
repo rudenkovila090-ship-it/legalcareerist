@@ -27,3 +27,8 @@ server/data
 *.njsproj
 *.sln
 *.sw?
+
+# Генерируется перед каждой сборкой (см. package.json → "build" и
+# scripts/generate-sitemap.mjs) — не коммитим, чтобы не плодить diff-шум
+# на каждый PR, когда меняется список вакансий/мероприятий/статей.
+public/sitemap.xml

@@ -5,6 +5,7 @@ import RelatedContentBlock from '../../components/RelatedContentBlock'
 import { getRelatedContent } from '../../lib/related'
 import { submitLead, pingEventRegistrationClick } from '../../lib/leads'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
+import { useSocialMeta } from '../../lib/useSocialMeta'
 import PhoneInput from '../../components/PhoneInput'
 import EventsFooter from './EventsFooter'
 import { SPECIALIZATIONS, INDUSTRIES, type EventTariff } from '../../types'
@@ -150,6 +151,7 @@ export default function EventDetail() {
   const { slug } = useParams()
   const event = events.find((e) => e.slug === slug)
   useDocumentTitle(event?.title ?? 'Мероприятие не найдено')
+  useSocialMeta({ title: event?.title, description: event?.description, path: slug ? `/events/${slug}` : undefined })
   const views = useEventViews(slug ?? '')
 
   const [tariffId, setTariffId] = useState<EventTariff['id']>(event?.tariffs[0]?.id ?? 'light')
