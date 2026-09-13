@@ -581,25 +581,29 @@ function setDailyNormFact(date, normId, value) {
 }
 
 function renderDailyNorms(date) {
-  const groups = [...new Set(DAILY_NORMS.map((n) => n.group))];
-  const groupBlocks = groups.map((group) => {
-    const rows = DAILY_NORMS.filter((n) => n.group === group).map((n) => {
-      const fact = getDailyNormFact(date, n.id);
-      const done = fact >= n.target;
-      return `<tr>
-        <td>${n.name}</td>
-        <td class="small muted">${n.target} ${n.unit}</td>
-        <td><input type="number" class="norm-fact" data-norm="${n.id}" value="${fact || ''}" style="width:80px"></td>
-        <td>${statusPill(done ? 'выполнено' : 'не начато')}</td>
-      </tr>`;
-    }).join('');
-    return `<h3>${group}</h3><table><thead><tr><th>Норма</th><th>Цель</th><th>Факт</th><th></th></tr></thead><tbody>${rows}</tbody></table>`;
+  let lastGroup = null;
+  const rows = DAILY_NORMS.map((n) => {
+    const fact = getDailyNormFact(date, n.id);
+    const done = fact >= n.target;
+    const showGroup = n.group !== lastGroup;
+    lastGroup = n.group;
+    return `<tr>
+      <td class="small muted norms-group-cell">${showGroup ? n.group : ''}</td>
+      <td>${n.name}</td>
+      <td class="small muted">${n.target} ${n.unit}</td>
+      <td><input type="number" class="norm-fact" data-norm="${n.id}" value="${fact || ''}"></td>
+      <td>${statusPill(done ? 'выполнено' : 'не начато')}</td>
+    </tr>`;
   }).join('');
 
   return `
     <div class="card">
       <h2>Дневная норма</h2>
-      ${groupBlocks}
+      <table class="norms-table">
+        <colgroup><col style="width:20%"><col style="width:34%"><col style="width:16%"><col style="width:14%"><col style="width:16%"></colgroup>
+        <thead><tr><th>Направление</th><th>Норма</th><th>Цель</th><th>Факт</th><th>Статус</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
     </div>
   `;
 }
@@ -608,6 +612,369 @@ function bindDailyNormsEvents() {
   document.querySelectorAll('.norm-fact').forEach((el) => {
     el.addEventListener('change', () => {
       setDailyNormFact(ui.dailyDate, el.dataset.norm, el.value);
+      save();
+      renderContent();
+    });
+  });
+}
+
+// =======================================================================
+// КЮ Маркетинг — проекты и KPI по соцсетям/PR/сотрудничеству/рекламе
+// =======================================================================
+
+function marketingKpiEntry(monthKey, kpiId) {
+  const rec = (state.marketing.kpiMonthly[monthKey] || {})[kpiId] || {};
+  return { plan: rec.plan ?? null, fact: rec.fact ?? null };
+}
+
+function setMarketingKpiEntry(monthKey, kpiId, plan, fact) {
+  if (!state.marketing.kpiMonthly[monthKey]) state.marketing.kpiMonthly[monthKey] = {};
+  state.marketing.kpiMonthly[monthKey][kpiId] = {
+    plan: plan === '' || plan === null ? null : Number(plan),
+    fact: fact === '' || fact === null ? null : Number(fact),
+  };
+}
+
+function renderMarketing() {
+  const projectRows = state.marketing.projects
+    .slice()
+    .sort((a, b) => (a.status === b.status ? 0 : a.status === 'в работе' ? -1 : 1))
+    .map((p) => `
+    <tr data-id="${p.id}">
+      <td>${p.name}</td>
+      <td class="small muted">${p.category}</td>
+      <td class="small muted">${fmtDateRu(p.date)}</td>
+      <td><select class="project-status-select" data-id="${p.id}">${MARKETING_PROJECT_STATUSES.map((s) => `<option value="${s}" ${s === p.status ? 'selected' : ''}>${s}</option>`).join('')}</select></td>
+      <td class="small muted">${p.notes || ''}</td>
+      <td><button class="ghost-danger project-delete" data-id="${p.id}">Удалить</button></td>
+    </tr>`).join('');
+
+  const kpiRows = state.marketing.kpis.map((k) => `
+    <tr data-id="${k.id}">
+      <td>${k.name}</td>
+      <td class="small muted">${k.category}</td>
+      <td class="small muted">${k.unit}</td>
+      <td><button class="ghost-danger kpi-delete" data-id="${k.id}">Удалить</button></td>
+    </tr>`).join('');
+
+  const kpiHeaderCells = state.marketing.kpis.map((k) => `<th colspan="2">${k.name}</th>`).join('');
+  const kpiSubHeaderCells = state.marketing.kpis.map(() => '<th class="small muted">План</th><th class="small muted">Факт</th>').join('');
+  const monthRows = state.marketing.kpis.length ? MONTHS_2026.map((m) => {
+    const cells = state.marketing.kpis.map((k) => {
+      const e = marketingKpiEntry(m.key, k.id);
+      return `
+        <td><input type="number" step="any" class="mkpi-plan" data-month="${m.key}" data-kpi="${k.id}" value="${e.plan ?? ''}"></td>
+        <td><input type="number" step="any" class="mkpi-fact" data-month="${m.key}" data-kpi="${k.id}" value="${e.fact ?? ''}"></td>`;
+    }).join('');
+    return `<tr><td class="small">${m.name}</td>${cells}</tr>`;
+  }).join('') : '';
+
+  return `
+    <div class="card">
+      <h2>Проекты</h2>
+      <form id="project-form" class="inline-form">
+        <div class="field"><label>Название</label><input type="text" name="name" required placeholder="Например: ребрендинг соцсетей"></div>
+        <div class="field"><label>Категория</label><select name="category">${MARKETING_CATEGORIES.map((c) => `<option value="${c}">${c}</option>`).join('')}</select></div>
+        <div class="field"><label>Дата</label><input type="date" name="date" value="${todayStr()}"></div>
+        <div class="field" style="flex:1"><label>Заметка</label><input type="text" name="notes"></div>
+        <button type="submit" class="primary">Добавить проект</button>
+      </form>
+      <table>
+        <thead><tr><th>Название</th><th>Категория</th><th>Дата</th><th>Статус</th><th>Заметка</th><th></th></tr></thead>
+        <tbody>${projectRows || '<tr><td colspan="6" class="muted small">Проектов пока нет</td></tr>'}</tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>KPI по направлениям</h2>
+      <form id="kpi-form" class="inline-form">
+        <div class="field"><label>Название KPI</label><input type="text" name="name" required placeholder="Например: подписчики Instagram"></div>
+        <div class="field"><label>Категория</label><select name="category">${MARKETING_CATEGORIES.map((c) => `<option value="${c}">${c}</option>`).join('')}</select></div>
+        <div class="field"><label>Единица</label><input type="text" name="unit" placeholder="шт / ₽ / %" required></div>
+        <button type="submit" class="primary">Добавить KPI</button>
+      </form>
+      <table>
+        <thead><tr><th>KPI</th><th>Категория</th><th>Ед.</th><th></th></tr></thead>
+        <tbody>${kpiRows || '<tr><td colspan="4" class="muted small">Добавьте первый KPI</td></tr>'}</tbody>
+      </table>
+    </div>
+
+    ${state.marketing.kpis.length ? `
+    <div class="card">
+      <h2>План / факт по месяцам</h2>
+      <div class="freeze-wrap">
+      <table class="freeze-table">
+        <thead>
+          <tr><th></th>${kpiHeaderCells}</tr>
+          <tr><th>Месяц</th>${kpiSubHeaderCells}</tr>
+        </thead>
+        <tbody>${monthRows}</tbody>
+      </table>
+      </div>
+    </div>` : ''}
+  `;
+}
+
+function bindMarketingEvents() {
+  document.getElementById('project-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    state.marketing.projects.push({
+      id: uid('proj'),
+      name: fd.get('name'),
+      category: fd.get('category'),
+      date: fd.get('date') || todayStr(),
+      status: 'в работе',
+      notes: fd.get('notes') || '',
+    });
+    save();
+    renderContent();
+  });
+  document.querySelectorAll('.project-status-select').forEach((sel) => {
+    applyStatusSelectStyle(sel);
+    sel.addEventListener('change', (e) => {
+      const p = state.marketing.projects.find((x) => x.id === e.target.dataset.id);
+      if (p) p.status = e.target.value;
+      applyStatusSelectStyle(e.target);
+      save();
+    });
+  });
+  document.querySelectorAll('.project-delete').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      state.marketing.projects = state.marketing.projects.filter((p) => p.id !== e.target.dataset.id);
+      save();
+      renderContent();
+    });
+  });
+
+  document.getElementById('kpi-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    state.marketing.kpis.push({
+      id: uid('mkpi'),
+      name: fd.get('name'),
+      category: fd.get('category'),
+      unit: fd.get('unit'),
+    });
+    save();
+    renderContent();
+  });
+  document.querySelectorAll('.kpi-delete').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      state.marketing.kpis = state.marketing.kpis.filter((k) => k.id !== e.target.dataset.id);
+      save();
+      renderContent();
+    });
+  });
+  document.querySelectorAll('.mkpi-plan, .mkpi-fact').forEach((el) => {
+    el.addEventListener('change', () => {
+      const month = el.dataset.month;
+      const kpi = el.dataset.kpi;
+      const planEl = document.querySelector(`.mkpi-plan[data-month="${month}"][data-kpi="${kpi}"]`);
+      const factEl = document.querySelector(`.mkpi-fact[data-month="${month}"][data-kpi="${kpi}"]`);
+      setMarketingKpiEntry(month, kpi, planEl.value, factEl.value);
+      save();
+      renderContent();
+    });
+  });
+}
+
+// =======================================================================
+// Ежемесячный отчёт — только по «Карьерному юристу» (G1: Кадры, Сообщество,
+// Мероприятия, Маркетинг, Legal Tech, HR — без личного дохода и накоплений)
+// =======================================================================
+
+const KYU_REVENUE_STREAMS = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6'];
+
+function kyuMonthlyReport(monthKey) {
+  const { start, end } = monthBounds(monthKey);
+  const revenueByStream = KYU_REVENUE_STREAMS.map((sid) => {
+    const stream = STREAMS.find((s) => s.id === sid);
+    const snap = state.financialSnapshots.find((s) => s.streamId === sid && s.periodStart === start && s.periodEnd === end);
+    return { stream, amount: snap ? snap.amount : 0 };
+  });
+  const totalRevenue = revenueByStream.reduce((sum, r) => sum + r.amount, 0);
+
+  const kadryFacts = KADRY_KPIS.filter((k) => k.id !== 'revenue').map((k) => ({
+    kpi: k, fact: kadryMonthEntry(monthKey, k.id).fact,
+  }));
+
+  const residentsRow = residentsChain().find((m) => m.key === monthKey);
+  const communityRollup = communityMonthlyRollup(monthKey);
+
+  const eventsRevenue = eventsMonthlyRevenue(monthKey, 'factQty');
+
+  const tasksInMonth = state.tasks.filter((t) => t.plannedDate && monthKeyOf(t.plannedDate) === monthKey);
+  const tasksDone = tasksInMonth.filter((t) => t.status === 'выполнено').length;
+
+  return { monthKey, start, end, revenueByStream, totalRevenue, kadryFacts, residentsRow, communityRollup, eventsRevenue, tasksInMonth, tasksDone };
+}
+
+function renderKyuMonthlyReport(monthKey) {
+  const r = kyuMonthlyReport(monthKey);
+  const revenueRows = r.revenueByStream.map((x) => `<tr><td>${x.stream.name}</td><td>${fmtMoney(x.amount)} ₽</td></tr>`).join('');
+  const kadryRows = r.kadryFacts.filter((x) => x.fact !== null).map((x) => `<tr><td>${x.kpi.name}</td><td>${fmtMoney(x.fact)} ${x.kpi.unit}</td></tr>`).join('');
+  const monthOptions = MONTHS_2026.map((m) => `<option value="${m.key}" ${m.key === monthKey ? 'selected' : ''}>${m.name}</option>`).join('');
+
+  return `
+    <div class="card">
+      <h2>Ежемесячный отчёт — Карьерный юрист</h2>
+      <label class="small">Месяц: <select id="kyu-report-month-select">${monthOptions}</select></label>
+      <h3 style="margin-top:12px">Выручка по направлениям</h3>
+      <table><thead><tr><th>Направление</th><th>Выручка</th></tr></thead><tbody>${revenueRows}</tbody></table>
+      <p><b>Итого за месяц: ${fmtMoney(r.totalRevenue)} ₽</b></p>
+
+      ${kadryRows ? `<h3>КЮ Кадры — факт по KPI</h3><table><thead><tr><th>Показатель</th><th>Факт</th></tr></thead><tbody>${kadryRows}</tbody></table>` : ''}
+
+      ${r.residentsRow ? `<h3>КЮ Сообщество</h3><p class="small">Резидентов на конец месяца: <b>${r.residentsRow.end}</b> (${r.residentsRow.growth >= 0 ? '+' : ''}${r.residentsRow.growth} за месяц) · Прибыль сообщества: <b>${fmtMoney(r.communityRollup.profit)} ₽</b></p>` : ''}
+
+      ${r.eventsRevenue > 0 ? `<p class="small">КЮ Мероприятия — выручка за месяц: <b>${fmtMoney(r.eventsRevenue)} ₽</b></p>` : ''}
+
+      <h3>Задачи</h3>
+      <p class="small">Выполнено ${r.tasksDone} из ${r.tasksInMonth.length} задач, запланированных на этот месяц.</p>
+    </div>
+  `;
+}
+
+function bindKyuMonthlyReportEvents() {
+  const sel = document.getElementById('kyu-report-month-select');
+  if (sel) sel.addEventListener('change', (e) => {
+    ui.selectedReportMonth = e.target.value;
+    renderContent();
+  });
+}
+
+// =======================================================================
+// OKR по блокам (Objectives & Key Results)
+// =======================================================================
+
+function okrObjectivesForBlock(blockId) {
+  return state.okr.objectives.filter((o) => o.blockId === blockId);
+}
+
+function krProgress(kr) {
+  if (!kr.target) return null;
+  return Math.max(0, Math.min(100, (kr.current / kr.target) * 100));
+}
+
+function objectiveProgress(o) {
+  if (!o.keyResults.length) return null;
+  const vals = o.keyResults.map(krProgress).filter((v) => v !== null);
+  if (!vals.length) return null;
+  return vals.reduce((a, b) => a + b, 0) / vals.length;
+}
+
+function renderOkrSection(blockId) {
+  const objectives = okrObjectivesForBlock(blockId);
+
+  const objectivesHtml = objectives.map((o) => {
+    const prog = objectiveProgress(o);
+    const krRows = o.keyResults.map((kr) => {
+      const p = krProgress(kr);
+      return `<tr data-kr="${kr.id}" data-objective="${o.id}">
+        <td>${kr.name}</td>
+        <td><input type="number" step="any" class="kr-current" data-objective="${o.id}" data-kr="${kr.id}" value="${kr.current}"></td>
+        <td class="small muted">из ${fmtMoney(kr.target)} ${kr.unit}</td>
+        <td style="min-width:120px">
+          <div class="progress-bar"><div class="progress-fill" style="width:${p === null ? 0 : p}%"></div></div>
+        </td>
+        <td class="small">${p === null ? '—' : fmtPct(p)}</td>
+        <td><button class="ghost-danger kr-delete" data-objective="${o.id}" data-kr="${kr.id}">×</button></td>
+      </tr>`;
+    }).join('');
+
+    return `
+    <div class="card">
+      <div class="goal-card-top">
+        <b>${o.title}</b>
+        <span class="signal-badge ${prog === null ? 'na' : prog >= 85 ? 'green' : prog >= 50 ? 'yellow' : 'red'}">${prog === null ? 'Нет данных' : fmtPct(prog)}</span>
+      </div>
+      <table>
+        <thead><tr><th>Ключевой результат</th><th>Текущее</th><th></th><th>Прогресс</th><th></th><th></th></tr></thead>
+        <tbody>${krRows || '<tr><td colspan="6" class="muted small">Добавьте ключевой результат ниже</td></tr>'}</tbody>
+      </table>
+      <form class="inline-form add-kr-form" data-objective="${o.id}">
+        <div class="field"><label>Ключевой результат</label><input type="text" name="name" required placeholder="Например: 20 закрытых вакансий"></div>
+        <div class="field"><label>Цель</label><input type="number" step="any" name="target" required></div>
+        <div class="field"><label>Ед.</label><input type="text" name="unit" placeholder="шт / ₽ / %"></div>
+        <button type="submit" class="secondary">Добавить KR</button>
+      </form>
+      <button class="ghost-danger objective-delete" data-objective="${o.id}" style="margin-top:8px">Удалить цель</button>
+    </div>`;
+  }).join('');
+
+  const overallProgress = objectives.length
+    ? objectives.map(objectiveProgress).filter((v) => v !== null).reduce((acc, v, _, arr) => acc + v / arr.length, 0)
+    : null;
+
+  return `
+    <div class="card">
+      <h2>OKR блока ${blockId}</h2>
+      ${overallProgress !== null ? `<p><b>Прогресс по всем целям блока: ${fmtPct(overallProgress)}</b></p>` : '<p class="small muted">Целей пока нет — добавьте первую ниже.</p>'}
+      <form id="objective-form" class="inline-form" data-block="${blockId}">
+        <div class="field" style="flex:1"><label>Новая цель (Objective)</label><input type="text" name="title" required placeholder="Например: закрепиться в топ-3 кадровых агентств ниши"></div>
+        <button type="submit" class="primary">Добавить цель</button>
+      </form>
+    </div>
+    ${objectivesHtml}
+  `;
+}
+
+function bindOkrEvents() {
+  const objForm = document.getElementById('objective-form');
+  if (objForm) objForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    state.okr.objectives.push({
+      id: uid('okr'),
+      blockId: Number(e.target.dataset.block),
+      title: fd.get('title'),
+      keyResults: [],
+    });
+    save();
+    renderContent();
+  });
+
+  document.querySelectorAll('.add-kr-form').forEach((form) => {
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const o = state.okr.objectives.find((x) => x.id === e.target.dataset.objective);
+      if (!o) return;
+      o.keyResults.push({
+        id: uid('kr'),
+        name: fd.get('name'),
+        target: Number(fd.get('target')) || 0,
+        current: 0,
+        unit: fd.get('unit') || '',
+      });
+      save();
+      renderContent();
+    });
+  });
+
+  document.querySelectorAll('.kr-current').forEach((el) => {
+    el.addEventListener('change', () => {
+      const o = state.okr.objectives.find((x) => x.id === el.dataset.objective);
+      const kr = o && o.keyResults.find((k) => k.id === el.dataset.kr);
+      if (kr) kr.current = Number(el.value) || 0;
+      save();
+      renderContent();
+    });
+  });
+
+  document.querySelectorAll('.kr-delete').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      const o = state.okr.objectives.find((x) => x.id === e.target.dataset.objective);
+      if (o) o.keyResults = o.keyResults.filter((k) => k.id !== e.target.dataset.kr);
+      save();
+      renderContent();
+    });
+  });
+
+  document.querySelectorAll('.objective-delete').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      state.okr.objectives = state.okr.objectives.filter((o) => o.id !== e.target.dataset.objective);
       save();
       renderContent();
     });

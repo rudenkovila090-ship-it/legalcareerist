@@ -9,9 +9,8 @@ function defaultState() {
   return {
     version: 1,
     blocks: JSON.parse(JSON.stringify(DEFAULT_BLOCKS)), // редактируемые промежуточные цели
-    tasks: [], // { id, title, streamId, goalId, blockId, weekId, priority, linkType, status, plannedDate, actualDate, metricContribution }
+    tasks: [], // { id, title, streamId, goalId, blockId, weekId, priority, linkType, status, plannedDate, actualDate }
     dailyLogs: [], // { id, taskId, date, status, note }
-    leadMetricEntries: {}, // key `${weekId}|${metricId}` -> { plan, fact }
     financialSnapshots: [], // { id, streamId, periodStart, periodEnd, amount, note }
     settings: {
       lastBlockReportSeenBlockId: 0,
@@ -35,6 +34,16 @@ function defaultState() {
     },
     // --- Дневная норма (что нужно делать каждый день) ---
     dailyNorms: {}, // 'YYYY-MM-DD' -> { [normId]: factValue }
+    // --- КЮ Маркетинг: проекты и KPI по соцсетям/PR/сотрудничеству/рекламе ---
+    marketing: {
+      projects: [], // { id, name, category, status: 'в работе'|'готово', notes, date }
+      kpis: [], // { id, name, category, unit }
+      kpiMonthly: {}, // 'YYYY-MM' -> { [kpiId]: { plan, fact } }
+    },
+    // --- OKR по блокам ---
+    okr: {
+      objectives: [], // { id, blockId, title, keyResults: [{id,name,target,current,unit}] }
+    },
   };
 }
 
@@ -68,7 +77,6 @@ function loadState() {
     if (!parsed.blocks || !parsed.blocks.length) parsed.blocks = JSON.parse(JSON.stringify(DEFAULT_BLOCKS));
     if (!parsed.tasks) parsed.tasks = [];
     if (!parsed.dailyLogs) parsed.dailyLogs = [];
-    if (!parsed.leadMetricEntries) parsed.leadMetricEntries = {};
     if (!parsed.financialSnapshots) parsed.financialSnapshots = [];
     if (!parsed.settings) parsed.settings = { lastBlockReportSeenBlockId: 0 };
     if (!parsed.kadry) parsed.kadry = { months: {} };
@@ -97,6 +105,12 @@ function loadState() {
     if (!parsed.events.offers) parsed.events.offers = [];
     if (!parsed.events.sales) parsed.events.sales = {};
     if (!parsed.dailyNorms) parsed.dailyNorms = {};
+    if (!parsed.marketing) parsed.marketing = { projects: [], kpis: [], kpiMonthly: {} };
+    if (!parsed.marketing.projects) parsed.marketing.projects = [];
+    if (!parsed.marketing.kpis) parsed.marketing.kpis = [];
+    if (!parsed.marketing.kpiMonthly) parsed.marketing.kpiMonthly = {};
+    if (!parsed.okr) parsed.okr = { objectives: [] };
+    if (!parsed.okr.objectives) parsed.okr.objectives = [];
     return parsed;
   } catch (e) {
     console.error('Не удалось загрузить данные, создаю новое хранилище', e);

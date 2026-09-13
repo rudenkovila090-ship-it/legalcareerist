@@ -3,85 +3,75 @@
  * сопоставление лид/лаг показателей (сигналы), прогноз (линейная экстраполяция).
  */
 
-// ---------- Лид-показатели / Execution Score ----------
+// ---------- Execution score (из дневной нормы) ----------
+// Отдельной вкладки для лид-показателей больше нет: execution score
+// считается из фактов «Дневной нормы» (вкладка «Ежедневный отчёт») —
+// плана/факта, который пользователь и так вносит каждый день.
 
-function leadEntryKey(weekId, metricId) {
-  return `${weekId}|${metricId}`;
+function normsForGroups(groups) {
+  return DAILY_NORMS.filter((n) => groups.includes(n.group));
 }
 
-function getLeadEntry(state, weekId, metricId) {
-  const key = leadEntryKey(weekId, metricId);
-  const entry = state.leadMetricEntries[key];
-  if (entry) return entry;
-  const metric = LEAD_METRICS.find((m) => m.id === metricId);
-  return { plan: metric ? metric.defaultPlan : null, fact: null };
+/** Дни недели с начала блока по atDate включительно (только уже наступившие). */
+function elapsedDaysOfWeek(week, atDate) {
+  if (atDate < week.start) return [];
+  const end = atDate < week.end ? atDate : week.end;
+  const days = [];
+  let d = parseDate(week.start);
+  const endD = parseDate(end);
+  while (d <= endD) {
+    days.push(fmtDate(d));
+    d = addDays(d, 1);
+  }
+  return days;
 }
 
-function setLeadEntry(state, weekId, metricId, plan, fact) {
-  const key = leadEntryKey(weekId, metricId);
-  state.leadMetricEntries[key] = {
-    plan: plan === '' || plan === null || plan === undefined ? null : Number(plan),
-    fact: fact === '' || fact === null || fact === undefined ? null : Number(fact),
-  };
-}
-
-function metricsForStream(streamId) {
-  return LEAD_METRICS.filter((m) => m.streamIds.includes(streamId));
-}
-
-/** Execution score для одного направления за неделю. Возвращает null, если нет плановых данных. */
-function executionScoreForStream(state, weekId, streamId) {
-  const metrics = metricsForStream(streamId);
+/** Execution score по списку групп дневной нормы за неделю (на дату atDate). */
+function executionScoreForGroups(state, week, groups, atDate) {
+  const norms = normsForGroups(groups);
+  if (!norms.length) return null;
+  const days = elapsedDaysOfWeek(week, atDate);
+  if (!days.length) return null;
   let planSum = 0;
   let factSum = 0;
-  let hasPlan = false;
-  metrics.forEach((m) => {
-    const e = getLeadEntry(state, weekId, m.id);
-    if (typeof e.plan === 'number' && e.plan > 0) {
-      hasPlan = true;
-      planSum += e.plan;
-      factSum += typeof e.fact === 'number' ? e.fact : 0;
-    }
-  });
-  if (!hasPlan) return null;
-  return (factSum / planSum) * 100;
-}
-
-/** Execution score по цели (среднее по направлениям цели, взвешенное по плану). */
-function executionScoreForGoal(state, weekId, goalId) {
-  const streams = STREAMS.filter((s) => s.goals.includes(goalId) && s.kind === 'flow');
-  let planSum = 0;
-  let factSum = 0;
-  let hasPlan = false;
-  streams.forEach((s) => {
-    metricsForStream(s.id).forEach((m) => {
-      const e = getLeadEntry(state, weekId, m.id);
-      if (typeof e.plan === 'number' && e.plan > 0) {
-        hasPlan = true;
-        planSum += e.plan;
-        factSum += typeof e.fact === 'number' ? e.fact : 0;
-      }
+  norms.forEach((n) => {
+    days.forEach((d) => {
+      planSum += n.target;
+      factSum += getDailyNormFact(d, n.id);
     });
   });
-  if (!hasPlan) return null;
+  if (planSum <= 0) return null;
   return (factSum / planSum) * 100;
 }
 
-/** Сводный execution score по всем направлениям за неделю. */
+function weekById(state, weekId) {
+  return allWeeks(state.blocks).find((w) => w.id === weekId) || null;
+}
+
+/** Execution score для одного направления за неделю (по дневной норме). */
+function executionScoreForStream(state, weekId, streamId) {
+  const group = STREAM_TO_NORM_GROUP[streamId];
+  if (!group) return null;
+  const week = weekById(state, weekId);
+  if (!week) return null;
+  return executionScoreForGroups(state, week, [group], todayStr());
+}
+
+/** Execution score по цели — по всем группам дневной нормы, относящимся к ней. */
+function executionScoreForGoal(state, weekId, goalId) {
+  const groups = GOAL_NORM_GROUPS[goalId] || [];
+  if (!groups.length) return null;
+  const week = weekById(state, weekId);
+  if (!week) return null;
+  return executionScoreForGroups(state, week, groups, todayStr());
+}
+
+/** Сводный execution score по всей дневной норме за неделю. */
 function executionScoreOverall(state, weekId) {
-  let planSum = 0;
-  let factSum = 0;
-  let hasPlan = false;
-  LEAD_METRICS.forEach((m) => {
-    const e = getLeadEntry(state, weekId, m.id);
-    if (typeof e.plan === 'number' && e.plan > 0) {
-      hasPlan = true;
-      planSum += e.plan;
-      factSum += typeof e.fact === 'number' ? e.fact : 0;
-    }
-  });
-  if (!hasPlan) return null;
-  return (factSum / planSum) * 100;
+  const week = weekById(state, weekId);
+  if (!week) return null;
+  const allGroups = [...new Set(DAILY_NORMS.map((n) => n.group))];
+  return executionScoreForGroups(state, week, allGroups, todayStr());
 }
 
 function executionStatus(score) {

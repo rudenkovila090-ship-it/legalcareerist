@@ -11,6 +11,7 @@ const ui = {
   selectedBlockId: null,
   dailyDate: todayStr(),
   financeMode: 'weekly', // weekly | monthly — влияет только на подсказку периода по умолчанию
+  selectedReportMonth: todayStr().slice(0, 7),
 };
 
 (function initUiDefaults() {
@@ -144,13 +145,12 @@ function renderContent() {
     case 'dashboard': app.innerHTML = renderDashboard(); break;
     case 'tasks': app.innerHTML = renderTasks(); bindTasksEvents(); break;
     case 'daily': app.innerHTML = renderDaily(); bindDailyEvents(); break;
-    case 'metrics': app.innerHTML = renderMetrics(); bindMetricsEvents(); break;
     case 'finance': app.innerHTML = renderFinance(); bindFinanceEvents(); break;
     case 'kadry': app.innerHTML = renderKadry(); bindKadryEvents(); break;
     case 'community': app.innerHTML = renderCommunity(); bindCommunityEvents(); break;
     case 'events': app.innerHTML = renderEvents(); bindEventsEvents(); break;
+    case 'marketing': app.innerHTML = renderMarketing(); bindMarketingEvents(); break;
     case 'blocks': app.innerHTML = renderBlocks(); bindBlocksEvents(); break;
-    case 'settings': app.innerHTML = renderSettings(); bindSettingsEvents(); break;
     default: app.innerHTML = '<p>Неизвестная вкладка</p>';
   }
   if (activeTab === 'dashboard') bindDashboardEvents();
@@ -172,12 +172,14 @@ function renderDashboard() {
     const fact = goalCurrentFact(state, g.id, today);
     return `
     <div class="card goal-card">
-      <div class="goal-card-top">
+      <span class="signal-badge ${sig.code} tile-badge">${sig.label}</span>
+      <div class="goal-tile-head">
         <div class="goal-icon">${GOAL_ICONS[g.id] || ''}</div>
-        <span class="signal-badge ${sig.code}">${sig.label}</span>
+        <div>
+          <div class="goal-label">${g.name}</div>
+          <div class="goal-value">${fmtMoney(fact)}<span class="goal-unit">${g.unit}</span></div>
+        </div>
       </div>
-      <div class="goal-label">${g.name}</div>
-      <div class="goal-value">${fmtMoney(fact)}<span class="goal-unit">${g.unit}</span></div>
       <div class="progress-row">
         <span class="progress-label">Блок</span>
         <div class="progress-bar"><div class="progress-fill" style="width:${blockPct}%"></div></div>
@@ -296,9 +298,6 @@ function goalOptionsFor(streamId, selected) {
     return `<option value="${gid}" ${gid === selected ? 'selected' : ''}>${g.name}</option>`;
   }).join('');
 }
-function weekOptionsAll(selected) {
-  return allWeeks(state.blocks).map((w) => `<option value="${w.id}" ${w.id === selected ? 'selected' : ''}>${weekLabel(w)}</option>`).join('');
-}
 function priorityOptions(selected) {
   return TASK_PRIORITIES.map((p) => `<option value="${p}" ${p === selected ? 'selected' : ''}>${p}</option>`).join('');
 }
@@ -336,7 +335,6 @@ function renderTasks() {
         <div class="field"><label>Приоритет</label><select name="priority">${priorityOptions()}</select></div>
         <div class="field"><label>Тип связи с целью</label><div class="auto-value" id="task-linktype-preview">${inferLinkType('')}</div></div>
         <div class="field"><label>Плановая дата</label><input type="date" name="plannedDate" value="${todayStr()}"></div>
-        <div class="field"><label>Вклад в лид-показатель (число)</label><input type="number" name="metricContribution" step="any" placeholder="напр. 12"></div>
         <button type="submit" class="primary">Добавить задачу</button>
       </form>
       <p class="small muted">Тип связи с целью определяется автоматически по названию задачи. Неделя и блок определяются по плановой дате.</p>
@@ -385,7 +383,6 @@ function bindTasksEvents() {
       status: 'не начато',
       plannedDate,
       actualDate: null,
-      metricContribution: fd.get('metricContribution') ? Number(fd.get('metricContribution')) : null,
     };
     state.tasks.push(task);
     save();
@@ -435,8 +432,6 @@ function renderDaily() {
     </tr>`;
   }).join('') : `<tr><td colspan="3" class="muted small">На эту дату нет задач</td></tr>`;
 
-  const existingLog = state.dailyLogs.find((l) => l.date === date);
-
   return `
     <div class="card">
       <h2>Ежедневный отчёт</h2>
@@ -450,13 +445,6 @@ function renderDaily() {
       <table><thead><tr><th>Задача</th><th>Направление</th><th>Статус</th></tr></thead><tbody>${rows}</tbody></table>
     </div>
     ${renderDailyNorms(date)}
-    <div class="card">
-      <h3>Что сделал</h3>
-      <form id="daily-note-form" class="inline-form">
-        <div class="field" style="flex:1"><textarea name="note" rows="3" placeholder="Свободный текст: что сделал сегодня...">${existingLog ? existingLog.note : ''}</textarea></div>
-        <button type="submit" class="primary">Сохранить заметку</button>
-      </form>
-    </div>
   `;
 }
 
@@ -476,81 +464,7 @@ function bindDailyEvents() {
       save();
     });
   });
-  document.getElementById('daily-note-form').addEventListener('submit', (e) => {
-    e.preventDefault();
-    const note = new FormData(e.target).get('note');
-    let log = state.dailyLogs.find((l) => l.date === ui.dailyDate);
-    if (!log) {
-      log = { id: uid('log'), taskId: null, date: ui.dailyDate, status: null, note: '' };
-      state.dailyLogs.push(log);
-    }
-    log.note = note;
-    save();
-  });
   bindDailyNormsEvents();
-}
-
-// ---------------------------------------------------------------------
-// Лид-показатели
-// ---------------------------------------------------------------------
-
-function renderMetrics() {
-  const weekId = ui.selectedWeekId;
-  const week = findWeekById(weekId);
-  const rows = LEAD_METRICS.map((m) => {
-    const e = getLeadEntry(state, weekId, m.id);
-    return `
-    <tr>
-      <td>${m.name}</td>
-      <td class="small muted">${m.streamIds.map((sid) => STREAMS.find((s) => s.id === sid)?.name).filter(Boolean).join(' + ')}</td>
-      <td><input type="number" step="any" class="metric-plan" data-metric="${m.id}" value="${e.plan ?? ''}" style="width:90px"></td>
-      <td><input type="number" step="any" class="metric-fact" data-metric="${m.id}" value="${e.fact ?? ''}" style="width:90px"></td>
-      <td class="small">${m.unit}</td>
-    </tr>`;
-  }).join('');
-
-  const streamScores = STREAMS.filter((s) => s.kind === 'flow').map((s) => {
-    const score = executionScoreForStream(state, weekId, s.id);
-    return `<tr><td>${s.name}</td><td>${score === null ? '—' : fmtPct(score)}</td><td>${statusPill(executionStatus(score))}</td></tr>`;
-  }).join('');
-  const overall = executionScoreOverall(state, weekId);
-
-  return `
-    <div class="week-picker">
-      <label>Неделя: <select id="metrics-week-select">${weekOptionsAll(weekId)}</select></label>
-    </div>
-    <div class="card">
-      <h2>План / факт по лид-показателям</h2>
-      <table>
-        <thead><tr><th>Показатель</th><th>Направление</th><th>План/нед</th><th>Факт</th><th>Ед.</th></tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </div>
-    <div class="card">
-      <h3>Выполнение плана по направлениям (норма — ${EXECUTION_THRESHOLD}%)</h3>
-      <table><thead><tr><th>Направление</th><th>Выполнение</th><th>Статус</th></tr></thead><tbody>${streamScores}</tbody></table>
-      <p><b>Сводное выполнение за неделю: ${overall === null ? '—' : fmtPct(overall)}</b></p>
-    </div>
-  `;
-}
-
-function bindMetricsEvents() {
-  document.getElementById('metrics-week-select').addEventListener('change', (e) => {
-    ui.selectedWeekId = e.target.value;
-    renderContent();
-  });
-  function commit(metricId) {
-    const planEl = document.querySelector(`.metric-plan[data-metric="${metricId}"]`);
-    const factEl = document.querySelector(`.metric-fact[data-metric="${metricId}"]`);
-    setLeadEntry(state, ui.selectedWeekId, metricId, planEl.value, factEl.value);
-    save();
-  }
-  document.querySelectorAll('.metric-plan, .metric-fact').forEach((el) => {
-    el.addEventListener('change', () => {
-      commit(el.dataset.metric);
-      renderContent();
-    });
-  });
 }
 
 // ---------------------------------------------------------------------
@@ -692,6 +606,10 @@ function renderBlocks() {
       <h2>Прогноз (линейная экстраполяция по последним периодам)</h2>
       ${forecastSection}
     </div>
+
+    ${renderKyuMonthlyReport(ui.selectedReportMonth)}
+
+    ${renderOkrSection(reportBlock.id)}
   `;
 }
 
@@ -710,6 +628,8 @@ function bindBlocksEvents() {
     ui.selectedBlockId = Number(e.target.value);
     renderContent();
   });
+  bindKyuMonthlyReportEvents();
+  bindOkrEvents();
   document.querySelectorAll('.carry-task').forEach((btn) => {
     btn.addEventListener('click', (e) => {
       const task = state.tasks.find((t) => t.id === e.target.dataset.id);
@@ -722,45 +642,6 @@ function bindBlocksEvents() {
       save();
       renderContent();
     });
-  });
-}
-
-// ---------------------------------------------------------------------
-// Настройки / экспорт
-// ---------------------------------------------------------------------
-
-function renderSettings() {
-  return `
-    <div class="card">
-      <h2>Экспорт в CSV</h2>
-      <div class="export-buttons">
-        <button class="secondary" id="exp-tasks">Задачи</button>
-        <button class="secondary" id="exp-metrics">Лид-показатели</button>
-        <button class="secondary" id="exp-finance">Финансы</button>
-        <button class="secondary" id="exp-daily">Ежедневные заметки</button>
-        <button class="primary" id="exp-all">Всё сразу</button>
-      </div>
-    </div>
-    <div class="card">
-      <h2>Данные</h2>
-      <p class="small muted">Хранятся только в этом браузере — без сервера и облака.</p>
-      <button class="ghost-danger" id="reset-data">Сбросить все данные</button>
-    </div>
-  `;
-}
-
-function bindSettingsEvents() {
-  document.getElementById('exp-tasks').addEventListener('click', () => exportTasksCsv(state));
-  document.getElementById('exp-metrics').addEventListener('click', () => exportLeadMetricsCsv(state));
-  document.getElementById('exp-finance').addEventListener('click', () => exportFinancialCsv(state));
-  document.getElementById('exp-daily').addEventListener('click', () => exportDailyLogsCsv(state));
-  document.getElementById('exp-all').addEventListener('click', () => exportAllCsv(state));
-  document.getElementById('reset-data').addEventListener('click', () => {
-    if (confirm('Точно удалить все данные без возможности восстановления?')) {
-      resetAllData();
-      state = loadState();
-      renderContent();
-    }
   });
 }
 
