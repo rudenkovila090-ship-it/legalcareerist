@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import PageHero from '../../components/PageHero'
 import PhoneInput from '../../components/PhoneInput'
+import ChipToggle from '../../components/ChipToggle'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import { getActiveRole } from '../../lib/accountRole'
 import { getResume, saveConstructorResume } from '../../lib/resumes'
@@ -42,25 +43,6 @@ function emptyForm(): ResumeFormData {
 }
 
 const inputClass = 'rounded-lg border border-ink/15 px-3.5 py-2.5 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40'
-
-function ChipToggle<T extends string>({ options, selected, onToggle }: { options: { id: T; label: string }[]; selected: T[]; onToggle: (id: T) => void }) {
-  return (
-    <div className="flex flex-wrap gap-2">
-      {options.map((o) => (
-        <button
-          key={o.id}
-          type="button"
-          onClick={() => onToggle(o.id)}
-          className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
-            selected.includes(o.id) ? 'border-ink bg-ink text-white' : 'border-ink/15 text-ink/60 hover:border-ink/40'
-          }`}
-        >
-          {o.label}
-        </button>
-      ))}
-    </div>
-  )
-}
 
 // Конструктор резюме — заполняемая форма (без ИИ, см. решение по объему
 // работ): результат собирается по фиксированному шаблону с фирменным

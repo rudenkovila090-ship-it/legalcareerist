@@ -69,3 +69,12 @@ export function addCredits(key: string, n: number) {
   state.purchasedCredits += n
   write(key, state)
 }
+
+/** «через 2 ч 14 мин» — для отображения таймера до следующей бесплатной генерации. */
+export function formatCountdown(ms: number): string {
+  const totalMinutes = Math.max(0, Math.ceil(ms / 60000))
+  const hours = Math.floor(totalMinutes / 60)
+  const minutes = totalMinutes % 60
+  if (hours <= 0) return `${minutes} мин`
+  return `${hours} ч ${minutes} мин`
+}

@@ -224,6 +224,53 @@ export interface Vacancy extends Tagged {
   technicalExample?: boolean
 }
 
+// ---- Вакансии (личный кабинет работодателя, конструктор без ИИ) ----
+
+export interface VacancyFormData {
+  title: string
+  company: string
+  anonymous: boolean
+  city: string
+  format: WorkFormat
+  employment: EmploymentType
+  schedule: WorkSchedule
+  level: CandidateLevel
+  experience: ExperienceBucket
+  education: EducationLevel[]
+  specialization: Specialization[]
+  industry: Industry[]
+  salaryFrom: number
+  salaryTo: number
+  /** Обязанности — многострочный текст, каждая строка отдельным пунктом на странице вакансии. */
+  description: string
+  /** Требования — построчно, как description. */
+  requirements: string
+  /** Доп. условия — построчно, как description. */
+  conditions: string
+  contactPhone: string
+  contactEmail: string
+}
+
+export type VacancyModerationStatus = 'pending_moderation' | 'published' | 'rejected' | 'closed'
+
+export interface VacancyMailing {
+  stage: VacancyVisibilityStage
+  sentAt: string
+  recipientsCount: number
+}
+
+export interface SavedVacancy {
+  id: string
+  createdAt: string
+  data: VacancyFormData
+  moderationStatus: VacancyModerationStatus
+  visibilityStage: VacancyVisibilityStage
+  rejectionReason?: string
+  publishedAt?: string
+  closedAt?: string
+  mailings: VacancyMailing[]
+}
+
 export type ApplicationStatus = 'new' | 'in_review' | 'rejected' | 'offer'
 
 export interface Application {

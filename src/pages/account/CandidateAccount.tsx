@@ -13,7 +13,7 @@ import {
 import { getActiveRole, clearActiveRole } from '../../lib/accountRole'
 import { getResumes, saveUploadedResume, deleteResume } from '../../lib/resumes'
 import {
-  getCreditsState, isFreeAvailable, freeAvailableAt, canGenerate, addCredits, RESUME_CREDITS_KEY,
+  getCreditsState, isFreeAvailable, freeAvailableAt, canGenerate, addCredits, formatCountdown, RESUME_CREDITS_KEY,
 } from '../../lib/generationCredits'
 import { submitLead } from '../../lib/leads'
 
@@ -25,14 +25,6 @@ const resumeCreditPacks = [
   { id: 'pack10', count: 10, price: 490 },
   { id: 'pack50', count: 50, price: 990 },
 ] as const
-
-function formatCountdown(ms: number): string {
-  const totalMinutes = Math.max(0, Math.ceil(ms / 60000))
-  const hours = Math.floor(totalMinutes / 60)
-  const minutes = totalMinutes % 60
-  if (hours <= 0) return `${minutes} мин`
-  return `${hours} ч ${minutes} мин`
-}
 
 // /account/candidate — кабинет соискателя (см. AccountGate.tsx: вход без
 // пароля, по кнопке "Войти как соискатель"). Отклики/регистрации/покупки/

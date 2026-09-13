@@ -27,6 +27,7 @@ const CandidateAccount = lazy(() => import('./pages/account/CandidateAccount'))
 const EmployerAccount = lazy(() => import('./pages/account/EmployerAccount'))
 const ResumeBuilder = lazy(() => import('./pages/account/ResumeBuilder'))
 const ResumeView = lazy(() => import('./pages/account/ResumeView'))
+const VacancyBuilder = lazy(() => import('./pages/account/VacancyBuilder'))
 const MarketplaceHome = lazy(() => import('./pages/MarketplaceHome'))
 const BlogHome = lazy(() => import('./pages/BlogHome'))
 const Contacts = lazy(() => import('./pages/Contacts'))
@@ -114,6 +115,8 @@ export default function App() {
           <Route path="/account/candidate/resume/:id/edit" element={<ResumeBuilder />} />
           <Route path="/account/candidate/resume/:id" element={<ResumeView />} />
           <Route path="/account/employer" element={<EmployerAccount />} />
+          <Route path="/account/employer/vacancy/new" element={<VacancyBuilder />} />
+          <Route path="/account/employer/vacancy/:id/edit" element={<VacancyBuilder />} />
 
           {/* Marketplace */}
           <Route path="/marketplace" element={<MarketplaceHome />} />
