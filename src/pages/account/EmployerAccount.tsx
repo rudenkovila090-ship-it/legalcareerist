@@ -126,8 +126,28 @@ function IconChat() {
     </svg>
   )
 }
+function IconGuide() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M9.5 9.3a2.5 2.5 0 0 1 4.9.7c0 1.7-2.4 1.8-2.4 3.5" />
+      <path d="M12 17h.01" />
+    </svg>
+  )
+}
+
+// Процесс работы кабинета работодателя — объясняется отдельным разделом
+// левого меню (запрос заказчика: «должен быть объяснен процесс, как всё
+// это делается»).
+const howItWorksSteps = [
+  { title: 'Регистрация', description: 'Создаете аккаунт, заполняете профиль компании и подтверждаете его через email. В этом демо — вход без пароля, кнопкой «Войти как работодатель» на /account.' },
+  { title: 'Публикация вакансии', description: 'Конструктор собирает вакансию по шаблону, она уходит на модерацию и раскрывается по каскаду: сначала резидентам сообщества, затем кадровому резерву, и только потом — открытому сайту.' },
+  { title: 'Отклики и контакты', description: 'Смотрите отклики прямо под вакансией — направление, тестирование навыков и софт-скиллов кандидата, при необходимости открываете контакты.' },
+  { title: 'Собеседование и общение', description: 'Приглашаете кандидата на собеседование и обсуждаете детали во встроенном чате — переписка в разделе «Сообщения», не в сторонних каналах.' },
+]
 
 const sections: AccountSection[] = [
+  { id: 'how', label: 'Как это работает', icon: <IconGuide /> },
   { id: 'profile', label: 'Профиль', icon: <IconProfile /> },
   { id: 'work', label: 'Вакансии', icon: <IconBriefcase /> },
   { id: 'messages', label: 'Сообщения', icon: <IconChat /> },
@@ -356,6 +376,26 @@ export default function EmployerAccount() {
         <AccountSidebarNav sections={sections} active={section} onSelect={setSection} badges={{ notifications: unreadCount(notifications), messages: chatUnread }} />
 
         <div className="space-y-8">
+          {section === 'how' && (
+            <section>
+              <h2 className="mb-1 text-lg font-semibold">Как это работает</h2>
+              <p className="mb-4 text-sm text-ink/60">4 шага от регистрации до общения с кандидатом.</p>
+              <ol className="grid gap-4 sm:grid-cols-2">
+                {howItWorksSteps.map((step, i) => (
+                  <li key={step.title} className="glass rounded-xl p-5">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-ink/[0.08] text-sm font-semibold text-ink">
+                        {i + 1}
+                      </div>
+                      <div className="font-semibold text-ink">{step.title}</div>
+                    </div>
+                    <p className="mt-2 text-sm text-ink/60">{step.description}</p>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          )}
+
           {section === 'profile' && (
             <div className="space-y-8">
               <div className="grid gap-4 sm:grid-cols-2">
