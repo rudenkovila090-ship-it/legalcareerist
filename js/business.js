@@ -6,6 +6,24 @@
  * перенесённая из рабочих таблиц пользователя.
  */
 
+/**
+ * Обновляет (или создаёт) финансовый снапшот направления за месяц так,
+ * чтобы разные источники одной и той же цифры (например, ручной ввод на
+ * вкладке «Финансы» и авторасчёт из КЮ Кадры/Сообщества/Мероприятий) не
+ * расходились: при конфликте остаётся БОЛЬШЕЕ значение.
+ */
+function syncMonthlyFinancialSnapshot(streamId, monthKey, amount, note) {
+  if (!(amount > 0)) return;
+  const { start, end } = monthBounds(monthKey);
+  const snap = state.financialSnapshots.find((s) => s.streamId === streamId && s.periodStart === start && s.periodEnd === end);
+  if (!snap) {
+    state.financialSnapshots.push({ id: uid('fin'), streamId, periodStart: start, periodEnd: end, amount, note });
+  } else if (amount > snap.amount) {
+    snap.amount = amount;
+    snap.note = note;
+  }
+}
+
 // =======================================================================
 // КЮ Кадры
 // =======================================================================
@@ -33,14 +51,15 @@ function kadryYearTotal(kpiId, field) {
 
 function renderKadry() {
   const refRows = KADRY_KPIS.map((k) => {
-    const total = kadryYearTotal(k.id, 'fact');
+    const sumFact = kadryYearTotal(k.id, 'fact');
     const ref = KADRY_YTD_REFERENCE[k.id];
+    // Если сумма по месяцам и справочная цифра расходятся — берём большую.
+    const total = ref !== undefined ? Math.max(sumFact, ref) : sumFact;
     const pct = k.yearlyTarget ? (total / k.yearlyTarget) * 100 : null;
     return `<tr>
       <td>${k.name}</td>
       <td>${k.yearlyTarget !== null ? fmtMoney(k.yearlyTarget) : '—'} ${k.unit}</td>
       <td><b>${fmtMoney(total)} ${k.unit}</b></td>
-      <td class="small muted">${ref !== undefined ? `${fmtMoney(ref)} ${k.unit}` : '—'}</td>
       <td>${pct === null ? '—' : fmtPct(pct)}</td>
     </tr>`;
   }).join('');
@@ -62,15 +81,15 @@ function renderKadry() {
     <div class="card">
       <h2>КЮ Кадры — годовые цели 2026</h2>
       <table>
-        <thead><tr><th>Показатель</th><th>Годовая цель</th><th>Факт (сумма по месяцам)</th><th class="small">Справочно на переносе</th><th>%</th></tr></thead>
+        <thead><tr><th>Показатель</th><th>Годовая цель</th><th>Факт</th><th>%</th></tr></thead>
         <tbody>${refRows}</tbody>
       </table>
-      <p class="small muted">Колонка «Факт» считается автоматически как сумма фактов по месяцам из таблицы ниже.</p>
+      <p class="small muted">«Факт» — сумма по месяцам ниже (или ваша цифра на момент переноса таблицы, если она больше).</p>
     </div>
     <div class="card">
       <h2>Помесячный план работы</h2>
-      <div style="overflow-x:auto">
-      <table>
+      <div class="freeze-wrap">
+      <table class="freeze-table">
         <thead>
           <tr><th></th>${headerCells}</tr>
           <tr><th>Месяц</th>${subHeaderCells}</tr>
@@ -79,9 +98,18 @@ function renderKadry() {
         <tfoot><tr><td>Итого</td>${totalCells}</tr></tfoot>
       </table>
       </div>
-      <p class="small muted">Внесите свои план/факт по месяцам — сохраняется автоматически, итог и % от годовой цели пересчитаются сразу.</p>
+      <p class="small muted">Сохраняется автоматически — итог и % от годовой цели пересчитаются сразу.</p>
     </div>
   `;
+}
+
+function syncKadryFinancials() {
+  MONTHS_2026.forEach((m) => {
+    const fact = kadryMonthEntry(m.key, 'revenue').fact;
+    if (typeof fact === 'number' && fact > 0) {
+      syncMonthlyFinancialSnapshot('S1', m.key, fact, 'Автосинхронизировано из КЮ Кадры');
+    }
+  });
 }
 
 function bindKadryEvents() {
@@ -92,6 +120,7 @@ function bindKadryEvents() {
       const planEl = document.querySelector(`.kadry-plan[data-month="${month}"][data-kpi="${kpi}"]`);
       const factEl = document.querySelector(`.kadry-fact[data-month="${month}"][data-kpi="${kpi}"]`);
       setKadryEntry(month, kpi, planEl.value, factEl.value);
+      syncKadryFinancials();
       save();
       renderContent();
     });
@@ -150,6 +179,15 @@ function getTariffSale(monthKey, tariffId) {
   return { planUnits: rec.planUnits ?? null, factUnits: rec.factUnits ?? null };
 }
 
+/** Факт продаж (шт) тарифа за месяц: если ручной ввод и авторасчёт из
+ * выручки дневного журнала расходятся — берём большее число. */
+function reconciledTariffFactUnits(monthKey, tariff) {
+  const manual = getTariffSale(monthKey, tariff.id).factUnits || 0;
+  const revenue = tariffFactRevenueForMonth(monthKey, tariff.id);
+  const implied = tariff.price > 0 ? Math.round(revenue / tariff.price) : 0;
+  return Math.max(manual, implied);
+}
+
 function setTariffSale(monthKey, tariffId, field, value) {
   if (!state.community.tariffSales[monthKey]) state.community.tariffSales[monthKey] = {};
   if (!state.community.tariffSales[monthKey][tariffId]) state.community.tariffSales[monthKey][tariffId] = { planUnits: null, factUnits: null };
@@ -188,6 +226,13 @@ function communityMonthlyRollup(monthKey) {
   return { ...sums, costs, fixedCosts, expense, profit, profitability };
 }
 
+function syncCommunityFinancials() {
+  MONTHS_2026.forEach((m) => {
+    const r = communityMonthlyRollup(m.key);
+    if (r.revenue > 0) syncMonthlyFinancialSnapshot('S2', m.key, r.revenue, 'Автосинхронизировано из КЮ Сообщества');
+  });
+}
+
 function renderCommunity() {
   const chain = residentsChain();
   const residentsRows = chain.map((m) => `
@@ -200,21 +245,19 @@ function renderCommunity() {
       <td><b>${fmtMoney(m.end)}</b></td>
     </tr>`).join('');
 
-  const tariffPriceRows = state.community.tariffs.map((t) => `
-    <tr><td>${t.name}</td><td><input type="number" class="tariff-price" data-tariff="${t.id}" value="${t.price}" style="width:100px"></td></tr>`).join('');
-
-  const tariffHeaderCells = state.community.tariffs.map((t) => `<th colspan="4">${t.name}</th>`).join('');
-  const tariffSubHeaderCells = state.community.tariffs.map(() => '<th class="small muted">План шт</th><th class="small muted">План ₽</th><th class="small muted">Факт шт</th><th class="small muted">Факт ₽</th>').join('');
+  // Тарифы + продажи объединены в одну таблицу: цена — прямо в шапке колонки.
+  const tariffHeaderCells = state.community.tariffs.map((t) => `
+    <th colspan="3">${t.name}<br><input type="number" class="tariff-price" data-tariff="${t.id}" value="${t.price}" title="Цена, ₽"> ₽</th>`).join('');
+  const tariffSubHeaderCells = state.community.tariffs.map(() => '<th class="small muted">План шт</th><th class="small muted">Факт шт</th><th class="small muted">Факт ₽</th>').join('');
   const tariffMonthRows = MONTHS_2026.map((m) => {
     const cells = state.community.tariffs.map((t) => {
       const sale = getTariffSale(m.key, t.id);
-      const planRevenue = (sale.planUnits || 0) * t.price;
+      const factUnits = reconciledTariffFactUnits(m.key, t);
       const factRevenue = tariffFactRevenueForMonth(m.key, t.id);
       return `
         <td><input type="number" class="tariff-plan-units" data-month="${m.key}" data-tariff="${t.id}" value="${sale.planUnits ?? ''}"></td>
-        <td class="small muted">${fmtMoney(planRevenue)}</td>
-        <td><input type="number" class="tariff-fact-units" data-month="${m.key}" data-tariff="${t.id}" value="${sale.factUnits ?? ''}"></td>
-        <td class="small">${fmtMoney(factRevenue)}</td>`;
+        <td><input type="number" class="tariff-fact-units" data-month="${m.key}" data-tariff="${t.id}" value="${sale.factUnits ?? ''}" title="Можно поправить вручную — если авторасчёт из журнала больше, используется он"></td>
+        <td class="small">${fmtMoney(factRevenue)}${factUnits > (sale.factUnits || 0) ? ' <span class="small muted">(авто)</span>' : ''}</td>`;
     }).join('');
     return `<tr><td class="small">${m.name}</td>${cells}</tr>`;
   }).join('');
@@ -242,18 +285,7 @@ function renderCommunity() {
   const journalTariffInputs = state.community.tariffs.map((t) => `
     <div class="field"><label>${t.name}, ₽</label><input type="number" step="any" name="purchase_${t.id}" placeholder="0"></div>`).join('');
 
-  const costRows = MONTHS_2026.map((m) => {
-    const c = getMonthlyCosts(m.key);
-    return `
-    <tr>
-      <td class="small">${m.name}</td>
-      <td><input type="number" class="cost-input" data-month="${m.key}" data-field="managerSalary" value="${c.managerSalary}"></td>
-      <td><input type="number" class="cost-input" data-month="${m.key}" data-field="techSalary" value="${c.techSalary}"></td>
-      <td><input type="number" class="cost-input" data-month="${m.key}" data-field="botHelp" value="${c.botHelp}"></td>
-      <td><input type="number" class="cost-input" data-month="${m.key}" data-field="yoNote" value="${c.yoNote}"></td>
-    </tr>`;
-  }).join('');
-
+  // Затраты объединены с итогом по месяцам: редактируете прямо в этой таблице.
   const rollupRows = MONTHS_2026.map((m) => {
     const r = communityMonthlyRollup(m.key);
     return `<tr>
@@ -263,6 +295,10 @@ function renderCommunity() {
       <td class="small muted">${fmtMoney(r.acquiring)}</td>
       <td class="small muted">${fmtMoney(r.tax)}</td>
       <td class="small muted">${fmtMoney(r.reserve)}</td>
+      <td><input type="number" class="cost-input" data-month="${m.key}" data-field="managerSalary" value="${r.costs.managerSalary}"></td>
+      <td><input type="number" class="cost-input" data-month="${m.key}" data-field="techSalary" value="${r.costs.techSalary}"></td>
+      <td><input type="number" class="cost-input" data-month="${m.key}" data-field="botHelp" value="${r.costs.botHelp}"></td>
+      <td><input type="number" class="cost-input" data-month="${m.key}" data-field="yoNote" value="${r.costs.yoNote}"></td>
       <td class="small muted">${fmtMoney(r.expense)}</td>
       <td><b>${fmtMoney(r.profit)}</b></td>
       <td>${r.profitability === null ? '—' : fmtPct(r.profitability)}</td>
@@ -272,33 +308,19 @@ function renderCommunity() {
   return `
     <div class="card">
       <h2>Резиденты сообщества</h2>
-      <table>
+      <div class="freeze-wrap">
+      <table class="freeze-table">
         <thead><tr><th>Месяц</th><th>Факт на начало</th><th>Новых</th><th>Отписка</th><th>Прирост</th><th>Факт на конец</th></tr></thead>
         <tbody>${residentsRows}</tbody>
       </table>
+      </div>
       <p class="small muted">«Факт на начало» следующего месяца всегда равен «Факт на конец» предыдущего.</p>
     </div>
 
-    <div class="two-col">
-      <div class="card">
-        <h3>Тарифы</h3>
-        <table><thead><tr><th>Тариф</th><th>Цена, ₽</th></tr></thead><tbody>${tariffPriceRows}</tbody></table>
-      </div>
-      <div class="card">
-        <h3>Затраты по месяцам</h3>
-        <div style="overflow-x:auto">
-        <table>
-          <thead><tr><th>Месяц</th><th>ЗП КМ</th><th>ЗП техспец.</th><th>BotHelp</th><th>YoNote</th></tr></thead>
-          <tbody>${costRows}</tbody>
-        </table>
-        </div>
-      </div>
-    </div>
-
     <div class="card">
-      <h2>Продажи по тарифам</h2>
-      <div style="overflow-x:auto">
-      <table>
+      <h2>Тарифы и продажи</h2>
+      <div class="freeze-wrap">
+      <table class="freeze-table">
         <thead>
           <tr><th></th>${tariffHeaderCells}</tr>
           <tr><th>Месяц</th>${tariffSubHeaderCells}</tr>
@@ -306,7 +328,7 @@ function renderCommunity() {
         <tbody>${tariffMonthRows}</tbody>
       </table>
       </div>
-      <p class="small muted">План ₽ = план шт × цена тарифа. Факт ₽ — автосумма из дневного журнала ниже.</p>
+      <p class="small muted">Цена — в шапке колонки тарифа. Факт ₽ считается из дневного журнала ниже; факт шт можно поправить вручную, но если авторасчёт из выручки больше — используется он.</p>
     </div>
 
     <div class="card">
@@ -323,8 +345,8 @@ function renderCommunity() {
         <div class="field" style="flex:1"><label>Комментарий</label><input type="text" name="comment"></div>
         <button type="submit" class="primary">Добавить день</button>
       </form>
-      <div style="overflow-x:auto">
-      <table>
+      <div class="freeze-wrap">
+      <table class="freeze-table">
         <thead><tr><th>Дата</th><th>Заявок</th><th>Вступ.</th><th>Отпис.</th><th>Демо</th>${state.community.tariffs.map((t) => `<th class="small">${t.name}</th>`).join('')}<th>Выручка</th><th>Расход</th><th>Прибыль</th><th></th></tr></thead>
         <tbody>${journalRows || `<tr><td colspan="${9 + state.community.tariffs.length}" class="muted small">Записей пока нет — добавьте первый день</td></tr>`}</tbody>
       </table>
@@ -334,12 +356,13 @@ function renderCommunity() {
 
     <div class="card">
       <h2>Итог по месяцам</h2>
-      <div style="overflow-x:auto">
-      <table>
-        <thead><tr><th>Месяц</th><th>Заявок</th><th>Вступ.</th><th>Отпис.</th><th>Демо</th><th>Выручка</th><th>Эквайринг</th><th>Налог</th><th>Резерв</th><th>Расход</th><th>Прибыль</th><th>Рентаб.</th></tr></thead>
+      <div class="freeze-wrap">
+      <table class="freeze-table">
+        <thead><tr><th>Месяц</th><th>Заявок</th><th>Вступ.</th><th>Отпис.</th><th>Демо</th><th>Выручка</th><th>Эквайринг</th><th>Налог</th><th>Резерв</th><th>Зарплата комьюнити-менеджера</th><th>Зарплата технического специалиста</th><th>BotHelp</th><th>YoNote</th><th>Расход</th><th>Прибыль</th><th>Рентаб.</th></tr></thead>
         <tbody>${rollupRows}</tbody>
       </table>
       </div>
+      <p class="small muted">Выручка и удержания подтягиваются из дневного журнала выше; расходы редактируются прямо здесь. Эта же выручка автоматически идёт в «Финансы» → направление «КЮ Сообщество».</p>
     </div>
   `;
 }
@@ -357,6 +380,7 @@ function bindCommunityEvents() {
     el.addEventListener('change', () => {
       const t = tariffById(el.dataset.tariff);
       if (t) t.price = Number(el.value) || 0;
+      syncCommunityFinancials();
       save();
       renderContent();
     });
@@ -380,6 +404,7 @@ function bindCommunityEvents() {
     btn.addEventListener('click', (e) => {
       const id = e.target.dataset.id;
       state.community.journal = state.community.journal.filter((r) => r.id !== id);
+      syncCommunityFinancials();
       save();
       renderContent();
     });
@@ -403,7 +428,188 @@ function bindCommunityEvents() {
       reviewsAnswered: Number(fd.get('reviewsAnswered')) || 0,
       comment: fd.get('comment') || '',
     });
+    syncCommunityFinancials();
     save();
     renderContent();
+  });
+}
+
+// =======================================================================
+// КЮ Мероприятия — билеты и полезные материалы
+// =======================================================================
+
+function offerById(id) {
+  return state.events.offers.find((o) => o.id === id);
+}
+
+function getOfferSale(monthKey, offerId) {
+  const rec = (state.events.sales[monthKey] || {})[offerId] || {};
+  return { planQty: rec.planQty ?? null, factQty: rec.factQty ?? null };
+}
+
+function setOfferSale(monthKey, offerId, field, value) {
+  if (!state.events.sales[monthKey]) state.events.sales[monthKey] = {};
+  if (!state.events.sales[monthKey][offerId]) state.events.sales[monthKey][offerId] = { planQty: null, factQty: null };
+  state.events.sales[monthKey][offerId][field] = value === '' ? null : Number(value);
+}
+
+function eventsMonthlyRevenue(monthKey, field) {
+  return state.events.offers.reduce((sum, o) => {
+    const sale = getOfferSale(monthKey, o.id);
+    return sum + (sale[field] || 0) * o.price;
+  }, 0);
+}
+
+function syncEventsFinancials() {
+  MONTHS_2026.forEach((m) => {
+    const revenue = eventsMonthlyRevenue(m.key, 'factQty');
+    if (revenue > 0) syncMonthlyFinancialSnapshot('S3', m.key, revenue, 'Автосинхронизировано из КЮ Мероприятий');
+  });
+}
+
+function renderEvents() {
+  const offerRows = state.events.offers.map((o) => `
+    <tr data-id="${o.id}">
+      <td>${o.name}</td>
+      <td class="small muted">${o.type}</td>
+      <td><input type="number" class="offer-price" data-id="${o.id}" value="${o.price}" style="width:90px"></td>
+      <td><button class="ghost-danger offer-delete" data-id="${o.id}">Удалить</button></td>
+    </tr>`).join('');
+
+  const monthRows = state.events.offers.length ? MONTHS_2026.map((m) => {
+    const cells = state.events.offers.map((o) => {
+      const sale = getOfferSale(m.key, o.id);
+      const planRevenue = (sale.planQty || 0) * o.price;
+      const factRevenue = (sale.factQty || 0) * o.price;
+      return `
+        <td><input type="number" class="offer-plan-qty" data-month="${m.key}" data-offer="${o.id}" value="${sale.planQty ?? ''}"></td>
+        <td class="small muted">${fmtMoney(planRevenue)}</td>
+        <td><input type="number" class="offer-fact-qty" data-month="${m.key}" data-offer="${o.id}" value="${sale.factQty ?? ''}"></td>
+        <td class="small">${fmtMoney(factRevenue)}</td>`;
+    }).join('');
+    return `<tr><td class="small">${m.name}</td>${cells}<td><b>${fmtMoney(eventsMonthlyRevenue(m.key, 'factQty'))}</b></td></tr>`;
+  }).join('') : '';
+
+  const offerHeaderCells = state.events.offers.map((o) => `<th colspan="4">${o.name}</th>`).join('');
+  const offerSubHeaderCells = state.events.offers.map(() => '<th class="small muted">План шт</th><th class="small muted">План ₽</th><th class="small muted">Факт шт</th><th class="small muted">Факт ₽</th>').join('');
+
+  return `
+    <div class="card">
+      <h2>Каталог: билеты и материалы</h2>
+      <form id="offer-form" class="inline-form">
+        <div class="field"><label>Название</label><input type="text" name="name" required placeholder="Например: билет на мастер-класс"></div>
+        <div class="field"><label>Тип</label><select name="type"><option value="${EVENT_OFFER_TYPES.TICKET}">${EVENT_OFFER_TYPES.TICKET}</option><option value="${EVENT_OFFER_TYPES.MATERIAL}">${EVENT_OFFER_TYPES.MATERIAL}</option></select></div>
+        <div class="field"><label>Цена, ₽</label><input type="number" name="price" required></div>
+        <button type="submit" class="primary">Добавить</button>
+      </form>
+      <table>
+        <thead><tr><th>Название</th><th>Тип</th><th>Цена, ₽</th><th></th></tr></thead>
+        <tbody>${offerRows || '<tr><td colspan="4" class="muted small">Добавьте первый билет или материал</td></tr>'}</tbody>
+      </table>
+    </div>
+
+    ${state.events.offers.length ? `
+    <div class="card">
+      <h2>Продажи по месяцам</h2>
+      <div class="freeze-wrap">
+      <table class="freeze-table">
+        <thead>
+          <tr><th></th>${offerHeaderCells}<th></th></tr>
+          <tr><th>Месяц</th>${offerSubHeaderCells}<th class="small muted">Выручка, ₽</th></tr>
+        </thead>
+        <tbody>${monthRows}</tbody>
+      </table>
+      </div>
+      <p class="small muted">Выручка автоматически идёт в «Финансы» → направление «КЮ Мероприятия».</p>
+    </div>` : ''}
+  `;
+}
+
+function bindEventsEvents() {
+  document.getElementById('offer-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    state.events.offers.push({
+      id: uid('offer'),
+      name: fd.get('name'),
+      type: fd.get('type'),
+      price: Number(fd.get('price')) || 0,
+    });
+    save();
+    renderContent();
+  });
+  document.querySelectorAll('.offer-delete').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      const id = e.target.dataset.id;
+      state.events.offers = state.events.offers.filter((o) => o.id !== id);
+      save();
+      renderContent();
+    });
+  });
+  document.querySelectorAll('.offer-price').forEach((el) => {
+    el.addEventListener('change', () => {
+      const o = offerById(el.dataset.id);
+      if (o) o.price = Number(el.value) || 0;
+      syncEventsFinancials();
+      save();
+      renderContent();
+    });
+  });
+  document.querySelectorAll('.offer-plan-qty, .offer-fact-qty').forEach((el) => {
+    el.addEventListener('change', () => {
+      const field = el.classList.contains('offer-plan-qty') ? 'planQty' : 'factQty';
+      setOfferSale(el.dataset.month, el.dataset.offer, field, el.value);
+      syncEventsFinancials();
+      save();
+      renderContent();
+    });
+  });
+}
+
+// =======================================================================
+// Дневная норма — то, что нужно делать каждый день
+// =======================================================================
+
+function getDailyNormFact(date, normId) {
+  const rec = state.dailyNorms[date];
+  return rec && typeof rec[normId] === 'number' ? rec[normId] : 0;
+}
+
+function setDailyNormFact(date, normId, value) {
+  if (!state.dailyNorms[date]) state.dailyNorms[date] = {};
+  state.dailyNorms[date][normId] = value === '' ? 0 : Number(value);
+}
+
+function renderDailyNorms(date) {
+  const groups = [...new Set(DAILY_NORMS.map((n) => n.group))];
+  const groupBlocks = groups.map((group) => {
+    const rows = DAILY_NORMS.filter((n) => n.group === group).map((n) => {
+      const fact = getDailyNormFact(date, n.id);
+      const done = fact >= n.target;
+      return `<tr>
+        <td>${n.name}</td>
+        <td class="small muted">${n.target} ${n.unit}</td>
+        <td><input type="number" class="norm-fact" data-norm="${n.id}" value="${fact || ''}" style="width:80px"></td>
+        <td>${statusPill(done ? 'выполнено' : 'не начато')}</td>
+      </tr>`;
+    }).join('');
+    return `<h3>${group}</h3><table><thead><tr><th>Норма</th><th>Цель</th><th>Факт</th><th></th></tr></thead><tbody>${rows}</tbody></table>`;
+  }).join('');
+
+  return `
+    <div class="card">
+      <h2>Дневная норма</h2>
+      ${groupBlocks}
+    </div>
+  `;
+}
+
+function bindDailyNormsEvents() {
+  document.querySelectorAll('.norm-fact').forEach((el) => {
+    el.addEventListener('change', () => {
+      setDailyNormFact(ui.dailyDate, el.dataset.norm, el.value);
+      save();
+      renderContent();
+    });
   });
 }

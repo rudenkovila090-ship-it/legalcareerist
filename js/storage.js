@@ -28,6 +28,13 @@ function defaultState() {
       journal: [], // { id, date, applications, joined, left, joinedDemo, purchases:{tariffId:amount}, reviewsTaken, reviewsAnswered, comment }
       monthlyCosts: JSON.parse(JSON.stringify(COMMUNITY_MONTHLY_COSTS_SEED)), // 'YYYY-MM' -> { managerSalary, techSalary, botHelp, yoNote }
     },
+    // --- КЮ Мероприятия: билеты и полезные материалы ---
+    events: {
+      offers: [], // { id, name, type: 'билет'|'материал', price }
+      sales: {}, // 'YYYY-MM' -> { [offerId]: { planQty, factQty } }
+    },
+    // --- Дневная норма (что нужно делать каждый день) ---
+    dailyNorms: {}, // 'YYYY-MM-DD' -> { [normId]: factValue }
   };
 }
 
@@ -77,9 +84,19 @@ function loadState() {
     if (!parsed.community.tariffs || !parsed.community.tariffs.length) {
       parsed.community.tariffs = JSON.parse(JSON.stringify(COMMUNITY_DEFAULT_TARIFFS));
     }
+    // добавляем новые тарифы из заводского списка, если их ещё нет (например, 530 ₽)
+    COMMUNITY_DEFAULT_TARIFFS.forEach((t) => {
+      if (!parsed.community.tariffs.some((x) => x.id === t.id)) {
+        parsed.community.tariffs.push({ ...t });
+      }
+    });
     if (!parsed.community.tariffSales) parsed.community.tariffSales = {};
     if (!parsed.community.journal) parsed.community.journal = [];
     if (!parsed.community.monthlyCosts) parsed.community.monthlyCosts = {};
+    if (!parsed.events) parsed.events = { offers: [], sales: {} };
+    if (!parsed.events.offers) parsed.events.offers = [];
+    if (!parsed.events.sales) parsed.events.sales = {};
+    if (!parsed.dailyNorms) parsed.dailyNorms = {};
     return parsed;
   } catch (e) {
     console.error('Не удалось загрузить данные, создаю новое хранилище', e);

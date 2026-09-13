@@ -132,6 +132,7 @@ const COMMUNITY_RESIDENTS_SEED = {
 
 const COMMUNITY_DEFAULT_TARIFFS = [
   { id: 'discount1m', name: '1 месяц со скидкой', price: 350 },
+  { id: 'discount1m_530', name: '1 месяц со скидкой (530 ₽)', price: 530 },
   { id: 'm1', name: '1 месяц', price: 500 },
   { id: 'm3', name: '3 месяца', price: 1350 },
   { id: 'm6', name: '6 месяцев', price: 2520 },
@@ -166,3 +167,29 @@ const COMMUNITY_MONTHLY_COSTS_SEED = {
   '2026-08': { managerSalary: 0, techSalary: 1599, botHelp: 249, yoNote: 249 },
   '2026-09': { managerSalary: 0, techSalary: 1599, botHelp: 249, yoNote: 249 },
 };
+
+// =======================================================================
+// КЮ Мероприятия — продажа билетов и полезных материалов
+// =======================================================================
+// Каталог предложений (билеты/материалы) пользователь ведёт сам — это его
+// продукты, они меняются от месяца к месяцу. Продажи считаются по месяцам,
+// как у тарифов сообщества: план/факт по штукам, выручка = штуки × цена.
+
+const EVENT_OFFER_TYPES = { TICKET: 'билет', MATERIAL: 'материал' };
+
+// =======================================================================
+// Дневная норма — то, что нужно делать каждый день (не путать с недельными
+// лид-показателями выше). Сгруппирована по направлениям.
+// =======================================================================
+
+const DAILY_NORMS = [
+  { id: 'dn_hypotheses', group: 'Карьерный юрист', name: '5 гипотез для бизнеса', target: 5, unit: 'шт' },
+  { id: 'dn_b2b_contacts', group: 'КЮ Кадры', name: '10 контактов B2B', target: 10, unit: 'шт' },
+  { id: 'dn_b2b_letters', group: 'КЮ Кадры', name: '10 писем B2B', target: 10, unit: 'шт' },
+  { id: 'dn_b2c_contacts', group: 'КЮ Кадры', name: '150 контактов B2C', target: 150, unit: 'шт' },
+  { id: 'dn_b2c_letters', group: 'КЮ Кадры', name: '20 писем B2C', target: 20, unit: 'шт' },
+  { id: 'dn_check_applications', group: 'КЮ Кадры', name: 'Проверка заявок', target: 1, unit: 'раз' },
+  { id: 'dn_threads', group: 'КЮ Маркетинг', name: '15 минут в Threads', target: 15, unit: 'мин' },
+  { id: 'dn_instagram', group: 'КЮ Маркетинг', name: '15 минут в Instagram', target: 15, unit: 'мин' },
+  { id: 'dn_knowledge_block', group: 'КЮ Сообщество', name: '1 блок базы знаний', target: 1, unit: 'шт' },
+];

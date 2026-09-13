@@ -23,6 +23,14 @@ function addDays(d, n) {
   return nd;
 }
 
+/** Первая и последняя дата месяца 'YYYY-MM' в виде строк. */
+function monthBounds(monthKey) {
+  const [y, m] = monthKey.split('-').map(Number);
+  const start = new Date(Date.UTC(y, m - 1, 1));
+  const end = new Date(Date.UTC(y, m, 0));
+  return { start: fmtDate(start), end: fmtDate(end) };
+}
+
 function todayStr() {
   const now = new Date();
   return fmtDate(new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())));

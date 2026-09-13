@@ -20,9 +20,41 @@ const ui = {
   ui.selectedBlockId = b ? b.id : state.blocks[0].id;
 })();
 
+// --- Отмена действия (Undo) ---
+// Перед каждым сохранением запоминаем состояние, которое было ДО текущего
+// изменения. «Отменить» откатывает последнее сохранённое изменение.
+const UNDO_LIMIT = 30;
+let undoStack = [];
+let lastSnapshot = JSON.stringify(state);
+
 function save() {
+  undoStack.push(lastSnapshot);
+  if (undoStack.length > UNDO_LIMIT) undoStack.shift();
+  lastSnapshot = JSON.stringify(state);
   saveState(state);
+  updateUndoButton();
 }
+
+function undo() {
+  if (!undoStack.length) return;
+  state = JSON.parse(undoStack.pop());
+  lastSnapshot = JSON.stringify(state);
+  saveState(state);
+  renderContent();
+  updateUndoButton();
+}
+
+function updateUndoButton() {
+  const btn = document.getElementById('undo-btn');
+  if (btn) btn.disabled = undoStack.length === 0;
+}
+
+document.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+    e.preventDefault();
+    undo();
+  }
+});
 
 function fmtMoney(v) {
   if (v === null || v === undefined || Number.isNaN(v)) return '—';
@@ -90,6 +122,7 @@ document.getElementById('tabs').addEventListener('click', (e) => {
   const btn = e.target.closest('.tab-btn');
   if (btn) switchTab(btn.dataset.tab);
 });
+document.getElementById('undo-btn').addEventListener('click', undo);
 
 function renderContent() {
   const app = document.getElementById('app');
@@ -101,6 +134,7 @@ function renderContent() {
     case 'finance': app.innerHTML = renderFinance(); bindFinanceEvents(); break;
     case 'kadry': app.innerHTML = renderKadry(); bindKadryEvents(); break;
     case 'community': app.innerHTML = renderCommunity(); bindCommunityEvents(); break;
+    case 'events': app.innerHTML = renderEvents(); bindEventsEvents(); break;
     case 'blocks': app.innerHTML = renderBlocks(); bindBlocksEvents(); break;
     case 'settings': app.innerHTML = renderSettings(); bindSettingsEvents(); break;
     default: app.innerHTML = '<p>Неизвестная вкладка</p>';
@@ -364,13 +398,20 @@ function bindTasksEvents() {
 
 function renderDaily() {
   const date = ui.dailyDate;
-  const dueTasks = state.tasks.filter((t) => t.plannedDate === date || (t.status !== 'выполнено' && t.status !== 'отменено' && t.plannedDate && t.plannedDate < date));
-  const rows = dueTasks.length ? dueTasks.map((t) => `
+  // Невыполненные задачи с прошлых дней подтягиваются на сегодня автоматически
+  // и остаются в списке, пока не будут отмечены выполненными/отменёнными.
+  const dueTasks = state.tasks
+    .filter((t) => t.plannedDate === date || (t.status !== 'выполнено' && t.status !== 'отменено' && t.plannedDate && t.plannedDate < date))
+    .sort((a, b) => (a.plannedDate < b.plannedDate ? -1 : a.plannedDate > b.plannedDate ? 1 : 0)); // просроченные — первыми
+  const rows = dueTasks.length ? dueTasks.map((t) => {
+    const overdue = t.plannedDate && t.plannedDate < date;
+    return `
     <tr data-id="${t.id}">
-      <td>${t.title}${t.plannedDate && t.plannedDate < date ? ' <span class="small muted">(просрочено с ' + t.plannedDate + ')</span>' : ''}</td>
+      <td>${t.title}${overdue ? ` <span class="status-pill risk">просрочено с ${t.plannedDate}</span>` : ''}</td>
       <td class="small">${STREAMS.find((s) => s.id === t.streamId)?.name || ''}</td>
       <td><select class="daily-status-select" data-id="${t.id}">${statusOptions(t.status)}</select></td>
-    </tr>`).join('') : `<tr><td colspan="3" class="muted small">На эту дату нет задач</td></tr>`;
+    </tr>`;
+  }).join('') : `<tr><td colspan="3" class="muted small">На эту дату нет задач</td></tr>`;
 
   const existingLog = state.dailyLogs.find((l) => l.date === date);
 
@@ -386,6 +427,7 @@ function renderDaily() {
       <h3>Задачи на сегодня</h3>
       <table><thead><tr><th>Задача</th><th>Направление</th><th>Статус</th></tr></thead><tbody>${rows}</tbody></table>
     </div>
+    ${renderDailyNorms(date)}
     <div class="card">
       <h3>Что сделал</h3>
       <form id="daily-note-form" class="inline-form">
@@ -421,6 +463,7 @@ function bindDailyEvents() {
     log.note = note;
     save();
   });
+  bindDailyNormsEvents();
 }
 
 // ---------------------------------------------------------------------
@@ -702,3 +745,4 @@ function bindSettingsEvents() {
 // ---------------------------------------------------------------------
 
 renderContent();
+updateUndoButton();
