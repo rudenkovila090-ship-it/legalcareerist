@@ -251,7 +251,7 @@ export interface VacancyFormData {
   contactEmail: string
 }
 
-export type VacancyModerationStatus = 'pending_moderation' | 'published' | 'rejected' | 'closed'
+export type VacancyModerationStatus = 'draft' | 'pending_moderation' | 'published' | 'rejected' | 'closed'
 
 export interface VacancyMailing {
   stage: VacancyVisibilityStage

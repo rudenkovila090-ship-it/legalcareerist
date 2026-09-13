@@ -114,6 +114,51 @@ export function updateVacancyData(id: string, data: VacancyFormData): SavedVacan
   return updateOne(id, { data })
 }
 
+const emptyVacancyForm = (): VacancyFormData => ({
+  title: 'Новая вакансия (черновик)',
+  company: '',
+  anonymous: false,
+  city: '',
+  format: 'office',
+  employment: 'full',
+  schedule: '5/2',
+  level: 'middle',
+  experience: 'from1to3',
+  education: [],
+  specialization: [],
+  industry: [],
+  salaryFrom: 0,
+  salaryTo: 0,
+  description: '',
+  requirements: '',
+  conditions: '',
+  contactPhone: '',
+  contactEmail: '',
+})
+
+/** Черновик — не уходит на модерацию сразу, дорабатывается в конструкторе
+ *  (тот же экран «Изменить», что и у обычной вакансии) и отправляется
+ *  вручную через submitDraftForModeration. */
+export function createDraftVacancy(data?: VacancyFormData): SavedVacancy {
+  const vacancy: SavedVacancy = {
+    id: `vac_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+    createdAt: new Date().toISOString(),
+    data: data ?? emptyVacancyForm(),
+    moderationStatus: 'draft',
+    visibilityStage: 'residents',
+    mailings: [],
+    responsibleId: OWNER_ID,
+  }
+  const all = getVacancies()
+  all.unshift(vacancy)
+  writeAll(all)
+  return vacancy
+}
+
+export function submitDraftForModeration(id: string): SavedVacancy | undefined {
+  return updateOne(id, { moderationStatus: 'pending_moderation' })
+}
+
 export function approveVacancy(id: string): SavedVacancy | undefined {
   return updateOne(id, { moderationStatus: 'published', publishedAt: new Date().toISOString() })
 }
