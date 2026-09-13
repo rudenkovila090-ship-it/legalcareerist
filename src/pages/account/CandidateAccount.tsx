@@ -1,7 +1,7 @@
 import { useRef, useState, type FormEvent } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import PageHero from '../../components/PageHero'
-import { SpecTag } from '../../components/Tag'
+import { SpecTag, IndustryTag } from '../../components/Tag'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import {
   demoApplications,
@@ -23,8 +23,31 @@ const registrationStatusLabel = { registered: 'Зарегистрирован', 
 
 const resumeCreditPacks = [
   { id: 'pack10', count: 10, price: 490 },
-  { id: 'pack50', count: 50, price: 990 },
+  { id: 'pack30', count: 30, price: 990 },
 ] as const
+
+// «Роли аккаунта» — витрина как в игре: у пользователя уже есть какие-то
+// роли (candidate, community_member — открыты, идут первыми в заливке
+// bg-ink), а роль работодателя показана как «закрытая» — доступна через
+// отдельный демо-вход (см. AccountGate.tsx), не через этот аккаунт.
+const displayRoles = ['candidate', 'community_member', 'employer'] as const
+
+function IconLock() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3">
+      <rect x="5" y="11" width="14" height="9" rx="1.5" />
+      <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+    </svg>
+  )
+}
+
+function IconPencil() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5">
+      <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+    </svg>
+  )
+}
 
 // /account/candidate — кабинет соискателя (см. AccountGate.tsx: вход без
 // пароля, по кнопке "Войти как соискатель"). Отклики/регистрации/покупки/
@@ -44,14 +67,39 @@ export default function CandidateAccount() {
   const [now] = useState(() => Date.now())
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // Раздел «Контакты» — демо-редактирование прямо в карточке (по клику на
+  // карандашик), без реального сохранения на сервер.
+  const [contacts, setContacts] = useState({ email: demoUser.email, phone: demoUser.phone ?? '', telegramId: demoUser.telegramId ?? '' })
+  const [editingField, setEditingField] = useState<keyof typeof contacts | null>(null)
+  const [draftValue, setDraftValue] = useState('')
+
+  // Блоки главной колонки сгруппированы по смыслу, а не свалены вниз одним
+  // списком: «Поиск работы» (резюме + отклики) отдельно от «Мероприятия и
+  // сообщество» (регистрации, покупки, членство).
+  const [mainTab, setMainTab] = useState<'jobs' | 'events'>('jobs')
+
   if (role !== 'candidate') return <Navigate to="/account" replace />
 
   const freeAvailable = isFreeAvailable(creditsState)
   const nextFreeAt = freeAvailableAt(creditsState)
   const canGenerateResume = canGenerate(RESUME_CREDITS_KEY)
+  // Резидент — участник с активным платным членством в сообществе (не
+  // просто зарегистрирован на бесплатном тарифе).
+  const isResident = demoMemberships.some((m) => m.active && m.tier === 'paid')
 
   function refreshCredits() {
     setCreditsState(getCreditsState(RESUME_CREDITS_KEY))
+  }
+
+  function startEdit(field: keyof typeof contacts) {
+    setEditingField(field)
+    setDraftValue(contacts[field])
+  }
+
+  function saveEdit() {
+    if (!editingField) return
+    setContacts((prev) => ({ ...prev, [editingField]: draftValue.trim() || prev[editingField] }))
+    setEditingField(null)
   }
 
   function handleUploadClick() {
@@ -99,25 +147,84 @@ export default function CandidateAccount() {
           <div className="glass rounded-xl p-5">
             <div className="text-sm text-ink/50">Роли аккаунта</div>
             <div className="mt-2 flex flex-wrap gap-2">
-              {demoUser.roles.map((r) => (
-                <span key={r} className="rounded-full bg-ink px-2.5 py-1 text-xs font-medium text-white">
-                  {roleLabel[r]}
-                </span>
+              {displayRoles.map((r) => {
+                const earned = (demoUser.roles as string[]).includes(r)
+                return (
+                  <span
+                    key={r}
+                    className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
+                      earned ? 'bg-ink text-white' : 'border border-dashed border-ink/25 text-ink/35'
+                    }`}
+                  >
+                    {!earned && <IconLock />}
+                    {roleLabel[r]}
+                  </span>
+                )
+              })}
+            </div>
+            {!isResident && (
+              <Link
+                to="/community"
+                className="mt-3 block rounded-full bg-gold-light px-4 py-2 text-center text-xs font-semibold text-ink hover:opacity-90"
+              >
+                Стать резидентом сообщества
+              </Link>
+            )}
+          </div>
+
+          <div className="glass rounded-xl p-5">
+            <div className="text-sm text-ink/50">Контакты</div>
+            <div className="mt-2 space-y-1.5">
+              {(
+                [
+                  ['email', contacts.email],
+                  ['phone', contacts.phone],
+                  ['telegramId', contacts.telegramId],
+                ] as const
+              ).map(([field, value]) => (
+                <div key={field} className="flex items-center gap-2">
+                  {editingField === field ? (
+                    <>
+                      <input
+                        autoFocus
+                        value={draftValue}
+                        onChange={(e) => setDraftValue(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && saveEdit()}
+                        className="w-full rounded-lg border border-ink/15 px-2.5 py-1.5 text-sm focus:border-ink/40 focus:outline-none"
+                      />
+                      <button type="button" onClick={saveEdit} className="shrink-0 text-xs font-semibold text-ink/60 hover:text-ink">✓</button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => startEdit(field)}
+                        aria-label="Редактировать"
+                        className="shrink-0 text-ink/25 hover:text-ink/60"
+                      >
+                        <IconPencil />
+                      </button>
+                      <span className="text-sm">{value}</span>
+                    </>
+                  )}
+                </div>
               ))}
             </div>
           </div>
-          <div className="glass rounded-xl p-5">
-            <div className="text-sm text-ink/50">Контакты</div>
-            <div className="mt-2 text-sm">{demoUser.email}</div>
-            <div className="text-sm">{demoUser.phone}</div>
-            <div className="text-sm">{demoUser.telegramId}</div>
-          </div>
+
           <div className="glass rounded-xl p-5">
             <div className="text-sm text-ink/50">Специализация</div>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {demoUser.industry.map((i) => <IndustryTag key={i} id={i} />)}
+            </div>
+          </div>
+          <div className="glass rounded-xl p-5">
+            <div className="text-sm text-ink/50">Предпочитаемое место работы</div>
             <div className="mt-2 flex flex-wrap gap-1.5">
               {demoUser.specialization.map((s) => <SpecTag key={s} id={s} />)}
             </div>
           </div>
+
           <button
             type="button"
             onClick={() => { clearActiveRole(); navigate('/account') }}
@@ -127,7 +234,34 @@ export default function CandidateAccount() {
           </button>
         </aside>
 
-        <div className="space-y-8">
+        <div className="space-y-6">
+          {/* Блоки главной колонки сгруппированы по смыслу: «Поиск работы»
+              (резюме + отклики) отдельно от «Мероприятия и сообщество»
+              (регистрации, покупки, членство) — чтобы можно было отслеживать
+              каждое направление по отдельности, а не листать один общий список. */}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setMainTab('jobs')}
+              className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+                mainTab === 'jobs' ? 'bg-ink text-white' : 'border border-ink/15 text-ink/60 hover:text-ink'
+              }`}
+            >
+              Поиск работы
+            </button>
+            <button
+              type="button"
+              onClick={() => setMainTab('events')}
+              className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+                mainTab === 'events' ? 'bg-ink text-white' : 'border border-ink/15 text-ink/60 hover:text-ink'
+              }`}
+            >
+              Мероприятия и сообщество
+            </button>
+          </div>
+
+          {mainTab === 'jobs' ? (
+          <div className="space-y-8">
           {/* Резюме — конструктор (лимит генераций) + загрузка готового файла */}
           <section>
             <h2 className="mb-3 text-lg font-semibold">Резюме</h2>
@@ -237,7 +371,9 @@ export default function CandidateAccount() {
               ))}
             </div>
           </section>
-
+          </div>
+          ) : (
+          <div className="space-y-8">
           <section>
             <h2 className="mb-3 text-lg font-semibold">Регистрации на мероприятия</h2>
             <div className="glass divide-y divide-ink/10 rounded-xl">
@@ -276,6 +412,8 @@ export default function CandidateAccount() {
               ))}
             </div>
           </section>
+          </div>
+          )}
         </div>
       </div>
 

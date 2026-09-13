@@ -1,4 +1,4 @@
-import { Navigate, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import PageHero from '../../components/PageHero'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import { getActiveRole, setActiveRole, type ActiveRole } from '../../lib/accountRole'
@@ -26,13 +26,16 @@ function IconEmployer() {
 // заказчика для прототипа), кнопка "Войти как…" запоминает роль в
 // localStorage (accountRole.ts) и ведет в кабинет соискателя или
 // работодателя — это два разных, не связанных между собой кабинета.
+//
+// Раньше при уже выбранной роли эта страница сразу редиректила в кабинет
+// (Navigate replace) — из-за этого кнопка «Назад» из кабинета одной роли
+// не могла привести к выбору другой: /account вообще не оставался в
+// истории браузера. Теперь страница-гейт всегда показывает обе роли —
+// переключиться можно в любой момент, а «Назад» всегда возвращает сюда.
 export default function AccountGate() {
   useDocumentTitle('Личный кабинет')
   const navigate = useNavigate()
   const role = getActiveRole()
-
-  if (role === 'candidate') return <Navigate to="/account/candidate" replace />
-  if (role === 'employer') return <Navigate to="/account/employer" replace />
 
   function enter(next: ActiveRole) {
     setActiveRole(next)
@@ -44,33 +47,45 @@ export default function AccountGate() {
       <PageHero
         eyebrow="Личный кабинет"
         title="Войти в личный кабинет"
-        description="Демо-доступ без пароля — выберите роль, чтобы посмотреть кабинет соискателя или работодателя."
+        description={
+          role
+            ? 'Демо-доступ без пароля — вы уже заходили в один из кабинетов, можно продолжить или переключиться на другой.'
+            : 'Демо-доступ без пароля — выберите роль, чтобы посмотреть кабинет соискателя или работодателя.'
+        }
         prototype
       />
 
       <div className="container-page grid gap-5 py-12 sm:grid-cols-2">
-        <button type="button" onClick={() => enter('candidate')} className="glass block rounded-2xl p-6 text-left">
-          <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-ink text-white">
-            <IconCandidate />
-          </div>
-          <div className="text-sm font-medium uppercase tracking-wide text-gold">Соискатель</div>
-          <h2 className="mt-1 text-xl font-semibold">Войти как соискатель</h2>
-          <p className="mt-2 text-sm text-ink/60">
-            Демо-аккаунт «{demoUser.name}» — отклики на вакансии, конструктор резюме, регистрации на мероприятия.
-          </p>
-          <span className="mt-4 inline-block rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white">Войти →</span>
-        </button>
-
-        <button type="button" onClick={() => enter('employer')} className="glass block rounded-2xl p-6 text-left">
+        <button type="button" onClick={() => enter('employer')} className="glass relative block rounded-2xl p-6 text-left">
+          {role === 'employer' && (
+            <span className="absolute right-5 top-5 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700">Текущий кабинет</span>
+          )}
           <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-ink text-white">
             <IconEmployer />
           </div>
-          <div className="text-sm font-medium uppercase tracking-wide text-gold">Работодатель</div>
           <h2 className="mt-1 text-xl font-semibold">Войти как работодатель</h2>
           <p className="mt-2 text-sm text-ink/60">
             Демо-аккаунт «{demoEmployer.name}», {demoEmployerCompany.position} в {demoEmployerCompany.name} — конструктор вакансий и модерация (в разработке).
           </p>
-          <span className="mt-4 inline-block rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white">Войти →</span>
+          <span className="mt-4 inline-block rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white">
+            {role === 'employer' ? 'Продолжить →' : 'Войти →'}
+          </span>
+        </button>
+
+        <button type="button" onClick={() => enter('candidate')} className="glass relative block rounded-2xl p-6 text-left">
+          {role === 'candidate' && (
+            <span className="absolute right-5 top-5 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700">Текущий кабинет</span>
+          )}
+          <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-ink text-white">
+            <IconCandidate />
+          </div>
+          <h2 className="mt-1 text-xl font-semibold">Войти как соискатель</h2>
+          <p className="mt-2 text-sm text-ink/60">
+            Демо-аккаунт «{demoUser.name}» — отклики на вакансии, конструктор резюме, регистрации на мероприятия.
+          </p>
+          <span className="mt-4 inline-block rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white">
+            {role === 'candidate' ? 'Продолжить →' : 'Войти →'}
+          </span>
         </button>
       </div>
     </div>

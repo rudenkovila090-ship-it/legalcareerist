@@ -46,7 +46,7 @@ export const demoMemberships: (CommunityMembership & { clubName: string })[] = [
     tier: 'free',
     joinedAt: '2026-04-02',
     active: true,
-    clubName: 'Клуб корпоративного права',
+    clubName: 'Клуб налогового права',
   },
 ]
 

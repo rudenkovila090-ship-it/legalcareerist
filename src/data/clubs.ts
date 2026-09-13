@@ -2,16 +2,6 @@ import type { CommunityClub } from '../types'
 
 export const clubs: CommunityClub[] = [
   {
-    id: 'c1',
-    slug: 'klub-korporativnogo-prava',
-    name: 'Клуб корпоративного права',
-    specialization: ['inhouse', 'consulting'],
-    industry: ['corporate'],
-    description: 'Обсуждаем сделки M&A, корпоративное управление и карьеру в корпоративной практике.',
-    telegramLink: 'https://t.me/example_corporate_club',
-    coordinator: 'Анна Светлова',
-  },
-  {
     id: 'c2',
     slug: 'klub-advokatury',
     name: 'Клуб адвокатуры',
