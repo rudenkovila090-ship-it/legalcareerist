@@ -30,28 +30,35 @@ const DEFAULT_BLOCKS = [
   { id: 4, start: '2026-12-03', end: '2026-12-31', targets: { G1: 70000, G2: 80000, G3: 30000 } },
 ];
 
-// Направления деятельности (Streams), привязаны к целям.
+// Направления деятельности (Streams), привязаны к целям и сгруппированы для UI.
 // kind: 'flow' — периодический поток (выручка/доход за неделю или месяц),
 //       'stock' — накопительный остаток (вводится как текущее значение на дату).
+const STREAM_GROUPS = {
+  KYU: 'Карьерный юрист',
+  OTHER: 'Другая работа',
+  SAVINGS: 'Накопления',
+};
+
 const STREAMS = [
-  { id: 'S1', name: 'Рекрутинг', goals: ['G1'], kind: 'flow' },
-  { id: 'S2', name: 'Сообщество / резиденты', goals: ['G1'], kind: 'flow' },
-  { id: 'S3', name: 'Мероприятия', goals: ['G1'], kind: 'flow' },
-  { id: 'S4', name: 'Доп.услуги КЮ', goals: ['G1'], kind: 'flow' },
-  { id: 'S5', name: 'Перс.данные', goals: ['G2'], kind: 'flow' },
-  { id: 'S6', name: 'Legal Touch', goals: ['G2'], kind: 'flow' },
-  { id: 'S7', name: 'Подработка', goals: ['G2', 'G3'], kind: 'flow' },
-  { id: 'S8', name: 'Накопления (остаток)', goals: ['G3'], kind: 'stock' },
+  { id: 'S1', name: 'КЮ Кадры', goals: ['G1'], kind: 'flow', group: STREAM_GROUPS.KYU },
+  { id: 'S2', name: 'КЮ Сообщество', goals: ['G1'], kind: 'flow', group: STREAM_GROUPS.KYU },
+  { id: 'S3', name: 'КЮ Мероприятия', goals: ['G1'], kind: 'flow', group: STREAM_GROUPS.KYU },
+  { id: 'S4', name: 'КЮ Маркетинг', goals: ['G1'], kind: 'flow', group: STREAM_GROUPS.KYU },
+  { id: 'S5', name: 'КЮ Legal Tech', goals: ['G1'], kind: 'flow', group: STREAM_GROUPS.KYU },
+  { id: 'S6', name: 'КЮ HR', goals: ['G1'], kind: 'flow', group: STREAM_GROUPS.KYU },
+  { id: 'S7', name: 'Privacy', goals: ['G2'], kind: 'flow', group: STREAM_GROUPS.OTHER },
+  { id: 'S8', name: 'ИИ Стриж', goals: ['G2'], kind: 'flow', group: STREAM_GROUPS.OTHER },
+  { id: 'S9', name: 'Накопления (остаток)', goals: ['G3'], kind: 'stock', group: STREAM_GROUPS.SAVINGS },
 ];
 
 // Лид-показатели (Weekly Lead Metrics). defaultPlan можно менять по неделям/блокам —
 // значения тут только "заводские" значения по умолчанию для новой недели.
 const LEAD_METRICS = [
-  { id: 'LM1', name: 'Рекрутинг — контакты с работодателями', streamIds: ['S1'], unit: 'шт', defaultPlan: null },
+  { id: 'LM1', name: 'КЮ Кадры — контакты с работодателями', streamIds: ['S1'], unit: 'шт', defaultPlan: null },
   { id: 'LM2', name: 'Наём продажника — часы на поиск', streamIds: ['S1'], unit: 'часы', defaultPlan: 5 },
-  { id: 'LM3', name: 'Сообщество — посты/анонсы', streamIds: ['S2'], unit: 'шт', defaultPlan: 21 },
-  { id: 'LM4', name: 'Мероприятия — контакты/приглашения', streamIds: ['S3'], unit: 'шт', defaultPlan: 5 },
-  { id: 'LM5', name: 'Перс.данные/Legal Touch — исходящие предложения', streamIds: ['S5', 'S6'], unit: 'шт', defaultPlan: 100 },
+  { id: 'LM3', name: 'КЮ Сообщество — посты/анонсы', streamIds: ['S2'], unit: 'шт', defaultPlan: 21 },
+  { id: 'LM4', name: 'КЮ Мероприятия — контакты/приглашения', streamIds: ['S3'], unit: 'шт', defaultPlan: 5 },
+  { id: 'LM5', name: 'Privacy / ИИ Стриж — исходящие предложения', streamIds: ['S7', 'S8'], unit: 'шт', defaultPlan: 100 },
 ];
 
 const TASK_PRIORITIES = ['главная задача недели', 'второстепенная'];

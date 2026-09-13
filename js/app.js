@@ -201,7 +201,13 @@ function bindDashboardEvents() {
 // ---------------------------------------------------------------------
 
 function streamOptions(selected) {
-  return STREAMS.map((s) => `<option value="${s.id}" ${s.id === selected ? 'selected' : ''}>${s.name}</option>`).join('');
+  const groups = [...new Set(STREAMS.map((s) => s.group))];
+  return groups.map((group) => {
+    const opts = STREAMS.filter((s) => s.group === group)
+      .map((s) => `<option value="${s.id}" ${s.id === selected ? 'selected' : ''}>${s.name}</option>`)
+      .join('');
+    return `<optgroup label="${group}">${opts}</optgroup>`;
+  }).join('');
 }
 function goalOptionsFor(streamId, selected) {
   const stream = STREAMS.find((s) => s.id === streamId) || STREAMS[0];
