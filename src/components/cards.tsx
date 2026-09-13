@@ -83,6 +83,7 @@ const eventTypeLabel: Record<EventItem['type'], string> = {
   breakfast: 'Бизнес-завтрак',
   intensive: 'Интенсив',
   tour: 'Экскурсия',
+  internship: 'Стажировка',
 }
 
 export function EventCard({ e }: { e: EventItem }) {

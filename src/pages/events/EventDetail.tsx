@@ -12,7 +12,7 @@ import { SPECIALIZATIONS, INDUSTRIES, type EventTariff } from '../../types'
 const specLabel = new Map(SPECIALIZATIONS.map((s) => [s.id, s.label]))
 const industryLabel = new Map(INDUSTRIES.map((i) => [i.id, i.label]))
 
-const eventTypeLabel = { conference: 'Ключевое мероприятие', webinar: 'Вебинар', breakfast: 'Бизнес-завтрак', intensive: 'Интенсив', tour: 'Экскурсия' }
+const eventTypeLabel = { conference: 'Ключевое мероприятие', webinar: 'Вебинар', breakfast: 'Бизнес-завтрак', intensive: 'Интенсив', tour: 'Экскурсия', internship: 'Стажировка' }
 
 // Крупный фон-афиша вверху детальной страницы — тот же принцип цветового
 // кодирования по типу, что и на карточке в афише (posterTone в
@@ -24,6 +24,7 @@ const posterTone: Record<string, string> = {
   breakfast: 'from-gold-light to-gold',
   intensive: 'from-ink to-gold',
   tour: 'from-gold-light to-ink',
+  internship: 'from-gold-light via-gold to-ink',
 }
 
 function initials(name: string) {
@@ -139,6 +140,12 @@ export default function EventDetail() {
             <span className="text-sm font-medium uppercase tracking-wide text-white/70">{eventTypeLabel[event.type]}</span>
             {event.partner && (
               <span className="rounded-full bg-white/15 px-2.5 py-1 text-xs font-medium">Партнер: {event.partner}</span>
+            )}
+            {event.international && (
+              <span className="rounded-full bg-white/15 px-2.5 py-1 text-xs font-medium">Международное</span>
+            )}
+            {event.language === 'en' && (
+              <span className="rounded-full bg-white/15 px-2.5 py-1 text-xs font-medium">На английском</span>
             )}
           </div>
           {/* Дата/время/формат — самый заметный акцент на афише: крупнее и

@@ -5,7 +5,7 @@ import { submitLead, makeTicketNumber } from '../../lib/leads'
 import PhoneInput from '../../components/PhoneInput'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import EventsFooter from './EventsFooter'
-import type { EventItem } from '../../types'
+import { INDUSTRIES, type EventItem, type Industry, type AudienceLevel } from '../../types'
 
 const money = new Intl.NumberFormat('ru-RU')
 
@@ -17,6 +17,7 @@ const posterTone: Record<EventItem['type'], string> = {
   breakfast: 'from-gold-light to-gold',
   intensive: 'from-ink to-gold',
   tour: 'from-gold-light to-ink',
+  internship: 'from-gold-light via-gold to-ink',
 }
 
 const eventTypeLabel: Record<EventItem['type'], string> = {
@@ -25,6 +26,7 @@ const eventTypeLabel: Record<EventItem['type'], string> = {
   breakfast: 'Бизнес-завтрак',
   intensive: 'Интенсив',
   tour: 'Экскурсия',
+  internship: 'Стажировка',
 }
 
 function IconMic() {
@@ -59,14 +61,32 @@ function IconBolt() {
     </svg>
   )
 }
+function IconCap() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6">
+      <path d="M12 5 3 9.5 12 14l9-4.5L12 5Z" />
+      <path d="M7 11.5V16c0 1.4 2.2 2.5 5 2.5s5-1.1 5-2.5v-4.5" />
+      <path d="M20 9.5V15" />
+    </svg>
+  )
+}
 const posterIcon: Record<EventItem['type'], typeof IconMic> = {
   conference: IconStage,
   webinar: IconMic,
   breakfast: IconCoffee,
   intensive: IconBolt,
   tour: IconStage,
+  internship: IconCap,
 }
 
+function IconSearch({ className = 'h-5 w-5' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <circle cx="10.5" cy="10.5" r="6.5" />
+      <path d="M20 20l-4.5-4.5" />
+    </svg>
+  )
+}
 function IconGrid() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
@@ -101,14 +121,45 @@ const eventTabs = [
   { id: 'account', label: 'Личный кабинет', icon: IconAccountCircle },
 ] as const
 
-// Категории на одной строке — прямоугольная ячейка-иконка и подпись справа
-// от нее, ведут себя как быстрый фильтр по афише ниже.
-const quickCategories = [
-  { id: 'key', label: 'Ключевые мероприятия', icon: IconStage },
-  { id: 'breakfast', label: 'Бизнес-завтраки', icon: IconCoffee },
-  { id: 'webinar', label: 'Вебинары', icon: IconMic },
-] as const
-type QuickCategory = (typeof quickCategories)[number]['id'] | 'all'
+const eventTypeOptions: { id: EventItem['type']; label: string }[] = [
+  { id: 'conference', label: 'Ключевые мероприятия' },
+  { id: 'webinar', label: 'Вебинары' },
+  { id: 'breakfast', label: 'Бизнес-завтраки' },
+  { id: 'intensive', label: 'Интенсивы' },
+  { id: 'tour', label: 'Экскурсии' },
+  { id: 'internship', label: 'Стажировки' },
+]
+
+const audienceLabel: Record<AudienceLevel, string> = {
+  student: 'Студентам',
+  young_lawyer: 'Молодым юристам',
+  practicing: 'Практикующим юристам',
+}
+
+// Подборки — витрина поверх общего каталога (запрос: «Стажировки»,
+// «Конференции», «Бесплатные мероприятия», «Для студентов», «Юридические
+// события месяца»). Каждая подборка — это просто предустановленная
+// комбинация фильтров ниже, а не отдельный список данных.
+type CollectionId = 'internship' | 'conference' | 'free' | 'students' | 'month'
+const collections: { id: CollectionId; label: string; description: string }[] = [
+  { id: 'internship', label: 'Стажировки', description: 'Программы для студентов и начинающих юристов' },
+  { id: 'conference', label: 'Конференции', description: 'Форумы и ключевые отраслевые события' },
+  { id: 'free', label: 'Бесплатные мероприятия', description: 'Участие без оплаты' },
+  { id: 'students', label: 'Для студентов', description: 'Подходит студентам юрфаков' },
+  { id: 'month', label: 'Юридические события месяца', description: 'Отбор редакции — не пропустите' },
+]
+
+function matchesCollection(e: EventItem, id: CollectionId, thisMonth: number, thisYear: number) {
+  if (id === 'internship') return e.type === 'internship'
+  if (id === 'conference') return e.type === 'conference'
+  if (id === 'free') return e.price === 0
+  if (id === 'students') return e.audienceLevel.includes('student')
+  if (id === 'month') {
+    const d = new Date(e.dateTime)
+    return Boolean(e.featured) && d.getMonth() === thisMonth && d.getFullYear() === thisYear
+  }
+  return true
+}
 
 function EventCard({ e }: { e: EventItem }) {
   const Icon = posterIcon[e.type]
@@ -117,11 +168,16 @@ function EventCard({ e }: { e: EventItem }) {
   return (
     <Link to={`/events/${e.slug}`} className="glass block overflow-hidden rounded-2xl">
       <div className={`relative flex h-40 flex-col justify-between bg-gradient-to-br p-5 text-white ${posterTone[e.type]} ${past ? 'grayscale' : ''}`}>
-        <div className="flex items-start justify-between">
+        <div className="flex items-start justify-between gap-2">
           <Icon />
-          {e.partner && (
-            <span className="rounded-full bg-white/20 px-2.5 py-1 text-xs font-semibold uppercase tracking-wide">Партнер</span>
-          )}
+          <div className="flex flex-wrap justify-end gap-1.5">
+            {e.international && (
+              <span className="rounded-full bg-white/20 px-2.5 py-1 text-xs font-semibold uppercase tracking-wide">Международное</span>
+            )}
+            {e.partner && (
+              <span className="rounded-full bg-white/20 px-2.5 py-1 text-xs font-semibold uppercase tracking-wide">Партнер</span>
+            )}
+          </div>
         </div>
         {past && (
           <span className="absolute right-4 top-1/2 -translate-y-1/2 -rotate-12 rounded border-2 border-white/70 px-3 py-1 text-sm font-bold uppercase tracking-wide">
@@ -198,31 +254,71 @@ export default function EventsHome() {
     })
   }
 
-  const [quick, setQuick] = useState<QuickCategory>('all')
+  const [collection, setCollection] = useState<CollectionId | 'all'>('all')
+  const [search, setSearch] = useState('')
+  const [typeFilter, setTypeFilter] = useState<'all' | EventItem['type']>('all')
   const [cityFilter, setCityFilter] = useState('all')
   const [formatFilter, setFormatFilter] = useState<'all' | 'online' | 'offline'>('all')
-  const [sort, setSort] = useState<'popular' | 'price_asc' | 'price_desc'>('popular')
+  const [industryFilter, setIndustryFilter] = useState<'all' | Industry>('all')
+  const [audienceFilter, setAudienceFilter] = useState<'all' | AudienceLevel>('all')
+  const [priceFilter, setPriceFilter] = useState<'all' | 'free' | 'paid'>('all')
+  const [regionFilter, setRegionFilter] = useState<'all' | 'ru' | 'intl'>('all')
+  const [sort, setSort] = useState<'date_asc' | 'popular' | 'price_asc' | 'price_desc'>('date_asc')
 
   const cities = useMemo(
     () => Array.from(new Set(events.filter((e) => e.city).map((e) => e.city!))).sort(),
     [],
   )
+  const hasInternational = useMemo(() => events.some((e) => e.international), [])
+
+  const now = useMemo(() => new Date(), [])
+  const searchNorm = search.trim().toLowerCase()
 
   const filtered = useMemo(() => {
     const list = events.filter((e) => {
-      if (quick === 'key' && !(e.type === 'conference' || e.type === 'intensive' || e.type === 'tour')) return false
-      if (quick === 'breakfast' && e.type !== 'breakfast') return false
-      if (quick === 'webinar' && e.type !== 'webinar') return false
+      if (collection !== 'all' && !matchesCollection(e, collection, now.getMonth(), now.getFullYear())) return false
+      if (typeFilter !== 'all' && e.type !== typeFilter) return false
       if (cityFilter !== 'all' && e.city !== cityFilter) return false
       if (formatFilter !== 'all' && e.format !== formatFilter) return false
+      if (industryFilter !== 'all' && !e.industry.includes(industryFilter)) return false
+      if (audienceFilter !== 'all' && !e.audienceLevel.includes(audienceFilter)) return false
+      if (priceFilter === 'free' && e.price !== 0) return false
+      if (priceFilter === 'paid' && e.price === 0) return false
+      if (regionFilter === 'ru' && e.international) return false
+      if (regionFilter === 'intl' && !e.international) return false
+      if (searchNorm) {
+        const haystack = [e.title, e.city, e.location, e.partner, e.description].filter(Boolean).join(' ').toLowerCase()
+        if (!haystack.includes(searchNorm)) return false
+      }
       return true
     })
     if (sort === 'price_asc') return [...list].sort((a, b) => a.price - b.price)
     if (sort === 'price_desc') return [...list].sort((a, b) => b.price - a.price)
+    if (sort === 'date_asc') return [...list].sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())
     return [...list].sort((a, b) => Number(a.status === 'completed') - Number(b.status === 'completed'))
-  }, [quick, cityFilter, formatFilter, sort])
+  }, [collection, typeFilter, cityFilter, formatFilter, industryFilter, audienceFilter, priceFilter, regionFilter, sort, searchNorm, now])
 
-  const isFiltering = quick !== 'all' || cityFilter !== 'all' || formatFilter !== 'all' || sort !== 'popular'
+  const isFiltering =
+    collection !== 'all' || typeFilter !== 'all' || cityFilter !== 'all' || formatFilter !== 'all' ||
+    industryFilter !== 'all' || audienceFilter !== 'all' || priceFilter !== 'all' || regionFilter !== 'all' ||
+    sort !== 'date_asc' || searchNorm !== ''
+
+  function resetFilters() {
+    setCollection('all')
+    setSearch('')
+    setTypeFilter('all')
+    setCityFilter('all')
+    setFormatFilter('all')
+    setIndustryFilter('all')
+    setAudienceFilter('all')
+    setPriceFilter('all')
+    setRegionFilter('all')
+    setSort('date_asc')
+  }
+
+  function toggleCollection(id: CollectionId) {
+    setCollection((prev) => (prev === id ? 'all' : id))
+  }
 
   // «Создать свое событие» — лид-заявка организатора.
   const [eventForm, setEventForm] = useState({ fio: '', phone: '', email: '', telegram: '', about: '' })
@@ -325,8 +421,50 @@ export default function EventsHome() {
 
       {tab === 'poster' && (
         <>
-          <section className="container-page pt-8 pb-8">
+          {/* Умный поиск — по названию, городу, месту, организатору. */}
+          <section className="container-page pt-8">
+            <div className="relative">
+              <IconSearch className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-ink/30" />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Поиск по названию, городу или дате"
+                className="w-full rounded-full border border-ink/15 py-3 pl-11 pr-4 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+              />
+            </div>
+          </section>
+
+          {/* Подборки — предустановленные фильтры-ярлыки поверх общего каталога. */}
+          <section className="container-page pt-6">
+            <h2 className="mb-3 text-lg font-semibold">Подборки</h2>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+              {collections.map((c) => {
+                const active = collection === c.id
+                const count = events.filter((e) => matchesCollection(e, c.id, now.getMonth(), now.getFullYear())).length
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => toggleCollection(c.id)}
+                    className={`rounded-xl p-4 text-left transition-colors ${active ? 'bg-ink text-white' : 'glass hover:bg-ink/[0.03]'}`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="text-sm font-semibold">{c.label}</div>
+                      <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${active ? 'bg-white/20' : 'bg-ink/[0.06] text-ink/60'}`}>{count}</span>
+                    </div>
+                    <div className={`mt-1 text-xs ${active ? 'text-white/70' : 'text-ink/50'}`}>{c.description}</div>
+                  </button>
+                )
+              })}
+            </div>
+          </section>
+
+          <section className="container-page pt-6 pb-8">
             <div className="glass flex flex-wrap items-center gap-3 rounded-xl p-4">
+              <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as 'all' | EventItem['type'])} className="rounded-lg border border-ink/15 px-3 py-2 text-sm">
+                <option value="all">Тип мероприятия</option>
+                {eventTypeOptions.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+              </select>
               <select value={cityFilter} onChange={(e) => setCityFilter(e.target.value)} className="rounded-lg border border-ink/15 px-3 py-2 text-sm">
                 <option value="all">Город мероприятия</option>
                 {cities.map((c) => <option key={c} value={c}>{c}</option>)}
@@ -336,26 +474,34 @@ export default function EventsHome() {
                 <option value="online">Онлайн</option>
                 <option value="offline">Офлайн</option>
               </select>
-              <select value={quick} onChange={(e) => setQuick(e.target.value as QuickCategory)} className="rounded-lg border border-ink/15 px-3 py-2 text-sm">
-                <option value="all">Тип мероприятия</option>
-                {quickCategories.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+              <select value={industryFilter} onChange={(e) => setIndustryFilter(e.target.value as 'all' | Industry)} className="rounded-lg border border-ink/15 px-3 py-2 text-sm">
+                <option value="all">Направление права</option>
+                {INDUSTRIES.map((i) => <option key={i.id} value={i.id}>{i.label}</option>)}
               </select>
-              <select value={sort} onChange={(e) => setSort(e.target.value as 'popular' | 'price_asc' | 'price_desc')} className="rounded-lg border border-ink/15 px-3 py-2 text-sm">
+              <select value={audienceFilter} onChange={(e) => setAudienceFilter(e.target.value as 'all' | AudienceLevel)} className="rounded-lg border border-ink/15 px-3 py-2 text-sm">
+                <option value="all">Для кого</option>
+                {(Object.entries(audienceLabel) as [AudienceLevel, string][]).map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+              </select>
+              <select value={priceFilter} onChange={(e) => setPriceFilter(e.target.value as 'all' | 'free' | 'paid')} className="rounded-lg border border-ink/15 px-3 py-2 text-sm">
+                <option value="all">Стоимость</option>
+                <option value="free">Бесплатные</option>
+                <option value="paid">Платные</option>
+              </select>
+              {hasInternational && (
+                <select value={regionFilter} onChange={(e) => setRegionFilter(e.target.value as 'all' | 'ru' | 'intl')} className="rounded-lg border border-ink/15 px-3 py-2 text-sm">
+                  <option value="all">РФ и международные</option>
+                  <option value="ru">Российские</option>
+                  <option value="intl">Международные</option>
+                </select>
+              )}
+              <select value={sort} onChange={(e) => setSort(e.target.value as 'date_asc' | 'popular' | 'price_asc' | 'price_desc')} className="rounded-lg border border-ink/15 px-3 py-2 text-sm">
+                <option value="date_asc">Ближайшие даты</option>
                 <option value="popular">Популярные</option>
                 <option value="price_asc">Сначала дешевле</option>
                 <option value="price_desc">Сначала дороже</option>
               </select>
               {isFiltering && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setQuick('all')
-                    setCityFilter('all')
-                    setFormatFilter('all')
-                    setSort('popular')
-                  }}
-                  className="text-sm text-ink/50 hover:text-ink"
-                >
+                <button type="button" onClick={resetFilters} className="text-sm text-ink/50 hover:text-ink">
                   Сбросить
                 </button>
               )}
@@ -368,7 +514,12 @@ export default function EventsHome() {
             <h2 className="mb-4 text-xl font-semibold">Все события</h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {filtered.map((e) => <EventCard key={e.id} e={e} />)}
-              {filtered.length === 0 && <p className="text-ink/50">Мероприятий по фильтру не найдено.</p>}
+              {filtered.length === 0 && (
+                <p className="text-ink/50">
+                  Мероприятий по фильтру не найдено.{' '}
+                  <button type="button" onClick={resetFilters} className="font-medium text-ink underline hover:no-underline">Сбросить фильтры</button>
+                </p>
+              )}
             </div>
           </section>
 

@@ -411,9 +411,15 @@ export interface NewsItem {
   image?: string
 }
 
-export type EventType = 'conference' | 'webinar' | 'breakfast' | 'intensive' | 'tour'
+export type EventType = 'conference' | 'webinar' | 'breakfast' | 'intensive' | 'tour' | 'internship'
 export type EventFormat = 'online' | 'offline'
 export type EventStatus = 'open' | 'completed'
+
+/** Для кого мероприятие — используется для подборки «Для студентов» и
+ *  расширенного фильтра по афише (см. ЦА платформы: студенты / молодые
+ *  юристы / практикующие юристы). Одно мероприятие может подходить сразу
+ *  нескольким сегментам. */
+export type AudienceLevel = 'student' | 'young_lawyer' | 'practicing'
 
 /** Спикер мероприятия — кружок с фото (или плейсхолдер), имя и регалии под ним. */
 export interface EventSpeaker {
@@ -462,6 +468,16 @@ export interface EventItem extends Tagged {
   cover?: string
   /** Для прошедших мероприятий — что можно купить: запись, материалы, или оба. */
   sale?: { recording?: number; materials?: number; bundle?: number }
+  /** ЦА мероприятия — см. AudienceLevel. Используется подборкой «Для
+   *  студентов» и расширенным фильтром афиши. */
+  audienceLevel: AudienceLevel[]
+  /** Международное мероприятие (не только РФ/СНГ) — фильтр афиши. */
+  international?: boolean
+  /** Язык мероприятия — по умолчанию русский, фильтр афиши показывается
+   *  только если в каталоге есть хотя бы одно не-русское мероприятие. */
+  language?: 'ru' | 'en'
+  /** Редакционный отбор — попадает в подборку «Юридические события месяца». */
+  featured?: boolean
 }
 
 export type RegistrationStatus = 'registered' | 'paid' | 'attended'
