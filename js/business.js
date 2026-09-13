@@ -176,7 +176,15 @@ function tariffFactRevenueForMonth(monthKey, tariffId) {
 
 function getTariffSale(monthKey, tariffId) {
   const rec = (state.community.tariffSales[monthKey] || {})[tariffId] || {};
-  return { planUnits: rec.planUnits ?? null, factUnits: rec.factUnits ?? null };
+  return { planUnits: rec.planUnits ?? null, planRevenue: rec.planRevenue ?? null, factUnits: rec.factUnits ?? null };
+}
+
+/** Плановая выручка тарифа за месяц: своё значение (перенесено из таблицы,
+ * т.к. цена менялась в течение года), иначе — план шт × текущая цена. */
+function tariffPlanRevenue(monthKey, tariff) {
+  const sale = getTariffSale(monthKey, tariff.id);
+  if (sale.planRevenue !== null) return sale.planRevenue;
+  return (sale.planUnits || 0) * tariff.price;
 }
 
 /** Факт продаж (шт) тарифа за месяц: если ручной ввод и авторасчёт из
@@ -190,7 +198,7 @@ function reconciledTariffFactUnits(monthKey, tariff) {
 
 function setTariffSale(monthKey, tariffId, field, value) {
   if (!state.community.tariffSales[monthKey]) state.community.tariffSales[monthKey] = {};
-  if (!state.community.tariffSales[monthKey][tariffId]) state.community.tariffSales[monthKey][tariffId] = { planUnits: null, factUnits: null };
+  if (!state.community.tariffSales[monthKey][tariffId]) state.community.tariffSales[monthKey][tariffId] = { planUnits: null, planRevenue: null, factUnits: null };
   state.community.tariffSales[monthKey][tariffId][field] = value === '' ? null : Number(value);
 }
 
@@ -248,7 +256,7 @@ function renderCommunity() {
   // Тарифы + продажи объединены в одну таблицу: цена — прямо в шапке колонки.
   const tariffHeaderCells = state.community.tariffs.map((t) => `
     <th colspan="3">${t.name}<br><input type="number" class="tariff-price" data-tariff="${t.id}" value="${t.price}" title="Цена, ₽"> ₽</th>`).join('');
-  const tariffSubHeaderCells = state.community.tariffs.map(() => '<th class="small muted">План шт</th><th class="small muted">Факт шт</th><th class="small muted">Факт ₽</th>').join('');
+  const tariffSubHeaderCells = state.community.tariffs.map(() => '<th class="small muted">План шт</th><th class="small muted">План ₽</th><th class="small muted">Факт шт</th><th class="small muted">Факт ₽</th>').join('');
   const tariffMonthRows = MONTHS_2026.map((m) => {
     const cells = state.community.tariffs.map((t) => {
       const sale = getTariffSale(m.key, t.id);
@@ -256,6 +264,7 @@ function renderCommunity() {
       const factRevenue = tariffFactRevenueForMonth(m.key, t.id);
       return `
         <td><input type="number" class="tariff-plan-units" data-month="${m.key}" data-tariff="${t.id}" value="${sale.planUnits ?? ''}"></td>
+        <td><input type="number" class="tariff-plan-revenue" data-month="${m.key}" data-tariff="${t.id}" value="${tariffPlanRevenue(m.key, t) || ''}"></td>
         <td><input type="number" class="tariff-fact-units" data-month="${m.key}" data-tariff="${t.id}" value="${sale.factUnits ?? ''}" title="Можно поправить вручную — если авторасчёт из журнала больше, используется он"></td>
         <td class="small">${fmtMoney(factRevenue)}${factUnits > (sale.factUnits || 0) ? ' <span class="small muted">(авто)</span>' : ''}</td>`;
     }).join('');
@@ -328,7 +337,7 @@ function renderCommunity() {
         <tbody>${tariffMonthRows}</tbody>
       </table>
       </div>
-      <p class="small muted">Цена — в шапке колонки тарифа. Факт ₽ считается из дневного журнала ниже; факт шт можно поправить вручную, но если авторасчёт из выручки больше — используется он.</p>
+      <p class="small muted">Цена — в шапке колонки тарифа. Факт ₽ — весь фактический доход по тарифу из дневного журнала ниже (включая продления, не только новые продажи). Факт шт можно поправить вручную, но если авторасчёт из выручки больше — используется он.</p>
     </div>
 
     <div class="card">
@@ -385,9 +394,9 @@ function bindCommunityEvents() {
       renderContent();
     });
   });
-  document.querySelectorAll('.tariff-plan-units, .tariff-fact-units').forEach((el) => {
+  document.querySelectorAll('.tariff-plan-units, .tariff-plan-revenue, .tariff-fact-units').forEach((el) => {
     el.addEventListener('change', () => {
-      const field = el.classList.contains('tariff-plan-units') ? 'planUnits' : 'factUnits';
+      const field = el.classList.contains('tariff-plan-units') ? 'planUnits' : el.classList.contains('tariff-plan-revenue') ? 'planRevenue' : 'factUnits';
       setTariffSale(el.dataset.month, el.dataset.tariff, field, el.value);
       save();
       renderContent();

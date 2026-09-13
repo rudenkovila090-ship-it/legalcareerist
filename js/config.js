@@ -69,11 +69,11 @@ function inferLinkType(title) {
 }
 
 const SIGNALS = {
-  GREEN: { code: 'green', label: 'Зелёный', text: 'Всё в порядке — продолжать в том же темпе.' },
-  YELLOW: { code: 'yellow', label: 'Жёлтый', text: 'Действия выполняются, но не конвертируются в результат — пересмотреть тип действий или увеличить объём.' },
-  RED: { code: 'red', label: 'Красный', text: 'Отставание и по действиям, и по результату — нужна немедленная корректировка плана.' },
-  BLUE: { code: 'blue', label: 'Синий', text: 'Результат идёт по инерции или из другого источника — не снижать активность, зафиксировать нетипичность.' },
-  NA: { code: 'na', label: 'Нет данных', text: 'Недостаточно данных за неделю для расчёта сигнала.' },
+  GREEN: { code: 'green', label: 'Зелёный', short: 'Всё по плану', text: 'Всё в порядке — продолжать в том же темпе.' },
+  YELLOW: { code: 'yellow', label: 'Жёлтый', short: 'Не даёт результата', text: 'Действия выполняются, но не конвертируются в результат — пересмотреть тип действий или увеличить объём.' },
+  RED: { code: 'red', label: 'Красный', short: 'Нужна корректировка', text: 'Отставание и по действиям, и по результату — нужна немедленная корректировка плана.' },
+  BLUE: { code: 'blue', label: 'Синий', short: 'Растёт по инерции', text: 'Результат идёт по инерции или из другого источника — не снижать активность, зафиксировать нетипичность.' },
+  NA: { code: 'na', label: 'Нет данных', short: 'Мало данных', text: 'Недостаточно данных за неделю для расчёта сигнала.' },
 };
 
 // =======================================================================
@@ -115,6 +115,63 @@ const KADRY_YTD_REFERENCE = {
   revenue: 25698,
 };
 
+// Помесячный план/факт — перенесено напрямую из Google Диска
+// («1. КЮ | Кадры» → «План-работы | Кадры», лист «Помесячный план работы»).
+const KADRY_MONTHLY_SEED = {
+  '2026-04': {
+    resumeB2C: { plan: 30, fact: 57 }, lettersB2B: { plan: 20, fact: 20 },
+    vacanciesB2B: { plan: 5, fact: 3 }, employment: { plan: 5, fact: 2 },
+    paidPlacements: { plan: 2, fact: 0 }, revenue: { plan: 10000, fact: 3000 },
+  },
+  '2026-05': {
+    baseCandidates: { plan: 150, fact: 1071 }, resumeB2C: { plan: 30, fact: 22 },
+    lettersB2B: { plan: 180, fact: 200 }, vacanciesB2B: { plan: 5, fact: 5 },
+    employment: { plan: 10, fact: 3 }, paidPlacements: { plan: 2, fact: 1 },
+    revenue: { plan: 50000, fact: 11000 },
+  },
+  '2026-06': {
+    baseCandidates: { plan: 1500, fact: 1531 }, resumeB2C: { plan: 30, fact: 9 },
+    lettersB2B: { plan: 200, fact: 100 }, vacanciesB2B: { plan: 10, fact: 3 },
+    employment: { plan: 20, fact: 1 }, paidPlacements: { plan: 3, fact: 0 },
+    revenue: { plan: 50000, fact: 7900 },
+  },
+  '2026-07': {
+    baseCandidates: { plan: 1600, fact: 536 }, resumeB2C: { plan: 30, fact: 29 },
+    lettersB2B: { plan: 200, fact: 1 }, vacanciesB2B: { plan: 10, fact: 4 },
+    employment: { plan: 10, fact: 1 }, paidPlacements: { plan: 3, fact: 0 },
+    revenue: { plan: 50000, fact: 3000 },
+  },
+  '2026-08': {
+    baseCandidates: { plan: 1800, fact: 460 }, resumeB2C: { plan: 30, fact: 7 },
+    lettersB2B: { plan: 200, fact: 35 }, vacanciesB2B: { plan: 5, fact: 0 },
+    employment: { plan: 10, fact: 1 }, paidPlacements: { plan: 3, fact: 0 },
+    careerConsults: { plan: 5, fact: 2 }, psychologyClients: { plan: 2, fact: 0 },
+    revenue: { plan: 50000, fact: 798 },
+  },
+  '2026-09': {
+    baseCandidates: { plan: 4500, fact: 563 }, resumeB2C: { plan: 30, fact: 3 },
+    lettersB2B: { plan: 200, fact: null }, vacanciesB2B: { plan: 10, fact: null },
+    employment: { plan: 10, fact: null }, paidPlacements: { plan: 3, fact: null },
+    careerConsults: { plan: 5, fact: null }, psychologyClients: { plan: 2, fact: null },
+    revenue: { plan: 60000, fact: null },
+  },
+  '2026-10': {
+    baseCandidates: { plan: 2500 }, resumeB2C: { plan: 30 }, lettersB2B: { plan: 200 },
+    vacanciesB2B: { plan: 15 }, employment: { plan: 15 }, paidPlacements: { plan: 5 },
+    careerConsults: { plan: 10 }, psychologyClients: { plan: 2 }, revenue: { plan: 70000 },
+  },
+  '2026-11': {
+    baseCandidates: { plan: 3000 }, resumeB2C: { plan: 30 }, lettersB2B: { plan: 200 },
+    vacanciesB2B: { plan: 15 }, employment: { plan: 15 }, paidPlacements: { plan: 5 },
+    careerConsults: { plan: 10 }, psychologyClients: { plan: 2 }, revenue: { plan: 80000 },
+  },
+  '2026-12': {
+    baseCandidates: { plan: 3350 }, resumeB2C: { plan: 30 }, lettersB2B: { plan: 200 },
+    vacanciesB2B: { plan: 15 }, employment: { plan: 15 }, paidPlacements: { plan: 4 },
+    careerConsults: { plan: 10 }, psychologyClients: { plan: 2 }, revenue: { plan: 80000 },
+  },
+};
+
 // =======================================================================
 // КЮ Сообщество — резиденты, тарифы подписки, дневной P&L
 // =======================================================================
@@ -133,43 +190,118 @@ const COMMUNITY_RESIDENTS_SEED = {
   '2026-12': { new: 0, churn: 0 },
 };
 
+// Цены — действующие с 01.08.2026 (до этой даты были ниже: 350/500/1350/2520 ₽,
+// см. лист «Финансы | Сообщество»). Для прошлых месяцев «План ₽» переносится
+// напрямую из таблицы (planRevenue), а не пересчитывается по текущей цене —
+// поэтому смена цены не искажает историю, только новые месяцы.
 const COMMUNITY_DEFAULT_TARIFFS = [
-  { id: 'discount1m', name: '1 месяц со скидкой', price: 350 },
-  { id: 'discount1m_530', name: '1 месяц со скидкой (530 ₽)', price: 530 },
-  { id: 'm1', name: '1 месяц', price: 500 },
-  { id: 'm3', name: '3 месяца', price: 1350 },
-  { id: 'm6', name: '6 месяцев', price: 2520 },
+  { id: 'discount1m', name: '1 месяц со скидкой', price: 530 },
+  { id: 'm1', name: '1 месяц', price: 690 },
+  { id: 'm3', name: '3 месяца', price: 2070 },
+  { id: 'm6', name: '6 месяцев', price: 4140 },
 ];
 
-// План продаж (шт) по тарифам — перенесён из вашей таблицы для месяцев,
-// где сумма по тарифам сходится с итоговым «План продаж месяц».
+// План продаж (шт и ₽) и факт продаж (шт) по тарифам — перенесены из
+// Google Диска («Финансы | Сообщество», лист «Факт и план 2026») целиком.
 const COMMUNITY_TARIFF_PLAN_SEED = {
-  '2026-04': { discount1m: 5, m1: 1, m3: 1, m6: 0 },
-  '2026-05': { discount1m: 5, m1: 1, m3: 1, m6: 1 },
-  '2026-06': { discount1m: 5, m1: 1, m3: 1, m6: 1 },
-  '2026-07': { discount1m: 5, m1: 1, m3: 1, m6: 1 },
-  '2026-08': { discount1m: 5, m1: 2, m3: 5, m6: 1 },
-  '2026-09': { discount1m: 5, m1: 3, m3: 5, m6: 2 },
+  '2026-04': { discount1m: { units: 5, revenue: 1750 }, m1: { units: 1, revenue: 500 }, m3: { units: 1, revenue: 1350 }, m6: { units: 0, revenue: 0 } },
+  '2026-05': { discount1m: { units: 5, revenue: 1750 }, m1: { units: 1, revenue: 500 }, m3: { units: 1, revenue: 1350 }, m6: { units: 1, revenue: 2520 } },
+  '2026-06': { discount1m: { units: 5, revenue: 1750 }, m1: { units: 1, revenue: 500 }, m3: { units: 1, revenue: 1350 }, m6: { units: 1, revenue: 2520 } },
+  '2026-07': { discount1m: { units: 5, revenue: 1750 }, m1: { units: 1, revenue: 500 }, m3: { units: 1, revenue: 1350 }, m6: { units: 1, revenue: 2520 } },
+  '2026-08': { discount1m: { units: 5, revenue: 2650 }, m1: { units: 2, revenue: 1380 }, m3: { units: 5, revenue: 8850 }, m6: { units: 1, revenue: 3180 } },
+  '2026-09': { discount1m: { units: 5, revenue: 2650 }, m1: { units: 3, revenue: 2070 }, m3: { units: 5, revenue: 8850 }, m6: { units: 2, revenue: 6360 } },
+  '2026-10': { discount1m: { units: 5, revenue: 2650 }, m1: { units: 4, revenue: 2760 }, m3: { units: 5, revenue: 8850 }, m6: { units: 3, revenue: 9540 } },
+  '2026-11': { discount1m: { units: 5, revenue: 2650 }, m1: { units: 5, revenue: 3450 }, m3: { units: 5, revenue: 8850 }, m6: { units: 3, revenue: 9540 } },
+  '2026-12': { discount1m: { units: 5, revenue: 2650 }, m1: { units: 5, revenue: 3450 }, m3: { units: 5, revenue: 8850 }, m6: { units: 4, revenue: 12720 } },
 };
 
-// Факт продаж — только июль, где ваши цифры точно сходятся с ценами тарифов
-// (остальные месяцы оставлены пустыми для точного переноса вами).
 const COMMUNITY_TARIFF_FACT_SEED = {
+  '2026-04': { discount1m: 4, m1: 0, m3: 0, m6: 0 },
+  '2026-05': { discount1m: 0, m1: 0, m3: 0, m6: 0 },
+  '2026-06': { discount1m: 0, m1: 0, m3: 0, m6: 0 },
   '2026-07': { discount1m: 3, m1: 1, m3: 1, m6: 1 },
+  '2026-08': { discount1m: 2, m1: 1, m3: 0, m6: 0 },
+  '2026-09': { discount1m: 0, m1: 1, m3: 0, m6: 0 },
 };
 
 const ACQUIRING_RATE = 0.048; // эквайринг
 const TAX_RATE = 0.063; // налог
 const RESERVE_RATE = 0.10; // резерв
 // По умолчанию для месяца без данных — расходов нет (не додумываем зарплаты
-// за периоды, которых ещё не было).
+// за периоды, которых ещё не было). YoNote продолжает списываться и без
+// активности (видно по факту в таблице на октябрь-декабрь).
 const COMMUNITY_DEFAULT_MONTHLY_COSTS = { managerSalary: 0, techSalary: 0, botHelp: 0, yoNote: 0 };
-// Известные фиксированные расходы — перенесены из вашей таблицы (июль–сентябрь).
+// Перенесено из Google Диска («Финансы | Сообщество», «Итог по месяцам»).
 const COMMUNITY_MONTHLY_COSTS_SEED = {
-  '2026-07': { managerSalary: 0, techSalary: 1599, botHelp: 249, yoNote: 249 },
-  '2026-08': { managerSalary: 0, techSalary: 1599, botHelp: 249, yoNote: 249 },
-  '2026-09': { managerSalary: 0, techSalary: 1599, botHelp: 249, yoNote: 249 },
+  '2026-07': { managerSalary: 0, techSalary: 1500, botHelp: 1599, yoNote: 249 },
+  '2026-08': { managerSalary: 0, techSalary: 2000, botHelp: 1599, yoNote: 249 },
+  '2026-09': { managerSalary: 0, techSalary: 2000, botHelp: 1599, yoNote: 249 },
+  '2026-10': { managerSalary: 0, techSalary: 0, botHelp: 0, yoNote: 249 },
+  '2026-11': { managerSalary: 0, techSalary: 0, botHelp: 0, yoNote: 249 },
+  '2026-12': { managerSalary: 0, techSalary: 0, botHelp: 0, yoNote: 249 },
 };
+
+// Дневной журнал — перенесён целиком из Google Диска («Финансы | Сообщество»,
+// 01.07.2026–13.09.2026). Дни без единого события в исходнике не переносились —
+// это то же самое, что 0 по всем полям.
+const COMMUNITY_JOURNAL_SEED = [
+  { date: '2026-07-01', joinedDemo: 1, purchases: { discount1m: 700, m1: 500 } },
+  { date: '2026-07-03', purchases: { discount1m: 350 } },
+  { date: '2026-07-04', purchases: { discount1m: 700, m1: 500 } },
+  { date: '2026-07-06', purchases: { discount1m: 350 } },
+  { date: '2026-07-07', purchases: { discount1m: 350 } },
+  { date: '2026-07-08', purchases: { discount1m: 350 } },
+  { date: '2026-07-10', purchases: { discount1m: 700 } },
+  { date: '2026-07-12', purchases: { m1: 500 } },
+  { date: '2026-07-13', purchases: { discount1m: 700, m1: 500 } },
+  { date: '2026-07-18', purchases: { discount1m: 350 } },
+  { date: '2026-07-19', purchases: { discount1m: 350 } },
+  { date: '2026-07-20', purchases: { discount1m: 350 } },
+  { date: '2026-07-21', purchases: { discount1m: 350 } },
+  { date: '2026-07-23', purchases: { discount1m: 350 } },
+  { date: '2026-07-24', joinedDemo: 1, purchases: { discount1m: 350, m1: 500, m3: 1350 } },
+  { date: '2026-07-25', joined: 1, purchases: { discount1m: 1050, m1: 1000 } },
+  { date: '2026-07-26', joined: 1, purchases: { discount1m: 350, m6: 2520 } },
+  { date: '2026-07-27', joined: 1, joinedDemo: 2, purchases: { discount1m: 350 } },
+  { date: '2026-07-28', purchases: { discount1m: 350 } },
+  { date: '2026-07-29', purchases: { discount1m: 700 } },
+  { date: '2026-07-30', joined: 2, purchases: { discount1m: 350, m1: 1500 } },
+  { date: '2026-07-31', joinedDemo: 1, purchases: { discount1m: 700, m1: 500, m3: 1350 } },
+  { date: '2026-08-02', purchases: { discount1m: 350 } },
+  { date: '2026-08-03', left: 1, joinedDemo: 1, purchases: { discount1m: 1200 } },
+  { date: '2026-08-05', joined: 1, purchases: { discount1m: 850 } },
+  { date: '2026-08-09', joined: 1, purchases: { discount1m: 700, m1: 690 } },
+  { date: '2026-08-10', purchases: { discount1m: 850 } },
+  { date: '2026-08-11', purchases: { discount1m: 500 } },
+  { date: '2026-08-12', left: 1, purchases: { discount1m: 850 } },
+  { date: '2026-08-13', left: 1, purchases: { discount1m: 350 } },
+  { date: '2026-08-14', purchases: { discount1m: 350 } },
+  { date: '2026-08-16', joinedDemo: 1 },
+  { date: '2026-08-18', applications: 1, joinedDemo: 1, purchases: { discount1m: 700 } },
+  { date: '2026-08-19', joined: 2 },
+  { date: '2026-08-21', purchases: { discount1m: 850 } },
+  { date: '2026-08-23', left: 1, joinedDemo: 1 },
+  { date: '2026-08-24', joined: 3, purchases: { discount1m: 2550 } },
+  { date: '2026-08-25', left: 1, purchases: { discount1m: 350 } },
+  { date: '2026-08-26', joined: 2, purchases: { discount1m: 700 } },
+  { date: '2026-08-27', purchases: { discount1m: 700 } },
+  { date: '2026-08-28', purchases: { discount1m: 700 } },
+  { date: '2026-08-29', left: 1, purchases: { discount1m: 1000 } },
+  { date: '2026-08-30', applications: 1, purchases: { discount1m: 1380 } },
+  { date: '2026-08-31', joined: 2, left: 1, purchases: { discount1m: 1030, m1: 690 } },
+  { date: '2026-09-01', joinedDemo: 1, purchases: { discount1m: 350 } },
+  { date: '2026-09-02', left: 1, purchases: { discount1m: 700 } },
+  { date: '2026-09-03', left: 1, joinedDemo: 1, purchases: { discount1m: 500 } },
+  { date: '2026-09-04', joinedDemo: 1, purchases: { discount1m: 350 } },
+  { date: '2026-09-05', purchases: { discount1m: 350 } },
+  { date: '2026-09-07', purchases: { discount1m: 350 } },
+  { date: '2026-09-08', joined: 1, purchases: { discount1m: 700, m1: 690 } },
+  { date: '2026-09-09', purchases: { discount1m: 850 } },
+  { date: '2026-09-10', purchases: { discount1m: 1000 } },
+  { date: '2026-09-11', left: 1, joinedDemo: 1, purchases: { discount1m: 850 } },
+  { date: '2026-09-12', joinedDemo: 3, purchases: { discount1m: 350 } },
+  { date: '2026-09-13', joinedDemo: 1, purchases: { discount1m: 350 } },
+];
 
 // =======================================================================
 // КЮ Мероприятия — продажа билетов и полезных материалов
@@ -180,12 +312,39 @@ const COMMUNITY_MONTHLY_COSTS_SEED = {
 
 const EVENT_OFFER_TYPES = { TICKET: 'билет', MATERIAL: 'материал' };
 
+// Перенесено из Google Диска («Мероприятия | Маркетинг» — тарифы для партнёров;
+// «Мероприятия | Финансы» — реальные продажи билетов/материалов по месяцам).
+const EVENTS_OFFERS_SEED = [
+  { id: 'ev_notariat_ticket', name: 'Билет: Карьера юриста в нотариате', type: EVENT_OFFER_TYPES.TICKET, price: 441 },
+  { id: 'ev_material', name: 'Полезный материал', type: EVENT_OFFER_TYPES.MATERIAL, price: 390 },
+  { id: 'ev_organization', name: 'Организация мероприятия (для партнёра)', type: EVENT_OFFER_TYPES.MATERIAL, price: 18600 },
+  { id: 'ev_partner_speaker', name: 'Партнёрский пакет: Спикер сессии', type: EVENT_OFFER_TYPES.MATERIAL, price: 10000 },
+  { id: 'ev_partner_info', name: 'Партнёрский пакет: Информационный партнёр', type: EVENT_OFFER_TYPES.MATERIAL, price: 15000 },
+  { id: 'ev_partner_content', name: 'Партнёрский пакет: Контент-партнёр', type: EVENT_OFFER_TYPES.MATERIAL, price: 25000 },
+  { id: 'ev_partner_product', name: 'Партнёрский пакет: Продуктовый партнёр', type: EVENT_OFFER_TYPES.MATERIAL, price: 35000 },
+  { id: 'ev_partner_official', name: 'Партнёрский пакет: Официальный партнёр', type: EVENT_OFFER_TYPES.MATERIAL, price: 45000 },
+  { id: 'ev_partner_general', name: 'Партнёрский пакет: Генеральный партнёр', type: EVENT_OFFER_TYPES.MATERIAL, price: 60000 },
+];
+
+// Факт продаж (шт) по месяцам — из реального дневного журнала «Мероприятия | Финансы».
+const EVENTS_SALES_SEED = {
+  '2026-07': { ev_notariat_ticket: { factQty: 4 }, ev_material: { factQty: 6 }, ev_organization: { factQty: 1 } },
+  '2026-08': { ev_material: { factQty: 17 } },
+  '2026-09': { ev_material: { factQty: 1 } },
+};
+
 // =======================================================================
 // КЮ Маркетинг — проекты и KPI по соцсетям/PR/сотрудничеству/рекламе
 // =======================================================================
 
 const MARKETING_CATEGORIES = ['Соцсети', 'PR', 'Сотрудничество', 'Реклама'];
 const MARKETING_PROJECT_STATUSES = ['в работе', 'готово'];
+
+// Перенесено из Google Диска («КЮ Маркетинг | План-работы»).
+const MARKETING_PROJECTS_SEED = [
+  { name: 'Подкаст: создавать узнаваемую музыку', category: 'PR', status: 'в работе', notes: '' },
+  { name: 'Создать новогодний ивент-календарь', category: 'Сотрудничество', status: 'в работе', notes: '' },
+];
 
 // =======================================================================
 // Дневная норма — то, что нужно делать каждый день (не путать с недельными

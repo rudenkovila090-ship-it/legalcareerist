@@ -76,13 +76,6 @@ function findWeekById(id) {
   return allWeeks(state.blocks).find((w) => w.id === id);
 }
 
-function weekLabel(w) {
-  return `Блок ${w.blockId}, неделя ${w.weekIndex} (${fmtDateRu(w.start)}–${fmtDateRu(w.end)})`;
-}
-function weekLabelShort(w) {
-  return `Неделя ${w.weekIndex} (${fmtDateRu(w.start)}–${fmtDateRu(w.end)})`;
-}
-
 // Устойчивые (латиница, без пробелов) CSS-классы для цветных статус-пилюль.
 const STATUS_CLASS = {
   'не начато': 'not-started',
@@ -153,7 +146,6 @@ function renderContent() {
     case 'blocks': app.innerHTML = renderBlocks(); bindBlocksEvents(); break;
     default: app.innerHTML = '<p>Неизвестная вкладка</p>';
   }
-  if (activeTab === 'dashboard') bindDashboardEvents();
 }
 
 // ---------------------------------------------------------------------
@@ -162,12 +154,14 @@ function renderContent() {
 
 function renderDashboard() {
   const today = todayStr();
-  const block = findBlockById(ui.selectedBlockId) || currentBlock(state.blocks) || state.blocks[0];
-  const week = findWeekById(ui.selectedWeekId) || currentWeek(state.blocks) || weeksOfBlock(block)[0];
+  const block = currentBlock(state.blocks) || state.blocks[0];
+  const week = currentWeek(state.blocks) || weeksOfBlock(block)[0];
 
   const goalCards = GOALS.map((g) => {
-    const blockPct = clampPct(progressToBlockGoal(state, block, g.id, today));
-    const cyclePct = clampPct(progressToCycleGoal(state, g.id, today));
+    const blockPctRaw = progressToBlockGoal(state, block, g.id, today);
+    const cyclePctRaw = progressToCycleGoal(state, g.id, today);
+    const blockPct = clampPct(blockPctRaw);
+    const cyclePct = clampPct(cyclePctRaw);
     const sig = goalSignal(state, block, g.id, week.id, today);
     const fact = goalCurrentFact(state, g.id, today);
     return `
@@ -183,16 +177,15 @@ function renderDashboard() {
       <div class="progress-row">
         <span class="progress-label">Блок</span>
         <div class="progress-bar"><div class="progress-fill" style="width:${blockPct}%"></div></div>
-        <span class="progress-pct">${progressToBlockGoal(state, block, g.id, today) === null ? '—' : fmtPct(progressToBlockGoal(state, block, g.id, today))}</span>
+        <span class="progress-pct">${blockPctRaw === null ? '—' : fmtPct(blockPctRaw)}</span>
       </div>
       <div class="progress-row">
         <span class="progress-label">Цикл</span>
         <div class="progress-bar"><div class="progress-fill cycle" style="width:${cyclePct}%"></div></div>
-        <span class="progress-pct">${progressToCycleGoal(state, g.id, today) === null ? '—' : fmtPct(progressToCycleGoal(state, g.id, today))}</span>
+        <span class="progress-pct">${cyclePctRaw === null ? '—' : fmtPct(cyclePctRaw)}</span>
       </div>
-      <div class="goal-meta">Цель блока: ${fmtMoney(block.targets[g.id])} · Финал: ${fmtMoney(g.target)} ${g.unit}</div>
-      <div class="goal-meta">Выполнение плана за неделю: ${sig.execScore === null ? '—' : fmtPct(sig.execScore)}</div>
-      <div class="goal-signal-text">${sig.text}</div>
+      <div class="goal-meta">Цель блока ${fmtMoney(block.targets[g.id])} → финал ${fmtMoney(g.target)} ${g.unit}</div>
+      <div class="goal-signal-text">${sig.short}</div>
     </div>`;
   }).join('');
 
@@ -213,17 +206,11 @@ function renderDashboard() {
 
   const attention = attentionItems(state, week, block);
 
-  const weekOptions = weeksOfBlock(block).map((w) => `<option value="${w.id}" ${w.id === week.id ? 'selected' : ''}>${weekLabelShort(w)}</option>`).join('');
-  const blockOptions = state.blocks.map((b) => `<option value="${b.id}" ${b.id === block.id ? 'selected' : ''}>Блок ${b.id} (${fmtDateRu(b.start)}–${fmtDateRu(b.end)})</option>`).join('');
-
   return `
-    <div class="week-picker">
-      <label>Блок: <select id="dash-block-select">${blockOptions}</select></label>
-      <label>Неделя: <select id="dash-week-select">${weekOptions}</select></label>
+    <div class="dash-header">
+      <h2>Три цели</h2>
       <span class="muted small">Сегодня: ${fmtDateRu(today)}</span>
     </div>
-
-    <h2>Три цели</h2>
     <div class="grid-goals">${goalCards}</div>
 
     <div class="two-col">
@@ -263,21 +250,6 @@ function attentionItems(st, week, block) {
   return items;
 }
 
-function bindDashboardEvents() {
-  const bSel = document.getElementById('dash-block-select');
-  const wSel = document.getElementById('dash-week-select');
-  if (bSel) bSel.addEventListener('change', (e) => {
-    ui.selectedBlockId = Number(e.target.value);
-    const firstWeek = weeksOfBlock(findBlockById(ui.selectedBlockId))[0];
-    ui.selectedWeekId = firstWeek.id;
-    renderContent();
-  });
-  if (wSel) wSel.addEventListener('change', (e) => {
-    ui.selectedWeekId = e.target.value;
-    renderContent();
-  });
-}
-
 // ---------------------------------------------------------------------
 // Задачи
 // ---------------------------------------------------------------------
@@ -305,17 +277,47 @@ function statusOptions(selected) {
   return TASK_STATUSES.map((p) => `<option value="${p}" ${p === selected ? 'selected' : ''}>${p}</option>`).join('');
 }
 
+/**
+ * Единственное место, где живёт логика 12-недельного плана в UI постановки
+ * задач: сколько осталось до цели текущего блока и что стоит взять в работу.
+ * Никаких «Блок 1, неделя 2» — только то, что помогает выбрать правильную
+ * задачу сегодня.
+ */
+function renderTaskGuidance() {
+  const today = todayStr();
+  const block = currentBlock(state.blocks);
+  const week = currentWeek(state.blocks);
+  if (!block || !week) return '';
+  const daysLeft = Math.max(0, Math.round((parseDate(block.end) - parseDate(today)) / 86400000));
+
+  const rows = GOALS.map((g) => {
+    const fact = goalCurrentFact(state, g.id, today);
+    const target = block.targets[g.id];
+    const gap = fact === null ? null : target - fact;
+    const sig = goalSignal(state, block, g.id, week.id, today);
+    const gapText = gap === null ? 'нет данных по факту' : gap > 0 ? `осталось ${fmtMoney(gap)} ${g.unit}` : 'цель блока выполнена';
+    return `<tr><td>${g.name}</td><td>${gapText}</td><td><span class="signal-badge ${sig.code}">${sig.short}</span></td></tr>`;
+  }).join('');
+
+  return `
+    <div class="card">
+      <h3>Ориентир для задач · до конца блока ${daysLeft} дн.</h3>
+      <table><tbody>${rows}</tbody></table>
+      <p class="small muted">Ставьте задачи в первую очередь по направлениям с сигналом «нужна корректировка» или «не даёт результата» — они ближе всего к риску не дойти до цели блока.</p>
+    </div>
+  `;
+}
+
 function renderTasks() {
   const defaultStream = STREAMS[0].id;
   const rows = state.tasks
     .slice()
-    .sort((a, b) => (a.weekId < b.weekId ? 1 : -1))
+    .sort((a, b) => (a.plannedDate || '' < (b.plannedDate || '') ? 1 : -1))
     .map((t) => `
     <tr data-id="${t.id}">
       <td>${t.title}</td>
       <td class="small">${STREAMS.find((s) => s.id === t.streamId)?.name || ''}</td>
       <td class="small">${GOAL_SHORT[t.goalId] || t.goalId}</td>
-      <td class="small">${findWeekById(t.weekId) ? weekLabel(findWeekById(t.weekId)) : t.weekId}</td>
       <td class="small">${t.priority}</td>
       <td class="small">${t.linkType}</td>
       <td>
@@ -326,6 +328,8 @@ function renderTasks() {
     </tr>`).join('');
 
   return `
+    ${renderTaskGuidance()}
+
     <div class="card">
       <h2>Быстрое добавление задачи</h2>
       <form id="task-form" class="inline-form">
@@ -337,14 +341,14 @@ function renderTasks() {
         <div class="field"><label>Плановая дата</label><input type="date" name="plannedDate" value="${todayStr()}"></div>
         <button type="submit" class="primary">Добавить задачу</button>
       </form>
-      <p class="small muted">Тип связи с целью определяется автоматически по названию задачи. Неделя и блок определяются по плановой дате.</p>
+      <p class="small muted">Тип связи с целью определяется автоматически по названию задачи.</p>
     </div>
 
     <div class="card">
       <h2>Все задачи (${state.tasks.length})</h2>
       <table>
-        <thead><tr><th>Название</th><th>Направление</th><th>Цель</th><th>Неделя</th><th>Приоритет</th><th>Тип связи</th><th>Статус</th><th>План. дата</th><th></th></tr></thead>
-        <tbody>${rows || '<tr><td colspan="9" class="muted small">Задач пока нет</td></tr>'}</tbody>
+        <thead><tr><th>Название</th><th>Направление</th><th>Цель</th><th>Приоритет</th><th>Тип связи</th><th>Статус</th><th>План. дата</th><th></th></tr></thead>
+        <tbody>${rows || '<tr><td colspan="8" class="muted small">Задач пока нет</td></tr>'}</tbody>
       </table>
     </div>
   `;
@@ -648,6 +652,14 @@ function bindBlocksEvents() {
 // ---------------------------------------------------------------------
 // Старт
 // ---------------------------------------------------------------------
+
+// Синхронизируем финансовые факты с данными КЮ Кадры/Сообщества/Мероприятий
+// сразу при загрузке — не дожидаясь правки полей вручную (например, после
+// переноса данных с Google Диска).
+syncKadryFinancials();
+syncCommunityFinancials();
+syncEventsFinancials();
+saveState(state);
 
 renderContent();
 updateUndoButton();

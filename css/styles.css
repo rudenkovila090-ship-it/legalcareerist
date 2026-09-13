@@ -358,14 +358,12 @@ button.ghost-danger {
   .two-col { grid-template-columns: 1fr; }
 }
 
-.week-picker {
+.dash-header {
   display: flex;
-  align-items: center;
+  align-items: baseline;
+  justify-content: space-between;
   gap: 10px;
-  margin-bottom: 10px;
-  font-size: 13px;
 }
-.week-picker select { padding: 5px 8px; border-radius: 6px; border: 1px solid var(--border); }
 
 .export-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
 
