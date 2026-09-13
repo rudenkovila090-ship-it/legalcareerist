@@ -73,6 +73,78 @@ function IconHeart({ filled }: { filled: boolean }) {
     </svg>
   )
 }
+function IconTelegram() {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
+      <path d="M21.5 3.5 2.7 11c-.9.36-.9 1.63.02 1.96l4.5 1.62 1.75 5.62c.24.77 1.22.98 1.76.38l2.4-2.65 4.5 3.34c.72.53 1.75.15 1.95-.72l3.4-15.1c.22-.98-.75-1.8-1.68-1.94Z" />
+    </svg>
+  )
+}
+function IconVk() {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
+      <path d="M13.2 17.8c-4.9 0-7.7-3.4-7.8-8.9h2.5c.1 4 1.8 5.7 3.2 6V8.9h2.4v3.5c1.3-.14 2.7-1.7 3.2-3.5h2.4c-.36 2.2-2 3.9-3.1 4.6 1.1.55 3 2 3.7 4.3h-2.6c-.5-1.7-1.8-3-3.6-3.2v3.2Z" />
+    </svg>
+  )
+}
+function IconLink() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+      <path d="M9.5 14.5 14.5 9.5" />
+      <path d="M11.5 6.5 13 5a3.5 3.5 0 0 1 5 5l-1.5 1.5" />
+      <path d="M12.5 17.5 11 19a3.5 3.5 0 0 1-5-5l1.5-1.5" />
+    </svg>
+  )
+}
+
+/** «Поделиться» — Telegram/VK по прямым ссылкам-шарерам + копирование
+ *  ссылки на страницу. Без внешних SDK — просто sharer-URL, как у большинства сайтов. */
+function ShareButtons({ title }: { title: string }) {
+  const [copied, setCopied] = useState(false)
+  const url = typeof window !== 'undefined' ? window.location.href : ''
+  const encodedUrl = encodeURIComponent(url)
+  const encodedTitle = encodeURIComponent(title)
+
+  function handleCopy() {
+    navigator.clipboard?.writeText(url).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }).catch(() => {})
+  }
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className="text-xs text-white/50">Поделиться:</span>
+      <a
+        href={`https://t.me/share/url?url=${encodedUrl}&text=${encodedTitle}`}
+        target="_blank"
+        rel="noreferrer"
+        aria-label="Поделиться в Telegram"
+        className="flex h-9 w-9 items-center justify-center rounded-full border border-white/30 text-white hover:bg-white/10"
+      >
+        <IconTelegram />
+      </a>
+      <a
+        href={`https://vk.com/share.php?url=${encodedUrl}&title=${encodedTitle}`}
+        target="_blank"
+        rel="noreferrer"
+        aria-label="Поделиться в VK"
+        className="flex h-9 w-9 items-center justify-center rounded-full border border-white/30 text-white hover:bg-white/10"
+      >
+        <IconVk />
+      </a>
+      <button
+        type="button"
+        onClick={handleCopy}
+        aria-label="Скопировать ссылку"
+        className="flex h-9 w-9 items-center justify-center rounded-full border border-white/30 text-white hover:bg-white/10"
+      >
+        <IconLink />
+      </button>
+      {copied && <span className="text-xs text-white/70">Ссылка скопирована</span>}
+    </div>
+  )
+}
 
 export default function EventDetail() {
   const { slug } = useParams()
@@ -198,13 +270,24 @@ export default function EventDetail() {
           </div>
 
           <div className="mt-8 flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              onClick={scrollToRegister}
-              className="rounded-full bg-white px-8 py-3 text-sm font-semibold text-ink hover:opacity-90"
-            >
-              Приобрести билет
-            </button>
+            {event.registrationLink ? (
+              <a
+                href={event.registrationLink}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-full bg-white px-8 py-3 text-sm font-semibold text-ink hover:opacity-90"
+              >
+                Зарегистрироваться на сайте организатора
+              </a>
+            ) : (
+              <button
+                type="button"
+                onClick={scrollToRegister}
+                className="rounded-full bg-white px-8 py-3 text-sm font-semibold text-ink hover:opacity-90"
+              >
+                Приобрести билет
+              </button>
+            )}
             <button
               type="button"
               onClick={handleToggleFavorite}
@@ -214,6 +297,7 @@ export default function EventDetail() {
               <IconHeart filled={favorite} />
               {favorite ? 'В избранном' : 'В избранное'}
             </button>
+            <ShareButtons title={event.title} />
             {views !== null && <span className="text-sm text-white/60">{views} просмотров</span>}
           </div>
         </div>
@@ -415,6 +499,20 @@ export default function EventDetail() {
                   <div className="mt-2 text-xs text-ink/50">Промокод: {event.promoCode}</div>
                 )}
 
+                {event.registrationLink && (
+                  <a
+                    href={event.registrationLink}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-4 block rounded-lg bg-ink py-2.5 text-center text-sm font-semibold text-white hover:bg-ink/90"
+                  >
+                    Регистрация на сайте организатора
+                  </a>
+                )}
+                {event.registrationLink && (
+                  <div className="mt-3 text-center text-xs text-ink/40">или зарегистрируйтесь через тарифы ниже</div>
+                )}
+
                 {registered ? (
                   <div className="mt-4 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">Вы зарегистрированы. Напоминание придет заранее.</div>
                 ) : (
@@ -452,6 +550,43 @@ export default function EventDetail() {
               </>
             )}
           </div>
+
+          {event.organizer && (
+            <div className="glass mt-4 rounded-2xl p-6">
+              <div className="text-xs font-semibold uppercase tracking-wide text-ink/40">Организатор</div>
+              <div className="mt-2 text-lg font-semibold text-ink">{event.organizer.name}</div>
+              {event.organizer.description && (
+                <p className="mt-2 text-sm text-ink/60">{event.organizer.description}</p>
+              )}
+              <div className="mt-3 flex flex-wrap gap-3 text-sm">
+                {event.organizer.site && (
+                  <a href={event.organizer.site} target="_blank" rel="noreferrer" className="font-medium text-ink underline hover:no-underline">
+                    Сайт
+                  </a>
+                )}
+                {event.organizer.socialLinks && (
+                  <a href={event.organizer.socialLinks} target="_blank" rel="noreferrer" className="font-medium text-ink underline hover:no-underline">
+                    Соцсети
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
+
+          {event.format === 'offline' && (event.city || event.location) && (
+            <div className="glass mt-4 overflow-hidden rounded-2xl">
+              <div className="p-6 pb-3">
+                <div className="text-xs font-semibold uppercase tracking-wide text-ink/40">Место проведения</div>
+                <div className="mt-1 text-sm text-ink/70">{event.location}</div>
+              </div>
+              <iframe
+                title="Место проведения мероприятия на карте"
+                src={`https://yandex.ru/map-widget/v1/?text=${encodeURIComponent([event.city, event.location].filter(Boolean).join(', '))}`}
+                className="h-56 w-full border-0"
+                loading="lazy"
+              />
+            </div>
+          )}
         </aside>
       </div>
 

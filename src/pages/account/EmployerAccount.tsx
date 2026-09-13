@@ -16,7 +16,7 @@ import {
   getResponsesForVacancy, getResponses, setResponseStatus, setResponseStatusBulk, revealContact, contactPrice,
 } from '../../lib/applications'
 import {
-  getCreditsState, isFreeAvailable, freeAvailableAt, canGenerate, addCredits, formatCountdown, VACANCY_CREDITS_KEY,
+  getCreditsState, isFreeAvailable, freeAvailableAt, canGenerate, consumeGeneration, addCredits, formatCountdown, VACANCY_CREDITS_KEY, EVENT_CREDITS_KEY,
 } from '../../lib/generationCredits'
 import { submitLead, getLeads } from '../../lib/leads'
 import { getReviews, computeEmployerRating, addReviewReply } from '../../lib/reviews'
@@ -53,6 +53,13 @@ const money = new Intl.NumberFormat('ru-RU')
 const vacancyCreditPacks = [
   { id: 'pack10', count: 10, price: 490 },
   { id: 'pack30', count: 30, price: 990 },
+] as const
+
+// Платное размещение мероприятий — та же демо-механика, что и у вакансий:
+// 1 бесплатное размещение раз в 72ч + докупаемые пакеты (lib/generationCredits.ts).
+const eventCreditPacks = [
+  { id: 'epack5', count: 5, price: 990 },
+  { id: 'epack15', count: 15, price: 2490 },
 ] as const
 
 const moderationStatusLabel: Record<VacancyModerationStatus, string> = {
@@ -322,6 +329,9 @@ export default function EmployerAccount() {
   const [eventForm, setEventForm] = useState<OrganizerEventData | null>(null)
   const [rejectingEventId, setRejectingEventId] = useState<string | null>(null)
   const [rejectEventReason, setRejectEventReason] = useState('')
+  const [eventCreditsState, setEventCreditsState] = useState(getCreditsState(EVENT_CREDITS_KEY))
+  const [buyingEventPack, setBuyingEventPack] = useState<(typeof eventCreditPacks)[number] | null>(null)
+  const [eventBuyerPhone, setEventBuyerPhone] = useState('')
 
   // Рейтинг работодателя: отзывы соискателей + места в рейтингах, которые
   // работодатель загружает сам (справочник реальных рейтингов пришлет
@@ -473,11 +483,31 @@ export default function EmployerAccount() {
   }
 
   function handleCreateEventDraft() {
+    if (!canCreateEvent) return
+    consumeGeneration(EVENT_CREDITS_KEY)
+    setEventCreditsState(getCreditsState(EVENT_CREDITS_KEY))
     const created = createDraftOrganizerEvent()
     refreshOrganizerEvents()
     setEventStatusFilter('draft')
     setEditingEventId(created.id)
     setEventForm(created.data)
+  }
+
+  function handleBuyEventSubmit(e: FormEvent) {
+    e.preventDefault()
+    if (!buyingEventPack || !eventBuyerPhone.trim()) return
+    submitLead({
+      sourceBlock: 'kadry',
+      formType: 'event_placement_purchase',
+      name: demoEmployer.name,
+      contact: eventBuyerPhone,
+      interest: [`${buyingEventPack.count} размещений мероприятий за ${buyingEventPack.price} ₽`],
+    })
+    addCredits(EVENT_CREDITS_KEY, buyingEventPack.count)
+    setEventCreditsState(getCreditsState(EVENT_CREDITS_KEY))
+    setNotice(`Начислено ${buyingEventPack.count} размещений мероприятий.`)
+    setBuyingEventPack(null)
+    setEventBuyerPhone('')
   }
 
   function startEditEvent(ev: OrganizerEvent) {
@@ -708,6 +738,10 @@ export default function EmployerAccount() {
   const freeAvailable = isFreeAvailable(creditsState)
   const nextFreeAt = freeAvailableAt(creditsState)
   const canGenerateVacancy = canGenerate(VACANCY_CREDITS_KEY)
+
+  const freeEventAvailable = isFreeAvailable(eventCreditsState)
+  const nextFreeEventAt = freeAvailableAt(eventCreditsState)
+  const canCreateEvent = canGenerate(EVENT_CREDITS_KEY)
 
   function handleApprove(id: string) {
     approveVacancy(id)
@@ -1685,16 +1719,55 @@ export default function EmployerAccount() {
               <h2 className="mb-3 text-lg font-semibold">Мероприятия</h2>
               <div className="glass rounded-xl p-5">
                 <div className="flex flex-wrap items-center justify-between gap-4">
-                  <p className="text-sm text-ink/60">
-                    Добавляйте свои конференции, вебинары и стажировки — после модерации они появятся на общей афише «Карьерного юриста».
-                  </p>
-                  <button
-                    type="button"
-                    onClick={handleCreateEventDraft}
-                    className="shrink-0 rounded-full bg-ink px-6 py-2.5 text-sm font-semibold text-white hover:bg-ink/90"
-                  >
-                    Добавить мероприятие
-                  </button>
+                  <div>
+                    <p className="text-sm text-ink/60">
+                      Добавляйте свои конференции, вебинары и стажировки — после модерации они появятся на общей афише «Карьерного юриста».
+                    </p>
+                    <div className="mt-2 text-xs text-ink/50">
+                      {eventCreditsState.purchasedCredits > 0 && (
+                        <span>Куплено размещений: {eventCreditsState.purchasedCredits}. </span>
+                      )}
+                      {freeEventAvailable ? (
+                        <span className="font-medium text-emerald-600">Бесплатное размещение доступно сейчас.</span>
+                      ) : (
+                        nextFreeEventAt && <span>Бесплатное размещение — через {formatCountdown(nextFreeEventAt.getTime() - now)}.</span>
+                      )}
+                    </div>
+                  </div>
+                  {canCreateEvent ? (
+                    <button
+                      type="button"
+                      onClick={handleCreateEventDraft}
+                      className="shrink-0 rounded-full bg-ink px-6 py-2.5 text-sm font-semibold text-white hover:bg-ink/90"
+                    >
+                      Добавить мероприятие
+                    </button>
+                  ) : (
+                    <span className="shrink-0 rounded-full bg-ink/10 px-6 py-2.5 text-sm font-semibold text-ink/40">
+                      Добавить мероприятие
+                    </span>
+                  )}
+                </div>
+
+                <div className="mt-4 border-t border-ink/10 pt-4">
+                  <div className="text-sm font-semibold text-ink">Пакеты размещений</div>
+                  <div className="mt-2 grid gap-3 sm:grid-cols-2">
+                    {eventCreditPacks.map((p) => (
+                      <div key={p.id} className="flex items-center justify-between rounded-lg border border-ink/10 px-4 py-3">
+                        <div className="text-sm">
+                          <span className="font-semibold text-ink">{p.count} размещений</span>
+                          <span className="text-ink/50"> — {p.price} ₽</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setBuyingEventPack(p)}
+                          className="rounded-full border border-ink/15 px-4 py-1.5 text-xs font-semibold text-ink/70 hover:border-ink/40 hover:text-ink"
+                        >
+                          Купить
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-ink/10 pt-4">
@@ -2271,6 +2344,33 @@ export default function EmployerAccount() {
               />
               <button type="submit" className="rounded-full bg-ink py-3 text-sm font-semibold text-white hover:bg-ink/90">
                 Оплатить {buyingPack.price} ₽
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Покупка пакета размещений мероприятий */}
+      {buyingEventPack && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-ink/70 p-0 sm:items-center sm:p-4"
+          onClick={(e) => { if (e.target === e.currentTarget) setBuyingEventPack(null) }}
+        >
+          <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-white p-6 text-ink sm:rounded-2xl sm:p-8">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-lg font-semibold">{buyingEventPack.count} размещений мероприятий — {buyingEventPack.price} ₽</h3>
+              <button type="button" onClick={() => setBuyingEventPack(null)} className="text-ink/40 hover:text-ink" aria-label="Закрыть">✕</button>
+            </div>
+            <form onSubmit={handleBuyEventSubmit} className="grid gap-3">
+              <input
+                value={eventBuyerPhone}
+                onChange={(e) => setEventBuyerPhone(e.target.value)}
+                placeholder="Телефон для чека, например 89990000000"
+                required
+                className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+              />
+              <button type="submit" className="rounded-full bg-ink py-3 text-sm font-semibold text-white hover:bg-ink/90">
+                Оплатить {buyingEventPack.price} ₽
               </button>
             </form>
           </div>

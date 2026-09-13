@@ -8,6 +8,7 @@
 // что это демо-покупка, а не настоящий Prodamus.
 export const RESUME_CREDITS_KEY = 'ky_resume_credits'
 export const VACANCY_CREDITS_KEY = 'ky_vacancy_credits'
+export const EVENT_CREDITS_KEY = 'ky_event_credits'
 
 const FREE_INTERVAL_MS = 72 * 60 * 60 * 1000
 

@@ -428,6 +428,16 @@ export interface EventSpeaker {
   photo?: string
 }
 
+/** Организатор мероприятия — мини-карточка на детальной странице (см. ТЗ:
+ *  таблица Organizers). В этом прототипе хранится прямо внутри EventItem,
+ *  не отдельной таблицей/страницей. */
+export interface EventOrganizer {
+  name: string
+  description?: string
+  site?: string
+  socialLinks?: string
+}
+
 /** Тариф участия: «Участник» (билет + материал), «Карьера+» (+ запись на
  *  месяц), «Юрист карьеры» (+ запись на 2 месяца) — см. блок регистрации
  *  на детальной странице. id остаются на английском (light/career_plus/
@@ -478,6 +488,12 @@ export interface EventItem extends Tagged {
   language?: 'ru' | 'en'
   /** Редакционный отбор — попадает в подборку «Юридические события месяца». */
   featured?: boolean
+  /** Организатор — мини-карточка на детальной странице. */
+  organizer?: EventOrganizer
+  /** Внешняя ссылка на регистрацию у организатора (как TimePad) — если
+   *  задана, кнопка регистрации в афише ведет на нее вместо внутренней
+   *  формы; внутренняя форма ниже остается доступна как запасной вариант. */
+  registrationLink?: string
 }
 
 export type RegistrationStatus = 'registered' | 'paid' | 'attended'
