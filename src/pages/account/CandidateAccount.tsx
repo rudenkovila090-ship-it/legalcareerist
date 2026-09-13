@@ -2,6 +2,7 @@ import { useRef, useState, type FormEvent } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import PageHero from '../../components/PageHero'
 import { SpecTag, IndustryTag } from '../../components/Tag'
+import AccountSidebarNav, { type AccountSection } from '../../components/account/AccountSidebarNav'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import {
   demoApplications,
@@ -15,9 +16,11 @@ import { getResumes, saveUploadedResume, deleteResume } from '../../lib/resumes'
 import {
   getCreditsState, isFreeAvailable, freeAvailableAt, canGenerate, addCredits, formatCountdown, RESUME_CREDITS_KEY,
 } from '../../lib/generationCredits'
-import { submitLead } from '../../lib/leads'
+import { submitLead, getLeads } from '../../lib/leads'
 import { getTestResults, saveSkillTestResult, saveSoftSkillTestResult } from '../../lib/testing'
 import { skillQuestions, softSkillStatements } from '../../data/skillTests'
+import { getNotifications, markNotificationRead, markAllNotificationsRead, unreadCount } from '../../lib/notifications'
+import { events } from '../../data/events'
 import { INDUSTRIES, type Industry } from '../../types'
 
 const applicationStatusLabel = { new: 'Новый', in_review: 'На рассмотрении', rejected: 'Отказ', offer: 'Оффер' }
@@ -43,7 +46,6 @@ function IconLock() {
     </svg>
   )
 }
-
 function IconPencil() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5">
@@ -51,16 +53,86 @@ function IconPencil() {
     </svg>
   )
 }
+function IconProfile() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+      <circle cx="12" cy="8" r="3.5" />
+      <path d="M4.5 20c0-3.9 3.4-6.5 7.5-6.5s7.5 2.6 7.5 6.5" />
+    </svg>
+  )
+}
+function IconBriefcase() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+      <rect x="3" y="7" width="18" height="13" rx="1.5" />
+      <path d="M8 7V5.5A1.5 1.5 0 0 1 9.5 4h5A1.5 1.5 0 0 1 16 5.5V7" />
+    </svg>
+  )
+}
+function IconUsers() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+      <circle cx="9" cy="8" r="3" />
+      <path d="M2.5 20c0-3.3 2.9-5.5 6.5-5.5s6.5 2.2 6.5 5.5" />
+      <path d="M16 8.5a2.7 2.7 0 1 1 0-5" />
+      <path d="M18 14.5c2.3.4 3.5 2 3.5 5.5" />
+    </svg>
+  )
+}
+function IconOrders() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+      <path d="M6 4h12l1 4H5l1-4Z" />
+      <path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8" />
+      <path d="M9 12a3 3 0 0 0 6 0" />
+    </svg>
+  )
+}
+function IconBell() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+      <path d="M6 10a6 6 0 1 1 12 0c0 4 1.5 5.5 1.5 5.5h-15S6 14 6 10Z" />
+      <path d="M10 19a2 2 0 0 0 4 0" />
+    </svg>
+  )
+}
+function IconSettings() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+      <circle cx="12" cy="12" r="3" />
+      <path d="M12 3v2M12 19v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M3 12h2M19 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4" />
+    </svg>
+  )
+}
+function IconShield() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+      <path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3Z" />
+    </svg>
+  )
+}
+
+const sections: AccountSection[] = [
+  { id: 'profile', label: 'Профиль', icon: <IconProfile /> },
+  { id: 'work', label: 'Поиск работы', icon: <IconBriefcase /> },
+  { id: 'community', label: 'Сообщество и мероприятия', icon: <IconUsers /> },
+  { id: 'orders', label: 'Заказы', icon: <IconOrders /> },
+  { id: 'notifications', label: 'Уведомления', icon: <IconBell /> },
+  { id: 'settings', label: 'Настройки', icon: <IconSettings /> },
+  { id: 'support', label: 'Поддержка и безопасность', icon: <IconShield /> },
+]
 
 // /account/candidate — кабинет соискателя (см. AccountGate.tsx: вход без
-// пароля, по кнопке "Войти как соискатель"). Отклики/регистрации/покупки/
-// членство — прежнее содержимое единого /account; "Резюме" — новый раздел:
-// конструктор резюме (лимит генераций, см. generationCredits.ts) и загрузка
-// готового файла.
+// пароля, по кнопке "Войти как соискатель"). Левое меню — общая структура
+// личного кабинета (см. AccountSidebarNav.tsx): Профиль, Поиск работы,
+// Сообщество и мероприятия, Заказы, Уведомления, Настройки, Поддержка и
+// безопасность.
 export default function CandidateAccount() {
   useDocumentTitle('Личный кабинет — Соискатель')
   const role = getActiveRole()
   const navigate = useNavigate()
+
+  const [section, setSection] = useState('profile')
 
   const [resumes, setResumes] = useState(getResumes())
   const [creditsState, setCreditsState] = useState(getCreditsState(RESUME_CREDITS_KEY))
@@ -70,16 +142,11 @@ export default function CandidateAccount() {
   const [now] = useState(() => Date.now())
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Раздел «Контакты» — демо-редактирование прямо в карточке (по клику на
-  // карандашик), без реального сохранения на сервер.
+  // Раздел «Профиль» → «Контакты» — демо-редактирование прямо в карточке
+  // (по клику на карандашик), без реального сохранения на сервер.
   const [contacts, setContacts] = useState({ email: demoUser.email, phone: demoUser.phone ?? '', telegramId: demoUser.telegramId ?? '' })
   const [editingField, setEditingField] = useState<keyof typeof contacts | null>(null)
   const [draftValue, setDraftValue] = useState('')
-
-  // Блоки главной колонки сгруппированы по смыслу, а не свалены вниз одним
-  // списком: «Поиск работы» (резюме + отклики) отдельно от «Мероприятия и
-  // сообщество» (регистрации, покупки, членство).
-  const [mainTab, setMainTab] = useState<'jobs' | 'events'>('jobs')
 
   // Тестирование: проверка навыков по направлению + софт-скиллы (короткий
   // тест с вопросами и баллом — см. data/skillTests.ts, lib/testing.ts).
@@ -90,6 +157,19 @@ export default function CandidateAccount() {
   const [softModalOpen, setSoftModalOpen] = useState(false)
   const [softAnswers, setSoftAnswers] = useState<Record<string, number>>({})
 
+  // Уведомления
+  const [notifications, setNotifications] = useState(() => getNotifications('candidate'))
+
+  // Настройки — чисто демо, не влияют на реальный интерфейс сайта.
+  const [emailNotifications, setEmailNotifications] = useState(demoUser.newsletterOptIn)
+  const [compactView, setCompactView] = useState(false)
+  const [settingsSaved, setSettingsSaved] = useState(false)
+
+  // Поддержка и безопасность — демо-форма смены пароля и переключатель 2FA.
+  const [passwordForm, setPasswordForm] = useState({ current: '', next: '' })
+  const [passwordSaved, setPasswordSaved] = useState(false)
+  const [twoFactor, setTwoFactor] = useState(false)
+
   if (role !== 'candidate') return <Navigate to="/account" replace />
 
   const freeAvailable = isFreeAvailable(creditsState)
@@ -98,6 +178,13 @@ export default function CandidateAccount() {
   // Резидент — участник с активным платным членством в сообществе (не
   // просто зарегистрирован на бесплатном тарифе).
   const isResident = demoMemberships.some((m) => m.active && m.tier === 'paid')
+
+  const orders = [
+    ...demoMaterialPurchases.map((p) => ({ id: p.id, title: p.materialTitle, date: p.date, status: p.paid ? 'Оплачено' : 'Ожидает оплаты' })),
+    ...getLeads()
+      .filter((l) => l.formType === 'resume_credits_purchase' && l.name === demoUser.name)
+      .map((l) => ({ id: l.id, title: l.interest[0] ?? 'Пакет генераций резюме', date: l.date, status: 'Оплачено' })),
+  ].sort((a, b) => b.date.localeCompare(a.date))
 
   function refreshCredits() {
     setCreditsState(getCreditsState(RESUME_CREDITS_KEY))
@@ -168,330 +255,441 @@ export default function CandidateAccount() {
     setBuyerPhone('')
   }
 
+  function handleMarkRead(id: string) {
+    setNotifications(markNotificationRead('candidate', id))
+  }
+  function handleMarkAllRead() {
+    setNotifications(markAllNotificationsRead('candidate'))
+  }
+
+  function handleSaveSettings(e: FormEvent) {
+    e.preventDefault()
+    setSettingsSaved(true)
+  }
+
+  function handleChangePassword(e: FormEvent) {
+    e.preventDefault()
+    if (!passwordForm.current.trim() || !passwordForm.next.trim()) return
+    setPasswordSaved(true)
+    setPasswordForm({ current: '', next: '' })
+  }
+
   return (
     <div>
       <PageHero eyebrow="Личный кабинет" title={demoUser.name} description="Демонстрационные данные — показывают связность разделов внутри кабинета соискателя." prototype />
 
-      <div className="container-page grid gap-8 py-10 lg:grid-cols-[1fr_2fr]">
-        <aside className="space-y-4">
-          <div className="glass rounded-xl p-5">
-            <div className="text-sm text-ink/50">Роли аккаунта</div>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {displayRoles.map((r) => {
-                const earned = (demoUser.roles as string[]).includes(r)
-                return (
-                  <span
-                    key={r}
-                    className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
-                      earned ? 'bg-ink text-white' : 'border border-dashed border-ink/25 text-ink/35'
-                    }`}
-                  >
-                    {!earned && <IconLock />}
-                    {roleLabel[r]}
-                  </span>
-                )
-              })}
-            </div>
-            {!isResident && (
-              <Link
-                to="/community"
-                className="mt-3 block rounded-full bg-gold-light px-4 py-2 text-center text-xs font-semibold text-ink hover:opacity-90"
-              >
-                Стать резидентом сообщества
-              </Link>
-            )}
-          </div>
+      <div className="container-page grid gap-8 py-10 lg:grid-cols-[220px_1fr]">
+        <AccountSidebarNav sections={sections} active={section} onSelect={setSection} unreadCount={unreadCount(notifications)} />
 
-          <div className="glass rounded-xl p-5">
-            <div className="text-sm text-ink/50">Контакты</div>
-            <div className="mt-2 space-y-1.5">
-              {(
-                [
-                  ['email', contacts.email],
-                  ['phone', contacts.phone],
-                  ['telegramId', contacts.telegramId],
-                ] as const
-              ).map(([field, value]) => (
-                <div key={field} className="flex items-center gap-2">
-                  {editingField === field ? (
-                    <>
-                      <input
-                        autoFocus
-                        value={draftValue}
-                        onChange={(e) => setDraftValue(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && saveEdit()}
-                        className="w-full rounded-lg border border-ink/15 px-2.5 py-1.5 text-sm focus:border-ink/40 focus:outline-none"
-                      />
-                      <button type="button" onClick={saveEdit} className="shrink-0 text-xs font-semibold text-ink/60 hover:text-ink">✓</button>
-                    </>
-                  ) : (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => startEdit(field)}
-                        aria-label="Редактировать"
-                        className="shrink-0 text-ink/25 hover:text-ink/60"
+        <div className="space-y-8">
+          {section === 'profile' && (
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="glass rounded-xl p-5 sm:col-span-2">
+                <div className="text-sm text-ink/50">Роли аккаунта</div>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {displayRoles.map((r) => {
+                    const earned = (demoUser.roles as string[]).includes(r)
+                    return (
+                      <span
+                        key={r}
+                        className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
+                          earned ? 'bg-ink text-white' : 'border border-dashed border-ink/25 text-ink/35'
+                        }`}
                       >
-                        <IconPencil />
-                      </button>
-                      <span className="text-sm">{value}</span>
-                    </>
+                        {!earned && <IconLock />}
+                        {roleLabel[r]}
+                      </span>
+                    )
+                  })}
+                </div>
+                {!isResident && (
+                  <Link
+                    to="/community"
+                    className="mt-3 inline-block rounded-full bg-gold-light px-4 py-2 text-center text-xs font-semibold text-ink hover:opacity-90"
+                  >
+                    Стать резидентом сообщества
+                  </Link>
+                )}
+              </div>
+
+              <div className="glass rounded-xl p-5">
+                <div className="text-sm text-ink/50">Контакты</div>
+                <div className="mt-2 space-y-1.5">
+                  {(
+                    [
+                      ['email', contacts.email],
+                      ['phone', contacts.phone],
+                      ['telegramId', contacts.telegramId],
+                    ] as const
+                  ).map(([field, value]) => (
+                    <div key={field} className="flex items-center gap-2">
+                      {editingField === field ? (
+                        <>
+                          <input
+                            autoFocus
+                            value={draftValue}
+                            onChange={(e) => setDraftValue(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && saveEdit()}
+                            className="w-full rounded-lg border border-ink/15 px-2.5 py-1.5 text-sm focus:border-ink/40 focus:outline-none"
+                          />
+                          <button type="button" onClick={saveEdit} className="shrink-0 text-xs font-semibold text-ink/60 hover:text-ink">✓</button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => startEdit(field)}
+                            aria-label="Редактировать"
+                            className="shrink-0 text-ink/25 hover:text-ink/60"
+                          >
+                            <IconPencil />
+                          </button>
+                          <span className="text-sm">{value}</span>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="glass rounded-xl p-5">
+                <div className="text-sm text-ink/50">Специализация</div>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {demoUser.industry.map((i) => <IndustryTag key={i} id={i} />)}
+                </div>
+                <div className="mt-4 text-sm text-ink/50">Предпочитаемое место работы</div>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {demoUser.specialization.map((s) => <SpecTag key={s} id={s} />)}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {section === 'work' && (
+            <div className="space-y-8">
+              {/* Резюме — конструктор (лимит генераций) + загрузка готового файла */}
+              <section>
+                <h2 className="mb-3 text-lg font-semibold">Резюме</h2>
+                <div className="glass rounded-xl p-5">
+                  <div className="flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                      <div className="text-sm font-semibold text-ink">Конструктор резюме</div>
+                      <p className="mt-1 text-sm text-ink/60">
+                        Готовый шаблон с фирменным оформлением «Карьерного юриста» — заполните форму, резюме соберется автоматически.
+                      </p>
+                      <div className="mt-2 text-xs text-ink/50">
+                        {creditsState.purchasedCredits > 0 && (
+                          <span>Куплено генераций: {creditsState.purchasedCredits}. </span>
+                        )}
+                        {freeAvailable ? (
+                          <span className="font-medium text-emerald-600">Бесплатная генерация доступна сейчас.</span>
+                        ) : (
+                          nextFreeAt && <span>Бесплатная генерация — через {formatCountdown(nextFreeAt.getTime() - now)}.</span>
+                        )}
+                      </div>
+                    </div>
+                    {canGenerateResume ? (
+                      <Link
+                        to="/account/candidate/resume/new"
+                        className="shrink-0 rounded-full bg-ink px-6 py-2.5 text-sm font-semibold text-white hover:bg-ink/90"
+                      >
+                        Создать резюме
+                      </Link>
+                    ) : (
+                      <span className="shrink-0 rounded-full bg-ink/10 px-6 py-2.5 text-sm font-semibold text-ink/40">
+                        Создать резюме
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="mt-4 border-t border-ink/10 pt-4">
+                    <div className="text-sm font-semibold text-ink">Пакеты генераций</div>
+                    <div className="mt-2 grid gap-3 sm:grid-cols-2">
+                      {resumeCreditPacks.map((p) => (
+                        <div key={p.id} className="flex items-center justify-between rounded-lg border border-ink/10 px-4 py-3">
+                          <div className="text-sm">
+                            <span className="font-semibold text-ink">{p.count} генераций</span>
+                            <span className="text-ink/50"> — {p.price} ₽</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setBuyingPack(p)}
+                            className="rounded-full border border-ink/15 px-4 py-1.5 text-xs font-semibold text-ink/70 hover:border-ink/40 hover:text-ink"
+                          >
+                            Купить
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="mt-4 border-t border-ink/10 pt-4">
+                    <button
+                      type="button"
+                      onClick={handleUploadClick}
+                      className="rounded-full border border-ink/15 px-5 py-2.5 text-sm font-semibold text-ink/70 hover:border-ink/40 hover:text-ink"
+                    >
+                      Загрузить готовое резюме
+                    </button>
+                    <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx" className="hidden" onChange={handleFileChange} />
+                  </div>
+
+                  {resumes.length > 0 && (
+                    <div className="mt-4 divide-y divide-ink/10 border-t border-ink/10">
+                      {resumes.map((r) => (
+                        <div key={r.id} className="flex items-center justify-between py-3">
+                          <div>
+                            <div className="text-sm font-medium">
+                              {r.source === 'constructor' ? (r.data?.desiredPosition || 'Резюме без названия') : r.fileName}
+                            </div>
+                            <div className="text-xs text-ink/50">
+                              {r.source === 'constructor' ? 'Конструктор' : 'Загруженный файл'} · {new Date(r.createdAt).toLocaleDateString('ru-RU')}
+                            </div>
+                          </div>
+                          <div className="flex shrink-0 items-center gap-3 text-sm">
+                            {r.source === 'constructor' && (
+                              <>
+                                <Link to={`/account/candidate/resume/${r.id}`} className="font-medium text-ink underline">Открыть</Link>
+                                <Link to={`/account/candidate/resume/${r.id}/edit`} className="font-medium text-ink/60 hover:text-ink">Изменить</Link>
+                              </>
+                            )}
+                            <button type="button" onClick={() => handleDeleteResume(r.id)} className="text-ink/40 hover:text-red-600">Удалить</button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
-              ))}
-            </div>
-          </div>
+              </section>
 
-          <div className="glass rounded-xl p-5">
-            <div className="text-sm text-ink/50">Специализация</div>
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {demoUser.industry.map((i) => <IndustryTag key={i} id={i} />)}
-            </div>
-          </div>
-          <div className="glass rounded-xl p-5">
-            <div className="text-sm text-ink/50">Предпочитаемое место работы</div>
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {demoUser.specialization.map((s) => <SpecTag key={s} id={s} />)}
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => { clearActiveRole(); navigate('/account') }}
-            className="block w-full rounded-full border border-ink/15 px-5 py-2.5 text-center text-sm font-semibold text-ink/60 hover:text-ink"
-          >
-            Выйти / сменить роль
-          </button>
-        </aside>
-
-        <div className="space-y-6">
-          {/* Блоки главной колонки сгруппированы по смыслу: «Поиск работы»
-              (резюме + отклики) отдельно от «Мероприятия и сообщество»
-              (регистрации, покупки, членство) — чтобы можно было отслеживать
-              каждое направление по отдельности, а не листать один общий список. */}
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => setMainTab('jobs')}
-              className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
-                mainTab === 'jobs' ? 'bg-ink text-white' : 'border border-ink/15 text-ink/60 hover:text-ink'
-              }`}
-            >
-              Поиск работы
-            </button>
-            <button
-              type="button"
-              onClick={() => setMainTab('events')}
-              className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
-                mainTab === 'events' ? 'bg-ink text-white' : 'border border-ink/15 text-ink/60 hover:text-ink'
-              }`}
-            >
-              Мероприятия и сообщество
-            </button>
-          </div>
-
-          {mainTab === 'jobs' ? (
-          <div className="space-y-8">
-          {/* Резюме — конструктор (лимит генераций) + загрузка готового файла */}
-          <section>
-            <h2 className="mb-3 text-lg font-semibold">Резюме</h2>
-            <div className="glass rounded-xl p-5">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                  <div className="text-sm font-semibold text-ink">Конструктор резюме</div>
-                  <p className="mt-1 text-sm text-ink/60">
-                    Готовый шаблон с фирменным оформлением «Карьерного юриста» — заполните форму, резюме соберется автоматически.
-                  </p>
-                  <div className="mt-2 text-xs text-ink/50">
-                    {creditsState.purchasedCredits > 0 && (
-                      <span>Куплено генераций: {creditsState.purchasedCredits}. </span>
-                    )}
-                    {freeAvailable ? (
-                      <span className="font-medium text-emerald-600">Бесплатная генерация доступна сейчас.</span>
+              {/* Тестирование — короткая проверка навыков по направлению и
+                  софт-скиллов, результат виден и здесь, и работодателю в
+                  карточке отклика (см. lib/applications.ts). */}
+              <section>
+                <h2 className="mb-3 text-lg font-semibold">Тестирование</h2>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="glass flex flex-col rounded-xl p-5">
+                    <div className="text-sm font-semibold text-ink">Проверка навыков по направлению</div>
+                    <p className="mt-1 text-sm text-ink/60">{skillQuestions.length} вопросов — результат в процентах, виден работодателю в отклике.</p>
+                    <div className="flex-1" />
+                    {testResults.skillTest ? (
+                      <div className="mt-3 flex items-center justify-between gap-3">
+                        <div className="text-sm">
+                          <span className="font-semibold text-emerald-600">{testResults.skillTest.score}%</span>
+                          <span className="text-ink/50"> — {testResults.skillTest.correct}/{testResults.skillTest.total}, {INDUSTRIES.find((i) => i.id === testResults.skillTest?.direction)?.label}</span>
+                        </div>
+                        <button type="button" onClick={() => setSkillModalOpen(true)} className="shrink-0 rounded-full border border-ink/15 px-3 py-1.5 text-xs font-semibold text-ink/70 hover:border-ink/40 hover:text-ink">
+                          Пройти заново
+                        </button>
+                      </div>
                     ) : (
-                      nextFreeAt && <span>Бесплатная генерация — через {formatCountdown(nextFreeAt.getTime() - now)}.</span>
+                      <button type="button" onClick={() => setSkillModalOpen(true)} className="mt-3 self-start rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white hover:bg-ink/90">
+                        Пройти тест
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="glass flex flex-col rounded-xl p-5">
+                    <div className="text-sm font-semibold text-ink">Проверка софт-скиллов</div>
+                    <p className="mt-1 text-sm text-ink/60">{softSkillStatements.length} утверждений по шкале — коммуникация, стрессоустойчивость и другое.</p>
+                    <div className="flex-1" />
+                    {testResults.softSkillTest ? (
+                      <div className="mt-3 flex items-center justify-between gap-3">
+                        <div className="text-sm">
+                          <span className="font-semibold text-emerald-600">{testResults.softSkillTest.score}%</span>
+                        </div>
+                        <button type="button" onClick={() => setSoftModalOpen(true)} className="shrink-0 rounded-full border border-ink/15 px-3 py-1.5 text-xs font-semibold text-ink/70 hover:border-ink/40 hover:text-ink">
+                          Пройти заново
+                        </button>
+                      </div>
+                    ) : (
+                      <button type="button" onClick={() => setSoftModalOpen(true)} className="mt-3 self-start rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white hover:bg-ink/90">
+                        Пройти тест
+                      </button>
                     )}
                   </div>
                 </div>
-                {canGenerateResume ? (
-                  <Link
-                    to="/account/candidate/resume/new"
-                    className="shrink-0 rounded-full bg-ink px-6 py-2.5 text-sm font-semibold text-white hover:bg-ink/90"
-                  >
-                    Создать резюме
-                  </Link>
-                ) : (
-                  <span className="shrink-0 rounded-full bg-ink/10 px-6 py-2.5 text-sm font-semibold text-ink/40">
-                    Создать резюме
-                  </span>
-                )}
-              </div>
+              </section>
 
-              <div className="mt-4 border-t border-ink/10 pt-4">
-                <div className="text-sm font-semibold text-ink">Пакеты генераций</div>
-                <div className="mt-2 grid gap-3 sm:grid-cols-2">
-                  {resumeCreditPacks.map((p) => (
-                    <div key={p.id} className="flex items-center justify-between rounded-lg border border-ink/10 px-4 py-3">
-                      <div className="text-sm">
-                        <span className="font-semibold text-ink">{p.count} генераций</span>
-                        <span className="text-ink/50"> — {p.price} ₽</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setBuyingPack(p)}
-                        className="rounded-full border border-ink/15 px-4 py-1.5 text-xs font-semibold text-ink/70 hover:border-ink/40 hover:text-ink"
-                      >
-                        Купить
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="mt-4 border-t border-ink/10 pt-4">
-                <button
-                  type="button"
-                  onClick={handleUploadClick}
-                  className="rounded-full border border-ink/15 px-5 py-2.5 text-sm font-semibold text-ink/70 hover:border-ink/40 hover:text-ink"
-                >
-                  Загрузить готовое резюме
-                </button>
-                <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx" className="hidden" onChange={handleFileChange} />
-              </div>
-
-              {resumes.length > 0 && (
-                <div className="mt-4 divide-y divide-ink/10 border-t border-ink/10">
-                  {resumes.map((r) => (
-                    <div key={r.id} className="flex items-center justify-between py-3">
+              <section>
+                <h2 className="mb-3 text-lg font-semibold">Отклики на вакансии</h2>
+                <div className="glass divide-y divide-ink/10 rounded-xl">
+                  {demoApplications.map((a) => (
+                    <div key={a.id} className="flex items-center justify-between p-4">
                       <div>
-                        <div className="text-sm font-medium">
-                          {r.source === 'constructor' ? (r.data?.desiredPosition || 'Резюме без названия') : r.fileName}
-                        </div>
-                        <div className="text-xs text-ink/50">
-                          {r.source === 'constructor' ? 'Конструктор' : 'Загруженный файл'} · {new Date(r.createdAt).toLocaleDateString('ru-RU')}
-                        </div>
+                        <div className="font-medium">{a.vacancyTitle}</div>
+                        <div className="text-xs text-ink/50">Отправлен {new Date(a.date).toLocaleDateString('ru-RU')}</div>
                       </div>
-                      <div className="flex shrink-0 items-center gap-3 text-sm">
-                        {r.source === 'constructor' && (
-                          <>
-                            <Link to={`/account/candidate/resume/${r.id}`} className="font-medium text-ink underline">Открыть</Link>
-                            <Link to={`/account/candidate/resume/${r.id}/edit`} className="font-medium text-ink/60 hover:text-ink">Изменить</Link>
-                          </>
-                        )}
-                        <button type="button" onClick={() => handleDeleteResume(r.id)} className="text-ink/40 hover:text-red-600">Удалить</button>
-                      </div>
+                      <span className="rounded-full bg-ink/[0.06] px-3 py-1 text-xs font-medium">{applicationStatusLabel[a.status]}</span>
                     </div>
                   ))}
                 </div>
-              )}
+              </section>
             </div>
-          </section>
+          )}
 
-          {/* Тестирование — короткая проверка навыков по направлению и
-              софт-скиллов, результат виден и здесь, и работодателю в
-              карточке отклика (см. lib/applications.ts). */}
-          <section>
-            <h2 className="mb-3 text-lg font-semibold">Тестирование</h2>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="glass flex flex-col rounded-xl p-5">
-                <div className="text-sm font-semibold text-ink">Проверка навыков по направлению</div>
-                <p className="mt-1 text-sm text-ink/60">{skillQuestions.length} вопросов — результат в процентах, виден работодателю в отклике.</p>
-                <div className="flex-1" />
-                {testResults.skillTest ? (
-                  <div className="mt-3 flex items-center justify-between gap-3">
-                    <div className="text-sm">
-                      <span className="font-semibold text-emerald-600">{testResults.skillTest.score}%</span>
-                      <span className="text-ink/50"> — {testResults.skillTest.correct}/{testResults.skillTest.total}, {INDUSTRIES.find((i) => i.id === testResults.skillTest?.direction)?.label}</span>
+          {section === 'community' && (
+            <div className="space-y-8">
+              <section>
+                <h2 className="mb-3 text-lg font-semibold">Регистрации на мероприятия</h2>
+                <div className="glass divide-y divide-ink/10 rounded-xl">
+                  {demoEventRegistrations.map((r) => {
+                    const event = events.find((e) => e.id === r.eventId)
+                    const diffMs = event ? new Date(event.dateTime).getTime() - now : undefined
+                    return (
+                      <div key={r.id} className="flex flex-wrap items-center justify-between gap-2 p-4">
+                        <div>
+                          <div className="font-medium">{r.eventTitle}</div>
+                          {event && (
+                            <div className="mt-0.5 text-xs text-ink/50">
+                              {new Date(event.dateTime).toLocaleString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}
+                              {diffMs !== undefined && diffMs > 0 && ` · через ${Math.ceil(diffMs / 86400000)} дн.`}
+                              {diffMs !== undefined && diffMs <= 0 && ' · уже прошло'}
+                            </div>
+                          )}
+                        </div>
+                        <span className="rounded-full bg-ink/[0.06] px-3 py-1 text-xs font-medium">{registrationStatusLabel[r.status]}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              </section>
+
+              <section>
+                <h2 className="mb-3 text-lg font-semibold">Членство в клубах сообщества</h2>
+                <div className="glass divide-y divide-ink/10 rounded-xl">
+                  {demoMemberships.map((m) => (
+                    <div key={m.id} className="flex items-center justify-between p-4">
+                      <div>
+                        <div className="font-medium">{m.clubName}</div>
+                        <div className="text-xs text-ink/50">С {new Date(m.joinedAt).toLocaleDateString('ru-RU')}</div>
+                      </div>
+                      <span className="rounded-full bg-ink/[0.06] px-3 py-1 text-xs font-medium">{m.tier === 'paid' ? 'Платный тариф' : 'Бесплатный тариф'}</span>
                     </div>
-                    <button type="button" onClick={() => setSkillModalOpen(true)} className="shrink-0 rounded-full border border-ink/15 px-3 py-1.5 text-xs font-semibold text-ink/70 hover:border-ink/40 hover:text-ink">
-                      Пройти заново
-                    </button>
-                  </div>
-                ) : (
-                  <button type="button" onClick={() => setSkillModalOpen(true)} className="mt-3 self-start rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white hover:bg-ink/90">
-                    Пройти тест
-                  </button>
-                )}
-              </div>
+                  ))}
+                </div>
+              </section>
+            </div>
+          )}
 
-              <div className="glass flex flex-col rounded-xl p-5">
-                <div className="text-sm font-semibold text-ink">Проверка софт-скиллов</div>
-                <p className="mt-1 text-sm text-ink/60">{softSkillStatements.length} утверждений по шкале — коммуникация, стрессоустойчивость и другое.</p>
-                <div className="flex-1" />
-                {testResults.softSkillTest ? (
-                  <div className="mt-3 flex items-center justify-between gap-3">
-                    <div className="text-sm">
-                      <span className="font-semibold text-emerald-600">{testResults.softSkillTest.score}%</span>
+          {section === 'orders' && (
+            <section>
+              <h2 className="mb-3 text-lg font-semibold">Заказы</h2>
+              <div className="glass divide-y divide-ink/10 rounded-xl">
+                {orders.length === 0 && <p className="p-5 text-sm text-ink/50">Пока нет заказов.</p>}
+                {orders.map((o) => (
+                  <div key={o.id} className="flex items-center justify-between p-4">
+                    <div>
+                      <div className="font-medium">{o.title}</div>
+                      <div className="text-xs text-ink/50">{new Date(o.date).toLocaleDateString('ru-RU')}</div>
                     </div>
-                    <button type="button" onClick={() => setSoftModalOpen(true)} className="shrink-0 rounded-full border border-ink/15 px-3 py-1.5 text-xs font-semibold text-ink/70 hover:border-ink/40 hover:text-ink">
-                      Пройти заново
-                    </button>
+                    <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">{o.status}</span>
                   </div>
-                ) : (
-                  <button type="button" onClick={() => setSoftModalOpen(true)} className="mt-3 self-start rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white hover:bg-ink/90">
-                    Пройти тест
-                  </button>
-                )}
+                ))}
               </div>
-            </div>
-          </section>
+            </section>
+          )}
 
-          <section>
-            <h2 className="mb-3 text-lg font-semibold">Отклики на вакансии</h2>
-            <div className="glass divide-y divide-ink/10 rounded-xl">
-              {demoApplications.map((a) => (
-                <div key={a.id} className="flex items-center justify-between p-4">
-                  <div>
-                    <div className="font-medium">{a.vacancyTitle}</div>
-                    <div className="text-xs text-ink/50">Отправлен {new Date(a.date).toLocaleDateString('ru-RU')}</div>
-                  </div>
-                  <span className="rounded-full bg-ink/[0.06] px-3 py-1 text-xs font-medium">{applicationStatusLabel[a.status]}</span>
-                </div>
-              ))}
-            </div>
-          </section>
-          </div>
-          ) : (
-          <div className="space-y-8">
-          <section>
-            <h2 className="mb-3 text-lg font-semibold">Регистрации на мероприятия</h2>
-            <div className="glass divide-y divide-ink/10 rounded-xl">
-              {demoEventRegistrations.map((r) => (
-                <div key={r.id} className="flex items-center justify-between p-4">
-                  <div className="font-medium">{r.eventTitle}</div>
-                  <span className="rounded-full bg-ink/[0.06] px-3 py-1 text-xs font-medium">{registrationStatusLabel[r.status]}</span>
-                </div>
-              ))}
-            </div>
-          </section>
+          {section === 'notifications' && (
+            <section>
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="text-lg font-semibold">Уведомления</h2>
+                <button type="button" onClick={handleMarkAllRead} className="text-sm font-medium text-ink/60 hover:text-ink">Отметить все прочитанными</button>
+              </div>
+              <div className="glass divide-y divide-ink/10 rounded-xl">
+                {notifications.map((n) => (
+                  <button
+                    key={n.id}
+                    type="button"
+                    onClick={() => handleMarkRead(n.id)}
+                    className="flex w-full items-start gap-3 p-4 text-left hover:bg-ink/[0.02]"
+                  >
+                    <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${n.read ? 'bg-transparent' : 'bg-gold'}`} />
+                    <div>
+                      <p className={`text-sm ${n.read ? 'text-ink/60' : 'font-medium text-ink'}`}>{n.text}</p>
+                      <div className="mt-1 text-xs text-ink/40">{new Date(n.date).toLocaleDateString('ru-RU')}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
 
-          <section>
-            <h2 className="mb-3 text-lg font-semibold">Покупки материалов</h2>
-            <div className="glass divide-y divide-ink/10 rounded-xl">
-              {demoMaterialPurchases.map((p) => (
-                <div key={p.id} className="flex items-center justify-between p-4">
-                  <div className="font-medium">{p.materialTitle}</div>
-                  <a href={p.accessUrl} className="text-sm font-medium text-ink underline">Открыть доступ</a>
-                </div>
-              ))}
-            </div>
-          </section>
+          {section === 'settings' && (
+            <section>
+              <h2 className="mb-3 text-lg font-semibold">Настройки</h2>
+              <div className="glass rounded-xl p-5">
+                <p className="text-sm text-ink/60">Демо-настройки интерфейса — не влияют на реальный вид сайта, показывают механику раздела.</p>
+                <form onSubmit={handleSaveSettings} className="mt-4 space-y-4">
+                  <label className="flex items-center justify-between gap-3">
+                    <span className="text-sm">Email-уведомления о вакансиях и мероприятиях</span>
+                    <input type="checkbox" checked={emailNotifications} onChange={(e) => setEmailNotifications(e.target.checked)} className="h-4 w-4" />
+                  </label>
+                  <label className="flex items-center justify-between gap-3">
+                    <span className="text-sm">Компактный вид списков в кабинете</span>
+                    <input type="checkbox" checked={compactView} onChange={(e) => setCompactView(e.target.checked)} className="h-4 w-4" />
+                  </label>
+                  <button type="submit" className="rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white hover:bg-ink/90">
+                    Сохранить
+                  </button>
+                  {settingsSaved && <p className="text-sm text-emerald-600">Настройки сохранены.</p>}
+                </form>
+              </div>
+            </section>
+          )}
 
-          <section>
-            <h2 className="mb-3 text-lg font-semibold">Членство в клубах сообщества</h2>
-            <div className="glass divide-y divide-ink/10 rounded-xl">
-              {demoMemberships.map((m) => (
-                <div key={m.id} className="flex items-center justify-between p-4">
-                  <div>
-                    <div className="font-medium">{m.clubName}</div>
-                    <div className="text-xs text-ink/50">С {new Date(m.joinedAt).toLocaleDateString('ru-RU')}</div>
-                  </div>
-                  <span className="rounded-full bg-ink/[0.06] px-3 py-1 text-xs font-medium">{m.tier === 'paid' ? 'Платный тариф' : 'Бесплатный тариф'}</span>
+          {section === 'support' && (
+            <div className="space-y-6">
+              <section>
+                <h2 className="mb-3 text-lg font-semibold">Безопасность</h2>
+                <div className="glass rounded-xl p-5">
+                  <form onSubmit={handleChangePassword} className="grid gap-3 sm:max-w-sm">
+                    <div className="text-sm font-semibold text-ink">Сменить пароль</div>
+                    <input
+                      type="password"
+                      value={passwordForm.current}
+                      onChange={(e) => setPasswordForm((f) => ({ ...f, current: e.target.value }))}
+                      placeholder="Текущий пароль"
+                      className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+                    />
+                    <input
+                      type="password"
+                      value={passwordForm.next}
+                      onChange={(e) => setPasswordForm((f) => ({ ...f, next: e.target.value }))}
+                      placeholder="Новый пароль"
+                      className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+                    />
+                    <button type="submit" className="rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white hover:bg-ink/90 sm:justify-self-start">
+                      Сохранить пароль
+                    </button>
+                    {passwordSaved && <p className="text-sm text-emerald-600">Пароль обновлен (демо).</p>}
+                  </form>
+
+                  <label className="mt-5 flex items-center justify-between gap-3 border-t border-ink/10 pt-5">
+                    <span className="text-sm">Дополнительная защита устройства (2FA)</span>
+                    <input type="checkbox" checked={twoFactor} onChange={(e) => setTwoFactor(e.target.checked)} className="h-4 w-4" />
+                  </label>
                 </div>
-              ))}
+              </section>
+
+              <section>
+                <h2 className="mb-3 text-lg font-semibold">Поддержка</h2>
+                <div className="glass rounded-xl p-5">
+                  <p className="text-sm text-ink/60">Вопрос по кабинету или заявке — напишите нам, ответим в ближайшее время.</p>
+                  <Link to="/kadry/contacts" className="mt-3 inline-block rounded-full border border-ink/15 px-5 py-2.5 text-sm font-semibold text-ink/70 hover:border-ink/40 hover:text-ink">
+                    Написать в поддержку
+                  </Link>
+                </div>
+              </section>
+
+              <button
+                type="button"
+                onClick={() => { clearActiveRole(); navigate('/account') }}
+                className="block w-full rounded-full border border-ink/15 px-5 py-2.5 text-center text-sm font-semibold text-ink/60 hover:text-ink sm:w-auto"
+              >
+                Выйти из личного кабинета
+              </button>
             </div>
-          </section>
-          </div>
           )}
         </div>
       </div>

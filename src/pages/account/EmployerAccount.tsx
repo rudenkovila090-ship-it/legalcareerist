@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import PageHero from '../../components/PageHero'
 import { SpecTag, IndustryTag } from '../../components/Tag'
+import AccountSidebarNav, { type AccountSection } from '../../components/account/AccountSidebarNav'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import { getActiveRole, clearActiveRole } from '../../lib/accountRole'
 import { demoEmployer, demoEmployerCompany } from '../../lib/account'
@@ -14,9 +15,10 @@ import {
 import {
   getCreditsState, isFreeAvailable, freeAvailableAt, canGenerate, addCredits, formatCountdown, VACANCY_CREDITS_KEY,
 } from '../../lib/generationCredits'
-import { submitLead } from '../../lib/leads'
+import { submitLead, getLeads } from '../../lib/leads'
 import { getReviews, computeEmployerRating } from '../../lib/reviews'
 import { getRankings, addRanking, deleteRanking, rankingBonus } from '../../lib/rankings'
+import { getNotifications, markNotificationRead, markAllNotificationsRead, unreadCount } from '../../lib/notifications'
 import type { ApplicationStatus, VacancyModerationStatus, VacancyVisibilityStage } from '../../types'
 
 const responseStatusLabel: Record<ApplicationStatus, string> = {
@@ -58,15 +60,86 @@ const stageMailingButtonLabel: Record<VacancyVisibilityStage, string> = {
   public: '',
 }
 
+function IconProfile() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+      <circle cx="12" cy="8" r="3.5" />
+      <path d="M4.5 20c0-3.9 3.4-6.5 7.5-6.5s7.5 2.6 7.5 6.5" />
+    </svg>
+  )
+}
+function IconBriefcase() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+      <rect x="3" y="7" width="18" height="13" rx="1.5" />
+      <path d="M8 7V5.5A1.5 1.5 0 0 1 9.5 4h5A1.5 1.5 0 0 1 16 5.5V7" />
+    </svg>
+  )
+}
+function IconUsers() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+      <circle cx="9" cy="8" r="3" />
+      <path d="M2.5 20c0-3.3 2.9-5.5 6.5-5.5s6.5 2.2 6.5 5.5" />
+      <path d="M16 8.5a2.7 2.7 0 1 1 0-5" />
+      <path d="M18 14.5c2.3.4 3.5 2 3.5 5.5" />
+    </svg>
+  )
+}
+function IconOrders() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+      <path d="M6 4h12l1 4H5l1-4Z" />
+      <path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8" />
+      <path d="M9 12a3 3 0 0 0 6 0" />
+    </svg>
+  )
+}
+function IconBell() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+      <path d="M6 10a6 6 0 1 1 12 0c0 4 1.5 5.5 1.5 5.5h-15S6 14 6 10Z" />
+      <path d="M10 19a2 2 0 0 0 4 0" />
+    </svg>
+  )
+}
+function IconSettings() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+      <circle cx="12" cy="12" r="3" />
+      <path d="M12 3v2M12 19v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M3 12h2M19 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4" />
+    </svg>
+  )
+}
+function IconShield() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+      <path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3Z" />
+    </svg>
+  )
+}
+
+const sections: AccountSection[] = [
+  { id: 'profile', label: 'Профиль', icon: <IconProfile /> },
+  { id: 'work', label: 'Вакансии', icon: <IconBriefcase /> },
+  { id: 'community', label: 'Сообщество и мероприятия', icon: <IconUsers /> },
+  { id: 'orders', label: 'Заказы', icon: <IconOrders /> },
+  { id: 'notifications', label: 'Уведомления', icon: <IconBell /> },
+  { id: 'settings', label: 'Настройки', icon: <IconSettings /> },
+  { id: 'support', label: 'Поддержка и безопасность', icon: <IconShield /> },
+]
+
 // /account/employer — кабинет работодателя, отдельный от /account/candidate
-// (см. AccountGate.tsx). Модерация — демо-кнопки "Одобрить"/"Отклонить"
+// (см. AccountGate.tsx). Левое меню — общая структура личного кабинета
+// (см. AccountSidebarNav.tsx). Модерация — демо-кнопки "Одобрить"/"Отклонить"
 // вместо реального бэкенда/второй роли модератора (её пока нет — см. план
-// "личный кабинет разработчика" на будущее): работодатель здесь же видит,
-// что произошло бы после проверки, без ожидания реального модератора.
+// "личный кабинет разработчика" на будущее).
 export default function EmployerAccount() {
   useDocumentTitle('Личный кабинет — Работодатель')
   const role = getActiveRole()
   const navigate = useNavigate()
+
+  const [section, setSection] = useState('profile')
 
   const [vacancies, setVacancies] = useState(() => getVacancies())
   const [creditsState, setCreditsState] = useState(getCreditsState(VACANCY_CREDITS_KEY))
@@ -87,6 +160,19 @@ export default function EmployerAccount() {
   const [reviews] = useState(() => getReviews())
   const [rankings, setRankings] = useState(() => getRankings())
   const [rankingForm, setRankingForm] = useState(() => ({ name: '', category: '', place: '', year: new Date().getFullYear() }))
+
+  // Уведомления
+  const [notifications, setNotifications] = useState(() => getNotifications('employer'))
+
+  // Настройки — чисто демо, не влияют на реальный интерфейс сайта.
+  const [emailNotifications, setEmailNotifications] = useState(demoEmployer.newsletterOptIn)
+  const [compactView, setCompactView] = useState(false)
+  const [settingsSaved, setSettingsSaved] = useState(false)
+
+  // Поддержка и безопасность — демо-форма смены пароля и переключатель 2FA.
+  const [passwordForm, setPasswordForm] = useState({ current: '', next: '' })
+  const [passwordSaved, setPasswordSaved] = useState(false)
+  const [twoFactor, setTwoFactor] = useState(false)
 
   if (role !== 'employer') return <Navigate to="/account" replace />
 
@@ -130,6 +216,11 @@ export default function EmployerAccount() {
         count: publishedWithSalary.length,
       }
     : null
+
+  const orders = getLeads()
+    .filter((l) => ['vacancy_credits_purchase', 'candidate_contact_purchase'].includes(l.formType) && l.name === demoEmployer.name)
+    .map((l) => ({ id: l.id, title: l.interest[0] ?? l.formType, date: l.date, status: 'Оплачено' }))
+    .sort((a, b) => b.date.localeCompare(a.date))
 
   function handleAddRanking(e: FormEvent) {
     e.preventDefault()
@@ -200,6 +291,25 @@ export default function EmployerAccount() {
     setBuyerPhone('')
   }
 
+  function handleMarkRead(id: string) {
+    setNotifications(markNotificationRead('employer', id))
+  }
+  function handleMarkAllRead() {
+    setNotifications(markAllNotificationsRead('employer'))
+  }
+
+  function handleSaveSettings(e: FormEvent) {
+    e.preventDefault()
+    setSettingsSaved(true)
+  }
+
+  function handleChangePassword(e: FormEvent) {
+    e.preventDefault()
+    if (!passwordForm.current.trim() || !passwordForm.next.trim()) return
+    setPasswordSaved(true)
+    setPasswordForm({ current: '', next: '' })
+  }
+
   return (
     <div>
       <PageHero
@@ -209,339 +319,474 @@ export default function EmployerAccount() {
         prototype
       />
 
-      <div className="container-page grid gap-8 py-10 lg:grid-cols-[1fr_2fr]">
-        <aside className="space-y-4">
-          <div className="glass rounded-xl p-5">
-            <div className="text-sm text-ink/50">Компания</div>
-            <div className="mt-2 text-sm font-medium">{demoEmployerCompany.name}</div>
-            <div className="text-sm text-ink/60">{demoEmployerCompany.position}</div>
-          </div>
-          <div className="glass rounded-xl p-5">
-            <div className="text-sm text-ink/50">Контакты</div>
-            <div className="mt-2 text-sm">{demoEmployer.email}</div>
-            <div className="text-sm">{demoEmployer.phone}</div>
-            <div className="text-sm">{demoEmployer.telegramId}</div>
-          </div>
-
-          {/* Рейтинг: средняя оценка по отзывам (до 80 очков) + бонус за
-              подтвержденные места в рейтингах (до 20 очков) — черновая
-              демо-формула, см. lib/reviews.ts. */}
-          <div className="glass rounded-xl p-5">
-            <div className="text-sm text-ink/50">Рейтинг работодателя</div>
-            <div className="mt-2 flex items-baseline gap-2">
-              <span className="text-2xl font-semibold text-ink">{rating.score}</span>
-              <span className="text-sm text-ink/40">/ 100</span>
-            </div>
-            <div className="mt-1 text-xs text-ink/50">
-              {rating.averageRating > 0 ? `★ ${rating.averageRating} · ${rating.reviewsCount} отзывов` : 'Пока нет отзывов'}
-              {rankings.length > 0 && ` · ${rankings.length} мест(а) в рейтингах`}
-            </div>
-          </div>
-
-          {salaryStats && (
-            <div className="glass rounded-xl p-5">
-              <div className="text-sm text-ink/50">Зарплаты по вашим вакансиям</div>
-              <div className="mt-2 text-sm font-medium text-ink">
-                {money.format(salaryStats.avgFrom)}–{money.format(salaryStats.avgTo)} ₽
-              </div>
-              <div className="mt-1 text-xs text-ink/50">Среднее по {salaryStats.count} опубликованным вакансиям, считается автоматически</div>
-            </div>
-          )}
-
-          <button
-            type="button"
-            onClick={() => { clearActiveRole(); navigate('/account') }}
-            className="block w-full rounded-full border border-ink/15 px-5 py-2.5 text-center text-sm font-semibold text-ink/60 hover:text-ink"
-          >
-            Выйти / сменить роль
-          </button>
-        </aside>
+      <div className="container-page grid gap-8 py-10 lg:grid-cols-[220px_1fr]">
+        <AccountSidebarNav sections={sections} active={section} onSelect={setSection} unreadCount={unreadCount(notifications)} />
 
         <div className="space-y-8">
-          <section>
-            <h2 className="mb-3 text-lg font-semibold">Вакансии</h2>
-            <div className="glass rounded-xl p-5">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                  <div className="text-sm font-semibold text-ink">Конструктор вакансии</div>
-                  <p className="mt-1 text-sm text-ink/60">
-                    Заполните форму — вакансия соберется по шаблону и уйдет на модерацию, как и через бота.
-                  </p>
-                  <div className="mt-2 text-xs text-ink/50">
-                    {creditsState.purchasedCredits > 0 && (
-                      <span>Куплено генераций: {creditsState.purchasedCredits}. </span>
-                    )}
-                    {freeAvailable ? (
-                      <span className="font-medium text-emerald-600">Бесплатная генерация доступна сейчас.</span>
-                    ) : (
-                      nextFreeAt && <span>Бесплатная генерация — через {formatCountdown(nextFreeAt.getTime() - now)}.</span>
-                    )}
+          {section === 'profile' && (
+            <div className="space-y-8">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="glass rounded-xl p-5">
+                  <div className="text-sm text-ink/50">Компания</div>
+                  <div className="mt-2 text-sm font-medium">{demoEmployerCompany.name}</div>
+                  <div className="text-sm text-ink/60">{demoEmployerCompany.position}</div>
+                </div>
+                <div className="glass rounded-xl p-5">
+                  <div className="text-sm text-ink/50">Контакты</div>
+                  <div className="mt-2 text-sm">{demoEmployer.email}</div>
+                  <div className="text-sm">{demoEmployer.phone}</div>
+                  <div className="text-sm">{demoEmployer.telegramId}</div>
+                </div>
+
+                {/* Рейтинг: средняя оценка по отзывам (до 80 очков) + бонус за
+                    подтвержденные места в рейтингах (до 20 очков) — черновая
+                    демо-формула, см. lib/reviews.ts. */}
+                <div className="glass rounded-xl p-5">
+                  <div className="text-sm text-ink/50">Рейтинг работодателя</div>
+                  <div className="mt-2 flex items-baseline gap-2">
+                    <span className="text-2xl font-semibold text-ink">{rating.score}</span>
+                    <span className="text-sm text-ink/40">/ 100</span>
+                  </div>
+                  <div className="mt-1 text-xs text-ink/50">
+                    {rating.averageRating > 0 ? `★ ${rating.averageRating} · ${rating.reviewsCount} отзывов` : 'Пока нет отзывов'}
+                    {rankings.length > 0 && ` · ${rankings.length} мест(а) в рейтингах`}
                   </div>
                 </div>
-                {canGenerateVacancy ? (
-                  <Link
-                    to="/account/employer/vacancy/new"
-                    className="shrink-0 rounded-full bg-ink px-6 py-2.5 text-sm font-semibold text-white hover:bg-ink/90"
-                  >
-                    Создать вакансию
-                  </Link>
-                ) : (
-                  <span className="shrink-0 rounded-full bg-ink/10 px-6 py-2.5 text-sm font-semibold text-ink/40">
-                    Создать вакансию
-                  </span>
+
+                {salaryStats && (
+                  <div className="glass rounded-xl p-5">
+                    <div className="text-sm text-ink/50">Зарплаты по вашим вакансиям</div>
+                    <div className="mt-2 text-sm font-medium text-ink">
+                      {money.format(salaryStats.avgFrom)}–{money.format(salaryStats.avgTo)} ₽
+                    </div>
+                    <div className="mt-1 text-xs text-ink/50">Среднее по {salaryStats.count} опубликованным вакансиям, считается автоматически</div>
+                  </div>
                 )}
               </div>
 
-              <div className="mt-4 border-t border-ink/10 pt-4">
-                <div className="text-sm font-semibold text-ink">Пакеты генераций</div>
-                <div className="mt-2 grid gap-3 sm:grid-cols-2">
-                  {vacancyCreditPacks.map((p) => (
-                    <div key={p.id} className="flex items-center justify-between rounded-lg border border-ink/10 px-4 py-3">
-                      <div className="text-sm">
-                        <span className="font-semibold text-ink">{p.count} генераций</span>
-                        <span className="text-ink/50"> — {p.price} ₽</span>
+              <section>
+                <h2 className="mb-3 text-lg font-semibold">Отзывы соискателей</h2>
+                <div className="glass divide-y divide-ink/10 rounded-xl">
+                  {reviews.length === 0 && <p className="p-5 text-sm text-ink/50">Пока нет отзывов.</p>}
+                  {reviews.map((r) => (
+                    <div key={r.id} className="p-4">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="font-medium">{r.authorName}</span>
+                        <span className="text-sm text-gold">{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}</span>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => setBuyingPack(p)}
-                        className="rounded-full border border-ink/15 px-4 py-1.5 text-xs font-semibold text-ink/70 hover:border-ink/40 hover:text-ink"
-                      >
-                        Купить
-                      </button>
+                      <p className="mt-1 text-sm text-ink/60">{r.text}</p>
+                      <div className="mt-1 text-xs text-ink/40">{new Date(r.date).toLocaleDateString('ru-RU')}</div>
                     </div>
                   ))}
                 </div>
-              </div>
+              </section>
 
-              {vacancies.length > 0 && (
-                <div className="mt-4 divide-y divide-ink/10 border-t border-ink/10">
-                  {vacancies.map((v) => (
-                    <div key={v.id} className="py-4">
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="font-semibold">{v.data.title || 'Вакансия без названия'}</span>
-                            <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${moderationStatusClass[v.moderationStatus]}`}>
-                              {moderationStatusLabel[v.moderationStatus]}
-                            </span>
-                          </div>
-                          <div className="mt-1 text-xs text-ink/50">
-                            {v.data.anonymous ? 'Анонимно' : v.data.company}
-                            {v.data.city && ` · ${v.data.city}`}
-                            {(v.data.salaryFrom > 0 || v.data.salaryTo > 0) &&
-                              ` · ${v.data.salaryFrom ? money.format(v.data.salaryFrom) : '…'}–${v.data.salaryTo ? money.format(v.data.salaryTo) : '…'} ₽`}
-                          </div>
-                          {v.moderationStatus === 'published' && (
-                            <div className="mt-1 text-xs text-ink/50">Этап показа: {stageLabel[v.visibilityStage]}</div>
-                          )}
-                          {v.moderationStatus === 'rejected' && v.rejectionReason && (
-                            <div className="mt-1 text-xs text-red-600">Причина отказа: {v.rejectionReason}</div>
-                          )}
-                          {v.mailings.length > 0 && (
-                            <div className="mt-1 text-xs text-ink/40">
-                              Рассылок: {v.mailings.length} (последняя — {v.mailings[v.mailings.length - 1].recipientsCount} получателей)
-                            </div>
-                          )}
-                        </div>
+              <section>
+                <h2 className="mb-3 text-lg font-semibold">Места в рейтингах</h2>
+                <div className="glass rounded-xl p-5">
+                  <p className="text-sm text-ink/60">
+                    Загрузите места вашей компании во внешних юридических рейтингах — они дают бонус к рейтингу работодателя на платформе.
+                  </p>
+                  <form onSubmit={handleAddRanking} className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <input
+                      value={rankingForm.name}
+                      onChange={(e) => setRankingForm((f) => ({ ...f, name: e.target.value }))}
+                      placeholder="Название рейтинга"
+                      required
+                      className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none sm:col-span-2"
+                    />
+                    <input
+                      value={rankingForm.category}
+                      onChange={(e) => setRankingForm((f) => ({ ...f, category: e.target.value }))}
+                      placeholder="Номинация/категория"
+                      className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+                    />
+                    <input
+                      value={rankingForm.place}
+                      onChange={(e) => setRankingForm((f) => ({ ...f, place: e.target.value }))}
+                      placeholder="Место, например «5 место»"
+                      required
+                      className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+                    />
+                    <input
+                      type="number"
+                      value={rankingForm.year}
+                      onChange={(e) => setRankingForm((f) => ({ ...f, year: Number(e.target.value) || f.year }))}
+                      placeholder="Год"
+                      className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+                    />
+                    <button type="submit" className="rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white hover:bg-ink/90 sm:justify-self-start">
+                      Добавить
+                    </button>
+                  </form>
 
-                        <div className="flex shrink-0 flex-wrap items-center gap-2">
-                          {v.moderationStatus === 'pending_moderation' && (
-                            <>
-                              <button type="button" onClick={() => handleApprove(v.id)} className="rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700">
-                                Одобрить (демо)
-                              </button>
-                              <button type="button" onClick={() => setRejectingId(v.id)} className="rounded-full border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50">
-                                Отклонить (демо)
-                              </button>
-                            </>
-                          )}
-                          {v.moderationStatus === 'published' && v.visibilityStage !== 'public' && (
-                            <button type="button" onClick={() => handleMailing(v.id)} className="rounded-full border border-ink/15 px-3 py-1.5 text-xs font-semibold text-ink/70 hover:border-ink/40 hover:text-ink">
-                              {stageMailingButtonLabel[v.visibilityStage]}
-                            </button>
-                          )}
-                          {v.moderationStatus === 'published' && (
-                            <button type="button" onClick={() => handleClose(v.id)} className="rounded-full border border-ink/15 px-3 py-1.5 text-xs font-semibold text-ink/70 hover:border-ink/40 hover:text-ink">
-                              Закрыть
-                            </button>
-                          )}
-                          {v.moderationStatus !== 'closed' && (
-                            <Link to={`/account/employer/vacancy/${v.id}/edit`} className="text-sm font-medium text-ink/60 hover:text-ink">
-                              Изменить
-                            </Link>
-                          )}
-                          <button type="button" onClick={() => handleDelete(v.id)} className="text-ink/40 hover:text-red-600">Удалить</button>
+                  {rankings.length > 0 && (
+                    <div className="mt-4 divide-y divide-ink/10 border-t border-ink/10">
+                      {rankings.map((r) => (
+                        <div key={r.id} className="flex items-center justify-between py-3">
+                          <div>
+                            <div className="text-sm font-medium">{r.name} — {r.place}</div>
+                            <div className="text-xs text-ink/50">{r.category} · {r.year}</div>
+                          </div>
+                          <button type="button" onClick={() => handleDeleteRanking(r.id)} className="text-ink/40 hover:text-red-600">Удалить</button>
                         </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </section>
+            </div>
+          )}
+
+          {section === 'work' && (
+            <section>
+              <h2 className="mb-3 text-lg font-semibold">Вакансии</h2>
+              <div className="glass rounded-xl p-5">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div>
+                    <div className="text-sm font-semibold text-ink">Конструктор вакансии</div>
+                    <p className="mt-1 text-sm text-ink/60">
+                      Заполните форму — вакансия соберется по шаблону и уйдет на модерацию, как и через бота.
+                    </p>
+                    <div className="mt-2 text-xs text-ink/50">
+                      {creditsState.purchasedCredits > 0 && (
+                        <span>Куплено генераций: {creditsState.purchasedCredits}. </span>
+                      )}
+                      {freeAvailable ? (
+                        <span className="font-medium text-emerald-600">Бесплатная генерация доступна сейчас.</span>
+                      ) : (
+                        nextFreeAt && <span>Бесплатная генерация — через {formatCountdown(nextFreeAt.getTime() - now)}.</span>
+                      )}
+                    </div>
+                  </div>
+                  {canGenerateVacancy ? (
+                    <Link
+                      to="/account/employer/vacancy/new"
+                      className="shrink-0 rounded-full bg-ink px-6 py-2.5 text-sm font-semibold text-white hover:bg-ink/90"
+                    >
+                      Создать вакансию
+                    </Link>
+                  ) : (
+                    <span className="shrink-0 rounded-full bg-ink/10 px-6 py-2.5 text-sm font-semibold text-ink/40">
+                      Создать вакансию
+                    </span>
+                  )}
+                </div>
+
+                <div className="mt-4 border-t border-ink/10 pt-4">
+                  <div className="text-sm font-semibold text-ink">Пакеты генераций</div>
+                  <div className="mt-2 grid gap-3 sm:grid-cols-2">
+                    {vacancyCreditPacks.map((p) => (
+                      <div key={p.id} className="flex items-center justify-between rounded-lg border border-ink/10 px-4 py-3">
+                        <div className="text-sm">
+                          <span className="font-semibold text-ink">{p.count} генераций</span>
+                          <span className="text-ink/50"> — {p.price} ₽</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setBuyingPack(p)}
+                          className="rounded-full border border-ink/15 px-4 py-1.5 text-xs font-semibold text-ink/70 hover:border-ink/40 hover:text-ink"
+                        >
+                          Купить
+                        </button>
                       </div>
+                    ))}
+                  </div>
+                </div>
 
-                      {v.moderationStatus === 'published' && (() => {
-                        const responses = getResponsesForVacancy(v.id)
-                        const expanded = expandedVacancyId === v.id
-                        return (
-                          <div className="mt-3">
-                            <button
-                              type="button"
-                              onClick={() => setExpandedVacancyId(expanded ? null : v.id)}
-                              className="rounded-full border border-ink/15 px-3 py-1.5 text-xs font-semibold text-ink/70 hover:border-ink/40 hover:text-ink"
-                            >
-                              Отклики ({responses.length}) {expanded ? '▲' : '▼'}
-                            </button>
-
-                            {expanded && (
-                              <div key={responseVersion} className="mt-3 divide-y divide-ink/10 rounded-lg border border-ink/10">
-                                {responses.length === 0 && (
-                                  <p className="p-4 text-sm text-ink/50">Пока никто не откликнулся на эту вакансию.</p>
-                                )}
-                                {responses.map((r) => {
-                                  const price = contactPrice(r.experienceYears)
-                                  return (
-                                    <div key={r.id} className="p-4">
-                                      <div className="flex flex-wrap items-start justify-between gap-3">
-                                        <div>
-                                          <div className="flex flex-wrap items-center gap-2">
-                                            <span className="font-medium">{r.name}</span>
-                                            <span className="text-xs text-ink/40">{r.city} · {levelLabel[r.level]}</span>
-                                          </div>
-                                          <p className="mt-1 text-sm text-ink/60">{r.coverLetter}</p>
-                                          <div className="mt-1.5 flex flex-wrap gap-1">
-                                            {r.specialization.map((s) => <SpecTag key={s} id={s} />)}
-                                            {r.industry.map((i) => <IndustryTag key={i} id={i} />)}
-                                          </div>
-                                          {(r.skillScore !== undefined || r.softSkillScore !== undefined) && (
-                                            <div className="mt-1.5 flex flex-wrap gap-1.5 text-xs">
-                                              {r.skillScore !== undefined && (
-                                                <span className="rounded-full bg-emerald-50 px-2 py-0.5 font-medium text-emerald-700">Навыки: {r.skillScore}%</span>
-                                              )}
-                                              {r.softSkillScore !== undefined && (
-                                                <span className="rounded-full bg-gold-light/20 px-2 py-0.5 font-medium text-gold">Софт-скиллы: {r.softSkillScore}%</span>
-                                              )}
-                                            </div>
-                                          )}
-                                          <div className="mt-2 text-xs text-ink/50">
-                                            Откликнулся {new Date(r.appliedAt).toLocaleDateString('ru-RU')}
-                                          </div>
-                                          {r.contactRevealed ? (
-                                            <div className="mt-1 text-sm">
-                                              <span className="font-medium text-emerald-600">{r.phone}</span> · {r.email}
-                                            </div>
-                                          ) : (
-                                            <button
-                                              type="button"
-                                              onClick={() => handleRevealContact(r.id, r.name, price)}
-                                              className="mt-2 rounded-full border border-ink/15 px-3 py-1.5 text-xs font-semibold text-ink/70 hover:border-ink/40 hover:text-ink"
-                                            >
-                                              Открыть контакты — {price} ₽
-                                            </button>
-                                          )}
-                                        </div>
-                                        <select
-                                          value={r.status}
-                                          onChange={(e) => handleResponseStatus(r.id, e.target.value as ApplicationStatus)}
-                                          className="shrink-0 rounded-full border border-ink/15 bg-white px-3 py-1.5 text-xs font-semibold text-ink/70"
-                                        >
-                                          {responseStatusOrder.map((s) => (
-                                            <option key={s} value={s}>{responseStatusLabel[s]}</option>
-                                          ))}
-                                        </select>
-                                      </div>
-                                    </div>
-                                  )
-                                })}
+                {vacancies.length > 0 && (
+                  <div className="mt-4 divide-y divide-ink/10 border-t border-ink/10">
+                    {vacancies.map((v) => (
+                      <div key={v.id} className="py-4">
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="font-semibold">{v.data.title || 'Вакансия без названия'}</span>
+                              <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${moderationStatusClass[v.moderationStatus]}`}>
+                                {moderationStatusLabel[v.moderationStatus]}
+                              </span>
+                            </div>
+                            <div className="mt-1 text-xs text-ink/50">
+                              {v.data.anonymous ? 'Анонимно' : v.data.company}
+                              {v.data.city && ` · ${v.data.city}`}
+                              {(v.data.salaryFrom > 0 || v.data.salaryTo > 0) &&
+                                ` · ${v.data.salaryFrom ? money.format(v.data.salaryFrom) : '…'}–${v.data.salaryTo ? money.format(v.data.salaryTo) : '…'} ₽`}
+                            </div>
+                            {v.moderationStatus === 'published' && (
+                              <div className="mt-1 text-xs text-ink/50">Этап показа: {stageLabel[v.visibilityStage]}</div>
+                            )}
+                            {v.moderationStatus === 'rejected' && v.rejectionReason && (
+                              <div className="mt-1 text-xs text-red-600">Причина отказа: {v.rejectionReason}</div>
+                            )}
+                            {v.mailings.length > 0 && (
+                              <div className="mt-1 text-xs text-ink/40">
+                                Рассылок: {v.mailings.length} (последняя — {v.mailings[v.mailings.length - 1].recipientsCount} получателей)
                               </div>
                             )}
                           </div>
-                        )
-                      })()}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </section>
 
-          <section>
-            <h2 className="mb-3 text-lg font-semibold">Отзывы соискателей</h2>
-            <div className="glass divide-y divide-ink/10 rounded-xl">
-              {reviews.length === 0 && <p className="p-5 text-sm text-ink/50">Пока нет отзывов.</p>}
-              {reviews.map((r) => (
-                <div key={r.id} className="p-4">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="font-medium">{r.authorName}</span>
-                    <span className="text-sm text-gold">{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}</span>
-                  </div>
-                  <p className="mt-1 text-sm text-ink/60">{r.text}</p>
-                  <div className="mt-1 text-xs text-ink/40">{new Date(r.date).toLocaleDateString('ru-RU')}</div>
-                </div>
-              ))}
-            </div>
-          </section>
+                          <div className="flex shrink-0 flex-wrap items-center gap-2">
+                            {v.moderationStatus === 'pending_moderation' && (
+                              <>
+                                <button type="button" onClick={() => handleApprove(v.id)} className="rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700">
+                                  Одобрить (демо)
+                                </button>
+                                <button type="button" onClick={() => setRejectingId(v.id)} className="rounded-full border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50">
+                                  Отклонить (демо)
+                                </button>
+                              </>
+                            )}
+                            {v.moderationStatus === 'published' && v.visibilityStage !== 'public' && (
+                              <button type="button" onClick={() => handleMailing(v.id)} className="rounded-full border border-ink/15 px-3 py-1.5 text-xs font-semibold text-ink/70 hover:border-ink/40 hover:text-ink">
+                                {stageMailingButtonLabel[v.visibilityStage]}
+                              </button>
+                            )}
+                            {v.moderationStatus === 'published' && (
+                              <button type="button" onClick={() => handleClose(v.id)} className="rounded-full border border-ink/15 px-3 py-1.5 text-xs font-semibold text-ink/70 hover:border-ink/40 hover:text-ink">
+                                Закрыть
+                              </button>
+                            )}
+                            {v.moderationStatus !== 'closed' && (
+                              <Link to={`/account/employer/vacancy/${v.id}/edit`} className="text-sm font-medium text-ink/60 hover:text-ink">
+                                Изменить
+                              </Link>
+                            )}
+                            <button type="button" onClick={() => handleDelete(v.id)} className="text-ink/40 hover:text-red-600">Удалить</button>
+                          </div>
+                        </div>
 
-          <section>
-            <h2 className="mb-3 text-lg font-semibold">Места в рейтингах</h2>
-            <div className="glass rounded-xl p-5">
-              <p className="text-sm text-ink/60">
-                Загрузите места вашей компании во внешних юридических рейтингах — они дают бонус к рейтингу работодателя на платформе.
-              </p>
-              <form onSubmit={handleAddRanking} className="mt-4 grid gap-3 sm:grid-cols-2">
-                <input
-                  value={rankingForm.name}
-                  onChange={(e) => setRankingForm((f) => ({ ...f, name: e.target.value }))}
-                  placeholder="Название рейтинга"
-                  required
-                  className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none sm:col-span-2"
-                />
-                <input
-                  value={rankingForm.category}
-                  onChange={(e) => setRankingForm((f) => ({ ...f, category: e.target.value }))}
-                  placeholder="Номинация/категория"
-                  className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
-                />
-                <input
-                  value={rankingForm.place}
-                  onChange={(e) => setRankingForm((f) => ({ ...f, place: e.target.value }))}
-                  placeholder="Место, например «5 место»"
-                  required
-                  className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
-                />
-                <input
-                  type="number"
-                  value={rankingForm.year}
-                  onChange={(e) => setRankingForm((f) => ({ ...f, year: Number(e.target.value) || f.year }))}
-                  placeholder="Год"
-                  className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
-                />
-                <button type="submit" className="rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white hover:bg-ink/90 sm:justify-self-start">
-                  Добавить
-                </button>
-              </form>
+                        {v.moderationStatus === 'published' && (() => {
+                          const responses = getResponsesForVacancy(v.id)
+                          const expanded = expandedVacancyId === v.id
+                          return (
+                            <div className="mt-3">
+                              <button
+                                type="button"
+                                onClick={() => setExpandedVacancyId(expanded ? null : v.id)}
+                                className="rounded-full border border-ink/15 px-3 py-1.5 text-xs font-semibold text-ink/70 hover:border-ink/40 hover:text-ink"
+                              >
+                                Отклики ({responses.length}) {expanded ? '▲' : '▼'}
+                              </button>
 
-              {rankings.length > 0 && (
-                <div className="mt-4 divide-y divide-ink/10 border-t border-ink/10">
-                  {rankings.map((r) => (
-                    <div key={r.id} className="flex items-center justify-between py-3">
-                      <div>
-                        <div className="text-sm font-medium">{r.name} — {r.place}</div>
-                        <div className="text-xs text-ink/50">{r.category} · {r.year}</div>
+                              {expanded && (
+                                <div key={responseVersion} className="mt-3 divide-y divide-ink/10 rounded-lg border border-ink/10">
+                                  {responses.length === 0 && (
+                                    <p className="p-4 text-sm text-ink/50">Пока никто не откликнулся на эту вакансию.</p>
+                                  )}
+                                  {responses.map((r) => {
+                                    const price = contactPrice(r.experienceYears)
+                                    return (
+                                      <div key={r.id} className="p-4">
+                                        <div className="flex flex-wrap items-start justify-between gap-3">
+                                          <div>
+                                            <div className="flex flex-wrap items-center gap-2">
+                                              <span className="font-medium">{r.name}</span>
+                                              <span className="text-xs text-ink/40">{r.city} · {levelLabel[r.level]}</span>
+                                            </div>
+                                            <p className="mt-1 text-sm text-ink/60">{r.coverLetter}</p>
+                                            <div className="mt-1.5 flex flex-wrap gap-1">
+                                              {r.specialization.map((s) => <SpecTag key={s} id={s} />)}
+                                              {r.industry.map((i) => <IndustryTag key={i} id={i} />)}
+                                            </div>
+                                            {(r.skillScore !== undefined || r.softSkillScore !== undefined) && (
+                                              <div className="mt-1.5 flex flex-wrap gap-1.5 text-xs">
+                                                {r.skillScore !== undefined && (
+                                                  <span className="rounded-full bg-emerald-50 px-2 py-0.5 font-medium text-emerald-700">Навыки: {r.skillScore}%</span>
+                                                )}
+                                                {r.softSkillScore !== undefined && (
+                                                  <span className="rounded-full bg-gold-light/20 px-2 py-0.5 font-medium text-gold">Софт-скиллы: {r.softSkillScore}%</span>
+                                                )}
+                                              </div>
+                                            )}
+                                            <div className="mt-2 text-xs text-ink/50">
+                                              Откликнулся {new Date(r.appliedAt).toLocaleDateString('ru-RU')}
+                                            </div>
+                                            {r.contactRevealed ? (
+                                              <div className="mt-1 text-sm">
+                                                <span className="font-medium text-emerald-600">{r.phone}</span> · {r.email}
+                                              </div>
+                                            ) : (
+                                              <button
+                                                type="button"
+                                                onClick={() => handleRevealContact(r.id, r.name, price)}
+                                                className="mt-2 rounded-full border border-ink/15 px-3 py-1.5 text-xs font-semibold text-ink/70 hover:border-ink/40 hover:text-ink"
+                                              >
+                                                Открыть контакты — {price} ₽
+                                              </button>
+                                            )}
+                                          </div>
+                                          <select
+                                            value={r.status}
+                                            onChange={(e) => handleResponseStatus(r.id, e.target.value as ApplicationStatus)}
+                                            className="shrink-0 rounded-full border border-ink/15 bg-white px-3 py-1.5 text-xs font-semibold text-ink/70"
+                                          >
+                                            {responseStatusOrder.map((s) => (
+                                              <option key={s} value={s}>{responseStatusLabel[s]}</option>
+                                            ))}
+                                          </select>
+                                        </div>
+                                      </div>
+                                    )
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })()}
                       </div>
-                      <button type="button" onClick={() => handleDeleteRanking(r.id)} className="text-ink/40 hover:text-red-600">Удалить</button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </section>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
 
-          <section>
-            <h2 className="mb-3 text-lg font-semibold">База знаний работодателя</h2>
-            <div className="glass rounded-xl p-6">
-              <p className="text-sm text-ink/70">
-                Как создать вакансию, составить хорошее описание и что проверяет модератор — в разделе «Кадры → Работодателям → База знаний».
-              </p>
-              <Link to="/kadry/employers" className="mt-4 inline-block rounded-full border border-ink/15 px-5 py-2.5 text-sm font-semibold text-ink/70 hover:border-ink/40 hover:text-ink">
-                Открыть базу знаний
-              </Link>
+          {section === 'community' && (
+            <section>
+              <h2 className="mb-3 text-lg font-semibold">Сообщество и мероприятия</h2>
+              <div className="glass rounded-xl p-5">
+                <p className="text-sm text-ink/60">
+                  Ваши вакансии сначала предлагаются резидентам платного Сообщества, затем — кадровому резерву, и только
+                  потом публикуются в открытом доступе (см. базу знаний работодателя).
+                </p>
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-lg border border-ink/10 px-4 py-3">
+                    <div className="text-xs uppercase tracking-wide text-ink/40">Резиденты сообщества</div>
+                    <div className="mt-1 text-lg font-semibold text-ink">140</div>
+                  </div>
+                  <div className="rounded-lg border border-ink/10 px-4 py-3">
+                    <div className="text-xs uppercase tracking-wide text-ink/40">Кадровый резерв</div>
+                    <div className="mt-1 text-lg font-semibold text-ink">3 200+</div>
+                  </div>
+                </div>
+                <Link to="/community" className="mt-4 inline-block rounded-full border border-ink/15 px-5 py-2.5 text-sm font-semibold text-ink/70 hover:border-ink/40 hover:text-ink">
+                  О сообществе
+                </Link>
+              </div>
+            </section>
+          )}
+
+          {section === 'orders' && (
+            <section>
+              <h2 className="mb-3 text-lg font-semibold">Заказы</h2>
+              <div className="glass divide-y divide-ink/10 rounded-xl">
+                {orders.length === 0 && <p className="p-5 text-sm text-ink/50">Пока нет заказов.</p>}
+                {orders.map((o) => (
+                  <div key={o.id} className="flex items-center justify-between p-4">
+                    <div>
+                      <div className="font-medium">{o.title}</div>
+                      <div className="text-xs text-ink/50">{new Date(o.date).toLocaleDateString('ru-RU')}</div>
+                    </div>
+                    <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">{o.status}</span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {section === 'notifications' && (
+            <section>
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="text-lg font-semibold">Уведомления</h2>
+                <button type="button" onClick={handleMarkAllRead} className="text-sm font-medium text-ink/60 hover:text-ink">Отметить все прочитанными</button>
+              </div>
+              <div className="glass divide-y divide-ink/10 rounded-xl">
+                {notifications.map((n) => (
+                  <button
+                    key={n.id}
+                    type="button"
+                    onClick={() => handleMarkRead(n.id)}
+                    className="flex w-full items-start gap-3 p-4 text-left hover:bg-ink/[0.02]"
+                  >
+                    <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${n.read ? 'bg-transparent' : 'bg-gold'}`} />
+                    <div>
+                      <p className={`text-sm ${n.read ? 'text-ink/60' : 'font-medium text-ink'}`}>{n.text}</p>
+                      <div className="mt-1 text-xs text-ink/40">{new Date(n.date).toLocaleDateString('ru-RU')}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {section === 'settings' && (
+            <section>
+              <h2 className="mb-3 text-lg font-semibold">Настройки</h2>
+              <div className="glass rounded-xl p-5">
+                <p className="text-sm text-ink/60">Демо-настройки интерфейса — не влияют на реальный вид сайта, показывают механику раздела.</p>
+                <form onSubmit={handleSaveSettings} className="mt-4 space-y-4">
+                  <label className="flex items-center justify-between gap-3">
+                    <span className="text-sm">Email-уведомления об откликах и модерации</span>
+                    <input type="checkbox" checked={emailNotifications} onChange={(e) => setEmailNotifications(e.target.checked)} className="h-4 w-4" />
+                  </label>
+                  <label className="flex items-center justify-between gap-3">
+                    <span className="text-sm">Компактный вид списков в кабинете</span>
+                    <input type="checkbox" checked={compactView} onChange={(e) => setCompactView(e.target.checked)} className="h-4 w-4" />
+                  </label>
+                  <button type="submit" className="rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white hover:bg-ink/90">
+                    Сохранить
+                  </button>
+                  {settingsSaved && <p className="text-sm text-emerald-600">Настройки сохранены.</p>}
+                </form>
+              </div>
+            </section>
+          )}
+
+          {section === 'support' && (
+            <div className="space-y-6">
+              <section>
+                <h2 className="mb-3 text-lg font-semibold">Безопасность</h2>
+                <div className="glass rounded-xl p-5">
+                  <form onSubmit={handleChangePassword} className="grid gap-3 sm:max-w-sm">
+                    <div className="text-sm font-semibold text-ink">Сменить пароль</div>
+                    <input
+                      type="password"
+                      value={passwordForm.current}
+                      onChange={(e) => setPasswordForm((f) => ({ ...f, current: e.target.value }))}
+                      placeholder="Текущий пароль"
+                      className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+                    />
+                    <input
+                      type="password"
+                      value={passwordForm.next}
+                      onChange={(e) => setPasswordForm((f) => ({ ...f, next: e.target.value }))}
+                      placeholder="Новый пароль"
+                      className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+                    />
+                    <button type="submit" className="rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white hover:bg-ink/90 sm:justify-self-start">
+                      Сохранить пароль
+                    </button>
+                    {passwordSaved && <p className="text-sm text-emerald-600">Пароль обновлен (демо).</p>}
+                  </form>
+
+                  <label className="mt-5 flex items-center justify-between gap-3 border-t border-ink/10 pt-5">
+                    <span className="text-sm">Дополнительная защита устройства (2FA)</span>
+                    <input type="checkbox" checked={twoFactor} onChange={(e) => setTwoFactor(e.target.checked)} className="h-4 w-4" />
+                  </label>
+                </div>
+              </section>
+
+              <section>
+                <h2 className="mb-3 text-lg font-semibold">База знаний работодателя</h2>
+                <div className="glass rounded-xl p-6">
+                  <p className="text-sm text-ink/70">
+                    Как создать вакансию, составить хорошее описание и что проверяет модератор — в разделе «Кадры → Работодателям → База знаний».
+                  </p>
+                  <Link to="/kadry/employers" className="mt-4 inline-block rounded-full border border-ink/15 px-5 py-2.5 text-sm font-semibold text-ink/70 hover:border-ink/40 hover:text-ink">
+                    Открыть базу знаний
+                  </Link>
+                </div>
+              </section>
+
+              <button
+                type="button"
+                onClick={() => { clearActiveRole(); navigate('/account') }}
+                className="block w-full rounded-full border border-ink/15 px-5 py-2.5 text-center text-sm font-semibold text-ink/60 hover:text-ink sm:w-auto"
+              >
+                Выйти из личного кабинета
+              </button>
             </div>
-          </section>
+          )}
         </div>
       </div>
 
