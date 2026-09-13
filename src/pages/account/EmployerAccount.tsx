@@ -15,6 +15,8 @@ import {
   getCreditsState, isFreeAvailable, freeAvailableAt, canGenerate, addCredits, formatCountdown, VACANCY_CREDITS_KEY,
 } from '../../lib/generationCredits'
 import { submitLead } from '../../lib/leads'
+import { getReviews, computeEmployerRating } from '../../lib/reviews'
+import { getRankings, addRanking, deleteRanking, rankingBonus } from '../../lib/rankings'
 import type { ApplicationStatus, VacancyModerationStatus, VacancyVisibilityStage } from '../../types'
 
 const responseStatusLabel: Record<ApplicationStatus, string> = {
@@ -79,6 +81,13 @@ export default function EmployerAccount() {
   const [expandedVacancyId, setExpandedVacancyId] = useState<string | null>(null)
   const [responseVersion, setResponseVersion] = useState(0)
 
+  // Рейтинг работодателя: отзывы соискателей + места в рейтингах, которые
+  // работодатель загружает сам (справочник реальных рейтингов пришлет
+  // заказчик отдельно, пока — свободный ввод названия/категории/места).
+  const [reviews] = useState(() => getReviews())
+  const [rankings, setRankings] = useState(() => getRankings())
+  const [rankingForm, setRankingForm] = useState(() => ({ name: '', category: '', place: '', year: new Date().getFullYear() }))
+
   if (role !== 'employer') return <Navigate to="/account" replace />
 
   function refresh() {
@@ -107,6 +116,37 @@ export default function EmployerAccount() {
     })
     refreshResponses()
     setNotice(`Контакты кандидата «${name}» открыты.`)
+  }
+
+  const rating = computeEmployerRating(reviews, rankingBonus(rankings))
+
+  // Автоподсчет по зарплатам, которые сам работодатель указал в
+  // опубликованных вакансиях — не ручной ввод, а агрегация вилок.
+  const publishedWithSalary = vacancies.filter((v) => v.moderationStatus === 'published' && (v.data.salaryFrom > 0 || v.data.salaryTo > 0))
+  const salaryStats = publishedWithSalary.length > 0
+    ? {
+        avgFrom: Math.round(publishedWithSalary.reduce((s, v) => s + (v.data.salaryFrom || v.data.salaryTo), 0) / publishedWithSalary.length),
+        avgTo: Math.round(publishedWithSalary.reduce((s, v) => s + (v.data.salaryTo || v.data.salaryFrom), 0) / publishedWithSalary.length),
+        count: publishedWithSalary.length,
+      }
+    : null
+
+  function handleAddRanking(e: FormEvent) {
+    e.preventDefault()
+    if (!rankingForm.name.trim() || !rankingForm.place.trim()) return
+    const created = addRanking({
+      name: rankingForm.name.trim(),
+      category: rankingForm.category.trim() || '—',
+      place: rankingForm.place.trim(),
+      year: rankingForm.year,
+    })
+    setRankings((prev) => [created, ...prev])
+    setRankingForm({ name: '', category: '', place: '', year: new Date().getFullYear() })
+  }
+
+  function handleDeleteRanking(id: string) {
+    deleteRanking(id)
+    setRankings((prev) => prev.filter((r) => r.id !== id))
   }
 
   const freeAvailable = isFreeAvailable(creditsState)
@@ -182,6 +222,32 @@ export default function EmployerAccount() {
             <div className="text-sm">{demoEmployer.phone}</div>
             <div className="text-sm">{demoEmployer.telegramId}</div>
           </div>
+
+          {/* Рейтинг: средняя оценка по отзывам (до 80 очков) + бонус за
+              подтвержденные места в рейтингах (до 20 очков) — черновая
+              демо-формула, см. lib/reviews.ts. */}
+          <div className="glass rounded-xl p-5">
+            <div className="text-sm text-ink/50">Рейтинг работодателя</div>
+            <div className="mt-2 flex items-baseline gap-2">
+              <span className="text-2xl font-semibold text-ink">{rating.score}</span>
+              <span className="text-sm text-ink/40">/ 100</span>
+            </div>
+            <div className="mt-1 text-xs text-ink/50">
+              {rating.averageRating > 0 ? `★ ${rating.averageRating} · ${rating.reviewsCount} отзывов` : 'Пока нет отзывов'}
+              {rankings.length > 0 && ` · ${rankings.length} мест(а) в рейтингах`}
+            </div>
+          </div>
+
+          {salaryStats && (
+            <div className="glass rounded-xl p-5">
+              <div className="text-sm text-ink/50">Зарплаты по вашим вакансиям</div>
+              <div className="mt-2 text-sm font-medium text-ink">
+                {money.format(salaryStats.avgFrom)}–{money.format(salaryStats.avgTo)} ₽
+              </div>
+              <div className="mt-1 text-xs text-ink/50">Среднее по {salaryStats.count} опубликованным вакансиям, считается автоматически</div>
+            </div>
+          )}
+
           <button
             type="button"
             onClick={() => { clearActiveRole(); navigate('/account') }}
@@ -386,6 +452,78 @@ export default function EmployerAccount() {
                           </div>
                         )
                       })()}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
+
+          <section>
+            <h2 className="mb-3 text-lg font-semibold">Отзывы соискателей</h2>
+            <div className="glass divide-y divide-ink/10 rounded-xl">
+              {reviews.length === 0 && <p className="p-5 text-sm text-ink/50">Пока нет отзывов.</p>}
+              {reviews.map((r) => (
+                <div key={r.id} className="p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="font-medium">{r.authorName}</span>
+                    <span className="text-sm text-gold">{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}</span>
+                  </div>
+                  <p className="mt-1 text-sm text-ink/60">{r.text}</p>
+                  <div className="mt-1 text-xs text-ink/40">{new Date(r.date).toLocaleDateString('ru-RU')}</div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section>
+            <h2 className="mb-3 text-lg font-semibold">Места в рейтингах</h2>
+            <div className="glass rounded-xl p-5">
+              <p className="text-sm text-ink/60">
+                Загрузите места вашей компании во внешних юридических рейтингах — они дают бонус к рейтингу работодателя на платформе.
+              </p>
+              <form onSubmit={handleAddRanking} className="mt-4 grid gap-3 sm:grid-cols-2">
+                <input
+                  value={rankingForm.name}
+                  onChange={(e) => setRankingForm((f) => ({ ...f, name: e.target.value }))}
+                  placeholder="Название рейтинга"
+                  required
+                  className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none sm:col-span-2"
+                />
+                <input
+                  value={rankingForm.category}
+                  onChange={(e) => setRankingForm((f) => ({ ...f, category: e.target.value }))}
+                  placeholder="Номинация/категория"
+                  className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+                />
+                <input
+                  value={rankingForm.place}
+                  onChange={(e) => setRankingForm((f) => ({ ...f, place: e.target.value }))}
+                  placeholder="Место, например «5 место»"
+                  required
+                  className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+                />
+                <input
+                  type="number"
+                  value={rankingForm.year}
+                  onChange={(e) => setRankingForm((f) => ({ ...f, year: Number(e.target.value) || f.year }))}
+                  placeholder="Год"
+                  className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+                />
+                <button type="submit" className="rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white hover:bg-ink/90 sm:justify-self-start">
+                  Добавить
+                </button>
+              </form>
+
+              {rankings.length > 0 && (
+                <div className="mt-4 divide-y divide-ink/10 border-t border-ink/10">
+                  {rankings.map((r) => (
+                    <div key={r.id} className="flex items-center justify-between py-3">
+                      <div>
+                        <div className="text-sm font-medium">{r.name} — {r.place}</div>
+                        <div className="text-xs text-ink/50">{r.category} · {r.year}</div>
+                      </div>
+                      <button type="button" onClick={() => handleDeleteRanking(r.id)} className="text-ink/40 hover:text-red-600">Удалить</button>
                     </div>
                   ))}
                 </div>
