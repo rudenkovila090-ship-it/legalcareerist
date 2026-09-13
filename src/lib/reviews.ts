@@ -8,6 +8,8 @@ export interface EmployerReview {
   rating: number // 1–5
   text: string
   date: string
+  /** Публичный ответ работодателя на отзыв — виден вместе с отзывом. */
+  reply?: { text: string; date: string }
 }
 
 const KEY = 'ky_employer_reviews'
@@ -48,6 +50,20 @@ export function getReviews(): EmployerReview[] {
   } catch {
     return []
   }
+}
+
+function writeAll(all: EmployerReview[]) {
+  localStorage.setItem(KEY, JSON.stringify(all))
+}
+
+/** Публичный ответ работодателя на отзыв соискателя. */
+export function addReviewReply(id: string, text: string): EmployerReview | undefined {
+  const all = getReviews()
+  const idx = all.findIndex((r) => r.id === id)
+  if (idx === -1) return undefined
+  all[idx] = { ...all[idx], reply: { text, date: new Date().toISOString() } }
+  writeAll(all)
+  return all[idx]
 }
 
 export interface EmployerRating {

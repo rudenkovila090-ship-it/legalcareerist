@@ -16,12 +16,13 @@ import {
   getCreditsState, isFreeAvailable, freeAvailableAt, canGenerate, addCredits, formatCountdown, VACANCY_CREDITS_KEY,
 } from '../../lib/generationCredits'
 import { submitLead, getLeads } from '../../lib/leads'
-import { getReviews, computeEmployerRating } from '../../lib/reviews'
+import { getReviews, computeEmployerRating, addReviewReply } from '../../lib/reviews'
+import { getCompanyProfile, saveCompanyProfile } from '../../lib/companyProfile'
 import { getRankings, addRanking, deleteRanking, rankingBonus } from '../../lib/rankings'
 import { getNotifications, markNotificationRead, markAllNotificationsRead, unreadCount } from '../../lib/notifications'
 import { getThreads, ensureThread, sendMessage, markThreadRead, unreadForRole } from '../../lib/chat'
 import { getTeamMembers, addTeamMember, removeTeamMember, OWNER_ID } from '../../lib/team'
-import { INDUSTRIES } from '../../types'
+import { INDUSTRIES, COMPANY_INDUSTRY_TREE } from '../../types'
 import type { ApplicationStatus, VacancyModerationStatus, VacancyVisibilityStage, CandidateLevel, Industry } from '../../types'
 
 const responseStatusLabel: Record<ApplicationStatus, string> = {
@@ -200,7 +201,9 @@ export default function EmployerAccount() {
   // Рейтинг работодателя: отзывы соискателей + места в рейтингах, которые
   // работодатель загружает сам (справочник реальных рейтингов пришлет
   // заказчик отдельно, пока — свободный ввод названия/категории/места).
-  const [reviews] = useState(() => getReviews())
+  const [reviews, setReviews] = useState(() => getReviews())
+  const [replyingReviewId, setReplyingReviewId] = useState<string | null>(null)
+  const [replyDraft, setReplyDraft] = useState('')
   const [rankings, setRankings] = useState(() => getRankings())
   const [rankingForm, setRankingForm] = useState(() => ({ name: '', category: '', place: '', year: new Date().getFullYear() }))
 
@@ -219,6 +222,12 @@ export default function EmployerAccount() {
   })
   const [editingField, setEditingField] = useState<keyof typeof profileFields | null>(null)
   const [draftValue, setDraftValue] = useState('')
+
+  // Публичная карточка работодателя — описание/отрасль, которые в боевой
+  // версии видит кандидат на странице вакансии (см. lib/companyProfile.ts).
+  const [companyProfile, setCompanyProfile] = useState(() => getCompanyProfile())
+  const [editingCompanyProfile, setEditingCompanyProfile] = useState(false)
+  const [companyProfileDraft, setCompanyProfileDraft] = useState(companyProfile)
 
   // Команда компании — несколько сотрудников на один аккаунт, вакансии
   // можно закреплять за конкретным человеком (см. lib/team.ts).
@@ -368,6 +377,24 @@ export default function EmployerAccount() {
     if (!editingField) return
     setProfileFields((prev) => ({ ...prev, [editingField]: draftValue.trim() || prev[editingField] }))
     setEditingField(null)
+  }
+
+  function startEditCompanyProfile() {
+    setCompanyProfileDraft(companyProfile)
+    setEditingCompanyProfile(true)
+  }
+  function saveCompanyProfileEdit() {
+    saveCompanyProfile(companyProfileDraft)
+    setCompanyProfile(companyProfileDraft)
+    setEditingCompanyProfile(false)
+  }
+
+  function handleReviewReplySubmit(id: string) {
+    if (!replyDraft.trim()) return
+    const updated = addReviewReply(id, replyDraft.trim())
+    if (updated) setReviews((prev) => prev.map((r) => (r.id === id ? updated : r)))
+    setReplyingReviewId(null)
+    setReplyDraft('')
   }
 
   function handleAddTeamMember(e: FormEvent) {
@@ -594,6 +621,55 @@ export default function EmployerAccount() {
               </div>
 
               <section>
+                <h2 className="mb-3 text-lg font-semibold">Публичная карточка работодателя</h2>
+                <div className="glass rounded-xl p-5">
+                  <p className="mb-3 text-sm text-ink/60">Это увидит кандидат на странице вакансии, в блоке «О работодателе».</p>
+                  {editingCompanyProfile ? (
+                    <div className="grid gap-3">
+                      <textarea
+                        value={companyProfileDraft.description}
+                        onChange={(e) => setCompanyProfileDraft((f) => ({ ...f, description: e.target.value }))}
+                        rows={3}
+                        placeholder="Кратко о компании"
+                        className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+                      />
+                      <select
+                        value={companyProfileDraft.industryCategory}
+                        onChange={(e) => setCompanyProfileDraft((f) => ({ ...f, industryCategory: e.target.value }))}
+                        className="w-full rounded-lg border border-ink/15 px-4 py-2.5 text-sm focus:border-ink/40 focus:outline-none sm:w-64"
+                      >
+                        {COMPANY_INDUSTRY_TREE.map((c) => <option key={c.category} value={c.category}>{c.category}</option>)}
+                      </select>
+                      <div className="flex gap-2">
+                        <button type="button" onClick={saveCompanyProfileEdit} className="rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white hover:bg-ink/90">
+                          Сохранить
+                        </button>
+                        <button type="button" onClick={() => setEditingCompanyProfile(false)} className="rounded-full border border-ink/15 px-5 py-2.5 text-sm font-semibold text-ink/60 hover:text-ink">
+                          Отмена
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-ink text-sm font-semibold text-white">
+                          {profileFields.companyName.replace(/[«»]/g, '').slice(0, 2).toUpperCase()}
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium text-ink">{profileFields.companyName}</div>
+                          <div className="text-xs text-ink/50">{companyProfile.industryCategory}</div>
+                        </div>
+                      </div>
+                      <p className="mt-3 text-sm text-ink/60">{companyProfile.description}</p>
+                      <button type="button" onClick={startEditCompanyProfile} className="mt-3 rounded-full border border-ink/15 px-4 py-1.5 text-xs font-semibold text-ink/70 hover:border-ink/40 hover:text-ink">
+                        Редактировать
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </section>
+
+              <section>
                 <h2 className="mb-3 text-lg font-semibold">Команда компании</h2>
                 <div className="glass rounded-xl p-5">
                   <p className="text-sm text-ink/60">Несколько сотрудников на один аккаунт — каждую вакансию можно закрепить за конкретным человеком (см. вкладку «Вакансии»).</p>
@@ -653,6 +729,35 @@ export default function EmployerAccount() {
                       </div>
                       <p className="mt-1 text-sm text-ink/60">{r.text}</p>
                       <div className="mt-1 text-xs text-ink/40">{new Date(r.date).toLocaleDateString('ru-RU')}</div>
+
+                      {r.reply ? (
+                        <div className="mt-3 rounded-lg bg-ink/[0.04] p-3">
+                          <div className="text-xs font-semibold text-ink/50">Ответ работодателя · {new Date(r.reply.date).toLocaleDateString('ru-RU')}</div>
+                          <p className="mt-1 text-sm text-ink/70">{r.reply.text}</p>
+                        </div>
+                      ) : replyingReviewId === r.id ? (
+                        <div className="mt-2 flex gap-2">
+                          <input
+                            autoFocus
+                            value={replyDraft}
+                            onChange={(e) => setReplyDraft(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleReviewReplySubmit(r.id)}
+                            placeholder="Публичный ответ на отзыв…"
+                            className="flex-1 rounded-lg border border-ink/15 px-3 py-1.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+                          />
+                          <button type="button" onClick={() => handleReviewReplySubmit(r.id)} className="shrink-0 rounded-full bg-ink px-4 py-1.5 text-xs font-semibold text-white hover:bg-ink/90">
+                            Ответить
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => { setReplyingReviewId(r.id); setReplyDraft('') }}
+                          className="mt-2 text-xs font-semibold text-ink/50 hover:text-ink"
+                        >
+                          Ответить на отзыв
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>
