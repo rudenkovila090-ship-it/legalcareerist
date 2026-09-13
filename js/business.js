@@ -269,7 +269,7 @@ function renderCommunity() {
       const c = journalRowCalc(r);
       return `
       <tr>
-        <td class="small">${r.date}</td>
+        <td class="small">${fmtDateRu(r.date)}</td>
         <td class="small">${r.applications || 0}</td>
         <td class="small">${r.joined || 0}</td>
         <td class="small">${r.left || 0}</td>

@@ -76,10 +76,10 @@ function findWeekById(id) {
 }
 
 function weekLabel(w) {
-  return `Блок ${w.blockId}, неделя ${w.weekIndex} (${w.start}–${w.end})`;
+  return `Блок ${w.blockId}, неделя ${w.weekIndex} (${fmtDateRu(w.start)}–${fmtDateRu(w.end)})`;
 }
 function weekLabelShort(w) {
-  return `Неделя ${w.weekIndex} (${w.start}–${w.end})`;
+  return `Неделя ${w.weekIndex} (${fmtDateRu(w.start)}–${fmtDateRu(w.end)})`;
 }
 
 // Устойчивые (латиница, без пробелов) CSS-классы для цветных статус-пилюль.
@@ -196,13 +196,13 @@ function renderDashboard() {
   const attention = attentionItems(state, week, block);
 
   const weekOptions = weeksOfBlock(block).map((w) => `<option value="${w.id}" ${w.id === week.id ? 'selected' : ''}>${weekLabelShort(w)}</option>`).join('');
-  const blockOptions = state.blocks.map((b) => `<option value="${b.id}" ${b.id === block.id ? 'selected' : ''}>Блок ${b.id} (${b.start}–${b.end})</option>`).join('');
+  const blockOptions = state.blocks.map((b) => `<option value="${b.id}" ${b.id === block.id ? 'selected' : ''}>Блок ${b.id} (${fmtDateRu(b.start)}–${fmtDateRu(b.end)})</option>`).join('');
 
   return `
     <div class="week-picker">
       <label>Блок: <select id="dash-block-select">${blockOptions}</select></label>
       <label>Неделя: <select id="dash-week-select">${weekOptions}</select></label>
-      <span class="muted small">Сегодня: ${today}</span>
+      <span class="muted small">Сегодня: ${fmtDateRu(today)}</span>
     </div>
 
     <h2>Три цели</h2>
@@ -310,7 +310,7 @@ function renderTasks() {
       <td>
         <select class="task-status-select" data-id="${t.id}">${statusOptions(t.status)}</select>
       </td>
-      <td class="small">${t.plannedDate || ''}</td>
+      <td class="small">${fmtDateRu(t.plannedDate)}</td>
       <td><button class="ghost-danger task-delete" data-id="${t.id}">Удалить</button></td>
     </tr>`).join('');
 
@@ -407,7 +407,7 @@ function renderDaily() {
     const overdue = t.plannedDate && t.plannedDate < date;
     return `
     <tr data-id="${t.id}">
-      <td>${t.title}${overdue ? ` <span class="status-pill risk">просрочено с ${t.plannedDate}</span>` : ''}</td>
+      <td>${t.title}${overdue ? ` <span class="status-pill risk">просрочено с ${fmtDateRu(t.plannedDate)}</span>` : ''}</td>
       <td class="small">${STREAMS.find((s) => s.id === t.streamId)?.name || ''}</td>
       <td><select class="daily-status-select" data-id="${t.id}">${statusOptions(t.status)}</select></td>
     </tr>`;
@@ -541,7 +541,7 @@ function renderFinance() {
     .map((s) => `
     <tr data-id="${s.id}">
       <td>${STREAMS.find((st) => st.id === s.streamId)?.name || ''}</td>
-      <td class="small">${s.periodStart} – ${s.periodEnd}</td>
+      <td class="small">${fmtDateRu(s.periodStart)} – ${fmtDateRu(s.periodEnd)}</td>
       <td>${fmtMoney(s.amount)} ₽</td>
       <td class="small muted">${s.note || ''}</td>
       <td><button class="ghost-danger fin-delete" data-id="${s.id}">Удалить</button></td>
@@ -613,7 +613,7 @@ function renderBlocks() {
   const blockRows = state.blocks.map((b) => `
     <tr data-block="${b.id}">
       <td>${b.id}</td>
-      <td class="small">${b.start} – ${b.end}</td>
+      <td class="small">${fmtDateRu(b.start)} – ${fmtDateRu(b.end)}</td>
       ${GOALS.map((g) => `<td><input type="number" class="block-target" data-block="${b.id}" data-goal="${g.id}" value="${b.targets[g.id]}"></td>`).join('')}
     </tr>`).join('');
 
@@ -642,12 +642,12 @@ function renderBlocks() {
 
   return `
     <div class="card">
-      <h2>Промежуточные цели блоков (редактируемые)</h2>
+      <h2>Промежуточные цели блоков</h2>
+      <p class="small muted">Сколько нужно достичь к концу каждого блока, чтобы выйти на годовую цель. Правьте по итогам каждого блока — вручную, по факту.</p>
       <table>
-        <thead><tr><th>Блок</th><th>Даты</th>${GOALS.map((g) => `<th>${g.id}</th>`).join('')}</tr></thead>
+        <thead><tr><th>Блок</th><th>Даты</th>${GOALS.map((g) => `<th>${GOAL_SHORT[g.id] || g.name}<br><span class="small muted">${g.unit}</span></th>`).join('')}</tr></thead>
         <tbody>${blockRows}</tbody>
       </table>
-      <p class="small muted">Правьте по итогам каждого блока.</p>
     </div>
 
     <div class="card">

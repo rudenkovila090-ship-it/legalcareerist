@@ -9,6 +9,13 @@ function parseDate(s) {
   return new Date(Date.UTC(y, m - 1, d));
 }
 
+/** Отображение даты для пользователя: 'YYYY-MM-DD' -> 'ДД.ММ.ГГГГ'. */
+function fmtDateRu(s) {
+  if (!s) return '';
+  const [y, m, d] = s.split('-');
+  return `${d}.${m}.${y}`;
+}
+
 function fmtDate(d) {
   if (typeof d === 'string') return d;
   const y = d.getUTCFullYear();
