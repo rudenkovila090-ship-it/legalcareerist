@@ -233,6 +233,11 @@ export default function EmployerAccount() {
   // можно закреплять за конкретным человеком (см. lib/team.ts).
   const [team, setTeam] = useState(() => getTeamMembers())
   const [teamForm, setTeamForm] = useState({ name: '', position: '', email: '' })
+  // Права доступа: демо-переключение «посмотреть как сотрудник» — один
+  // логин на компанию, но так видно разницу в доступе владельца и
+  // рекрутера (рекрутер видит только свои вакансии, без рейтинга/
+  // финансов/управления командой).
+  const [viewingMemberId, setViewingMemberId] = useState(OWNER_ID)
 
   // Встроенный чат с соискателями — общий localStorage с кабинетом
   // соискателя (см. lib/chat.ts), тред открывается из отклика на вакансию.
@@ -327,6 +332,12 @@ export default function EmployerAccount() {
     setChatDraft('')
   }
 
+  const isOwnerView = viewingMemberId === OWNER_ID
+  const viewingMember = team.find((m) => m.id === viewingMemberId)
+  // Рекрутер видит только вакансии, закрепленные за ним (см. responsibleId
+  // и селектор «Ответственный» в разделе «Вакансии»).
+  const scopeVacancies = isOwnerView ? vacancies : vacancies.filter((v) => v.responsibleId === viewingMemberId)
+
   const rating = computeEmployerRating(reviews, rankingBonus(rankings))
 
   // Автоподсчет по зарплатам, которые сам работодатель указал в
@@ -348,7 +359,7 @@ export default function EmployerAccount() {
   // Воронка по откликам — реальный подсчет по вакансиям и откликам
   // работодателя, не выдуманные проценты: сколько откликов на каждом
   // статусе и сколько дней прошло от публикации вакансии до первого отклика.
-  const allResponses = getResponses().filter((r) => vacancies.some((v) => v.id === r.vacancyId))
+  const allResponses = getResponses().filter((r) => scopeVacancies.some((v) => v.id === r.vacancyId))
   const funnel = {
     total: allResponses.length,
     new: allResponses.filter((r) => r.status === 'new').length,
@@ -356,7 +367,7 @@ export default function EmployerAccount() {
     offer: allResponses.filter((r) => r.status === 'offer').length,
     rejected: allResponses.filter((r) => r.status === 'rejected').length,
   }
-  const daysToFirstResponse = vacancies
+  const daysToFirstResponse = scopeVacancies
     .filter((v) => v.publishedAt)
     .map((v) => {
       const responses = allResponses.filter((r) => r.vacancyId === v.id)
@@ -536,6 +547,14 @@ export default function EmployerAccount() {
 
           {section === 'profile' && (
             <div className="space-y-8">
+              {!isOwnerView && (
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                  <span>Вы смотрите кабинет как «{viewingMember?.name}» ({viewingMember?.position}) — часть раздела «Профиль» доступна только владельцу аккаунта.</span>
+                  <button type="button" onClick={() => setViewingMemberId(OWNER_ID)} className="shrink-0 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-100">
+                    Вернуться как владелец
+                  </button>
+                </div>
+              )}
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="glass rounded-xl p-5">
                   <div className="text-sm text-ink/50">Компания</div>
@@ -596,20 +615,23 @@ export default function EmployerAccount() {
 
                 {/* Рейтинг: средняя оценка по отзывам (до 80 очков) + бонус за
                     подтвержденные места в рейтингах (до 20 очков) — черновая
-                    демо-формула, см. lib/reviews.ts. */}
-                <div className="glass rounded-xl p-5">
-                  <div className="text-sm text-ink/50">Рейтинг работодателя</div>
-                  <div className="mt-2 flex items-baseline gap-2">
-                    <span className="text-2xl font-semibold text-ink">{rating.score}</span>
-                    <span className="text-sm text-ink/40">/ 100</span>
+                    демо-формула, см. lib/reviews.ts. Финансы/рейтинг —
+                    только для владельца, не для рекрутера (см. viewingMemberId). */}
+                {isOwnerView && (
+                  <div className="glass rounded-xl p-5">
+                    <div className="text-sm text-ink/50">Рейтинг работодателя</div>
+                    <div className="mt-2 flex items-baseline gap-2">
+                      <span className="text-2xl font-semibold text-ink">{rating.score}</span>
+                      <span className="text-sm text-ink/40">/ 100</span>
+                    </div>
+                    <div className="mt-1 text-xs text-ink/50">
+                      {rating.averageRating > 0 ? `★ ${rating.averageRating} · ${rating.reviewsCount} отзывов` : 'Пока нет отзывов'}
+                      {rankings.length > 0 && ` · ${rankings.length} мест(а) в рейтингах`}
+                    </div>
                   </div>
-                  <div className="mt-1 text-xs text-ink/50">
-                    {rating.averageRating > 0 ? `★ ${rating.averageRating} · ${rating.reviewsCount} отзывов` : 'Пока нет отзывов'}
-                    {rankings.length > 0 && ` · ${rankings.length} мест(а) в рейтингах`}
-                  </div>
-                </div>
+                )}
 
-                {salaryStats && (
+                {isOwnerView && salaryStats && (
                   <div className="glass rounded-xl p-5">
                     <div className="text-sm text-ink/50">Зарплаты по вашим вакансиям</div>
                     <div className="mt-2 text-sm font-medium text-ink">
@@ -620,6 +642,7 @@ export default function EmployerAccount() {
                 )}
               </div>
 
+              {isOwnerView && (
               <section>
                 <h2 className="mb-3 text-lg font-semibold">Публичная карточка работодателя</h2>
                 <div className="glass rounded-xl p-5">
@@ -668,7 +691,9 @@ export default function EmployerAccount() {
                   )}
                 </div>
               </section>
+              )}
 
+              {isOwnerView && (
               <section>
                 <h2 className="mb-3 text-lg font-semibold">Команда компании</h2>
                 <div className="glass rounded-xl p-5">
@@ -681,7 +706,10 @@ export default function EmployerAccount() {
                           <div className="text-xs text-ink/50">{m.position}{m.email && ` · ${m.email}`}</div>
                         </div>
                         {m.role !== 'owner' && (
-                          <button type="button" onClick={() => handleRemoveTeamMember(m.id)} className="text-ink/40 hover:text-red-600">Удалить</button>
+                          <div className="flex items-center gap-3">
+                            <button type="button" onClick={() => setViewingMemberId(m.id)} className="text-xs font-semibold text-ink/50 hover:text-ink">Смотреть как</button>
+                            <button type="button" onClick={() => handleRemoveTeamMember(m.id)} className="text-ink/40 hover:text-red-600">Удалить</button>
+                          </div>
                         )}
                       </div>
                     ))}
@@ -716,6 +744,7 @@ export default function EmployerAccount() {
                   </form>
                 </div>
               </section>
+              )}
 
               <section>
                 <h2 className="mb-3 text-lg font-semibold">Отзывы соискателей</h2>
@@ -763,6 +792,7 @@ export default function EmployerAccount() {
                 </div>
               </section>
 
+              {isOwnerView && (
               <section>
                 <h2 className="mb-3 text-lg font-semibold">Места в рейтингах</h2>
                 <div className="glass rounded-xl p-5">
@@ -817,6 +847,7 @@ export default function EmployerAccount() {
                   )}
                 </div>
               </section>
+              )}
             </div>
           )}
 
@@ -907,9 +938,14 @@ export default function EmployerAccount() {
                   </div>
                 </div>
 
-                {vacancies.length > 0 && (
+                {!isOwnerView && (
+                  <p className="mt-4 border-t border-ink/10 pt-4 text-xs text-ink/50">
+                    Вы смотрите как «{viewingMember?.name}» — видны только вакансии, закрепленные за этим сотрудником.
+                  </p>
+                )}
+                {scopeVacancies.length > 0 && (
                   <div className="mt-4 divide-y divide-ink/10 border-t border-ink/10">
-                    {vacancies.map((v) => (
+                    {scopeVacancies.map((v) => (
                       <div key={v.id} className="py-4">
                         <div className="flex flex-wrap items-start justify-between gap-3">
                           <div>
@@ -1206,18 +1242,22 @@ export default function EmployerAccount() {
           {section === 'orders' && (
             <section>
               <h2 className="mb-3 text-lg font-semibold">Заказы</h2>
-              <div className="glass divide-y divide-ink/10 rounded-xl">
-                {orders.length === 0 && <p className="p-5 text-sm text-ink/50">Пока нет заказов.</p>}
-                {orders.map((o) => (
-                  <div key={o.id} className="flex items-center justify-between p-4">
-                    <div>
-                      <div className="font-medium">{o.title}</div>
-                      <div className="text-xs text-ink/50">{new Date(o.date).toLocaleDateString('ru-RU')}</div>
+              {isOwnerView ? (
+                <div className="glass divide-y divide-ink/10 rounded-xl">
+                  {orders.length === 0 && <p className="p-5 text-sm text-ink/50">Пока нет заказов.</p>}
+                  {orders.map((o) => (
+                    <div key={o.id} className="flex items-center justify-between p-4">
+                      <div>
+                        <div className="font-medium">{o.title}</div>
+                        <div className="text-xs text-ink/50">{new Date(o.date).toLocaleDateString('ru-RU')}</div>
+                      </div>
+                      <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">{o.status}</span>
                     </div>
-                    <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">{o.status}</span>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="glass rounded-xl p-5 text-sm text-ink/50">История заказов и оплат доступна только владельцу аккаунта.</p>
+              )}
             </section>
           )}
 
