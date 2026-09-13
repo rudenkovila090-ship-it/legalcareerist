@@ -100,13 +100,25 @@ function ProductCard({ m }: { m: MaterialItem }) {
         <h3 className="font-semibold leading-snug">{m.title}</h3>
         <p className="mt-1.5 line-clamp-2 text-sm text-ink/60">{m.description}</p>
 
-        {m.rating !== undefined && (
-          <div className="mt-2 flex items-center gap-2 text-xs text-ink/50">
-            <Stars rating={m.rating} />
-            <span>{m.rating.toFixed(1)}</span>
-            {m.reviewsCount !== undefined && <span>· {m.reviewsCount} отзывов</span>}
-          </div>
-        )}
+        {/* Рейтинг и отзывы — показываем на каждой карточке для единообразия
+            (звезды-пустышки + честная подпись, если у материала пока нет
+            реальных отзывов), не только там, где они уже накопились — иначе
+            карточки без рейтинга были на строку короче и кнопка "Купить"
+            съезжала с общей линии (см. пункт 6 гайда — flex-1-спейсер решает
+            это же для карточек с разной длиной текста). */}
+        <div className="mt-2 flex items-center gap-2 text-xs text-ink/50">
+          <Stars rating={m.rating ?? 0} />
+          {m.rating !== undefined ? (
+            <>
+              <span>{m.rating.toFixed(1)}</span>
+              {m.reviewsCount !== undefined && <span>· {m.reviewsCount} отзывов</span>}
+            </>
+          ) : (
+            <span>Пока нет отзывов</span>
+          )}
+        </div>
+
+        <div className="flex-1" />
 
         <span className="mt-4 rounded-full bg-ink py-2.5 text-center text-sm font-semibold text-white hover:bg-ink/90">
           {free || m.freePreview ? 'Посмотреть бесплатно' : `Купить за ${money.format(fromPrice)} ₽`}
