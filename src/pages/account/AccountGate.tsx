@@ -21,6 +21,14 @@ function IconEmployer() {
     </svg>
   )
 }
+function IconModerator() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6">
+      <path d="M12 3.5 5 6.5v5c0 4.5 2.9 7.6 7 8.5 4.1-.9 7-4 7-8.5v-5L12 3.5Z" />
+      <path d="M9.3 12l1.9 1.9 3.5-3.9" />
+    </svg>
+  )
+}
 
 // /account — точка входа в личный кабинет: без пароля (по решению
 // заказчика для прототипа), кнопка "Войти как…" запоминает роль в
@@ -39,7 +47,9 @@ export default function AccountGate() {
 
   function enter(next: ActiveRole) {
     setActiveRole(next)
-    navigate(next === 'candidate' ? '/account/candidate' : '/account/employer')
+    if (next === 'candidate') navigate('/account/candidate')
+    else if (next === 'employer') navigate('/account/employer')
+    else navigate('/account/moderator')
   }
 
   return (
@@ -55,7 +65,7 @@ export default function AccountGate() {
         prototype
       />
 
-      <div className="container-page grid gap-5 py-12 sm:grid-cols-2">
+      <div className="container-page grid gap-5 py-12 sm:grid-cols-2 lg:grid-cols-3">
         <button type="button" onClick={() => enter('employer')} className="glass relative block rounded-2xl p-6 text-left">
           {role === 'employer' && (
             <span className="absolute right-5 top-5 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700">Текущий кабинет</span>
@@ -85,6 +95,22 @@ export default function AccountGate() {
           </p>
           <span className="mt-4 inline-block rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white">
             {role === 'candidate' ? 'Продолжить →' : 'Войти →'}
+          </span>
+        </button>
+
+        <button type="button" onClick={() => enter('moderator')} className="glass relative block rounded-2xl p-6 text-left">
+          {role === 'moderator' && (
+            <span className="absolute right-5 top-5 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700">Текущий кабинет</span>
+          )}
+          <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-ink text-white">
+            <IconModerator />
+          </div>
+          <h2 className="mt-1 text-xl font-semibold">Войти как модератор</h2>
+          <p className="mt-2 text-sm text-ink/60">
+            Демо-роль администратора площадки — модерация мероприятий от организаторов (одобрить/отклонить).
+          </p>
+          <span className="mt-4 inline-block rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white">
+            {role === 'moderator' ? 'Продолжить →' : 'Войти →'}
           </span>
         </button>
       </div>

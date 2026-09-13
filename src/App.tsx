@@ -25,6 +25,7 @@ const PurchaseCabinet = lazy(() => import('./pages/materials/PurchaseCabinet'))
 const AccountGate = lazy(() => import('./pages/account/AccountGate'))
 const CandidateAccount = lazy(() => import('./pages/account/CandidateAccount'))
 const EmployerAccount = lazy(() => import('./pages/account/EmployerAccount'))
+const ModeratorAccount = lazy(() => import('./pages/account/ModeratorAccount'))
 const ResumeBuilder = lazy(() => import('./pages/account/ResumeBuilder'))
 const ResumeView = lazy(() => import('./pages/account/ResumeView'))
 const VacancyBuilder = lazy(() => import('./pages/account/VacancyBuilder'))
@@ -115,6 +116,7 @@ export default function App() {
           <Route path="/account/candidate/resume/:id/edit" element={<ResumeBuilder />} />
           <Route path="/account/candidate/resume/:id" element={<ResumeView />} />
           <Route path="/account/employer" element={<EmployerAccount />} />
+          <Route path="/account/moderator" element={<ModeratorAccount />} />
           <Route path="/account/employer/vacancy/new" element={<VacancyBuilder />} />
           <Route path="/account/employer/vacancy/:id/edit" element={<VacancyBuilder />} />
 

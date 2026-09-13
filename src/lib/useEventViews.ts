@@ -1,11 +1,19 @@
 import { useEffect, useState } from 'react'
 
+interface EventStats {
+  slug: string
+  views: number
+  registrations: number
+}
+
 /**
  * Реальный (не демо) счетчик просмотров мероприятия — +1 при каждом
  * открытии детальной страницы. По аналогии с useArticleViews/useNewsViews.
+ * Возвращает и views, и registrations (переходы к регистрации) — второе
+ * число не увеличивается этим хуком, только читается вместе с первым.
  */
 export function useEventViews(slug: string) {
-  const [state, setState] = useState<{ slug: string; views: number } | null>(null)
+  const [state, setState] = useState<EventStats | null>(null)
 
   useEffect(() => {
     if (!slug) return
@@ -13,7 +21,7 @@ export function useEventViews(slug: string) {
     fetch(`/api/event/${slug}/view`, { method: 'POST' })
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (!cancelled && data) setState({ slug, views: data.views })
+        if (!cancelled && data) setState({ slug, views: data.views, registrations: data.registrations ?? 0 })
       })
       .catch(() => {})
     return () => {
@@ -25,9 +33,10 @@ export function useEventViews(slug: string) {
 }
 
 /** Только чтение — для кабинета организатора (список мероприятий), не
- *  увеличивает счетчик. */
+ *  увеличивает счетчик. Возвращает { views, registrations } или null,
+ *  пока не пришел ответ. */
 export function useEventViewCount(slug: string) {
-  const [state, setState] = useState<{ slug: string; views: number } | null>(null)
+  const [state, setState] = useState<EventStats | null>(null)
 
   useEffect(() => {
     if (!slug) return
@@ -35,7 +44,7 @@ export function useEventViewCount(slug: string) {
     fetch(`/api/event/${slug}/views`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (!cancelled && data) setState({ slug, views: data.views })
+        if (!cancelled && data) setState({ slug, views: data.views, registrations: data.registrations ?? 0 })
       })
       .catch(() => {})
     return () => {
@@ -43,5 +52,5 @@ export function useEventViewCount(slug: string) {
     }
   }, [slug])
 
-  return state && state.slug === slug ? state.views : null
+  return state && state.slug === slug ? state : null
 }

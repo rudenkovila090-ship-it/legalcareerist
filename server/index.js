@@ -23,6 +23,8 @@
 //    (+1 при каждом открытии).
 // 10. POST /api/event/:slug/view — реальный счётчик просмотров мероприятия
 //     (+1 при каждом открытии).
+// 11. POST /api/event/:slug/register — реальный счётчик переходов к
+//     регистрации на мероприятие (внешняя ссылка или внутренняя форма).
 // Токены и секретные ключи — только в server/.env, в репозиторий не попадают.
 import express from 'express'
 import cors from 'cors'
@@ -33,7 +35,7 @@ import { createPendingPurchase, getPurchase, markPurchasePaidByPhone } from './l
 import { incrementView, incrementApplication } from './lib/vacancyStats.js'
 import { incrementArticleView, getArticleViews } from './lib/articleStats.js'
 import { incrementNewsView, getNewsViews } from './lib/newsStats.js'
-import { incrementEventView, getEventViews } from './lib/eventStats.js'
+import { incrementEventView, incrementEventRegistration, getEventStats } from './lib/eventStats.js'
 
 const app = express()
 app.use(cors())
@@ -118,11 +120,20 @@ app.post('/api/event/:slug/view', (req, res) => {
 })
 
 app.get('/api/event/:slug/views', (req, res) => {
-  res.json({ ok: true, views: getEventViews(req.params.slug) })
+  res.json({ ok: true, ...getEventStats(req.params.slug) })
+})
+
+// Переход к регистрации на мероприятие — клик по внешней ссылке
+// организатора (без формы) или отправка внутренней формы (см. /api/notify
+// ниже — eventSlug там ведет сюда же). Отдельный от просмотров счетчик:
+// «сколько человек реально дошли до регистрации», не просто открыли карточку.
+app.post('/api/event/:slug/register', (req, res) => {
+  const stats = incrementEventRegistration(req.params.slug)
+  res.json({ ok: true, ...stats })
 })
 
 app.post('/api/notify', async (req, res) => {
-  const { source, formType, name, contact, interest, vacancySlug } = req.body ?? {}
+  const { source, formType, name, contact, interest, vacancySlug, eventSlug } = req.body ?? {}
 
   // Отклик на вакансию — считаем реальный счётчик независимо от того,
   // настроен ли Telegram-бот ниже: заявка не должна "теряться" из
@@ -132,6 +143,16 @@ app.post('/api/notify', async (req, res) => {
       incrementApplication(vacancySlug)
     } catch (err) {
       console.error('[notify] ошибка счётчика откликов:', err)
+    }
+  }
+
+  // Регистрация на мероприятие — тот же принцип: считаем независимо от
+  // Telegram-уведомления.
+  if (eventSlug) {
+    try {
+      incrementEventRegistration(eventSlug)
+    } catch (err) {
+      console.error('[notify] ошибка счётчика регистраций на мероприятие:', err)
     }
   }
 

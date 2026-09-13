@@ -24,6 +24,8 @@ export interface LeadInput {
   interest?: string[]
   /** Slug вакансии — если задан, бэкенд считает это в реальный счетчик откликов вакансии. */
   vacancySlug?: string
+  /** Slug мероприятия — если задан, бэкенд считает это в реальный счетчик переходов к регистрации. */
+  eventSlug?: string
 }
 
 // Номер заявки — короткий, читаемый на слух номер для клиента (не техничный
@@ -50,14 +52,15 @@ export function submitLead(input: LeadInput): Lead {
   localStorage.setItem(LEADS_KEY, JSON.stringify(all))
 
   trackEvent('lead_submit', { source: input.sourceBlock, form: input.formType })
-  notifyTelegram(lead, input.vacancySlug)
+  notifyTelegram(lead, input.vacancySlug, input.eventSlug)
 
   return lead
 }
 
 /** Уведомление админу в Telegram — не блокирует отправку формы при ошибке/недоступности бэкенда.
- *  vacancySlug (если есть) заодно учитывается бэкендом в реальном счетчике откликов вакансии. */
-function notifyTelegram(lead: Lead, vacancySlug?: string) {
+ *  vacancySlug/eventSlug (если есть) заодно учитываются бэкендом в реальном счетчике
+ *  откликов вакансии / переходов к регистрации на мероприятие. */
+function notifyTelegram(lead: Lead, vacancySlug?: string, eventSlug?: string) {
   if (typeof fetch === 'undefined') return
   fetch('/api/notify', {
     method: 'POST',
@@ -69,10 +72,20 @@ function notifyTelegram(lead: Lead, vacancySlug?: string) {
       contact: lead.contact,
       interest: lead.interest,
       vacancySlug,
+      eventSlug,
     }),
   }).catch(() => {
     // Бэкенд недоступен/не настроен — заявка все равно сохранена в localStorage, не мешаем пользователю.
   })
+}
+
+/** Отдельный, не завязанный на лид-форму счетчик перехода к регистрации —
+ *  для клика по внешней ссылке организатора (TimePad и т.п.), где нет
+ *  формы для submitLead. Тот же счетчик на бэкенде, что и у внутренней
+ *  регистрации (см. /api/event/:slug/register). */
+export function pingEventRegistrationClick(eventSlug: string) {
+  if (typeof fetch === 'undefined') return
+  fetch(`/api/event/${eventSlug}/register`, { method: 'POST' }).catch(() => {})
 }
 
 export function getLeads(): Lead[] {

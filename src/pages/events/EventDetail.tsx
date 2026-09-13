@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { events } from '../../data/events'
 import RelatedContentBlock from '../../components/RelatedContentBlock'
 import { getRelatedContent } from '../../lib/related'
-import { submitLead } from '../../lib/leads'
+import { submitLead, pingEventRegistrationClick } from '../../lib/leads'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import PhoneInput from '../../components/PhoneInput'
 import EventsFooter from './EventsFooter'
@@ -197,6 +197,7 @@ export default function EventDetail() {
       name: form.fio,
       contact: [form.phone, form.email, form.telegram].filter(Boolean).join(' / '),
       interest: [event.title, tariff.name],
+      eventSlug: event.slug,
     })
     registerForEvent(event.id, event.title)
     setRegistered(true)
@@ -275,6 +276,7 @@ export default function EventDetail() {
                 href={event.registrationLink}
                 target="_blank"
                 rel="noreferrer"
+                onClick={() => pingEventRegistrationClick(event.slug)}
                 className="rounded-full bg-white px-8 py-3 text-sm font-semibold text-ink hover:opacity-90"
               >
                 Зарегистрироваться на сайте организатора
@@ -504,6 +506,7 @@ export default function EventDetail() {
                     href={event.registrationLink}
                     target="_blank"
                     rel="noreferrer"
+                    onClick={() => pingEventRegistrationClick(event.slug)}
                     className="mt-4 block rounded-lg bg-ink py-2.5 text-center text-sm font-semibold text-white hover:bg-ink/90"
                   >
                     Регистрация на сайте организатора

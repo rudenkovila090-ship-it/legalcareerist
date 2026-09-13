@@ -111,13 +111,14 @@ const eventFormatOptions: { id: EventFormat; label: string }[] = [
   { id: 'offline', label: 'Офлайн' },
 ]
 
-/** Просмотры мероприятия из публичного каталога — только для технических
- *  примеров, у которых есть реальная страница /events/:slug (см.
- *  lib/organizerEvents.ts). Отдельный компонент, а не вызов хука прямо в
- *  .map — иначе число хуков между рендерами плавает вместе со списком. */
+/** Просмотры и переходы к регистрации мероприятия из публичного каталога —
+ *  только для технических примеров, у которых есть реальная страница
+ *  /events/:slug (см. lib/organizerEvents.ts). Отдельный компонент, а не
+ *  вызов хука прямо в .map — иначе число хуков между рендерами плавает
+ *  вместе со списком. */
 function CatalogEventViews({ slug }: { slug: string }) {
-  const views = useEventViewCount(slug)
-  return <>{views ?? '—'} просмотров</>
+  const stats = useEventViewCount(slug)
+  return <>{stats?.views ?? '—'} просмотров · {stats?.registrations ?? '—'} переходов к регистрации</>
 }
 const stageMailingButtonLabel: Record<VacancyVisibilityStage, string> = {
   residents: 'Разослать резидентам сообщества',
