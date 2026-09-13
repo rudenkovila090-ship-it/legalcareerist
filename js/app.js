@@ -99,8 +99,22 @@ function statusPill(text) {
   return `<span class="status-pill ${cls}">${text}</span>`;
 }
 
+// Красит сам <select> статуса цветным фоном по важности (не только пилюли).
+function applyStatusSelectStyle(selectEl) {
+  Object.values(STATUS_CLASS).forEach((cls) => selectEl.classList.remove(`status-select-${cls}`));
+  const cls = STATUS_CLASS[selectEl.value] || 'not-started';
+  selectEl.classList.add(`status-select-${cls}`);
+}
+
 // Короткие названия целей для тесных колонок таблиц.
 const GOAL_SHORT = { G1: 'Выручка КЮ', G2: 'Личный доход', G3: 'Накопления' };
+
+// Простые линейные иконки для стат-плиток целей на дашборде.
+const GOAL_ICONS = {
+  G1: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,17 9,11 13,15 21,5"/><polyline points="14,5 21,5 21,12"/></svg>',
+  G2: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/><path d="M16 15h2"/></svg>',
+  G3: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="7" rx="8" ry="3"/><path d="M4 7v10c0 1.7 3.6 3 8 3s8-1.3 8-3V7"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>',
+};
 
 function findBlockById(id) {
   return state.blocks.find((b) => b.id === id);
@@ -158,10 +172,12 @@ function renderDashboard() {
     const fact = goalCurrentFact(state, g.id, today);
     return `
     <div class="card goal-card">
-      <div class="goal-card-head">
-        <span class="goal-name">${g.name}</span>
+      <div class="goal-card-top">
+        <div class="goal-icon">${GOAL_ICONS[g.id] || ''}</div>
         <span class="signal-badge ${sig.code}">${sig.label}</span>
       </div>
+      <div class="goal-label">${g.name}</div>
+      <div class="goal-value">${fmtMoney(fact)}<span class="goal-unit">${g.unit}</span></div>
       <div class="progress-row">
         <span class="progress-label">Блок</span>
         <div class="progress-bar"><div class="progress-fill" style="width:${blockPct}%"></div></div>
@@ -172,7 +188,7 @@ function renderDashboard() {
         <div class="progress-bar"><div class="progress-fill cycle" style="width:${cyclePct}%"></div></div>
         <span class="progress-pct">${progressToCycleGoal(state, g.id, today) === null ? '—' : fmtPct(progressToCycleGoal(state, g.id, today))}</span>
       </div>
-      <div class="goal-meta">Факт: ${fmtMoney(fact)} ${g.unit} · Цель блока: ${fmtMoney(block.targets[g.id])} · Финал: ${fmtMoney(g.target)} ${g.unit}</div>
+      <div class="goal-meta">Цель блока: ${fmtMoney(block.targets[g.id])} · Финал: ${fmtMoney(g.target)} ${g.unit}</div>
       <div class="goal-meta">Выполнение плана за неделю: ${sig.execScore === null ? '—' : fmtPct(sig.execScore)}</div>
       <div class="goal-signal-text">${sig.text}</div>
     </div>`;
@@ -286,15 +302,11 @@ function weekOptionsAll(selected) {
 function priorityOptions(selected) {
   return TASK_PRIORITIES.map((p) => `<option value="${p}" ${p === selected ? 'selected' : ''}>${p}</option>`).join('');
 }
-function linkTypeOptions(selected) {
-  return TASK_LINK_TYPES.map((p) => `<option value="${p}" ${p === selected ? 'selected' : ''}>${p}</option>`).join('');
-}
 function statusOptions(selected) {
   return TASK_STATUSES.map((p) => `<option value="${p}" ${p === selected ? 'selected' : ''}>${p}</option>`).join('');
 }
 
 function renderTasks() {
-  const defaultWeek = ui.selectedWeekId;
   const defaultStream = STREAMS[0].id;
   const rows = state.tasks
     .slice()
@@ -318,16 +330,16 @@ function renderTasks() {
     <div class="card">
       <h2>Быстрое добавление задачи</h2>
       <form id="task-form" class="inline-form">
-        <div class="field"><label>Название</label><input type="text" name="title" required placeholder="Например: написать 10 писем"></div>
+        <div class="field"><label>Название</label><input type="text" id="task-title-input" name="title" required placeholder="Например: написать 10 писем"></div>
         <div class="field"><label>Направление</label><select name="streamId" id="task-stream-select">${streamOptions(defaultStream)}</select></div>
         <div class="field"><label>Цель</label><select name="goalId" id="task-goal-select">${goalOptionsFor(defaultStream)}</select></div>
-        <div class="field"><label>Неделя</label><select name="weekId">${weekOptionsAll(defaultWeek)}</select></div>
         <div class="field"><label>Приоритет</label><select name="priority">${priorityOptions()}</select></div>
-        <div class="field"><label>Тип связи с целью</label><select name="linkType">${linkTypeOptions()}</select></div>
+        <div class="field"><label>Тип связи с целью</label><div class="auto-value" id="task-linktype-preview">${inferLinkType('')}</div></div>
         <div class="field"><label>Плановая дата</label><input type="date" name="plannedDate" value="${todayStr()}"></div>
         <div class="field"><label>Вклад в лид-показатель (число)</label><input type="number" name="metricContribution" step="any" placeholder="напр. 12"></div>
         <button type="submit" class="primary">Добавить задачу</button>
       </form>
+      <p class="small muted">Тип связи с целью определяется автоматически по названию задачи. Неделя и блок определяются по плановой дате.</p>
     </div>
 
     <div class="card">
@@ -347,23 +359,31 @@ function bindTasksEvents() {
     goalSel.innerHTML = goalOptionsFor(streamSel.value);
   });
 
+  const titleInput = document.getElementById('task-title-input');
+  const linkTypePreview = document.getElementById('task-linktype-preview');
+  titleInput.addEventListener('input', () => {
+    linkTypePreview.textContent = inferLinkType(titleInput.value);
+  });
+
   document.getElementById('task-form').addEventListener('submit', (e) => {
     e.preventDefault();
     const fd = new FormData(e.target);
     const streamId = fd.get('streamId');
-    const weekId = fd.get('weekId');
-    const week = findWeekById(weekId);
+    const title = fd.get('title');
+    const plannedDate = fd.get('plannedDate') || todayStr();
+    // Неделя и блок определяются автоматически по плановой дате.
+    const week = findWeekForDate(state.blocks, plannedDate);
     const task = {
       id: uid('task'),
-      title: fd.get('title'),
+      title,
       streamId,
       goalId: fd.get('goalId'),
       blockId: week ? week.blockId : ui.selectedBlockId,
-      weekId,
+      weekId: week ? week.id : ui.selectedWeekId,
       priority: fd.get('priority'),
-      linkType: fd.get('linkType'),
+      linkType: inferLinkType(title),
       status: 'не начато',
-      plannedDate: fd.get('plannedDate') || null,
+      plannedDate,
       actualDate: null,
       metricContribution: fd.get('metricContribution') ? Number(fd.get('metricContribution')) : null,
     };
@@ -373,11 +393,13 @@ function bindTasksEvents() {
   });
 
   document.querySelectorAll('.task-status-select').forEach((sel) => {
+    applyStatusSelectStyle(sel);
     sel.addEventListener('change', (e) => {
       const task = state.tasks.find((t) => t.id === e.target.dataset.id);
       if (!task) return;
       task.status = e.target.value;
       if (task.status === 'выполнено' && !task.actualDate) task.actualDate = todayStr();
+      applyStatusSelectStyle(e.target);
       save();
     });
   });
@@ -444,11 +466,13 @@ function bindDailyEvents() {
     renderContent();
   });
   document.querySelectorAll('.daily-status-select').forEach((sel) => {
+    applyStatusSelectStyle(sel);
     sel.addEventListener('change', (e) => {
       const task = state.tasks.find((t) => t.id === e.target.dataset.id);
       if (!task) return;
       task.status = e.target.value;
       if (task.status === 'выполнено' && !task.actualDate) task.actualDate = todayStr();
+      applyStatusSelectStyle(e.target);
       save();
     });
   });
