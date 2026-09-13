@@ -305,6 +305,10 @@ export interface EmployerVacancyResponse {
   contactRevealed: boolean
   phone: string
   email: string
+  /** Баллы тестирования (0–100), если кандидат прошел тест — не у всех
+   *  откликнувшихся есть результат, это реалистично (см. lib/testing.ts). */
+  skillScore?: number
+  softSkillScore?: number
 }
 
 // ---- Резюме (личный кабинет соискателя, конструктор без ИИ) ----

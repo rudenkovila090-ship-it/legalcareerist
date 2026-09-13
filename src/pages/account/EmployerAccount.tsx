@@ -341,6 +341,16 @@ export default function EmployerAccount() {
                                             {r.specialization.map((s) => <SpecTag key={s} id={s} />)}
                                             {r.industry.map((i) => <IndustryTag key={i} id={i} />)}
                                           </div>
+                                          {(r.skillScore !== undefined || r.softSkillScore !== undefined) && (
+                                            <div className="mt-1.5 flex flex-wrap gap-1.5 text-xs">
+                                              {r.skillScore !== undefined && (
+                                                <span className="rounded-full bg-emerald-50 px-2 py-0.5 font-medium text-emerald-700">Навыки: {r.skillScore}%</span>
+                                              )}
+                                              {r.softSkillScore !== undefined && (
+                                                <span className="rounded-full bg-gold-light/20 px-2 py-0.5 font-medium text-gold">Софт-скиллы: {r.softSkillScore}%</span>
+                                              )}
+                                            </div>
+                                          )}
                                           <div className="mt-2 text-xs text-ink/50">
                                             Откликнулся {new Date(r.appliedAt).toLocaleDateString('ru-RU')}
                                           </div>

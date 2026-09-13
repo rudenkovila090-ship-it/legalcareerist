@@ -16,6 +16,9 @@ import {
   getCreditsState, isFreeAvailable, freeAvailableAt, canGenerate, addCredits, formatCountdown, RESUME_CREDITS_KEY,
 } from '../../lib/generationCredits'
 import { submitLead } from '../../lib/leads'
+import { getTestResults, saveSkillTestResult, saveSoftSkillTestResult } from '../../lib/testing'
+import { skillQuestions, softSkillStatements } from '../../data/skillTests'
+import { INDUSTRIES, type Industry } from '../../types'
 
 const applicationStatusLabel = { new: 'Новый', in_review: 'На рассмотрении', rejected: 'Отказ', offer: 'Оффер' }
 const roleLabel = { candidate: 'Кандидат', employer: 'Работодатель', community_member: 'Участник сообщества', admin: 'Админ' }
@@ -78,6 +81,15 @@ export default function CandidateAccount() {
   // сообщество» (регистрации, покупки, членство).
   const [mainTab, setMainTab] = useState<'jobs' | 'events'>('jobs')
 
+  // Тестирование: проверка навыков по направлению + софт-скиллы (короткий
+  // тест с вопросами и баллом — см. data/skillTests.ts, lib/testing.ts).
+  const [testResults, setTestResults] = useState(() => getTestResults())
+  const [skillModalOpen, setSkillModalOpen] = useState(false)
+  const [skillDirection, setSkillDirection] = useState<Industry>(demoUser.industry[0] ?? 'corporate')
+  const [skillAnswers, setSkillAnswers] = useState<Record<string, number>>({})
+  const [softModalOpen, setSoftModalOpen] = useState(false)
+  const [softAnswers, setSoftAnswers] = useState<Record<string, number>>({})
+
   if (role !== 'candidate') return <Navigate to="/account" replace />
 
   const freeAvailable = isFreeAvailable(creditsState)
@@ -100,6 +112,24 @@ export default function CandidateAccount() {
     if (!editingField) return
     setContacts((prev) => ({ ...prev, [editingField]: draftValue.trim() || prev[editingField] }))
     setEditingField(null)
+  }
+
+  function submitSkillTest() {
+    const correct = skillQuestions.filter((q) => skillAnswers[q.id] === q.correctIndex).length
+    saveSkillTestResult(skillDirection, correct, skillQuestions.length)
+    setTestResults(getTestResults())
+    setSkillModalOpen(false)
+    setSkillAnswers({})
+  }
+
+  function submitSoftSkillTest() {
+    const values = softSkillStatements.map((s) => softAnswers[s.id]).filter((v): v is number => typeof v === 'number')
+    if (values.length === 0) return
+    const average = values.reduce((sum, v) => sum + v, 0) / values.length
+    saveSoftSkillTestResult(average)
+    setTestResults(getTestResults())
+    setSoftModalOpen(false)
+    setSoftAnswers({})
   }
 
   function handleUploadClick() {
@@ -357,6 +387,55 @@ export default function CandidateAccount() {
             </div>
           </section>
 
+          {/* Тестирование — короткая проверка навыков по направлению и
+              софт-скиллов, результат виден и здесь, и работодателю в
+              карточке отклика (см. lib/applications.ts). */}
+          <section>
+            <h2 className="mb-3 text-lg font-semibold">Тестирование</h2>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="glass flex flex-col rounded-xl p-5">
+                <div className="text-sm font-semibold text-ink">Проверка навыков по направлению</div>
+                <p className="mt-1 text-sm text-ink/60">{skillQuestions.length} вопросов — результат в процентах, виден работодателю в отклике.</p>
+                <div className="flex-1" />
+                {testResults.skillTest ? (
+                  <div className="mt-3 flex items-center justify-between gap-3">
+                    <div className="text-sm">
+                      <span className="font-semibold text-emerald-600">{testResults.skillTest.score}%</span>
+                      <span className="text-ink/50"> — {testResults.skillTest.correct}/{testResults.skillTest.total}, {INDUSTRIES.find((i) => i.id === testResults.skillTest?.direction)?.label}</span>
+                    </div>
+                    <button type="button" onClick={() => setSkillModalOpen(true)} className="shrink-0 rounded-full border border-ink/15 px-3 py-1.5 text-xs font-semibold text-ink/70 hover:border-ink/40 hover:text-ink">
+                      Пройти заново
+                    </button>
+                  </div>
+                ) : (
+                  <button type="button" onClick={() => setSkillModalOpen(true)} className="mt-3 self-start rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white hover:bg-ink/90">
+                    Пройти тест
+                  </button>
+                )}
+              </div>
+
+              <div className="glass flex flex-col rounded-xl p-5">
+                <div className="text-sm font-semibold text-ink">Проверка софт-скиллов</div>
+                <p className="mt-1 text-sm text-ink/60">{softSkillStatements.length} утверждений по шкале — коммуникация, стрессоустойчивость и другое.</p>
+                <div className="flex-1" />
+                {testResults.softSkillTest ? (
+                  <div className="mt-3 flex items-center justify-between gap-3">
+                    <div className="text-sm">
+                      <span className="font-semibold text-emerald-600">{testResults.softSkillTest.score}%</span>
+                    </div>
+                    <button type="button" onClick={() => setSoftModalOpen(true)} className="shrink-0 rounded-full border border-ink/15 px-3 py-1.5 text-xs font-semibold text-ink/70 hover:border-ink/40 hover:text-ink">
+                      Пройти заново
+                    </button>
+                  </div>
+                ) : (
+                  <button type="button" onClick={() => setSoftModalOpen(true)} className="mt-3 self-start rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white hover:bg-ink/90">
+                    Пройти тест
+                  </button>
+                )}
+              </div>
+            </div>
+          </section>
+
           <section>
             <h2 className="mb-3 text-lg font-semibold">Отклики на вакансии</h2>
             <div className="glass divide-y divide-ink/10 rounded-xl">
@@ -416,6 +495,116 @@ export default function CandidateAccount() {
           )}
         </div>
       </div>
+
+      {/* Проверка навыков по направлению */}
+      {skillModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-ink/70 p-0 sm:items-center sm:p-4"
+          onClick={(e) => { if (e.target === e.currentTarget) setSkillModalOpen(false) }}
+        >
+          <div className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-t-2xl bg-white p-6 text-ink sm:rounded-2xl sm:p-8">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-lg font-semibold">Проверка навыков</h3>
+              <button type="button" onClick={() => setSkillModalOpen(false)} className="text-ink/40 hover:text-ink" aria-label="Закрыть">✕</button>
+            </div>
+
+            <div className="mb-4">
+              <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink/50">Направление</div>
+              <select
+                value={skillDirection}
+                onChange={(e) => setSkillDirection(e.target.value as Industry)}
+                className="w-full rounded-lg border border-ink/15 px-4 py-2.5 text-sm focus:border-ink/40 focus:outline-none"
+              >
+                {INDUSTRIES.map((i) => (
+                  <option key={i.id} value={i.id}>{i.label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-5">
+              {skillQuestions.map((q, i) => (
+                <div key={q.id}>
+                  <div className="mb-2 text-sm font-medium">{i + 1}. {q.question}</div>
+                  <div className="space-y-1.5">
+                    {q.options.map((opt, optIdx) => (
+                      <label key={opt} className="flex items-center gap-2 rounded-lg border border-ink/10 px-3 py-2 text-sm hover:border-ink/25">
+                        <input
+                          type="radio"
+                          name={q.id}
+                          checked={skillAnswers[q.id] === optIdx}
+                          onChange={() => setSkillAnswers((prev) => ({ ...prev, [q.id]: optIdx }))}
+                        />
+                        {opt}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={submitSkillTest}
+              disabled={Object.keys(skillAnswers).length < skillQuestions.length}
+              className="mt-6 w-full rounded-full bg-ink py-3 text-sm font-semibold text-white hover:bg-ink/90 disabled:opacity-40"
+            >
+              Показать результат
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Проверка софт-скиллов */}
+      {softModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-ink/70 p-0 sm:items-center sm:p-4"
+          onClick={(e) => { if (e.target === e.currentTarget) setSoftModalOpen(false) }}
+        >
+          <div className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-t-2xl bg-white p-6 text-ink sm:rounded-2xl sm:p-8">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-lg font-semibold">Проверка софт-скиллов</h3>
+              <button type="button" onClick={() => setSoftModalOpen(false)} className="text-ink/40 hover:text-ink" aria-label="Закрыть">✕</button>
+            </div>
+            <p className="mb-4 text-sm text-ink/60">Оцените, насколько утверждение похоже на вас: 1 — совсем не похоже, 5 — точно про меня.</p>
+
+            <div className="space-y-5">
+              {softSkillStatements.map((s) => (
+                <div key={s.id}>
+                  <div className="mb-2 text-sm font-medium">{s.label}: {s.statement}</div>
+                  <div className="flex gap-2">
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <label
+                        key={n}
+                        className={`flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border text-sm font-medium ${
+                          softAnswers[s.id] === n ? 'border-ink bg-ink text-white' : 'border-ink/15 text-ink/60 hover:border-ink/40'
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name={s.id}
+                          className="sr-only"
+                          checked={softAnswers[s.id] === n}
+                          onChange={() => setSoftAnswers((prev) => ({ ...prev, [s.id]: n }))}
+                        />
+                        {n}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={submitSoftSkillTest}
+              disabled={Object.keys(softAnswers).length < softSkillStatements.length}
+              className="mt-6 w-full rounded-full bg-ink py-3 text-sm font-semibold text-white hover:bg-ink/90 disabled:opacity-40"
+            >
+              Показать результат
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Покупка пакета генераций — модалка с формой (демо-оплата) */}
       {buyingPack && (

@@ -25,6 +25,8 @@ function seedResponses(): EmployerVacancyResponse[] {
       contactRevealed: false,
       phone: '+7 999 123-45-67',
       email: 'maria.kuznetsova@example.com',
+      skillScore: 83,
+      softSkillScore: 76,
     },
     {
       id: 'resp2',
@@ -57,6 +59,8 @@ function seedResponses(): EmployerVacancyResponse[] {
       contactRevealed: true,
       phone: '+7 999 777-88-99',
       email: 'a.svetlova@example.com',
+      skillScore: 100,
+      softSkillScore: 88,
     },
     {
       id: 'resp4',
