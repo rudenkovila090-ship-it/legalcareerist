@@ -225,3 +225,12 @@ h4 {
     animation: none;
   }
 }
+
+/* Печать (сейчас нужно для резюме из конструктора, ResumeView.tsx) —
+   шапка/подвал сайта не нужны в распечатке/PDF. */
+@media print {
+  header,
+  footer {
+    display: none !important;
+  }
+}

@@ -22,7 +22,11 @@ const EventDetail = lazy(() => import('./pages/events/EventDetail'))
 const Materials = lazy(() => import('./pages/events/Materials'))
 const MaterialDetail = lazy(() => import('./pages/events/MaterialDetail'))
 const PurchaseCabinet = lazy(() => import('./pages/materials/PurchaseCabinet'))
-const Account = lazy(() => import('./pages/Account'))
+const AccountGate = lazy(() => import('./pages/account/AccountGate'))
+const CandidateAccount = lazy(() => import('./pages/account/CandidateAccount'))
+const EmployerAccount = lazy(() => import('./pages/account/EmployerAccount'))
+const ResumeBuilder = lazy(() => import('./pages/account/ResumeBuilder'))
+const ResumeView = lazy(() => import('./pages/account/ResumeView'))
 const MarketplaceHome = lazy(() => import('./pages/MarketplaceHome'))
 const BlogHome = lazy(() => import('./pages/BlogHome'))
 const Contacts = lazy(() => import('./pages/Contacts'))
@@ -102,8 +106,14 @@ export default function App() {
           {/* Общая статья Базы знаний (единая сущность для всех трех разделов) */}
           <Route path="/knowledge/:slug" element={<ArticleDetail />} />
 
-          {/* Сквозной личный кабинет */}
-          <Route path="/account" element={<Account />} />
+          {/* Личный кабинет — разделен на соискателя и работодателя (два
+              разных демо-входа без пароля, см. AccountGate.tsx). */}
+          <Route path="/account" element={<AccountGate />} />
+          <Route path="/account/candidate" element={<CandidateAccount />} />
+          <Route path="/account/candidate/resume/new" element={<ResumeBuilder />} />
+          <Route path="/account/candidate/resume/:id/edit" element={<ResumeBuilder />} />
+          <Route path="/account/candidate/resume/:id" element={<ResumeView />} />
+          <Route path="/account/employer" element={<EmployerAccount />} />
 
           {/* Marketplace */}
           <Route path="/marketplace" element={<MarketplaceHome />} />

@@ -59,3 +59,25 @@ export const demoEventRegistrations: (EventRegistration & { eventTitle: string }
     eventTitle: 'Вебинар «Карьера в M&A»',
   },
 ]
+
+// Демо-аккаунт работодателя (раздел "Личный кабинет работодателя") — вход
+// без пароля, кнопкой "Войти как работодатель" на /account (см. accountRole.ts).
+// Отдельный от demoUser (соискатель) — по решению заказчика кабинеты
+// соискателя и работодателя разделены, это два разных демо-входа.
+export const demoEmployer: User = {
+  id: 'u_demo_employer',
+  roles: ['employer'],
+  name: 'Ирина Соколова',
+  email: 'i.sokolova@garant-pravo.example',
+  phone: '+7 999 555-12-34',
+  telegramId: '@sokolova_hr',
+  specialization: [],
+  industry: ['corporate', 'labor'],
+  newsletterOptIn: true,
+  registeredAt: '2026-02-01',
+}
+
+export const demoEmployerCompany = {
+  name: '«Гарант-Право»',
+  position: 'HR-директор',
+}

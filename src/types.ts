@@ -235,6 +235,56 @@ export interface Application {
   coverLetter?: string
 }
 
+// ---- Резюме (личный кабинет соискателя, конструктор без ИИ) ----
+
+export interface ResumeExperienceEntry {
+  id: string
+  company: string
+  position: string
+  startDate: string
+  endDate: string
+  current: boolean
+  duties: string
+}
+
+export interface ResumeEducationEntry {
+  id: string
+  institution: string
+  degree: EducationLevel
+  faculty: string
+  graduationYear: string
+}
+
+export interface ResumeFormData {
+  fullName: string
+  desiredPosition: string
+  city: string
+  phone: string
+  email: string
+  telegram: string
+  specialization: Specialization[]
+  industry: Industry[]
+  level: CandidateLevel
+  format: WorkFormat[]
+  salaryExpectation: number
+  experience: ResumeExperienceEntry[]
+  education: ResumeEducationEntry[]
+  skills: string[]
+  about: string
+}
+
+export type ResumeSource = 'constructor' | 'upload'
+
+export interface SavedResume {
+  id: string
+  createdAt: string
+  source: ResumeSource
+  /** Есть только для source: 'constructor' — данные для конструктора/предпросмотра. */
+  data?: ResumeFormData
+  /** Есть только для source: 'upload' — имя загруженного файла (демо: сам файл не хранится). */
+  fileName?: string
+}
+
 export interface Article extends Tagged {
   id: string
   slug: string
