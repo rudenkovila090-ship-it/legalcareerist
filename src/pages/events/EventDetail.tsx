@@ -8,6 +8,9 @@ import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import PhoneInput from '../../components/PhoneInput'
 import EventsFooter from './EventsFooter'
 import { SPECIALIZATIONS, INDUSTRIES, type EventTariff } from '../../types'
+import { registerForEvent } from '../../lib/eventRegistrations'
+import { isFavoriteEvent, toggleFavoriteEvent } from '../../lib/eventFavorites'
+import { useEventViews } from '../../lib/useEventViews'
 
 const specLabel = new Map(SPECIALIZATIONS.map((s) => [s.id, s.label]))
 const industryLabel = new Map(INDUSTRIES.map((i) => [i.id, i.label]))
@@ -63,14 +66,29 @@ function IconChat() {
 }
 const takeawayIcons = [IconPlay, IconChecklist, IconChat]
 
+function IconHeart({ filled }: { filled: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+      <path d="M12 20.5s-7.5-4.6-9.5-9C1 8 2.5 4.5 6 4.5c2 0 3.4 1 4.5 2.5C11.6 5.5 13 4.5 15 4.5c3.5 0 5 3.5 3.5 7-2 4.4-9.5 9-9.5 9Z" />
+    </svg>
+  )
+}
+
 export default function EventDetail() {
   const { slug } = useParams()
   const event = events.find((e) => e.slug === slug)
   useDocumentTitle(event?.title ?? 'Мероприятие не найдено')
+  const views = useEventViews(slug ?? '')
 
   const [tariffId, setTariffId] = useState<EventTariff['id']>(event?.tariffs[0]?.id ?? 'light')
   const [form, setForm] = useState({ fio: '', phone: '', email: '', telegram: '' })
   const [registered, setRegistered] = useState(false)
+  const [favorite, setFavorite] = useState(() => (event ? isFavoriteEvent(event.id) : false))
+
+  function handleToggleFavorite() {
+    if (!event) return
+    setFavorite(toggleFavoriteEvent(event.id).includes(event.id))
+  }
 
   // «Стать партнером мероприятия» — лид-заявка: пока просто уведомление,
   // что такой-то человек из такой-то компании хочет стать партнером
@@ -108,6 +126,7 @@ export default function EventDetail() {
       contact: [form.phone, form.email, form.telegram].filter(Boolean).join(' / '),
       interest: [event.title, tariff.name],
     })
+    registerForEvent(event.id, event.title)
     setRegistered(true)
   }
 
@@ -178,13 +197,25 @@ export default function EventDetail() {
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={scrollToRegister}
-            className="mt-8 rounded-full bg-white px-8 py-3 text-sm font-semibold text-ink hover:opacity-90"
-          >
-            Приобрести билет
-          </button>
+          <div className="mt-8 flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={scrollToRegister}
+              className="rounded-full bg-white px-8 py-3 text-sm font-semibold text-ink hover:opacity-90"
+            >
+              Приобрести билет
+            </button>
+            <button
+              type="button"
+              onClick={handleToggleFavorite}
+              aria-pressed={favorite}
+              className="flex items-center gap-2 rounded-full border border-white/40 px-5 py-3 text-sm font-semibold text-white hover:bg-white/10"
+            >
+              <IconHeart filled={favorite} />
+              {favorite ? 'В избранном' : 'В избранное'}
+            </button>
+            {views !== null && <span className="text-sm text-white/60">{views} просмотров</span>}
+          </div>
         </div>
       </div>
 

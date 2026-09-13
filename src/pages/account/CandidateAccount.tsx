@@ -6,7 +6,6 @@ import AccountSidebarNav, { type AccountSection } from '../../components/account
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import {
   demoApplications,
-  demoEventRegistrations,
   demoMaterialPurchases,
   demoMemberships,
   demoUser,
@@ -22,6 +21,8 @@ import { skillQuestions, softSkillStatements } from '../../data/skillTests'
 import { getNotifications, markNotificationRead, markAllNotificationsRead, unreadCount } from '../../lib/notifications'
 import { getThreads, markThreadRead, sendMessage, unreadForRole } from '../../lib/chat'
 import { getFavoriteIds, toggleFavorite } from '../../lib/favorites'
+import { getFavoriteEventIds, toggleFavoriteEvent } from '../../lib/eventFavorites'
+import { getRegistrations } from '../../lib/eventRegistrations'
 import { addReview, type ReviewContext } from '../../lib/reviews'
 import { events } from '../../data/events'
 import { vacancies as publicVacancies } from '../../data/vacancies'
@@ -195,6 +196,17 @@ export default function CandidateAccount() {
   // рекомендованные вакансии, избранное, резюме.
   const [workTab, setWorkTab] = useState<'responses' | 'recommended' | 'favorites' | 'resume'>('responses')
   const [favoriteIds, setFavoriteIds] = useState(() => getFavoriteIds())
+
+  // Раздел «Сообщество и мероприятия» — избранные мероприятия и реальные
+  // регистрации (localStorage, см. lib/eventFavorites.ts и
+  // lib/eventRegistrations.ts — регистрация с детальной страницы
+  // мероприятия сразу попадает сюда).
+  const [favoriteEventIds, setFavoriteEventIds] = useState(() => getFavoriteEventIds())
+  const [eventRegistrations] = useState(() => getRegistrations())
+
+  function handleToggleFavoriteEvent(eventId: string) {
+    setFavoriteEventIds(toggleFavoriteEvent(eventId))
+  }
 
   // Отзыв о работодателе/собеседовании — из карточки отклика.
   const [reviewingAppId, setReviewingAppId] = useState<string | null>(null)
@@ -842,13 +854,20 @@ export default function CandidateAccount() {
               <section>
                 <h2 className="mb-3 text-lg font-semibold">Регистрации на мероприятия</h2>
                 <div className="glass divide-y divide-ink/10 rounded-xl">
-                  {demoEventRegistrations.map((r) => {
+                  {eventRegistrations.length === 0 && (
+                    <p className="p-4 text-sm text-ink/50">
+                      Пока нет регистраций. <Link to="/events" className="font-medium text-ink underline hover:no-underline">Посмотреть афишу мероприятий</Link>
+                    </p>
+                  )}
+                  {eventRegistrations.map((r) => {
                     const event = events.find((e) => e.id === r.eventId)
                     const diffMs = event ? new Date(event.dateTime).getTime() - now : undefined
                     return (
                       <div key={r.id} className="flex flex-wrap items-center justify-between gap-2 p-4">
                         <div>
-                          <div className="font-medium">{r.eventTitle}</div>
+                          <div className="font-medium">
+                            {event ? <Link to={`/events/${event.slug}`} className="hover:underline">{r.eventTitle}</Link> : r.eventTitle}
+                          </div>
                           {event && (
                             <div className="mt-0.5 text-xs text-ink/50">
                               {new Date(event.dateTime).toLocaleString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}
@@ -861,6 +880,31 @@ export default function CandidateAccount() {
                       </div>
                     )
                   })}
+                </div>
+              </section>
+
+              <section>
+                <h2 className="mb-3 text-lg font-semibold">Избранные мероприятия</h2>
+                <div className="glass divide-y divide-ink/10 rounded-xl">
+                  {favoriteEventIds.length === 0 && (
+                    <p className="p-4 text-sm text-ink/50">
+                      Пока нет избранных мероприятий — жмите на сердечко на странице мероприятия.
+                    </p>
+                  )}
+                  {events.filter((e) => favoriteEventIds.includes(e.id)).map((e) => (
+                    <div key={e.id} className="flex flex-wrap items-center justify-between gap-2 p-4">
+                      <div>
+                        <Link to={`/events/${e.slug}`} className="font-medium hover:underline">{e.title}</Link>
+                        <div className="mt-0.5 text-xs text-ink/50">
+                          {new Date(e.dateTime).toLocaleString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}
+                          {' · '}{e.format === 'online' ? 'Онлайн' : e.city}
+                        </div>
+                      </div>
+                      <button type="button" onClick={() => handleToggleFavoriteEvent(e.id)} className="text-red-500 hover:text-ink/40">
+                        <IconHeart filled />
+                      </button>
+                    </div>
+                  ))}
                 </div>
               </section>
 

@@ -21,6 +21,8 @@
 //    базы знаний (+1 при каждом открытии).
 // 9. POST /api/news/:slug/view — реальный счётчик просмотров новости
 //    (+1 при каждом открытии).
+// 10. POST /api/event/:slug/view — реальный счётчик просмотров мероприятия
+//     (+1 при каждом открытии).
 // Токены и секретные ключи — только в server/.env, в репозиторий не попадают.
 import express from 'express'
 import cors from 'cors'
@@ -31,6 +33,7 @@ import { createPendingPurchase, getPurchase, markPurchasePaidByPhone } from './l
 import { incrementView, incrementApplication } from './lib/vacancyStats.js'
 import { incrementArticleView, getArticleViews } from './lib/articleStats.js'
 import { incrementNewsView, getNewsViews } from './lib/newsStats.js'
+import { incrementEventView, getEventViews } from './lib/eventStats.js'
 
 const app = express()
 app.use(cors())
@@ -104,6 +107,18 @@ app.post('/api/news/:slug/view', (req, res) => {
 
 app.get('/api/news/:slug/views', (req, res) => {
   res.json({ ok: true, views: getNewsViews(req.params.slug) })
+})
+
+// Открытие страницы мероприятия → +1 к счётчику просмотров, тот же принцип,
+// что у вакансий/статей/новостей — для личного кабинета организатора
+// (раздел «Мероприятия» → статистика).
+app.post('/api/event/:slug/view', (req, res) => {
+  const stats = incrementEventView(req.params.slug)
+  res.json({ ok: true, ...stats })
+})
+
+app.get('/api/event/:slug/views', (req, res) => {
+  res.json({ ok: true, views: getEventViews(req.params.slug) })
 })
 
 app.post('/api/notify', async (req, res) => {

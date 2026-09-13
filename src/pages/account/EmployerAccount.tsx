@@ -25,8 +25,14 @@ import { getRankings, addRanking, deleteRanking, rankingBonus } from '../../lib/
 import { getNotifications, markNotificationRead, markAllNotificationsRead, unreadCount } from '../../lib/notifications'
 import { getThreads, ensureThread, sendMessage, markThreadRead, unreadForRole } from '../../lib/chat'
 import { getTeamMembers, addTeamMember, removeTeamMember, OWNER_ID } from '../../lib/team'
+import {
+  getOrganizerEvents, createDraftOrganizerEvent, updateOrganizerEventData, submitOrganizerEventForModeration,
+  approveOrganizerEvent, rejectOrganizerEvent, closeOrganizerEvent, deleteOrganizerEvent,
+  type OrganizerEvent, type OrganizerEventData, type OrganizerEventStatus,
+} from '../../lib/organizerEvents'
+import { useEventViewCount } from '../../lib/useEventViews'
 import { INDUSTRIES, SPECIALIZATIONS, COMPANY_INDUSTRY_TREE } from '../../types'
-import type { ApplicationStatus, VacancyModerationStatus, VacancyVisibilityStage, CandidateLevel, Industry } from '../../types'
+import type { ApplicationStatus, VacancyModerationStatus, VacancyVisibilityStage, CandidateLevel, Industry, EventType, EventFormat } from '../../types'
 
 const responseStatusLabel: Record<ApplicationStatus, string> = {
   new: 'Новый',
@@ -67,6 +73,44 @@ const stageLabel: Record<VacancyVisibilityStage, string> = {
   residents: 'Резиденты сообщества',
   talent_pool: 'Кадровый резерв',
   public: 'Открытый сайт',
+}
+
+// Статусы мероприятия в кабинете организатора — те же имена и цвета, что
+// у вакансий (moderationStatusLabel/Class), плюс своя «Отклонена».
+const eventStatusLabel: Record<OrganizerEventStatus, string> = {
+  draft: 'Черновик',
+  pending_moderation: 'На модерации',
+  published: 'Опубликовано',
+  rejected: 'Отклонено',
+  closed: 'Закрыто',
+}
+const eventStatusClass: Record<OrganizerEventStatus, string> = {
+  draft: 'bg-ink/[0.06] text-ink/60',
+  pending_moderation: 'bg-amber-50 text-amber-700',
+  published: 'bg-emerald-50 text-emerald-700',
+  rejected: 'bg-red-50 text-red-700',
+  closed: 'bg-ink/[0.06] text-ink/50',
+}
+const eventTypeOptions: { id: EventType; label: string }[] = [
+  { id: 'conference', label: 'Ключевое мероприятие' },
+  { id: 'webinar', label: 'Вебинар' },
+  { id: 'breakfast', label: 'Бизнес-завтрак' },
+  { id: 'intensive', label: 'Интенсив' },
+  { id: 'tour', label: 'Экскурсия' },
+  { id: 'internship', label: 'Стажировка' },
+]
+const eventFormatOptions: { id: EventFormat; label: string }[] = [
+  { id: 'online', label: 'Онлайн' },
+  { id: 'offline', label: 'Офлайн' },
+]
+
+/** Просмотры мероприятия из публичного каталога — только для технических
+ *  примеров, у которых есть реальная страница /events/:slug (см.
+ *  lib/organizerEvents.ts). Отдельный компонент, а не вызов хука прямо в
+ *  .map — иначе число хуков между рендерами плавает вместе со списком. */
+function CatalogEventViews({ slug }: { slug: string }) {
+  const views = useEventViewCount(slug)
+  return <>{views ?? '—'} просмотров</>
 }
 const stageMailingButtonLabel: Record<VacancyVisibilityStage, string> = {
   residents: 'Разослать резидентам сообщества',
@@ -183,6 +227,15 @@ function IconHelp() {
     </svg>
   )
 }
+function IconEvents() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+      <rect x="3.5" y="5" width="17" height="15" rx="2" />
+      <path d="M3.5 9.5h17" />
+      <path d="M8 3v4M16 3v4" />
+    </svg>
+  )
+}
 function IconAnalytics() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
@@ -210,6 +263,7 @@ const sections: AccountSection[] = [
   { id: 'profile', label: 'Профиль', icon: <IconProfile /> },
   { id: 'work', label: 'Вакансии', icon: <IconBriefcase /> },
   { id: 'candidates', label: 'Кандидаты', icon: <IconCandidates /> },
+  { id: 'events', label: 'Мероприятия', icon: <IconEvents /> },
   { id: 'messages', label: 'Сообщения', icon: <IconChat /> },
   { id: 'community', label: 'Сообщество и мероприятия', icon: <IconUsers /> },
   { id: 'orders', label: 'Заказы', icon: <IconOrders /> },
@@ -258,6 +312,16 @@ export default function EmployerAccount() {
 
   const [accessPurchases, setAccessPurchases] = useState(() => getAccessPurchases())
   const [buyingAccessDuration, setBuyingAccessDuration] = useState<AccessDuration>(ACCESS_DURATIONS[2])
+
+  // Личный кабинет организатора мероприятий (минимальная версия) — своя
+  // демо-модерация, как у вакансий (черновик → на модерации →
+  // опубликовано/отклонено → закрыто). См. lib/organizerEvents.ts.
+  const [organizerEvents, setOrganizerEvents] = useState(() => getOrganizerEvents())
+  const [eventStatusFilter, setEventStatusFilter] = useState<'active' | OrganizerEventStatus>('active')
+  const [editingEventId, setEditingEventId] = useState<string | null>(null)
+  const [eventForm, setEventForm] = useState<OrganizerEventData | null>(null)
+  const [rejectingEventId, setRejectingEventId] = useState<string | null>(null)
+  const [rejectEventReason, setRejectEventReason] = useState('')
 
   // Рейтинг работодателя: отзывы соискателей + места в рейтингах, которые
   // работодатель загружает сам (справочник реальных рейтингов пришлет
@@ -402,6 +466,65 @@ export default function EmployerAccount() {
     purchaseAccess(pack, duration)
     setAccessPurchases(getAccessPurchases())
     setNotice(`Доступ куплен: ${pack.count} контактов, ${duration.label} — ${priceFor(pack, duration)} ₽.`)
+  }
+
+  function refreshOrganizerEvents() {
+    setOrganizerEvents(getOrganizerEvents())
+  }
+
+  function handleCreateEventDraft() {
+    const created = createDraftOrganizerEvent()
+    refreshOrganizerEvents()
+    setEventStatusFilter('draft')
+    setEditingEventId(created.id)
+    setEventForm(created.data)
+  }
+
+  function startEditEvent(ev: OrganizerEvent) {
+    setEditingEventId(ev.id)
+    setEventForm(ev.data)
+  }
+
+  function handleSaveEvent(id: string) {
+    if (!eventForm) return
+    updateOrganizerEventData(id, eventForm)
+    refreshOrganizerEvents()
+    setEditingEventId(null)
+    setEventForm(null)
+    setNotice('Мероприятие сохранено.')
+  }
+
+  function handleSubmitEventForModeration(id: string) {
+    submitOrganizerEventForModeration(id)
+    refreshOrganizerEvents()
+    setEventStatusFilter('pending_moderation')
+    setNotice('Мероприятие отправлено на модерацию.')
+  }
+
+  function handleApproveEvent(id: string) {
+    approveOrganizerEvent(id)
+    refreshOrganizerEvents()
+    setNotice('Мероприятие одобрено (демо).')
+  }
+
+  function handleRejectEvent(id: string) {
+    if (!rejectEventReason.trim()) return
+    rejectOrganizerEvent(id, rejectEventReason.trim())
+    refreshOrganizerEvents()
+    setRejectingEventId(null)
+    setRejectEventReason('')
+    setNotice('Мероприятие отклонено (демо).')
+  }
+
+  function handleCloseEvent(id: string) {
+    closeOrganizerEvent(id)
+    refreshOrganizerEvents()
+    setNotice('Мероприятие закрыто.')
+  }
+
+  function handleDeleteEvent(id: string) {
+    deleteOrganizerEvent(id)
+    refreshOrganizerEvents()
   }
 
   function handleRevealContact(id: string, name: string, price: number) {
@@ -1555,6 +1678,208 @@ export default function EmployerAccount() {
                 </section>
               )}
             </div>
+          )}
+
+          {section === 'events' && (
+            <section>
+              <h2 className="mb-3 text-lg font-semibold">Мероприятия</h2>
+              <div className="glass rounded-xl p-5">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <p className="text-sm text-ink/60">
+                    Добавляйте свои конференции, вебинары и стажировки — после модерации они появятся на общей афише «Карьерного юриста».
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleCreateEventDraft}
+                    className="shrink-0 rounded-full bg-ink px-6 py-2.5 text-sm font-semibold text-white hover:bg-ink/90"
+                  >
+                    Добавить мероприятие
+                  </button>
+                </div>
+
+                <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-ink/10 pt-4">
+                  {([
+                    ['active', 'Опубликованные'],
+                    ['pending_moderation', 'На модерации'],
+                    ['draft', 'Черновики'],
+                    ['closed', 'Архивные'],
+                  ] as const).map(([id, label]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => setEventStatusFilter(id)}
+                      className={`rounded-full px-4 py-1.5 text-xs font-semibold ${eventStatusFilter === id ? 'bg-ink text-white' : 'border border-ink/15 text-ink/60 hover:text-ink'}`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+
+                {(() => {
+                  const filteredEvents = organizerEvents.filter((ev) =>
+                    eventStatusFilter === 'active' ? ev.status === 'published' : ev.status === eventStatusFilter,
+                  )
+                  if (filteredEvents.length === 0) {
+                    return <p className="mt-4 border-t border-ink/10 pt-4 text-sm text-ink/50">Нет мероприятий в этой категории.</p>
+                  }
+                  return (
+                    <div className="mt-4 divide-y divide-ink/10 border-t border-ink/10">
+                      {filteredEvents.map((ev) => {
+                        const editing = editingEventId === ev.id
+                        return (
+                          <div key={ev.id} className="py-4">
+                            {editing && eventForm ? (
+                              <div className="grid gap-3">
+                                <input
+                                  value={eventForm.title}
+                                  onChange={(e) => setEventForm((f) => f && { ...f, title: e.target.value })}
+                                  placeholder="Название мероприятия"
+                                  className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+                                />
+                                <div className="grid gap-3 sm:grid-cols-2">
+                                  <select
+                                    value={eventForm.type}
+                                    onChange={(e) => setEventForm((f) => f && { ...f, type: e.target.value as EventType })}
+                                    className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm focus:border-ink/40 focus:outline-none"
+                                  >
+                                    {eventTypeOptions.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
+                                  </select>
+                                  <select
+                                    value={eventForm.format}
+                                    onChange={(e) => setEventForm((f) => f && { ...f, format: e.target.value as EventFormat })}
+                                    className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm focus:border-ink/40 focus:outline-none"
+                                  >
+                                    {eventFormatOptions.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
+                                  </select>
+                                </div>
+                                <div className="grid gap-3 sm:grid-cols-3">
+                                  <input
+                                    value={eventForm.city}
+                                    onChange={(e) => setEventForm((f) => f && { ...f, city: e.target.value })}
+                                    placeholder="Город (если офлайн)"
+                                    className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+                                  />
+                                  <input
+                                    type="datetime-local"
+                                    value={eventForm.dateTime.slice(0, 16)}
+                                    onChange={(e) => setEventForm((f) => f && { ...f, dateTime: e.target.value })}
+                                    className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm focus:border-ink/40 focus:outline-none"
+                                  />
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    value={eventForm.price}
+                                    onChange={(e) => setEventForm((f) => f && { ...f, price: Number(e.target.value) })}
+                                    placeholder="Цена, ₽ (0 — бесплатно)"
+                                    className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+                                  />
+                                </div>
+                                <textarea
+                                  value={eventForm.description}
+                                  onChange={(e) => setEventForm((f) => f && { ...f, description: e.target.value })}
+                                  placeholder="Описание"
+                                  rows={3}
+                                  className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+                                />
+                                <div className="grid gap-3 sm:grid-cols-2">
+                                  <input
+                                    value={eventForm.registrationLink}
+                                    onChange={(e) => setEventForm((f) => f && { ...f, registrationLink: e.target.value })}
+                                    placeholder="Ссылка на регистрацию (TimePad и т.п.)"
+                                    className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+                                  />
+                                  <input
+                                    value={eventForm.socialLinks}
+                                    onChange={(e) => setEventForm((f) => f && { ...f, socialLinks: e.target.value })}
+                                    placeholder="Соцсети организатора"
+                                    className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+                                  />
+                                </div>
+                                <div className="flex gap-2">
+                                  <button type="button" onClick={() => handleSaveEvent(ev.id)} className="rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white hover:bg-ink/90">
+                                    Сохранить
+                                  </button>
+                                  <button type="button" onClick={() => { setEditingEventId(null); setEventForm(null) }} className="rounded-full border border-ink/15 px-5 py-2.5 text-sm font-semibold text-ink/60 hover:text-ink">
+                                    Отмена
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex flex-wrap items-start justify-between gap-3">
+                                <div>
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <span className="font-semibold">{ev.data.title}</span>
+                                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${eventStatusClass[ev.status]}`}>{eventStatusLabel[ev.status]}</span>
+                                  </div>
+                                  <div className="mt-1 text-xs text-ink/50">
+                                    {eventTypeOptions.find((t) => t.id === ev.data.type)?.label}
+                                    {' · '}{ev.data.format === 'online' ? 'Онлайн' : ev.data.city || 'Офлайн'}
+                                    {' · '}{new Date(ev.data.dateTime).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}
+                                    {' · '}{ev.data.price === 0 ? 'Бесплатно' : `${money.format(ev.data.price)} ₽`}
+                                  </div>
+                                  {ev.status === 'rejected' && ev.rejectionReason && (
+                                    <div className="mt-1 text-xs text-red-600">Причина отказа: {ev.rejectionReason}</div>
+                                  )}
+                                  {ev.catalogSlug && (
+                                    <div className="mt-1 text-xs text-ink/40">
+                                      <Link to={`/events/${ev.catalogSlug}`} className="underline hover:no-underline">На афише</Link>
+                                      {' · '}<CatalogEventViews slug={ev.catalogSlug} />
+                                    </div>
+                                  )}
+                                </div>
+
+                                <div className="flex shrink-0 flex-wrap items-center gap-2">
+                                  {ev.status === 'draft' && (
+                                    <button type="button" onClick={() => handleSubmitEventForModeration(ev.id)} className="rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-white hover:bg-ink/90">
+                                      Отправить на модерацию
+                                    </button>
+                                  )}
+                                  {ev.status === 'pending_moderation' && (
+                                    <>
+                                      <button type="button" onClick={() => handleApproveEvent(ev.id)} className="rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700">
+                                        Одобрить (демо)
+                                      </button>
+                                      <button type="button" onClick={() => setRejectingEventId(ev.id)} className="rounded-full border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50">
+                                        Отклонить (демо)
+                                      </button>
+                                    </>
+                                  )}
+                                  {ev.status === 'published' && (
+                                    <button type="button" onClick={() => handleCloseEvent(ev.id)} className="rounded-full border border-ink/15 px-3 py-1.5 text-xs font-semibold text-ink/70 hover:border-ink/40 hover:text-ink">
+                                      Закрыть
+                                    </button>
+                                  )}
+                                  {ev.status !== 'closed' && (
+                                    <button type="button" onClick={() => startEditEvent(ev)} className="text-sm font-medium text-ink/60 hover:text-ink">
+                                      Изменить
+                                    </button>
+                                  )}
+                                  <button type="button" onClick={() => handleDeleteEvent(ev.id)} className="text-ink/40 hover:text-red-600">Удалить</button>
+                                </div>
+                              </div>
+                            )}
+
+                            {rejectingEventId === ev.id && (
+                              <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3">
+                                <input
+                                  value={rejectEventReason}
+                                  onChange={(e) => setRejectEventReason(e.target.value)}
+                                  placeholder="Причина отказа"
+                                  className="flex-1 rounded-lg border border-red-200 bg-white px-3 py-1.5 text-sm placeholder:text-ink/40 focus:outline-none"
+                                />
+                                <button type="button" onClick={() => handleRejectEvent(ev.id)} className="rounded-full bg-red-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-red-700">
+                                  Отклонить
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )
+                })()}
+              </div>
+            </section>
           )}
 
           {section === 'payment' && (
