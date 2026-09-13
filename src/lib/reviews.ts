@@ -2,12 +2,16 @@
 // работодателя). Как и отклики/вакансии, в этом прототипе живет в
 // localStorage — здесь только демо-данные под одну компанию
 // (demoEmployerCompany), реальной привязки к разным работодателям пока нет.
+export type ReviewContext = 'company' | 'interview'
+
 export interface EmployerReview {
   id: string
   authorName: string
   rating: number // 1–5
   text: string
   date: string
+  /** О чем отзыв — о компании в целом или конкретно о собеседовании. */
+  context?: ReviewContext
   /** Публичный ответ работодателя на отзыв — виден вместе с отзывом. */
   reply?: { text: string; date: string }
 }
@@ -54,6 +58,20 @@ export function getReviews(): EmployerReview[] {
 
 function writeAll(all: EmployerReview[]) {
   localStorage.setItem(KEY, JSON.stringify(all))
+}
+
+/** Новый отзыв соискателя — из личного кабинета соискателя, см. CandidateAccount.tsx. */
+export function addReview(authorName: string, rating: number, text: string, context: ReviewContext): EmployerReview {
+  const review: EmployerReview = {
+    id: `rev_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+    authorName,
+    rating,
+    text,
+    context,
+    date: new Date().toISOString(),
+  }
+  writeAll([review, ...getReviews()])
+  return review
 }
 
 /** Публичный ответ работодателя на отзыв соискателя. */

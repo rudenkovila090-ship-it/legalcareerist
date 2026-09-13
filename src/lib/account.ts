@@ -23,7 +23,15 @@ export const demoApplications: (Application & { vacancyTitle: string })[] = [
     vacancyTitle: 'Юрист M&A, инхаус',
     candidateId: 'u_demo',
     date: '2026-08-16',
-    status: 'in_review',
+    status: 'interview',
+  },
+  {
+    id: 'app2',
+    vacancyId: 'v2',
+    vacancyTitle: 'Юрист по разрешению споров',
+    candidateId: 'u_demo',
+    date: '2026-08-05',
+    status: 'rejected',
   },
 ]
 

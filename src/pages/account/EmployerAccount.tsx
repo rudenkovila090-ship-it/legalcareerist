@@ -27,11 +27,13 @@ import type { ApplicationStatus, VacancyModerationStatus, VacancyVisibilityStage
 
 const responseStatusLabel: Record<ApplicationStatus, string> = {
   new: 'Новый',
+  invited: 'Приглашение',
+  interview: 'Собеседование',
   in_review: 'На рассмотрении',
   rejected: 'Отказ',
   offer: 'Оффер',
 }
-const responseStatusOrder: ApplicationStatus[] = ['new', 'in_review', 'offer', 'rejected']
+const responseStatusOrder: ApplicationStatus[] = ['new', 'invited', 'interview', 'in_review', 'offer', 'rejected']
 const levelLabel = { junior: 'Junior', middle: 'Middle', senior: 'Senior' }
 const specLabelMap = Object.fromEntries(SPECIALIZATIONS.map((s) => [s.id, s.label]))
 const industryLabelMap = Object.fromEntries(INDUSTRIES.map((i) => [i.id, i.label]))
@@ -366,6 +368,8 @@ export default function EmployerAccount() {
   const funnel = {
     total: allResponses.length,
     new: allResponses.filter((r) => r.status === 'new').length,
+    invited: allResponses.filter((r) => r.status === 'invited').length,
+    interview: allResponses.filter((r) => r.status === 'interview').length,
     inReview: allResponses.filter((r) => r.status === 'in_review').length,
     offer: allResponses.filter((r) => r.status === 'offer').length,
     rejected: allResponses.filter((r) => r.status === 'rejected').length,
@@ -791,7 +795,14 @@ export default function EmployerAccount() {
                   {reviews.map((r) => (
                     <div key={r.id} className="p-4">
                       <div className="flex flex-wrap items-center justify-between gap-2">
-                        <span className="font-medium">{r.authorName}</span>
+                        <span className="flex items-center gap-2">
+                          <span className="font-medium">{r.authorName}</span>
+                          {r.context && (
+                            <span className="rounded-full bg-ink/[0.06] px-2 py-0.5 text-[11px] font-medium text-ink/50">
+                              {r.context === 'interview' ? 'О собеседовании' : 'О компании'}
+                            </span>
+                          )}
+                        </span>
                         <span className="text-sm text-gold">{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}</span>
                       </div>
                       <p className="mt-1 text-sm text-ink/60">{r.text}</p>
@@ -895,9 +906,11 @@ export default function EmployerAccount() {
                 <section>
                   <h2 className="mb-3 text-lg font-semibold">Воронка по откликам</h2>
                   <div className="glass rounded-xl p-5">
-                    <div className="grid gap-3 sm:grid-cols-4">
+                    <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
                       {([
                         ['Новые', funnel.new, 'bg-ink/15'],
+                        ['Приглашены', funnel.invited, 'bg-sky-200'],
+                        ['Собеседование', funnel.interview, 'bg-violet-200'],
                         ['На рассмотрении', funnel.inReview, 'bg-amber-200'],
                         ['Оффер', funnel.offer, 'bg-emerald-300'],
                         ['Отказ', funnel.rejected, 'bg-red-200'],

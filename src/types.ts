@@ -292,7 +292,7 @@ export interface TeamMember {
   role: TeamRole
 }
 
-export type ApplicationStatus = 'new' | 'in_review' | 'rejected' | 'offer'
+export type ApplicationStatus = 'new' | 'invited' | 'interview' | 'in_review' | 'rejected' | 'offer'
 
 export interface Application {
   id: string
