@@ -7,7 +7,7 @@ import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import { getActiveRole, clearActiveRole } from '../../lib/accountRole'
 import { demoEmployer, demoEmployerCompany } from '../../lib/account'
 import {
-  getVacancies, approveVacancy, rejectVacancy, closeVacancy, sendStageMailing, deleteVacancy, setVacancyResponsible, createVacancy,
+  getVacancies, approveVacancy, rejectVacancy, closeVacancy, sendStageMailing, deleteVacancy, setVacancyResponsible, setVacancyNotifyMode, createVacancy,
 } from '../../lib/vacancies'
 import {
   getResponsesForVacancy, getResponses, setResponseStatus, setResponseStatusBulk, revealContact, contactPrice,
@@ -22,7 +22,7 @@ import { getRankings, addRanking, deleteRanking, rankingBonus } from '../../lib/
 import { getNotifications, markNotificationRead, markAllNotificationsRead, unreadCount } from '../../lib/notifications'
 import { getThreads, ensureThread, sendMessage, markThreadRead, unreadForRole } from '../../lib/chat'
 import { getTeamMembers, addTeamMember, removeTeamMember, OWNER_ID } from '../../lib/team'
-import { INDUSTRIES, COMPANY_INDUSTRY_TREE } from '../../types'
+import { INDUSTRIES, SPECIALIZATIONS, COMPANY_INDUSTRY_TREE } from '../../types'
 import type { ApplicationStatus, VacancyModerationStatus, VacancyVisibilityStage, CandidateLevel, Industry } from '../../types'
 
 const responseStatusLabel: Record<ApplicationStatus, string> = {
@@ -33,6 +33,9 @@ const responseStatusLabel: Record<ApplicationStatus, string> = {
 }
 const responseStatusOrder: ApplicationStatus[] = ['new', 'in_review', 'offer', 'rejected']
 const levelLabel = { junior: 'Junior', middle: 'Middle', senior: 'Senior' }
+const specLabelMap = Object.fromEntries(SPECIALIZATIONS.map((s) => [s.id, s.label]))
+const industryLabelMap = Object.fromEntries(INDUSTRIES.map((i) => [i.id, i.label]))
+const notifyModeLabel = { instant: 'При каждом отклике', daily: 'Раз в день сводкой', off: 'Не уведомлять' } as const
 
 const money = new Intl.NumberFormat('ru-RU')
 
@@ -422,6 +425,41 @@ export default function EmployerAccount() {
   function handleSetResponsible(vacancyId: string, responsibleId: string) {
     setVacancyResponsible(vacancyId, responsibleId)
     refresh()
+  }
+
+  function handleSetNotifyMode(vacancyId: string, mode: 'instant' | 'daily' | 'off') {
+    setVacancyNotifyMode(vacancyId, mode)
+    refresh()
+  }
+
+  function escapeCsvCell(value: string): string {
+    return /[",\n;]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value
+  }
+
+  function handleExportResponses(vacancyTitle: string, responses: ReturnType<typeof getResponsesForVacancy>) {
+    const headers = ['Имя', 'Город', 'Уровень', 'Специализация', 'Отрасль', 'Статус', 'Дата отклика', 'Навыки %', 'Софт-скиллы %', 'Телефон', 'Email']
+    const rows = responses.map((r) => [
+      r.name,
+      r.city,
+      levelLabel[r.level],
+      r.specialization.map((s) => specLabelMap[s]).join('; '),
+      r.industry.map((i) => industryLabelMap[i]).join('; '),
+      responseStatusLabel[r.status],
+      new Date(r.appliedAt).toLocaleDateString('ru-RU'),
+      r.skillScore !== undefined ? String(r.skillScore) : '',
+      r.softSkillScore !== undefined ? String(r.softSkillScore) : '',
+      r.contactRevealed ? r.phone : '',
+      r.contactRevealed ? r.email : '',
+    ])
+    const csv = [headers, ...rows].map((row) => row.map(escapeCsvCell).join(',')).join('\n')
+    // BOM — чтобы Excel правильно показал кириллицу при открытии CSV.
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `Отклики — ${vacancyTitle}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
   function handleAddRanking(e: FormEvent) {
@@ -972,17 +1010,31 @@ export default function EmployerAccount() {
                                 Рассылок: {v.mailings.length} (последняя — {v.mailings[v.mailings.length - 1].recipientsCount} получателей)
                               </div>
                             )}
-                            <div className="mt-1.5 flex items-center gap-1.5 text-xs text-ink/50">
-                              Ответственный:
-                              <select
-                                value={v.responsibleId ?? OWNER_ID}
-                                onChange={(e) => handleSetResponsible(v.id, e.target.value)}
-                                className="rounded-full border border-ink/15 bg-white px-2 py-1 text-xs font-medium text-ink/70"
-                              >
-                                {team.map((m) => (
-                                  <option key={m.id} value={m.id}>{m.name}</option>
-                                ))}
-                              </select>
+                            <div className="mt-1.5 flex flex-wrap items-center gap-3 text-xs text-ink/50">
+                              <span className="flex items-center gap-1.5">
+                                Ответственный:
+                                <select
+                                  value={v.responsibleId ?? OWNER_ID}
+                                  onChange={(e) => handleSetResponsible(v.id, e.target.value)}
+                                  className="rounded-full border border-ink/15 bg-white px-2 py-1 text-xs font-medium text-ink/70"
+                                >
+                                  {team.map((m) => (
+                                    <option key={m.id} value={m.id}>{m.name}</option>
+                                  ))}
+                                </select>
+                              </span>
+                              <span className="flex items-center gap-1.5">
+                                Уведомления:
+                                <select
+                                  value={v.notifyMode ?? 'instant'}
+                                  onChange={(e) => handleSetNotifyMode(v.id, e.target.value as 'instant' | 'daily' | 'off')}
+                                  className="rounded-full border border-ink/15 bg-white px-2 py-1 text-xs font-medium text-ink/70"
+                                >
+                                  {Object.entries(notifyModeLabel).map(([id, label]) => (
+                                    <option key={id} value={id}>{label}</option>
+                                  ))}
+                                </select>
+                              </span>
                             </div>
                           </div>
 
@@ -1081,6 +1133,13 @@ export default function EmployerAccount() {
                                         <input type="checkbox" checked={responseFilters.testedOnly} onChange={(e) => setResponseFilters((f) => ({ ...f, testedOnly: e.target.checked }))} />
                                         С результатами теста
                                       </label>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleExportResponses(v.data.title || 'Вакансия без названия', responses)}
+                                        className="ml-auto rounded-full border border-ink/15 px-3 py-1.5 text-xs font-semibold text-ink/70 hover:border-ink/40 hover:text-ink"
+                                      >
+                                        Экспорт в CSV ({responses.length})
+                                      </button>
                                     </div>
                                   )}
 

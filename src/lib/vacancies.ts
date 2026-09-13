@@ -135,6 +135,11 @@ export function setVacancyResponsible(id: string, responsibleId: string): SavedV
   return updateOne(id, { responsibleId })
 }
 
+/** Режим уведомлений об откликах на конкретную вакансию (см. SavedVacancy.notifyMode). */
+export function setVacancyNotifyMode(id: string, notifyMode: SavedVacancy['notifyMode']): SavedVacancy | undefined {
+  return updateOne(id, { notifyMode })
+}
+
 /** Рассылка по текущему этапу каскада видимости + переход к следующему (см. базу знаний — «Правила опубликования вакансии»). */
 export function sendStageMailing(id: string): SavedVacancy | undefined {
   const vacancy = getVacancy(id)
