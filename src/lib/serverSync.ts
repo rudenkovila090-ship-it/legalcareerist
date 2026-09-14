@@ -26,6 +26,13 @@
 // просто без привязки к конкретному браузеру.
 const KEY_PATTERN = /^ky_[a-z0-9_]+$/
 
+// Сессионные ключи-исключения — не данные кабинета, а состояние "какую
+// демо-роль сейчас изображает этот браузер" (lib/accountRole.ts). Хранится
+// сырой строкой, не JSON.stringify(...), поэтому тело PUT-запроса не
+// распарсилось бы как JSON — и по смыслу эта роль всё равно локальна для
+// конкретного браузера/вкладки, синхронизировать ее не нужно.
+const EXCLUDED_KEYS = new Set(['ky_active_role'])
+
 let patched = false
 
 export function patchLocalStorage() {
@@ -34,7 +41,7 @@ export function patchLocalStorage() {
   const original = window.localStorage.setItem.bind(window.localStorage)
   window.localStorage.setItem = (key: string, value: string) => {
     original(key, value)
-    if (KEY_PATTERN.test(key)) pushToServer(key, value)
+    if (KEY_PATTERN.test(key) && !EXCLUDED_KEYS.has(key)) pushToServer(key, value)
   }
 }
 
@@ -62,7 +69,7 @@ export async function hydrateFromServer(timeoutMs = 1200): Promise<void> {
     if (!res.ok) return
     const data = (await res.json()) as Record<string, unknown>
     for (const [key, value] of Object.entries(data)) {
-      if (!KEY_PATTERN.test(key) || value === null || value === undefined) continue
+      if (!KEY_PATTERN.test(key) || EXCLUDED_KEYS.has(key) || value === null || value === undefined) continue
       try {
         window.localStorage.setItem(key, JSON.stringify(value))
       } catch {

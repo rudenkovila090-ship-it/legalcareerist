@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import PageHero from '../../components/PageHero'
 import Testimonials from '../../components/Testimonials'
 import { employerTestimonials } from '../../data/testimonials'
@@ -9,6 +9,7 @@ import KnowledgeList from '../KnowledgeList'
 import { submitLead } from '../../lib/leads'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import PhoneInput from '../../components/PhoneInput'
+import { demoCandidates, candidateContactPrice } from '../../data/candidateContacts'
 
 const railItems = [
   { id: 'hero', label: 'Обзор' },
@@ -151,21 +152,6 @@ const employerTabs = [
   { id: 'account', label: 'Личный кабинет', icon: IconAccountCircle },
 ] as const
 
-// Прогрессивная шкала: чем опытнее кандидат, тем дороже открыть его контакт.
-function experienceYears(exp: string) {
-  if (exp === 'без опыта') return 0
-  const n = Number(exp.match(/\d+/)?.[0])
-  return Number.isFinite(n) ? n : 0
-}
-function contactPrice(exp: string) {
-  return 1000 + experienceYears(exp) * 500
-}
-// Стоимость контакта у части кандидатов фиксирована отдельно (не по общей
-// прогрессивной шкале от опыта) — например, у кандидата №1.
-function candidateContactPrice(c: { exp: string; contactPriceOverride?: number }) {
-  return c.contactPriceOverride ?? contactPrice(c.exp)
-}
-
 // Скидка за объем — как в конструкторе карьерной консультации, но с другими
 // порогами: заявка на подбор контактов нескольких кандидатов сразу выгоднее.
 function candidatesTierDiscountPct(count: number): number {
@@ -189,54 +175,11 @@ const schedules = ['Полный', 'Гибкий']
 const employments = ['Полная занятость', 'Частичная занятость', 'Проектная занятость']
 const formats: string[] = ['Офис', 'Гибрид', 'Дистанционно']
 
-// Анкеты кандидатов заполняются по одной вручную (реальные резюме), а не
-// генерируются из шаблонов — прежний демо-набор из 30 карточек убран.
-const demoCandidates = [
-  {
-    id: 1,
-    position: 'Помощник юриста',
-    sphere: 'Гражданское право, уголовный процесс, трудовое право',
-    exp: 'Выпуск 2025 г.',
-    salaryFrom: '',
-    city: 'Санкт-Петербург',
-    schedule: 'График по договоренности',
-    employment: 'Занятость: полная',
-    format: 'Офис/гибрид',
-    workplace: 'Консультант, Юридическая клиника СПбГУ',
-    duties: [
-      'Подготовка дел полным циклом: план опроса, резюме опроса, план консультации, итоговый отчет, апелляционная жалоба, меморандум',
-      'Дежурство в приемной клиники, консультирование обратившихся граждан',
-      'Координация работы «Виртуальной приемной СПбГУ»: проверка, подготовка и составление ответов на юридические вопросы',
-      'Прохождение групповых тренингов для консультантов, участие в разборе типовых ошибок при консультировании',
-    ],
-    highlights: [
-      'Провел полный цикл работы по делам в Юридической клинике СПбГУ: от плана опроса клиента до итогового отчета и апелляционной жалобы',
-      'Координировал ответы по обращениям в проекте «Виртуальная приемная СПбГУ»',
-      'Автор 3 научных публикаций (РИНЦ/ВАК) и участник международных научно-практических конференций СПбГУ',
-      'Куратор (наставник) студентов юридического факультета СПбГУ, член Кураторской комиссии факультета',
-    ],
-    publications: [
-      '«Специальные знания в уголовном судопроизводстве (эксперт, специалист)» — доклад на конференции СПбГУ, опубликован в РИНЦ',
-      '«BANI-реалии теории дискриминации в отношении молодежи» — лучшее выступление на научной конференции, диплом (РИНЦ, в печати)',
-      '«Оспаривание генерального плана муниципального образования» — научная статья по муниципальному праву, в соавторстве (ВАК, в печати)',
-      'Участник Петербургского международного юридического форума (ПМЮФ) — 2022, 2023 гг.',
-    ],
-    school: 'СПбГУ',
-    course: 'юридический факультет, специальность «Юриспруденция», выпуск 2025 г.',
-    skills: [
-      'КонсультантПлюс, Гарант, КСРФ — работа с правовыми базами и судебной практикой',
-      'MS Office (Word, Excel, PowerPoint) — подготовка юридических документов и презентаций',
-      'Казахский язык — свободно',
-      'Английский язык — Intermediate Plus (B2)',
-    ],
-    contactPriceOverride: 4000,
-  },
-]
-
 const schools = [
   'МГУ', 'СПбГУ', 'НИУ ВШЭ', 'МГИМО', 'МГЮА', 'РАНХиГС',
   'Финансовый университет', 'РУДН', 'Казанский федеральный университет',
-  'РГУП', 'УрГЮУ', 'РПА', 'РЭУ',
+  'РГУП', 'УрГЮУ', 'РПА', 'РЭУ', 'Дальневосточный федеральный университет',
+  'СГЮА', 'СПбГАУ',
 ]
 const positionOptions = Array.from(new Set(demoCandidates.map((c) => c.position)))
 function parseSalary(s: string) {
@@ -454,7 +397,21 @@ export default function KadryHome() {
     setSent(true)
   }
 
-  const [tab, setTab] = useState<(typeof employerTabs)[number]['id']>('recruiting')
+  // Вкладка хранится в ?tab= в адресе (тот же прием, что и в EventsHome) —
+  // так на нее можно вести прямую ссылку (например, «Кандидаты» из кабинета
+  // работодателя сразу открывают «Найти сотрудника», а не общий /kadry).
+  const [searchParams, setSearchParams] = useSearchParams()
+  const tabParam = searchParams.get('tab')
+  const validTabIds = new Set<string>(employerTabs.map((t) => t.id))
+  const tab: (typeof employerTabs)[number]['id'] =
+    tabParam && validTabIds.has(tabParam) ? (tabParam as (typeof employerTabs)[number]['id']) : 'recruiting'
+  function setTab(next: (typeof employerTabs)[number]['id']) {
+    setSearchParams((prev) => {
+      const p = new URLSearchParams(prev)
+      p.set('tab', next)
+      return p
+    })
+  }
   // При переключении подвкладки (Рекрутинг/Найти сотрудника/База знаний/Личный
   // кабинет) страница должна показывать верх новой вкладки, а не оставаться
   // на прежней позиции скролла — раньше при переходе снизу страницы вниз и

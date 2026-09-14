@@ -31,6 +31,7 @@ import {
   type OrganizerEvent, type OrganizerEventData, type OrganizerEventStatus,
 } from '../../lib/organizerEvents'
 import { useEventViewCount } from '../../lib/useEventViews'
+import { demoCandidates, candidateContactPrice } from '../../data/candidateContacts'
 import { INDUSTRIES, SPECIALIZATIONS, COMPANY_INDUSTRY_TREE } from '../../types'
 import type { ApplicationStatus, VacancyModerationStatus, VacancyVisibilityStage, CandidateLevel, Industry, EventType, EventFormat } from '../../types'
 
@@ -321,6 +322,12 @@ export default function EmployerAccount() {
   const [accessPurchases, setAccessPurchases] = useState(() => getAccessPurchases())
   const [buyingAccessDuration, setBuyingAccessDuration] = useState<AccessDuration>(ACCESS_DURATIONS[2])
 
+  // Превью реальных анкет из базы «Найти сотрудника» (см.
+  // data/candidateContacts.ts) прямо в кабинете — запрос контакта такой же
+  // демо-заявкой, как и на публичной странице (агентство передает контакт
+  // кандидата отдельно, это не мгновенная автоматическая выдача телефона/почты).
+  const [requestedCandidateIds, setRequestedCandidateIds] = useState<Set<number>>(new Set())
+
   // Личный кабинет организатора мероприятий (минимальная версия) — своя
   // демо-модерация, как у вакансий (черновик → на модерации →
   // опубликовано/отклонено → закрыто). См. lib/organizerEvents.ts.
@@ -477,6 +484,18 @@ export default function EmployerAccount() {
     purchaseAccess(pack, duration)
     setAccessPurchases(getAccessPurchases())
     setNotice(`Доступ куплен: ${pack.count} контактов, ${duration.label} — ${priceFor(pack, duration)} ₽.`)
+  }
+
+  function handleRequestCandidateContact(c: (typeof demoCandidates)[number]) {
+    submitLead({
+      sourceBlock: 'kadry',
+      formType: 'candidate_contact_request',
+      name: demoEmployer.name,
+      contact: demoEmployer.phone ?? demoEmployer.email,
+      interest: [`Кандидат №${c.id} — ${c.position}`, `${candidateContactPrice(c).toLocaleString('ru-RU')} ₽`],
+    })
+    setRequestedCandidateIds((prev) => new Set(prev).add(c.id))
+    setNotice(`Заявка на контакт кандидата №${c.id} отправлена.`)
   }
 
   function refreshOrganizerEvents() {
@@ -1645,12 +1664,41 @@ export default function EmployerAccount() {
                     Полный поиск по базе кандидатов — фильтры по специализации, уровню, городу, направлению — на отдельной странице.
                   </p>
                   <Link
-                    to="/kadry/candidates"
+                    to="/kadry/employers?tab=candidates"
                     className="mt-3 inline-block rounded-full bg-ink px-6 py-2.5 text-sm font-semibold text-white hover:bg-ink/90"
                   >
                     Открыть поиск кандидатов
                   </Link>
                 </div>
+              </section>
+
+              <section>
+                <h2 className="mb-3 text-lg font-semibold">Новые анкеты в базе</h2>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  {demoCandidates.map((c) => {
+                    const requested = requestedCandidateIds.has(c.id)
+                    return (
+                      <div key={c.id} className="glass flex flex-col rounded-xl p-4">
+                        <div className="text-xs font-semibold uppercase tracking-wide text-gold">Кандидат №{c.id}</div>
+                        <div className="mt-1 font-semibold text-ink">{c.position}</div>
+                        <div className="mt-1 text-xs text-ink/50">{c.sphere}</div>
+                        <div className="mt-1 text-xs text-ink/40">{c.city} · {c.exp}</div>
+                        <div className="mt-3 flex-1 text-sm font-semibold text-ink">{candidateContactPrice(c).toLocaleString('ru-RU')} ₽</div>
+                        <button
+                          type="button"
+                          disabled={requested}
+                          onClick={() => handleRequestCandidateContact(c)}
+                          className={`mt-3 rounded-full px-4 py-2 text-sm font-semibold ${requested ? 'bg-ink/[0.06] text-ink/40' : 'bg-ink text-white hover:bg-ink/90'}`}
+                        >
+                          {requested ? 'Заявка отправлена ✓' : 'Запросить контакт'}
+                        </button>
+                      </div>
+                    )
+                  })}
+                </div>
+                <Link to="/kadry/employers?tab=candidates" className="mt-3 inline-block text-sm font-medium text-ink/60 hover:text-ink">
+                  Смотреть полные анкеты и фильтры →
+                </Link>
               </section>
 
               <section>
