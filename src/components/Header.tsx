@@ -1,4 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom'
+import { SHOW_PERSONAL_ACCOUNTS } from '../lib/featureFlags'
 
 const nav = [
   { to: '/kadry/employers', label: 'Кадры' },
@@ -32,7 +33,7 @@ export default function Header() {
   const { pathname } = useLocation()
   const onCommunity = pathname.startsWith('/community')
   const onMarketplace = pathname.startsWith('/marketplace')
-  const showAccountButton = onCommunity || onMarketplace
+  const showAccountButton = SHOW_PERSONAL_ACCOUNTS && (onCommunity || onMarketplace)
 
   return (
     <header className="sticky top-0 z-40 border-b border-ink/10 bg-white/70 backdrop-blur-xl [transform:translateZ(0)] [will-change:transform]">

@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { SHOW_AMBASSADORS } from '../../lib/featureFlags'
 
 // Единый подвал раздела «Сообщество» — построен по тому же принципу, что и
 // EventsFooter (см. комментарий там): один компонент рендерится и на
@@ -82,12 +83,14 @@ export default function CommunityFooter() {
           </ul>
         </div>
 
+        {SHOW_AMBASSADORS && (
         <div>
           <div className="mb-3 text-sm font-bold uppercase tracking-wide text-white">Партнерам</div>
           <ul className="space-y-2 text-sm">
             <li><Link className="hover:text-white" to="/community#ambassador-form">Стать амбассадором сообщества</Link></li>
           </ul>
         </div>
+        )}
 
         <div>
           <div className="mb-3 text-sm font-bold uppercase tracking-wide text-white">Помощь</div>

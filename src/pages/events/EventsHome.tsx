@@ -6,6 +6,7 @@ import PhoneInput from '../../components/PhoneInput'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import EventsFooter from './EventsFooter'
 import { INDUSTRIES, type EventItem, type Industry, type AudienceLevel } from '../../types'
+import { SHOW_CREATE_EVENT, SHOW_EVENTS_ACCOUNT } from '../../lib/featureFlags'
 
 const money = new Intl.NumberFormat('ru-RU')
 
@@ -402,7 +403,9 @@ export default function EventsHome() {
       <div className="sticky top-16 z-20 border-b border-ink/10 bg-white/95 py-4 backdrop-blur-xl">
         <div className="container-page">
           <div className="flex flex-wrap justify-end gap-3">
-            {eventTabs.map((t) => (
+            {eventTabs.filter((t) =>
+              (t.id !== 'create' || SHOW_CREATE_EVENT) && (t.id !== 'account' || SHOW_EVENTS_ACCOUNT),
+            ).map((t) => (
               <button
                 key={t.id}
                 type="button"
@@ -532,12 +535,14 @@ export default function EventsHome() {
                   Условия партнерства — раздел в разработке, наполнение уточняется.
                 </p>
               </div>
-              <button type="button" onClick={() => setTab('create')} className="glass rounded-2xl p-6 text-center">
-                <h3 className="text-lg font-semibold">Разместить свое мероприятие</h3>
-                <p className="mx-auto mt-2 max-w-sm text-sm text-ink/60">
-                  Форма подачи мероприятия — раздел в разработке, наполнение уточняется.
-                </p>
-              </button>
+              {SHOW_CREATE_EVENT && (
+                <button type="button" onClick={() => setTab('create')} className="glass rounded-2xl p-6 text-center">
+                  <h3 className="text-lg font-semibold">Разместить свое мероприятие</h3>
+                  <p className="mx-auto mt-2 max-w-sm text-sm text-ink/60">
+                    Форма подачи мероприятия — раздел в разработке, наполнение уточняется.
+                  </p>
+                </button>
+              )}
             </div>
           </section>
         </>

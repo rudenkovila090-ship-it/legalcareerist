@@ -10,6 +10,7 @@ import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import { tariffs } from '../../data/tariffs'
 import CommunityFooter from './CommunityFooter'
 import PhoneInput from '../../components/PhoneInput'
+import { SHOW_AMBASSADORS } from '../../lib/featureFlags'
 
 const railItems = [
   { id: 'hero', label: 'Обзор' },
@@ -17,7 +18,7 @@ const railItems = [
   { id: 'mvc', label: 'Миссия и цель' },
   { id: 'benefits', label: 'Резидентам' },
   { id: 'founder', label: 'Основатель' },
-  { id: 'ambassadors', label: 'Амбассадоры' },
+  ...(SHOW_AMBASSADORS ? [{ id: 'ambassadors', label: 'Амбассадоры' }] : []),
   { id: 'map', label: 'Представители' },
   { id: 'join', label: 'Присоединиться' },
   { id: 'reviews', label: 'Отзывы' },
@@ -432,7 +433,10 @@ export default function CommunityHome() {
       {/* Амбассадоры сообщества — карточка с фото, имя внизу; при наведении
           панель с основной информацией об амбассадоре выезжает снизу вверх,
           закрывая собой фото (см. комментарий у ambassadors выше про то,
-          что фото/био пока технический пример). */}
+          что фото/био пока технический пример). Скрыто до запуска —
+          см. lib/featureFlags.ts. */}
+      {SHOW_AMBASSADORS && (
+      <>
       <section id="ambassadors" className="container-page py-12">
         <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Амбассадоры сообщества</div>
         <h2 className="mb-8 text-2xl font-semibold">Резиденты, которые представляют сообщество</h2>
@@ -513,6 +517,8 @@ export default function CommunityHome() {
           )}
         </div>
       </section>
+      </>
+      )}
 
       {/* Представители по городам — мозаичная (пиксельная) карта РФ: каждая
           ячейка суши нарисована отдельным скругленным квадратом с легкой

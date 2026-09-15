@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { SHOW_CREATE_EVENT } from '../../lib/featureFlags'
 
 // Единый подвал раздела «Мероприятия» — рендерится и на /events (все ее
 // вкладки: афиша/создать/заказать/партнерам/поддержка/личный кабинет —
@@ -106,7 +107,9 @@ export default function EventsFooter() {
         <div>
           <div className="mb-3 text-sm font-bold uppercase tracking-wide text-white">Организаторам</div>
           <ul className="space-y-2 text-sm">
-            <li><Link className="hover:text-white" to="/events?tab=create">Создать событие</Link></li>
+            {SHOW_CREATE_EVENT && (
+              <li><Link className="hover:text-white" to="/events?tab=create">Создать событие</Link></li>
+            )}
             <li><Link className="hover:text-white" to="/events/opportunities">Возможности</Link></li>
             <li><Link className="hover:text-white" to="/events/advertising">Реклама</Link></li>
           </ul>

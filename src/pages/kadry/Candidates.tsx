@@ -19,6 +19,7 @@ import CareerReserve from './CareerReserve'
 import CareerConsultation from './CareerConsultation'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import { pluralRu } from '../../lib/plural'
+import { SHOW_PERSONAL_ACCOUNTS } from '../../lib/featureFlags'
 
 const money = new Intl.NumberFormat('ru-RU')
 
@@ -176,7 +177,7 @@ export default function Candidates() {
               top-[Npx] у sticky-формы отклика справа), при нехватке
               ширины вкладки скроллятся по горизонтали, а не переносятся. */}
           <div className="flex justify-end gap-2 overflow-x-auto">
-          {candidateTabs.map((t) => (
+          {candidateTabs.filter((t) => t.id !== 'account' || SHOW_PERSONAL_ACCOUNTS).map((t) => (
             <button
               key={t.id}
               type="button"

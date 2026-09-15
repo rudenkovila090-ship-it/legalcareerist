@@ -10,6 +10,7 @@ import { submitLead } from '../../lib/leads'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import PhoneInput from '../../components/PhoneInput'
 import { demoCandidates, candidateContactPrice } from '../../data/candidateContacts'
+import { SHOW_FIND_EMPLOYEE, SHOW_PERSONAL_ACCOUNTS } from '../../lib/featureFlags'
 
 const railItems = [
   { id: 'hero', label: 'Обзор' },
@@ -499,7 +500,9 @@ export default function KadryHome() {
           {/* Без flex-wrap — высота панели всегда постоянна, при нехватке
               ширины вкладки скроллятся по горизонтали, а не переносятся. */}
           <div className="flex justify-end gap-2 overflow-x-auto">
-          {employerTabs.map((t) => (
+          {employerTabs.filter((t) =>
+            (t.id !== 'candidates' || SHOW_FIND_EMPLOYEE) && (t.id !== 'account' || SHOW_PERSONAL_ACCOUNTS),
+          ).map((t) => (
             <button
               key={t.id}
               type="button"
