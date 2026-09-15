@@ -1,0 +1,52 @@
+import type { MaterialItem } from '../types'
+
+// Каталог намеренно содержит только реальные материалы — демо-заглушки
+// (гайды/чек-листы/статьи/вебинары «для вида») удалены по просьбе клиента,
+// наполнение теперь только настоящим контентом.
+export const materials: MaterialItem[] = [
+  {
+    id: 'm4',
+    slug: 'longlist-studencheskie-yuridicheskie-meropriyatiya',
+    title: 'Лонглист «Студенческие юридические мероприятия»',
+    kind: 'longlist',
+    direction: ['career', 'events'],
+    price: 990,
+    specialization: ['advocacy', 'consulting', 'inhouse', 'government'],
+    industry: [],
+    description: 'Подборка конференций, олимпиад, конкурсов и школ для студентов-юристов — с датами и ссылками на подачу заявок.',
+    forWhom: 'Студентам-юристам, которые хотят участвовать в профильных мероприятиях',
+    purchases: 96,
+    rating: 4.8,
+    reviewsCount: 14,
+    qnaCount: 3,
+    realPurchase: true,
+  },
+  {
+    id: 'm16',
+    slug: 'gaid-kariera-yurista-v-notariate',
+    title: 'Гайд «Карьера юриста в нотариате»',
+    kind: 'guide',
+    direction: ['notary', 'career'],
+    price: 990,
+    specialization: ['notary'],
+    industry: [],
+    description: 'Как устроена работа в нотариате, с чего начать карьеру помощника нотариуса и куда расти дальше.',
+    forWhom: 'Студентам и юристам, которые рассматривают нотариат',
+    purchases: 0,
+    realPurchase: true,
+  },
+  {
+    id: 'm17',
+    slug: 'gaid-stipendii-i-granty',
+    title: 'Гайд «Стипендии и гранты»',
+    kind: 'guide',
+    direction: ['career'],
+    price: 990,
+    specialization: ['advocacy', 'consulting', 'inhouse', 'government'],
+    industry: [],
+    description: 'Где искать именные стипендии и гранты для студентов-юристов, как проходит отбор и что нужно для подачи заявки.',
+    forWhom: 'Студентам-юристам, которые хотят получать дополнительную поддержку во время учебы',
+    purchases: 0,
+    realPurchase: true,
+  },
+]
