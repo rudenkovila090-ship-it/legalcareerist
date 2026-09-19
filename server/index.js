@@ -104,6 +104,44 @@ function buildLeadNotification({ direction, service, date, name, phone, email, t
   return lines.join('\n')
 }
 
+// Иконка для строки доп. условий (interest[]) уведомления рекрутинга/консультации —
+// по ключевому слову в начале строки, чтобы не заводить отдельное поле под каждую форму.
+function richDetailIcon(line) {
+  if (/^Итого/i.test(line)) return '💰'
+  if (/^Скидка/i.test(line)) return '🏷️'
+  if (/^Промокод/i.test(line)) return '🎟️'
+  if (/^Кого ищем|^Ищем/i.test(line)) return '🔍'
+  if (/^Цель поиска/i.test(line)) return '🎯'
+  if (/^(Заработная плата|Зарплата)/i.test(line)) return '💵'
+  if (/^Ставка/i.test(line)) return '📊'
+  if (/^Кандидат/i.test(line)) return '👥'
+  return '📋'
+}
+
+// Расширенный формат с иконками по полям — только для рекрутинга (работодатель
+// ищет сотрудника) и карьерной консультации (соискатель), по запросу заказчика.
+// Остальные формы идут через обычный buildLeadNotification выше.
+function buildKadryRichNotification({ template, direction, service, date, name, phone, email, telegram, company, details }) {
+  const contactLabel = template === 'kadry-employer' ? 'фио' : 'контакт'
+  const lines = [
+    '🔔 Новая заявка с сайта',
+    '',
+    direction || null,
+    service || null,
+    '',
+    `📅 ${formatMoscowDateTime(date)}`,
+    '',
+    company ? `🏢 компания: ${company}` : null,
+    name ? `👤 ${contactLabel}: ${name}` : null,
+    phone ? `📞 телефон: ${phone}` : null,
+    email ? `✉️ почта: ${email}` : null,
+    telegram ? `💬 телеграм: ${telegram}` : null,
+    Array.isArray(details) && details.length ? '' : null,
+    ...(Array.isArray(details) ? details.map((d) => `${richDetailIcon(d)} ${d}`) : []),
+  ].filter((l) => l !== null)
+  return lines.join('\n')
+}
+
 async function sendInviteLink(chatId, join) {
   const tariff = TARIFFS[join.tariffId]
   const label = tariff?.label ?? 'Сообщество'
@@ -183,7 +221,7 @@ app.put('/api/store/:key', (req, res) => {
 })
 
 app.post('/api/notify', async (req, res) => {
-  const { direction, service, source, formType, name, contact, phone, email, telegram, interest, date, vacancySlug, eventSlug } = req.body ?? {}
+  const { direction, service, source, formType, name, contact, phone, email, telegram, company, template, interest, date, vacancySlug, eventSlug } = req.body ?? {}
 
   // Отклик на вакансию — считаем реальный счётчик независимо от того,
   // настроен ли Telegram-бот ниже: заявка не должна "теряться" из
@@ -214,16 +252,30 @@ app.post('/api/notify', async (req, res) => {
   // phone/email/telegram — отдельными полями с фронтенда (см.
   // src/lib/leads.ts); contact — старая склеенная строка, остаётся как
   // запасной вариант, если фронтенд почему-то не прислал разбивку.
-  const text = buildLeadNotification({
-    direction: direction || source,
-    service: service || formType,
-    date,
-    name,
-    phone: phone || (!email && !telegram ? contact : undefined),
-    email,
-    telegram,
-    details: interest,
-  })
+  const isRich = template === 'kadry-employer' || template === 'kadry-candidate'
+  const text = isRich
+    ? buildKadryRichNotification({
+        template,
+        direction: direction || source,
+        service: service || formType,
+        date,
+        name,
+        phone: phone || (!email && !telegram ? contact : undefined),
+        email,
+        telegram,
+        company,
+        details: interest,
+      })
+    : buildLeadNotification({
+        direction: direction || source,
+        service: service || formType,
+        date,
+        name,
+        phone: phone || (!email && !telegram ? contact : undefined),
+        email,
+        telegram,
+        details: interest,
+      })
 
   const ok = await sendTelegramMessage(ADMIN_CHAT_ID, text).catch((err) => {
     console.error('[notify] ошибка запроса к Telegram:', err)

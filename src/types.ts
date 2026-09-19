@@ -604,6 +604,9 @@ export interface Lead {
   phone?: string
   email?: string
   telegram?: string
+  /** Компания — для заявок работодателя (рекрутинг), отдельная строка в
+   *  уведомлении админу вместо строки в interest. */
+  company?: string
   interest: string[]
   utm?: Record<string, string>
   status: 'new' | 'processing' | 'done'

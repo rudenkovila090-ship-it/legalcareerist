@@ -69,6 +69,18 @@ function directionLabel(sourceBlock: LeadSourceBlock, formType: string): string 
   return sourceLabels[sourceBlock] ?? sourceBlock
 }
 
+// Расширенный формат уведомления (с иконками по полям) — только для заявок
+// на рекрутинг (работодатель ищет сотрудника) и карьерную консультацию
+// (соискатель). Остальные формы используют обычный текстовый формат выше.
+const RICH_EMPLOYER_TYPES = new Set(['employer_request', 'service_order', 'candidates_selection_request'])
+const RICH_CANDIDATE_TYPES = new Set(['consultation_help_request', 'consultation_order'])
+
+function richTemplate(formType: string): 'kadry-employer' | 'kadry-candidate' | undefined {
+  if (RICH_EMPLOYER_TYPES.has(formType)) return 'kadry-employer'
+  if (RICH_CANDIDATE_TYPES.has(formType)) return 'kadry-candidate'
+  return undefined
+}
+
 export interface LeadInput {
   sourceBlock: LeadSourceBlock
   formType: string
@@ -79,6 +91,8 @@ export interface LeadInput {
   phone?: string
   email?: string
   telegram?: string
+  /** Компания — для заявок работодателя (рекрутинг), см. Lead в types.ts. */
+  company?: string
   interest?: string[]
   /** Slug вакансии — если задан, бэкенд считает это в реальный счетчик откликов вакансии. */
   vacancySlug?: string
@@ -103,6 +117,7 @@ export function submitLead(input: LeadInput): Lead {
     phone: input.phone,
     email: input.email,
     telegram: input.telegram,
+    company: input.company,
     interest: input.interest ?? [],
     status: 'new',
     date: new Date().toISOString(),
@@ -123,19 +138,26 @@ export function submitLead(input: LeadInput): Lead {
  *  откликов вакансии / переходов к регистрации на мероприятие. */
 function notifyTelegram(lead: Lead, vacancySlug?: string, eventSlug?: string) {
   if (typeof fetch === 'undefined') return
+  const template = richTemplate(lead.formType)
+  const direction =
+    template === 'kadry-employer' ? 'Кадры → Работодатель'
+    : template === 'kadry-candidate' ? 'Кадры → Соискатель'
+    : directionLabel(lead.sourceBlock, lead.formType)
   fetch('/api/notify', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      direction: directionLabel(lead.sourceBlock, lead.formType),
+      direction,
       service: SERVICE_LABELS[lead.formType] ?? lead.formType,
       source: sourceLabels[lead.sourceBlock] ?? lead.sourceBlock,
       formType: lead.formType,
+      template,
       name: lead.name,
       contact: lead.contact,
       phone: lead.phone,
       email: lead.email,
       telegram: lead.telegram,
+      company: lead.company,
       interest: lead.interest,
       date: lead.date,
       vacancySlug,

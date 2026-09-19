@@ -374,8 +374,8 @@ export default function KadryHome() {
       phone: serviceForm.phone || undefined,
       email: serviceForm.email || undefined,
       telegram: serviceForm.telegram || undefined,
+      company: serviceForm.company,
       interest: [
-        serviceForm.company,
         `Кого ищем: ${calcPosition.trim() || 'не указано'}`,
         `Цель поиска: ${goalLabel}`,
         `Заработная плата кандидата: ${salary.toLocaleString('ru-RU')} ₽/мес`,
@@ -400,7 +400,8 @@ export default function KadryHome() {
       phone: form.phone || undefined,
       email: form.email || undefined,
       telegram: form.telegram || undefined,
-      interest: [form.company, form.position].filter(Boolean),
+      company: form.company,
+      interest: form.position.trim() ? [`Ищем: ${form.position.trim()}`] : [],
     })
     setSent(true)
   }
@@ -486,8 +487,8 @@ export default function KadryHome() {
       phone: requestForm.phone || undefined,
       email: requestForm.email || undefined,
       telegram: requestForm.telegram || undefined,
+      company: requestForm.company,
       interest: [
-        requestForm.company,
         ...selectedCandidates.map((c) => `Кандидат №${c.id} — ${c.position}, ${candidateContactPrice(c).toLocaleString('ru-RU')} ₽`),
         candidatesTierPct > 0 ? `Скидка ${candidatesTierPct}%` : '',
         `Итого: ${candidatesTotal.toLocaleString('ru-RU')} ₽`,

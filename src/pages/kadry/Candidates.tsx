@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import PageHero from '../../components/PageHero'
 import Testimonials from '../../components/Testimonials'
@@ -6,6 +6,8 @@ import { consultationTestimonials } from '../../data/testimonials'
 import FAQSection from '../../components/FAQSection'
 import { TagRow } from '../../components/Tag'
 import LeadForm from '../../components/LeadForm'
+import PhoneInput from '../../components/PhoneInput'
+import { submitLead, makeTicketNumber } from '../../lib/leads'
 import VacancyDetailBody, { VacancyContactsBlock } from '../../components/VacancyDetailBody'
 import { vacancies } from '../../data/vacancies'
 import { IndustryFilter, EducationFilter } from '../../components/VacancyFilters'
@@ -140,6 +142,41 @@ export default function Candidates() {
   const [industrySel, setIndustrySel] = useState<Set<string>>(new Set())
 
   const minSalary = parseMinSalary(salaryText)
+
+  // «Не знаете, с чего начать?» — вместо прямой ссылки в Telegram открывает
+  // обычную лид-форму (formType 'support_request', как и в разделе Мероприятий),
+  // чтобы заявка уходила в CRM/уведомление админу, а не терялась вне сайта.
+  const [supportOpen, setSupportOpen] = useState(false)
+  const [supportForm, setSupportForm] = useState({ fio: '', phone: '', email: '', telegram: '', question: '' })
+  const [supportTicket, setSupportTicket] = useState<string | null>(null)
+  const [supportMissing, setSupportMissing] = useState(false)
+
+  function closeSupportModal() {
+    setSupportOpen(false)
+    setSupportForm({ fio: '', phone: '', email: '', telegram: '', question: '' })
+    setSupportTicket(null)
+    setSupportMissing(false)
+  }
+
+  function handleSupportSubmit(e: FormEvent) {
+    e.preventDefault()
+    setSupportMissing(false)
+    if (!supportForm.fio.trim() || !supportForm.phone.trim()) {
+      setSupportMissing(true)
+      return
+    }
+    submitLead({
+      sourceBlock: 'kadry',
+      formType: 'support_request',
+      name: supportForm.fio,
+      contact: [supportForm.phone, supportForm.email, supportForm.telegram].filter(Boolean).join(' / '),
+      phone: supportForm.phone || undefined,
+      email: supportForm.email || undefined,
+      telegram: supportForm.telegram || undefined,
+      interest: supportForm.question.trim() ? [supportForm.question.trim()] : [],
+    })
+    setSupportTicket(makeTicketNumber())
+  }
   const [selectedVacancySlug, setSelectedVacancySlug] = useState<string | null>(null)
   const selectedVacancy = vacancies.find((v) => v.slug === selectedVacancySlug) ?? null
   useDocumentTitle(selectedVacancy?.title ?? 'Кадры — Соискателям')
@@ -236,16 +273,90 @@ export default function Candidates() {
               <p className="mx-auto mt-2 max-w-lg text-sm text-white/70">
                 Напишите в Telegram — подскажем, какая услуга подойдет именно вам.
               </p>
-              <a
-                href="https://t.me/legalcareerst_support"
-                target="_blank"
-                rel="noreferrer"
+              <button
+                type="button"
+                onClick={() => setSupportOpen(true)}
                 className="mt-5 inline-block rounded-full bg-gold-light px-6 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-white"
               >
                 Написать в Telegram
-              </a>
+              </button>
             </div>
           </section>
+
+          {supportOpen && (
+            <div
+              className="fixed inset-0 z-50 flex items-end justify-center bg-ink/70 p-0 sm:items-center sm:p-4"
+              onClick={(e) => {
+                if (e.target === e.currentTarget) closeSupportModal()
+              }}
+            >
+              <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-white p-6 text-ink sm:rounded-2xl sm:p-8">
+                <div className="mb-4 flex items-center justify-between">
+                  <h3 className="text-lg font-semibold">Не знаете, с чего начать?</h3>
+                  <button type="button" onClick={closeSupportModal} className="text-ink/40 hover:text-ink" aria-label="Закрыть">
+                    ✕
+                  </button>
+                </div>
+                {supportTicket ? (
+                  <div className="text-emerald-800">
+                    <div className="font-semibold">Заявка отправлена</div>
+                    <p className="mt-1 text-sm">
+                      Номер вашей заявки — <span className="font-semibold">№ {supportTicket}</span>. Мы напишем вам в ближайшее время и подскажем, какая услуга подойдет.
+                    </p>
+                  </div>
+                ) : (
+                  <form onSubmit={handleSupportSubmit} className="grid gap-3">
+                    <p className="text-sm text-ink/60">Оставьте контакты — подскажем, какая услуга подойдет именно вам.</p>
+                    <input
+                      value={supportForm.fio}
+                      onChange={(e) => setSupportForm((s) => ({ ...s, fio: e.target.value }))}
+                      placeholder="Имя"
+                      required
+                      className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+                    />
+                    <PhoneInput
+                      value={supportForm.phone}
+                      onChange={(v) => setSupportForm((s) => ({ ...s, phone: v }))}
+                      required
+                      className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+                    />
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <input
+                        type="email"
+                        value={supportForm.email}
+                        onChange={(e) => setSupportForm((s) => ({ ...s, email: e.target.value }))}
+                        placeholder="Почта (необязательно)"
+                        className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+                      />
+                      <input
+                        value={supportForm.telegram}
+                        onChange={(e) => setSupportForm((s) => ({ ...s, telegram: e.target.value }))}
+                        placeholder="Telegram (необязательно)"
+                        className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+                      />
+                    </div>
+                    <textarea
+                      value={supportForm.question}
+                      onChange={(e) => setSupportForm((s) => ({ ...s, question: e.target.value }))}
+                      placeholder="Ваш вопрос (необязательно)"
+                      rows={3}
+                      className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+                    />
+                    {supportMissing && (
+                      <p className="text-sm text-red-600">Заполните имя и телефон.</p>
+                    )}
+                    <button
+                      type="submit"
+                      className="rounded-full bg-ink py-3 text-sm font-semibold text-white transition-colors hover:bg-ink/90"
+                    >
+                      Отправить
+                    </button>
+                    <p className="text-xs text-ink/50">Нажимая «Отправить», вы соглашаетесь на обработку персональных данных.</p>
+                  </form>
+                )}
+              </div>
+            </div>
+          )}
         </>
       )}
 
