@@ -66,9 +66,9 @@ function IconPodcast() {
 export default function Footer() {
   return (
     <footer className="border-t border-white/10 bg-ink text-white/40">
-      <div className="container-page grid gap-8 py-12 sm:grid-cols-2 lg:grid-cols-9">
-        <div>
-          <div className="mb-3 min-h-[2rem] text-xs font-bold uppercase leading-tight tracking-wide text-white">Карьерный юрист</div>
+      <div className="container-page grid gap-8 py-12 sm:grid-cols-2 lg:grid-cols-10">
+        <div className="lg:col-span-2">
+          <div className="mb-3 whitespace-nowrap text-xs font-bold uppercase tracking-wide text-white">Карьерный юрист</div>
           <ul className="space-y-1.5 text-xs">
             <li><Link className="hover:text-white" to="/about">О нас</Link></li>
           </ul>
