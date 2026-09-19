@@ -99,7 +99,7 @@ export default function CommunityFooter() {
           </ul>
         </div>
 
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-3">
           <div className="mb-3 whitespace-nowrap text-sm font-bold uppercase tracking-wide text-white">Юридический блок</div>
           <ul className="space-y-2 text-sm">
             <li><Link className="hover:text-white" to="/legal/privacy">Политика обработки персональных данных</Link></li>
