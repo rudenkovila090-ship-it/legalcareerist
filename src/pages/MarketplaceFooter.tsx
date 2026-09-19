@@ -62,11 +62,11 @@ function IconPodcast() {
 export default function MarketplaceFooter() {
   return (
     <footer className="border-t border-white/10 bg-ink text-white/40">
-      <div className="container-page grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-6">
+      <div className="container-page grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-5">
         <div>
           <div className="mb-3 text-sm font-bold uppercase tracking-wide text-white">Маркетплейс</div>
           <ul className="space-y-2 text-sm">
-            <li><Link className="hover:text-white" to="/blog">Блог</Link></li>
+            <li><Link className="hover:text-white" to="/blog?category=Маркетплейс">Блог</Link></li>
             <li><Link className="hover:text-white" to="/news">Новости</Link></li>
           </ul>
         </div>
@@ -75,7 +75,7 @@ export default function MarketplaceFooter() {
           <div className="mb-3 text-sm font-bold uppercase tracking-wide text-white">Помощь</div>
           <ul className="space-y-2 text-sm">
             <li><Link className="hover:text-white" to="/marketplace/contacts">Поддержка</Link></li>
-            <li><Link className="hover:text-white" to="/kadry/knowledge">База знаний</Link></li>
+            <li><Link className="hover:text-white" to="/blog?category=Маркетплейс">База знаний</Link></li>
           </ul>
         </div>
 

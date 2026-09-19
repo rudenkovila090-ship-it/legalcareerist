@@ -64,13 +64,12 @@ function IconPodcast() {
 export default function CommunityFooter() {
   return (
     <footer className="border-t border-white/10 bg-ink text-white/40">
-      <div className="container-page grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-6">
+      <div className="container-page grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-7">
         <div>
           <div className="mb-3 text-sm font-bold uppercase tracking-wide text-white">Сообщество</div>
           <ul className="space-y-2 text-sm">
             <li><Link className="hover:text-white" to="/community#main">О сообществе</Link></li>
             <li><Link className="hover:text-white" to="/blog?category=Сообщество">Блог</Link></li>
-            <li><Link className="hover:text-white" to="/community/documents">Документы</Link></li>
           </ul>
         </div>
 
@@ -95,6 +94,7 @@ export default function CommunityFooter() {
           <div className="mb-3 text-sm font-bold uppercase tracking-wide text-white">Помощь</div>
           <ul className="space-y-2 text-sm">
             <li><Link className="hover:text-white" to="/community/contacts">Поддержка</Link></li>
+            <li><Link className="hover:text-white" to="/blog?category=Сообщество">База знаний</Link></li>
           </ul>
         </div>
 

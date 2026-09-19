@@ -76,13 +76,12 @@ export default function EventsFooter() {
           считывалась с первого взгляда. Порядок: Мероприятия, Все события,
           Партнерам, Организаторам, Помощь, Юридический блок; соцсети —
           отдельной строкой ниже на всю ширину, чтобы поместились в один ряд. */}
-      <div className="container-page grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-6">
+      <div className="container-page grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-8">
         <div>
           <div className="mb-3 text-sm font-bold uppercase tracking-wide text-white">Мероприятия</div>
           <ul className="space-y-2 text-sm">
             <li><Link className="hover:text-white" to="/about">О нас</Link></li>
             <li><Link className="hover:text-white" to="/blog?category=Мероприятия">Блог</Link></li>
-            <li><Link className="hover:text-white" to="/events/documents">Документы</Link></li>
           </ul>
         </div>
 

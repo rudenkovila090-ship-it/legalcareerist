@@ -66,7 +66,14 @@ function IconPodcast() {
 export default function Footer() {
   return (
     <footer className="border-t border-white/10 bg-ink text-white/40">
-      <div className="container-page grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-6">
+      <div className="container-page grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-9">
+        <div>
+          <div className="mb-3 text-sm font-bold uppercase tracking-wide text-white">Карьерный юрист</div>
+          <ul className="space-y-2 text-sm">
+            <li><Link className="hover:text-white" to="/about">О нас</Link></li>
+          </ul>
+        </div>
+
         <div>
           <div className="mb-3 text-sm font-bold uppercase tracking-wide text-white">Кадры</div>
           <ul className="space-y-2 text-sm">
@@ -86,14 +93,13 @@ export default function Footer() {
           <div className="mb-3 text-sm font-bold uppercase tracking-wide text-white">Мероприятия</div>
           <ul className="space-y-2 text-sm">
             <li><Link className="hover:text-white" to="/events">Все мероприятия</Link></li>
-            <li><Link className="hover:text-white" to="/events/materials">Материалы (демо-каркас)</Link></li>
           </ul>
         </div>
 
         <div>
           <div className="mb-3 text-sm font-bold uppercase tracking-wide text-white">Маркетплейс</div>
           <ul className="space-y-2 text-sm">
-            <li><Link className="hover:text-white" to="/marketplace">Каталог полезных материалов</Link></li>
+            <li><Link className="hover:text-white" to="/marketplace">Каталог</Link></li>
           </ul>
         </div>
 

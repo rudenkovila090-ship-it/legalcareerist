@@ -64,14 +64,13 @@ function IconPodcast() {
 export default function KadryFooter() {
   return (
     <footer className="border-t border-white/10 bg-ink text-white/40">
-      <div className="container-page grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-6">
+      <div className="container-page grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-7">
         <div>
           <div className="mb-3 text-sm font-bold uppercase tracking-wide text-white">Кадры</div>
           <ul className="space-y-2 text-sm">
             <li><Link className="hover:text-white" to="/about">О нас</Link></li>
-            <li><Link className="hover:text-white" to="/blog">Блог</Link></li>
+            <li><Link className="hover:text-white" to="/blog?category=Кадры">Блог</Link></li>
             <li><Link className="hover:text-white" to="/news">Новости</Link></li>
-            <li><Link className="hover:text-white" to="/kadry/documents">Документы</Link></li>
           </ul>
         </div>
 
@@ -82,7 +81,7 @@ export default function KadryFooter() {
             {SHOW_FIND_EMPLOYEE && (
               <li><Link className="hover:text-white" to="/kadry/employers?tab=candidates">Найти сотрудника</Link></li>
             )}
-            <li><Link className="hover:text-white" to="/kadry/knowledge">База знаний</Link></li>
+            <li><Link className="hover:text-white" to="/blog?category=Кадры">База знаний</Link></li>
           </ul>
         </div>
 
@@ -92,7 +91,7 @@ export default function KadryFooter() {
             <li><Link className="hover:text-white" to="/kadry/vacancies">Вакансии</Link></li>
             <li><Link className="hover:text-white" to="/kadry/candidates/consultation">Карьерная консультация</Link></li>
             <li><Link className="hover:text-white" to="/kadry/candidates/reserve">Кадровый резерв</Link></li>
-            <li><Link className="hover:text-white" to="/kadry/knowledge">База знаний</Link></li>
+            <li><Link className="hover:text-white" to="/blog?category=Кадры">База знаний</Link></li>
           </ul>
         </div>
 
@@ -100,7 +99,7 @@ export default function KadryFooter() {
           <div className="mb-3 text-sm font-bold uppercase tracking-wide text-white">Помощь</div>
           <ul className="space-y-2 text-sm">
             <li><Link className="hover:text-white" to="/kadry/contacts">Поддержка</Link></li>
-            <li><Link className="hover:text-white" to="/kadry/knowledge">База знаний</Link></li>
+            <li><Link className="hover:text-white" to="/blog?category=Кадры">База знаний</Link></li>
           </ul>
         </div>
 
