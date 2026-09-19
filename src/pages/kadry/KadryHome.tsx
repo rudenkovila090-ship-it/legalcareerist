@@ -913,10 +913,12 @@ export default function KadryHome() {
       <section id="about" className="border-y border-white/10 py-12">
         <div className="container-page">
           <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold-light">О компании</div>
-          {/* Контент раздела уточняется — временно пусто по просьбе клиента. */}
-          <div className="rounded-2xl border border-dashed border-white/15 p-10 text-center text-sm text-white/30">
-            Временно недоступно. В разработке.
-          </div>
+          <p className="max-w-2xl text-white/70">
+            Основа нашей деятельности. Помогаем юридическим фирмам, адвокатским образованиям,
+            юристам, адвокатам, нотариусам, арбитражным управляющим и другим юридическим
+            профессиям находить себе сотрудников — помощников, младших юристов, офис-менеджеров
+            и других специалистов, без которых не работает ни одна практика.
+          </p>
         </div>
       </section>
 

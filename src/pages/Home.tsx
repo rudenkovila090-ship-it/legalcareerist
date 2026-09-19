@@ -244,7 +244,7 @@ export default function Home() {
 
         <div className="mt-14 border-t border-ink/10 pt-14">
           <div className="grid gap-4 sm:grid-cols-3">
-            <div className="glass rounded-xl p-6">
+            <Link to="/kadry/employers" className="glass rounded-xl p-6 transition-colors hover:bg-ink/5">
               <div className="text-sm font-medium uppercase tracking-wide text-gold">Кадровое агентство</div>
               <p className="mt-2 text-sm text-ink/60">
                 Основа нашей деятельности. Помогаем юридическим фирмам, адвокатским образованиям,
@@ -252,8 +252,8 @@ export default function Home() {
                 профессиям находить себе сотрудников — помощников, младших юристов, офис-менеджеров
                 и других специалистов, без которых не работает ни одна практика.
               </p>
-            </div>
-            <div className="glass rounded-xl p-6">
+            </Link>
+            <Link to="/community" className="glass rounded-xl p-6 transition-colors hover:bg-ink/5">
               <div className="text-sm font-medium uppercase tracking-wide text-gold">Сообщество</div>
               <p className="mt-2 text-sm text-ink/60">
                 Более тесный круг для студентов-юристов, где мы обмениваемся знаниями и опытом.
@@ -261,15 +261,15 @@ export default function Home() {
                 в открытом доступе, а иногда такие предложения вообще не выходят за пределы
                 сообщества.
               </p>
-            </div>
-            <div className="glass rounded-xl p-6">
-              <div className="text-sm font-medium uppercase tracking-wide text-gold">Ивент-агентство</div>
+            </Link>
+            <Link to="/events" className="glass rounded-xl p-6 transition-colors hover:bg-ink/5">
+              <div className="text-sm font-medium uppercase tracking-wide text-gold">Мероприятия</div>
               <p className="mt-2 text-sm text-ink/60">
                 Создаем и организовываем мероприятия для студентов и собственные события. К нам все
                 чаще приходят запросы от юридических компаний, которые хотят организовать встречи со
                 студентами, найти точки соприкосновения с будущими сотрудниками.
               </p>
-            </div>
+            </Link>
           </div>
 
           <div className="mt-8 grid gap-4 sm:grid-cols-2">

@@ -14,6 +14,7 @@ const sourceLabels: Record<LeadSourceBlock, string> = {
   community: 'Сообщество',
   events: 'Мероприятия',
   home: 'Главная',
+  marketplace: 'Маркетплейс',
 }
 
 export interface LeadInput {

@@ -5,6 +5,7 @@ import { materials } from '../data/materials'
 import { materialKindLabel } from '../lib/materialLabels'
 import { useDocumentTitle } from '../lib/useDocumentTitle'
 import { MARKETPLACE_DIRECTIONS, type MaterialItem, type MaterialKind, type MarketplaceDirection } from '../types'
+import MarketplaceFooter from './MarketplaceFooter'
 
 const money = new Intl.NumberFormat('ru-RU')
 
@@ -248,6 +249,7 @@ export default function MarketplaceHome() {
           </div>
         </div>
       </div>
+      <MarketplaceFooter />
     </div>
   )
 }

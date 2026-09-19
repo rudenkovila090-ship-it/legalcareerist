@@ -583,7 +583,7 @@ export interface Consultation {
   consultant?: string
 }
 
-export type LeadSourceBlock = 'kadry' | 'community' | 'events' | 'home'
+export type LeadSourceBlock = 'kadry' | 'community' | 'events' | 'home' | 'marketplace'
 
 // LeadCapture — единая точка входа для всех форм сайта (раздел 7).
 export interface Lead {

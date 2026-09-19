@@ -89,7 +89,8 @@ export default function Layout() {
     (pathname.startsWith('/events/') && !eventsStaticSubpages.includes(pathname)) ||
     pathname === '/community' ||
     (pathname.startsWith('/community/') && !communityStaticSubpages.includes(pathname)) ||
-    kadryPagesWithOwnFooter.includes(pathname)
+    kadryPagesWithOwnFooter.includes(pathname) ||
+    pathname === '/marketplace'
 
   return (
     <div className="flex min-h-screen flex-col">

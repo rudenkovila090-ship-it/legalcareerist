@@ -124,6 +124,7 @@ export default function App() {
 
           {/* Marketplace */}
           <Route path="/marketplace" element={<MarketplaceHome />} />
+          <Route path="/marketplace/contacts" element={<Contacts eyebrow="Маркетплейс" sourceBlock="marketplace" />} />
 
           {/* Блог */}
           <Route path="/blog" element={<BlogHome />} />
