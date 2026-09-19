@@ -76,9 +76,9 @@ export default function EventsFooter() {
           считывалась с первого взгляда. Порядок: Мероприятия, Все события,
           Партнерам, Организаторам, Помощь, Юридический блок; соцсети —
           отдельной строкой ниже на всю ширину, чтобы поместились в один ряд. */}
-      <div className="container-page flex flex-wrap gap-x-1 gap-y-8 py-12">
+      <div className="flex w-full flex-wrap gap-x-10 gap-y-8 px-6 py-12 sm:px-10 lg:px-16">
         <div>
-          <div className="mb-3 min-h-[2rem] text-xs font-bold uppercase leading-tight tracking-wide text-white">Мероприятия</div>
+          <div className="mb-3 text-xs font-bold uppercase leading-tight tracking-wide text-white">Мероприятия</div>
           <ul className="space-y-1.5 text-xs">
             <li><Link className="hover:text-white" to="/about">О нас</Link></li>
             <li><Link className="hover:text-white" to="/blog?category=Мероприятия">Блог</Link></li>
@@ -86,7 +86,7 @@ export default function EventsFooter() {
         </div>
 
         <div>
-          <div className="mb-3 min-h-[2rem] text-xs font-bold uppercase leading-tight tracking-wide text-white">Все события</div>
+          <div className="mb-3 text-xs font-bold uppercase leading-tight tracking-wide text-white">Все события</div>
           <ul className="space-y-1.5 text-xs">
             <li><Link className="hover:text-white" to="/events?tab=poster">Афиша</Link></li>
             <li><Link className="hover:text-white" to="/events/ticket-refund">Возврат билета</Link></li>
@@ -94,14 +94,14 @@ export default function EventsFooter() {
         </div>
 
         <div>
-          <div className="mb-3 min-h-[2rem] text-xs font-bold uppercase leading-tight tracking-wide text-white">Партнерам</div>
+          <div className="mb-3 text-xs font-bold uppercase leading-tight tracking-wide text-white">Партнерам</div>
           <ul className="space-y-1.5 text-xs">
             <li><Link className="hover:text-white" to="/events?tab=partner">Стать партнером</Link></li>
           </ul>
         </div>
 
         <div>
-          <div className="mb-3 min-h-[2rem] text-xs font-bold uppercase leading-tight tracking-wide text-white">Организаторам</div>
+          <div className="mb-3 text-xs font-bold uppercase leading-tight tracking-wide text-white">Организаторам</div>
           <ul className="space-y-1.5 text-xs">
             {SHOW_CREATE_EVENT && (
               <li><Link className="hover:text-white" to="/events?tab=create">Создать событие</Link></li>
@@ -112,15 +112,15 @@ export default function EventsFooter() {
         </div>
 
         <div>
-          <div className="mb-3 min-h-[2rem] text-xs font-bold uppercase leading-tight tracking-wide text-white">Помощь</div>
+          <div className="mb-3 text-xs font-bold uppercase leading-tight tracking-wide text-white">Помощь</div>
           <ul className="space-y-1.5 text-xs">
             <li><Link className="hover:text-white" to="/events?tab=support">Поддержка</Link></li>
             <li><Link className="hover:text-white" to="/blog?category=Мероприятия">База знаний</Link></li>
           </ul>
         </div>
 
-        <div className="max-w-[13rem]">
-          <div className="mb-3 min-h-[2rem] whitespace-nowrap text-xs font-bold uppercase leading-tight tracking-wide text-white">Юридический блок</div>
+        <div className="max-w-sm">
+          <div className="mb-3 whitespace-nowrap text-xs font-bold uppercase leading-tight tracking-wide text-white">Юридический блок</div>
           <ul className="space-y-1.5 text-xs">
             <li><Link className="hover:text-white" to="/legal/privacy">Политика обработки персональных данных</Link></li>
             <li><Link className="hover:text-white" to="/legal/consent">Согласие на обработку персональных данных</Link></li>
@@ -129,30 +129,30 @@ export default function EventsFooter() {
         {/* Соцсети — тот же flex-item в общей строке, не отдельная секция с
             собственным border-t/py ниже. */}
         <div>
-          <div className="mb-3 min-h-[2rem] text-xs font-bold uppercase leading-tight tracking-wide text-white">Социальные сети</div>
-          <div className="flex flex-wrap gap-1">
-            <a href="https://t.me/legalcareerist" target="_blank" rel="noreferrer" aria-label="Telegram" className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 hover:text-white">
+          <div className="mb-3 text-xs font-bold uppercase leading-tight tracking-wide text-white">Социальные сети</div>
+          <div className="flex flex-wrap gap-2.5">
+            <a href="https://t.me/legalcareerist" target="_blank" rel="noreferrer" aria-label="Telegram" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 hover:text-white">
               <IconTelegram />
             </a>
-            <a href="https://vk.com/legalcareerist" target="_blank" rel="noreferrer" aria-label="ВКонтакте" className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 hover:text-white">
+            <a href="https://vk.com/legalcareerist" target="_blank" rel="noreferrer" aria-label="ВКонтакте" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 hover:text-white">
               <IconVk />
             </a>
-            <a href="https://dzen.ru/id/69087002dedfba7e86b46418" target="_blank" rel="noreferrer" aria-label="Дзен" className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 hover:text-white">
+            <a href="https://dzen.ru/id/69087002dedfba7e86b46418" target="_blank" rel="noreferrer" aria-label="Дзен" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 hover:text-white">
               <IconDzen />
             </a>
-            <a href="https://legalcareerist.mave.digital/" target="_blank" rel="noreferrer" aria-label="Подкаст" className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 hover:text-white">
+            <a href="https://legalcareerist.mave.digital/" target="_blank" rel="noreferrer" aria-label="Подкаст" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 hover:text-white">
               <IconPodcast />
             </a>
-            <a href="https://www.youtube.com/channel/UC3lHAByHe4-To0sJEghrTdw" target="_blank" rel="noreferrer" aria-label="YouTube" className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 hover:text-white">
+            <a href="https://www.youtube.com/channel/UC3lHAByHe4-To0sJEghrTdw" target="_blank" rel="noreferrer" aria-label="YouTube" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 hover:text-white">
               <IconYoutube />
             </a>
-            <a href="https://tiktok.com/@legalcareerist" target="_blank" rel="noreferrer" aria-label="TikTok" className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 hover:text-white">
+            <a href="https://tiktok.com/@legalcareerist" target="_blank" rel="noreferrer" aria-label="TikTok" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 hover:text-white">
               <IconTiktok />
             </a>
-            <a href="https://x.com/legalcareerist" target="_blank" rel="noreferrer" aria-label="X (Twitter)" className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 hover:text-white">
+            <a href="https://x.com/legalcareerist" target="_blank" rel="noreferrer" aria-label="X (Twitter)" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 hover:text-white">
               <IconX />
             </a>
-            <a href="https://zakon.ru/karernyj_yurist" target="_blank" rel="noreferrer" aria-label="Закон.ру" className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 hover:text-white">
+            <a href="https://zakon.ru/karernyj_yurist" target="_blank" rel="noreferrer" aria-label="Закон.ру" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 hover:text-white">
               <IconZakon />
             </a>
           </div>
@@ -160,7 +160,7 @@ export default function EventsFooter() {
       </div>
 
       <div className="border-t border-white/10 py-5">
-        <div className="container-page text-center text-xs text-white/40">
+        <div className="w-full px-6 text-center text-xs text-white/40 sm:px-10 lg:px-16">
           <span>© {new Date().getFullYear()} ИП Руденков И.В. Карьерный Юрист. ИНН 262607024144 ОГРНИП 325784700110048</span>
         </div>
       </div>
