@@ -1,19 +1,8 @@
 import { useState, type FormEvent } from 'react'
-import { submitLead } from '../lib/leads'
+import { submitLead, uploadDocument } from '../lib/leads'
 import PhoneInput from './PhoneInput'
 import LeadSuccessCard from './LeadSuccessCard'
 import type { LeadSourceBlock } from '../types'
-
-// Пересылка загруженного файла (резюме и т.п.) админу документом в Telegram —
-// см. /api/upload-document на бэкенде. Не блокирует отправку формы при ошибке.
-function uploadDocument(file: File | null, label: string, name: string) {
-  if (!file || typeof fetch === 'undefined') return
-  const body = new FormData()
-  body.append('file', file)
-  body.append('label', label)
-  body.append('name', name)
-  fetch('/api/upload-document', { method: 'POST', body }).catch(() => {})
-}
 
 interface LeadFormProps {
   sourceBlock: LeadSourceBlock

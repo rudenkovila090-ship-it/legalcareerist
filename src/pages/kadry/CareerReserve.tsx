@@ -4,7 +4,7 @@ import PageHero from '../../components/PageHero'
 import Testimonials from '../../components/Testimonials'
 import FAQSection from '../../components/FAQSection'
 import SectionRail from '../../components/SectionRail'
-import { submitLead } from '../../lib/leads'
+import { submitLead, uploadDocument } from '../../lib/leads'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import PhoneInput from '../../components/PhoneInput'
 import LeadSuccessCard from '../../components/LeadSuccessCard'
@@ -100,8 +100,12 @@ export default function CareerReserve({ embedded = false }: { embedded?: boolean
       phone: form.phone || undefined,
       email: form.email || undefined,
       telegram: form.telegram || undefined,
-      interest: [form.position, resumeFile ? `Резюме: ${resumeFile.name}` : ''].filter(Boolean),
+      interest: [
+        form.position ? `Запрос: ${form.position}` : '',
+        resumeFile ? 'Резюме — приложено документом ниже' : '',
+      ].filter(Boolean),
     })
+    uploadDocument(resumeFile, 'Резюме', form.name)
     setSent(true)
   }
 
@@ -120,8 +124,12 @@ export default function CareerReserve({ embedded = false }: { embedded?: boolean
       phone: priorityForm.phone || undefined,
       email: priorityForm.email || undefined,
       telegram: priorityForm.telegram || undefined,
-      interest: ['Вступление в кадровый резерв', priorityResumeFile ? `Резюме: ${priorityResumeFile.name}` : ''].filter(Boolean),
+      interest: [
+        'Запрос: Вступление в кадровый резерв',
+        priorityResumeFile ? 'Резюме — приложено документом ниже' : '',
+      ].filter(Boolean),
     })
+    uploadDocument(priorityResumeFile, 'Резюме', priorityForm.name)
     setPrioritySent(true)
   }
 

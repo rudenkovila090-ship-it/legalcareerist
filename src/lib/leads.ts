@@ -73,7 +73,10 @@ function directionLabel(sourceBlock: LeadSourceBlock, formType: string): string 
 // на рекрутинг (работодатель ищет сотрудника) и карьерную консультацию
 // (соискатель). Остальные формы используют обычный текстовый формат выше.
 const RICH_EMPLOYER_TYPES = new Set(['employer_request', 'service_order', 'candidates_selection_request'])
-const RICH_CANDIDATE_TYPES = new Set(['consultation_help_request', 'consultation_order', 'vacancy_application'])
+const RICH_CANDIDATE_TYPES = new Set([
+  'consultation_help_request', 'consultation_order', 'vacancy_application',
+  'candidate_application', 'reserve_join_request',
+])
 
 function richTemplate(formType: string): 'kadry-employer' | 'kadry-candidate' | undefined {
   if (RICH_EMPLOYER_TYPES.has(formType)) return 'kadry-employer'
@@ -178,6 +181,17 @@ function notifyTelegram(lead: Lead, vacancySlug?: string, eventSlug?: string) {
   }).catch(() => {
     // Бэкенд недоступен/не настроен — заявка все равно сохранена в localStorage, не мешаем пользователю.
   })
+}
+
+/** Пересылка загруженного файла (резюме и т.п.) админу документом в Telegram —
+ *  см. POST /api/upload-document на бэкенде. Не блокирует отправку формы при ошибке. */
+export function uploadDocument(file: File | null, label: string, name: string) {
+  if (!file || typeof fetch === 'undefined') return
+  const body = new FormData()
+  body.append('file', file)
+  body.append('label', label)
+  body.append('name', name)
+  fetch('/api/upload-document', { method: 'POST', body }).catch(() => {})
 }
 
 /** Отдельный, не завязанный на лид-форму счетчик перехода к регистрации —
