@@ -76,7 +76,7 @@ export default function EventsFooter() {
           считывалась с первого взгляда. Порядок: Мероприятия, Все события,
           Партнерам, Организаторам, Помощь, Юридический блок; соцсети —
           отдельной строкой ниже на всю ширину, чтобы поместились в один ряд. */}
-      <div className="flex w-full flex-wrap gap-x-10 gap-y-8 px-6 py-12 sm:px-10 lg:px-16">
+      <div className="flex w-full flex-wrap justify-center gap-x-10 gap-y-8 px-6 py-12 sm:px-10 lg:px-16">
         <div>
           <div className="mb-3 text-xs font-bold uppercase leading-tight tracking-wide text-white">Мероприятия</div>
           <ul className="space-y-1.5 text-xs">

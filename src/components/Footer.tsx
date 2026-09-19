@@ -71,7 +71,7 @@ export default function Footer() {
           визуальные промежутки между блоками "плавали" (то длиннее, то
           короче). На flex-боксах, размеры которых равны их содержимому,
           промежуток между соседними блоками всегда равен gap. */}
-      <div className="flex w-full flex-wrap gap-x-10 gap-y-8 px-6 py-12 sm:px-10 lg:px-16">
+      <div className="flex w-full flex-wrap justify-center gap-x-10 gap-y-8 px-6 py-12 sm:px-10 lg:px-16">
         <div>
           <div className="mb-3 whitespace-nowrap text-xs font-bold uppercase leading-tight tracking-wide text-white">Карьерный юрист</div>
           <ul className="space-y-1.5 text-xs">
