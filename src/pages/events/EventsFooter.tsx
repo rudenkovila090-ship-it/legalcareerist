@@ -76,7 +76,7 @@ export default function EventsFooter() {
           считывалась с первого взгляда. Порядок: Мероприятия, Все события,
           Партнерам, Организаторам, Помощь, Юридический блок; соцсети —
           отдельной строкой ниже на всю ширину, чтобы поместились в один ряд. */}
-      <div className="container-page flex flex-wrap gap-x-6 gap-y-8 py-12">
+      <div className="container-page flex flex-wrap gap-x-1 gap-y-8 py-12">
         <div>
           <div className="mb-3 min-h-[2rem] text-xs font-bold uppercase leading-tight tracking-wide text-white">Мероприятия</div>
           <ul className="space-y-1.5 text-xs">
@@ -119,7 +119,7 @@ export default function EventsFooter() {
           </ul>
         </div>
 
-        <div className="max-w-xs">
+        <div className="max-w-[13rem]">
           <div className="mb-3 min-h-[2rem] whitespace-nowrap text-xs font-bold uppercase leading-tight tracking-wide text-white">Юридический блок</div>
           <ul className="space-y-1.5 text-xs">
             <li><Link className="hover:text-white" to="/legal/privacy">Политика обработки персональных данных</Link></li>
@@ -130,29 +130,29 @@ export default function EventsFooter() {
             собственным border-t/py ниже. */}
         <div>
           <div className="mb-3 min-h-[2rem] text-xs font-bold uppercase leading-tight tracking-wide text-white">Социальные сети</div>
-          <div className="flex flex-wrap gap-2.5">
-            <a href="https://t.me/legalcareerist" target="_blank" rel="noreferrer" aria-label="Telegram" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 hover:text-white">
+          <div className="flex flex-wrap gap-1">
+            <a href="https://t.me/legalcareerist" target="_blank" rel="noreferrer" aria-label="Telegram" className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 hover:text-white">
               <IconTelegram />
             </a>
-            <a href="https://vk.com/legalcareerist" target="_blank" rel="noreferrer" aria-label="ВКонтакте" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 hover:text-white">
+            <a href="https://vk.com/legalcareerist" target="_blank" rel="noreferrer" aria-label="ВКонтакте" className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 hover:text-white">
               <IconVk />
             </a>
-            <a href="https://dzen.ru/id/69087002dedfba7e86b46418" target="_blank" rel="noreferrer" aria-label="Дзен" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 hover:text-white">
+            <a href="https://dzen.ru/id/69087002dedfba7e86b46418" target="_blank" rel="noreferrer" aria-label="Дзен" className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 hover:text-white">
               <IconDzen />
             </a>
-            <a href="https://legalcareerist.mave.digital/" target="_blank" rel="noreferrer" aria-label="Подкаст" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 hover:text-white">
+            <a href="https://legalcareerist.mave.digital/" target="_blank" rel="noreferrer" aria-label="Подкаст" className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 hover:text-white">
               <IconPodcast />
             </a>
-            <a href="https://www.youtube.com/channel/UC3lHAByHe4-To0sJEghrTdw" target="_blank" rel="noreferrer" aria-label="YouTube" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 hover:text-white">
+            <a href="https://www.youtube.com/channel/UC3lHAByHe4-To0sJEghrTdw" target="_blank" rel="noreferrer" aria-label="YouTube" className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 hover:text-white">
               <IconYoutube />
             </a>
-            <a href="https://tiktok.com/@legalcareerist" target="_blank" rel="noreferrer" aria-label="TikTok" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 hover:text-white">
+            <a href="https://tiktok.com/@legalcareerist" target="_blank" rel="noreferrer" aria-label="TikTok" className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 hover:text-white">
               <IconTiktok />
             </a>
-            <a href="https://x.com/legalcareerist" target="_blank" rel="noreferrer" aria-label="X (Twitter)" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 hover:text-white">
+            <a href="https://x.com/legalcareerist" target="_blank" rel="noreferrer" aria-label="X (Twitter)" className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 hover:text-white">
               <IconX />
             </a>
-            <a href="https://zakon.ru/karernyj_yurist" target="_blank" rel="noreferrer" aria-label="Закон.ру" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 hover:text-white">
+            <a href="https://zakon.ru/karernyj_yurist" target="_blank" rel="noreferrer" aria-label="Закон.ру" className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 hover:text-white">
               <IconZakon />
             </a>
           </div>
