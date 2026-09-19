@@ -64,7 +64,7 @@ function IconPodcast() {
 export default function KadryFooter() {
   return (
     <footer className="border-t border-white/10 bg-ink text-white/40">
-      <div className="container-page grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="container-page grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-6">
         <div>
           <div className="mb-3 text-sm font-bold uppercase tracking-wide text-white">Кадры</div>
           <ul className="space-y-2 text-sm">
@@ -104,7 +104,7 @@ export default function KadryFooter() {
           </ul>
         </div>
 
-        <div>
+        <div className="lg:col-span-2">
           <div className="mb-3 whitespace-nowrap text-sm font-bold uppercase tracking-wide text-white">Юридический блок</div>
           <ul className="space-y-2 text-sm">
             <li><Link className="hover:text-white" to="/legal/privacy">Политика обработки персональных данных</Link></li>

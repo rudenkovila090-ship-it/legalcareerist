@@ -1,15 +1,13 @@
-import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
-import PhoneInput from './PhoneInput'
-import { submitLead, makeTicketNumber } from '../lib/leads'
 
 // Единый футер по всему сайту (раздел 5 карты сайта). Визуально построен по
 // тому же принципу, что и подвал раздела «Мероприятия» (EventsFooter) —
 // яркие заголовки колонок (text-white, font-bold), приглушенные ссылки
-// (text-white/40), соцсети отдельной полноширинной строкой. «Карьерный
-// Юрист» — отдельная полноширинная строка над колонками (не колонка сетки),
-// чтобы название и подпись гарантированно помещались в одну строку, а не
-// переносились в узкой колонке. Юридический блок — крайняя правая колонка.
+// (text-white/40), соцсети отдельной полноширинной строкой. Юридический
+// блок — крайняя правая колонка. «Помощь → Поддержка» ведет на отдельную
+// страницу /contacts (тот же прием, что и у остальных разделов —
+// /kadry/contacts, /events?tab=support, /community/contacts,
+// /marketplace/contacts), а не разворачивается прямо в подвале.
 
 function IconTelegram() {
   return (
@@ -66,41 +64,9 @@ function IconPodcast() {
 }
 
 export default function Footer() {
-  // «Помощь → Поддержка» — тот же лид-механизм, что и в разделе «Мероприятия»
-  // (submitLead formType: 'support_request'): заявки из любой точки сайта
-  // (эта форма, вкладка «Мероприятия → Поддержка» и т.д.) попадают в одну и
-  // ту же ленту лидов, а не заводятся отдельными типами.
-  const [supportForm, setSupportForm] = useState({ fio: '', phone: '', email: '', telegram: '', question: '' })
-  const [supportTicket, setSupportTicket] = useState<string | null>(null)
-  const [supportMissing, setSupportMissing] = useState(false)
-
-  function handleSupportSubmit(e: FormEvent) {
-    e.preventDefault()
-    setSupportMissing(false)
-    if (!supportForm.fio.trim() || !supportForm.phone.trim() || !supportForm.question.trim()) {
-      setSupportMissing(true)
-      return
-    }
-    submitLead({
-      sourceBlock: 'home',
-      formType: 'support_request',
-      name: supportForm.fio,
-      contact: [supportForm.phone, supportForm.email, supportForm.telegram].filter(Boolean).join(' / '),
-      interest: [supportForm.question],
-    })
-    setSupportTicket(makeTicketNumber())
-  }
-
   return (
     <footer className="border-t border-white/10 bg-ink text-white/40">
-      <div className="container-page pt-14">
-        <div className="mb-3 text-lg font-semibold text-white">Карьерный Юрист</div>
-        <p className="whitespace-nowrap text-sm leading-relaxed text-white/60 max-sm:whitespace-normal">
-          Кадровое агентство и сообщество для юридического рынка — под одним брендом.
-        </p>
-      </div>
-
-      <div className="container-page grid gap-10 py-10 sm:grid-cols-2 lg:grid-cols-6">
+      <div className="container-page grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-7">
         <div>
           <div className="mb-3 text-sm font-bold uppercase tracking-wide text-white">Кадры</div>
           <ul className="space-y-2 text-sm">
@@ -134,107 +100,17 @@ export default function Footer() {
         <div>
           <div className="mb-3 text-sm font-bold uppercase tracking-wide text-white">Помощь</div>
           <ul className="space-y-2 text-sm">
-            <li><a className="hover:text-white" href="#support">Поддержка</a></li>
+            <li><Link className="hover:text-white" to="/contacts">Поддержка</Link></li>
           </ul>
         </div>
 
-        <div>
+        <div className="lg:col-span-2">
           <div className="mb-3 whitespace-nowrap text-sm font-bold uppercase tracking-wide text-white">Юридический блок</div>
           <ul className="space-y-2 text-sm">
             <li><Link className="hover:text-white" to="/legal/privacy">Политика обработки персональных данных</Link></li>
             <li><Link className="hover:text-white" to="/legal/consent">Согласие на обработку персональных данных</Link></li>
             <li><Link className="hover:text-white" to="/legal/marketing-consent">Согласие на получение рекламных и информационных материалов</Link></li>
           </ul>
-        </div>
-      </div>
-
-      {/* Поддержка — контакты + лид-форма запроса помощи, id="support" для
-          якоря из колонки «Помощь» выше. Та же форма, что и на вкладке
-          «Мероприятия → Поддержка» (см. EventsHome.tsx), сюда перенесена
-          один в один, чтобы обращение с любой страницы сайта уходило в одну
-          и ту же ленту лидов (formType: 'support_request'). */}
-      <div id="support" className="border-t border-white/10 py-10">
-        <div className="container-page">
-          <div className="mb-2 text-sm font-bold uppercase tracking-wide text-white">Поддержка</div>
-          <h2 className="mb-6 text-xl font-semibold text-white">Написать нам</h2>
-
-          <div className="grid gap-6 lg:grid-cols-2">
-            <div className="space-y-3">
-              <div className="rounded-xl bg-white/5 p-5">
-                <div className="text-sm text-white/40">Email</div>
-                <a href="mailto:info@legalcareerist.ru" className="font-medium text-white hover:text-white/80">info@legalcareerist.ru</a>
-              </div>
-              <div className="rounded-xl bg-white/5 p-5">
-                <div className="text-sm text-white/40">Телефон</div>
-                <a href="tel:+79322621344" className="font-medium text-white hover:text-white/80">+7 932 262-13-44</a>
-              </div>
-              <div className="rounded-xl bg-white/5 p-5">
-                <div className="text-sm text-white/40">Telegram</div>
-                <a href="https://t.me/legalcareerst_support" target="_blank" rel="noreferrer" className="font-medium text-white hover:text-white/80">@legalcareerst_support</a>
-              </div>
-            </div>
-
-            {supportTicket ? (
-              <div className="rounded-xl bg-white/5 p-6 text-emerald-400">
-                <div className="font-semibold">Заявка отправлена</div>
-                <p className="mt-1 text-sm text-white/60">
-                  Номер вашей заявки — <span className="font-semibold text-emerald-400">№ {supportTicket}</span>. Мы свяжемся с вами в ближайшее время.
-                </p>
-              </div>
-            ) : (
-              <form onSubmit={handleSupportSubmit} className="rounded-xl bg-white/5 p-6">
-                <div className="font-semibold text-white">Задать вопрос</div>
-                <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                  <input
-                    value={supportForm.fio}
-                    onChange={(e) => setSupportForm((f) => ({ ...f, fio: e.target.value }))}
-                    placeholder="ФИО"
-                    required
-                    className="rounded-lg border border-white/15 bg-transparent px-3 py-2 text-sm text-white placeholder:text-white/30 outline-none focus:border-white/40"
-                  />
-                  <PhoneInput
-                    value={supportForm.phone}
-                    onChange={(value) => setSupportForm((f) => ({ ...f, phone: value }))}
-                    required
-                    className="rounded-lg border border-white/15 bg-transparent px-3 py-2 text-sm text-white placeholder:text-white/30 outline-none focus:border-white/40"
-                  />
-                  <input
-                    type="email"
-                    value={supportForm.email}
-                    onChange={(e) => setSupportForm((f) => ({ ...f, email: e.target.value }))}
-                    placeholder="Почта"
-                    className="rounded-lg border border-white/15 bg-transparent px-3 py-2 text-sm text-white placeholder:text-white/30 outline-none focus:border-white/40"
-                  />
-                  <input
-                    value={supportForm.telegram}
-                    onChange={(e) => setSupportForm((f) => ({ ...f, telegram: e.target.value }))}
-                    placeholder="Telegram"
-                    className="rounded-lg border border-white/15 bg-transparent px-3 py-2 text-sm text-white placeholder:text-white/30 outline-none focus:border-white/40"
-                  />
-                </div>
-                <textarea
-                  value={supportForm.question}
-                  onChange={(e) => setSupportForm((f) => ({ ...f, question: e.target.value }))}
-                  placeholder="Вопрос"
-                  required
-                  rows={4}
-                  className="mt-3 w-full rounded-lg border border-white/15 bg-transparent px-3 py-2 text-sm text-white placeholder:text-white/30 outline-none focus:border-white/40"
-                />
-
-                {supportMissing && (
-                  <p className="mt-3 text-sm text-red-400">Заполните ФИО, телефон и вопрос.</p>
-                )}
-
-                <button
-                  type="submit"
-                  className="mt-4 w-full rounded-lg bg-gold-light py-2.5 text-sm font-semibold text-ink hover:opacity-90"
-                >
-                  Отправить
-                </button>
-                <p className="mt-2 text-center text-xs text-white/30">Нажимая «Отправить», вы соглашаетесь на обработку персональных данных.</p>
-              </form>
-            )}
-          </div>
         </div>
       </div>
 

@@ -72,6 +72,17 @@ export default function BlogHome() {
             ))}
             {filteredNews.length === 0 && <p className="text-sm text-ink/50">В этой категории пока нет новостей.</p>}
           </div>
+
+          {/* Единая база знаний — тот же компонент и те же материалы, что и
+              на /kadry/employers, /kadry/candidates, /events/knowledge,
+              /community — audience="all" снимает фильтр по разделу, чтобы
+              на Блоге все накопленные статьи/чек-листы/глоссарий были
+              собраны в одном месте, а не жили только внутри своих разделов. */}
+          <div className="mt-14 border-t border-ink/10 pt-12">
+            <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">База знаний</div>
+            <h2 className="mb-6 text-2xl font-semibold">Гайды, чек-листы и статьи «Карьерного юриста»</h2>
+            <KnowledgeList audience="all" eyebrow="Блог · База знаний" title="База знаний" compact />
+          </div>
         </div>
       )}
 

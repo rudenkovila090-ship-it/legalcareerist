@@ -336,7 +336,7 @@ export default function Home() {
       {/* Новости */}
       <section className="border-y border-ink/10 bg-white py-14">
         <div className="container-page">
-          <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Новости</div>
+          <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Блог</div>
           <div className="mb-6 flex items-end justify-between gap-4">
             <h2 className="text-2xl font-semibold">Что нового у «Карьерного юриста»</h2>
             <Link to="/news" className="shrink-0 text-sm font-medium text-ink/50 hover:text-ink">Все новости →</Link>

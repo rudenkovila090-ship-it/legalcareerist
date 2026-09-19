@@ -32,7 +32,8 @@ export default function KnowledgeList({
   description,
   compact = false,
 }: {
-  audience: Audience
+  /** 'all' — без фильтра по аудитории, единая база знаний целиком (см. /blog). */
+  audience: Audience | 'all'
   eyebrow: string
   title: string
   description?: string
@@ -50,7 +51,10 @@ export default function KnowledgeList({
   const views = useArticleViews(selected?.slug ?? '')
 
   const filtered = useMemo(
-    () => articles.filter((a) => a.audience.includes(audience) && a.kind !== 'faq' && (kind === 'all' || a.kind === kind)),
+    () =>
+      articles.filter(
+        (a) => (audience === 'all' || a.audience.includes(audience)) && a.kind !== 'faq' && (kind === 'all' || a.kind === kind),
+      ),
     [audience, kind],
   )
 

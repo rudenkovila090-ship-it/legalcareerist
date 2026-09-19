@@ -129,6 +129,9 @@ export default function App() {
           {/* Блог */}
           <Route path="/blog" element={<BlogHome />} />
 
+          {/* Общая поддержка (ссылка "Поддержка" в общем подвале сайта) */}
+          <Route path="/contacts" element={<Contacts eyebrow="Карьерный Юрист" sourceBlock="home" />} />
+
           {/* Юридические документы */}
           <Route path="/legal/privacy" element={<Privacy />} />
           <Route path="/legal/consent" element={<Consent />} />
