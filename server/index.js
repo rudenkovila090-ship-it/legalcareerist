@@ -32,6 +32,7 @@
 // Токены и секретные ключи — только в server/.env, в репозиторий не попадают.
 import express from 'express'
 import cors from 'cors'
+import multer from 'multer'
 import { createPaymentLink, TARIFFS, tariffIdBySubscriptionId, createProductPaymentLink, MATERIALS } from './lib/prodamus.js'
 import { HmacHelper } from './lib/hmac.js'
 import { createPendingJoin, setTgUserId, markPaidByPhone } from './lib/store.js'
@@ -41,6 +42,7 @@ import { incrementArticleView, getArticleViews } from './lib/articleStats.js'
 import { incrementNewsView, getNewsViews } from './lib/newsStats.js'
 import { incrementEventView, incrementEventRegistration, getEventStats } from './lib/eventStats.js'
 import { isValidKey, writeCollection, readAllCollections } from './lib/collectionStore.js'
+import { nextTicketNumber } from './lib/ticketCounter.js'
 
 const app = express()
 app.use(cors())
@@ -60,6 +62,18 @@ async function sendTelegramMessage(chatId, text) {
     body: JSON.stringify({ chat_id: chatId, text }),
   })
   if (!res.ok) console.error('[telegram] sendMessage ошибка:', await res.text())
+  return res.ok
+}
+
+// Пересылка настоящего файла (резюме, мотивационное письмо и т.п.) админу —
+// документом в тот же чат, что и текстовые уведомления, с подписью, откуда он.
+async function sendTelegramDocument(chatId, buffer, filename, caption) {
+  const form = new FormData()
+  form.append('chat_id', chatId)
+  if (caption) form.append('caption', caption)
+  form.append('document', new Blob([buffer]), filename)
+  const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendDocument`, { method: 'POST', body: form })
+  if (!res.ok) console.error('[telegram] sendDocument ошибка:', await res.text())
   return res.ok
 }
 
@@ -114,6 +128,7 @@ function richDetailIcon(line) {
   if (/^Цель поиска/i.test(line)) return '🎯'
   if (/^(Заработная плата|Зарплата)/i.test(line)) return '💵'
   if (/^Ставка/i.test(line)) return '📊'
+  if (/приложен[оа]? документом/i.test(line)) return '📎'
   if (/^Кандидат/i.test(line)) return '👥'
   return '📋'
 }
@@ -217,6 +232,32 @@ app.put('/api/store/:key', (req, res) => {
     return res.status(400).json({ ok: false, error: 'bad_key' })
   }
   writeCollection(req.params.key, req.body)
+  res.json({ ok: true })
+})
+
+// Сквозной номер заявки — растёт с 1 (Контакты, Поддержка), а не случайное
+// 6-значное число, чтобы админу было проще ориентироваться в переписке.
+app.post('/api/ticket/next', (req, res) => {
+  res.json({ number: nextTicketNumber() })
+})
+
+// Настоящая пересылка загруженного файла (резюме и т.п.) админу в Telegram —
+// см. showResumeUpload/showMotivationUpload/... в LeadForm.tsx. label/name/vacancy
+// формируют подпись к документу, чтобы было понятно, откуда он и от кого.
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } })
+app.post('/api/upload-document', upload.single('file'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ ok: false, error: 'no_file' })
+  if (!BOT_TOKEN || !ADMIN_CHAT_ID) {
+    console.error('[upload-document] TELEGRAM_BOT_TOKEN/TELEGRAM_ADMIN_CHAT_ID не заданы в server/.env')
+    return res.status(500).json({ ok: false, error: 'not_configured' })
+  }
+  const { label, name, vacancy } = req.body ?? {}
+  const caption = [label || 'Документ', name, vacancy].filter(Boolean).join(' — ')
+  const ok = await sendTelegramDocument(ADMIN_CHAT_ID, req.file.buffer, req.file.originalname, caption).catch((err) => {
+    console.error('[upload-document] ошибка пересылки в Telegram:', err)
+    return false
+  })
+  if (!ok) return res.status(502).json({ ok: false, error: 'telegram_error' })
   res.json({ ok: true })
 })
 

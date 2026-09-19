@@ -44,8 +44,8 @@ export const vacancies: Vacancy[] = [
       'Промышленный холдинг с производственными активами в нескольких регионах России — металлургия, энергетика, логистика. Юридическая служба сопровождает группу компаний целиком: от сделок M&A и корпоративных процедур до споров и комплаенса.',
     employmentArrangement: 'Трудовой договор',
     bonuses: 'ДМС, премии по итогам года',
-    contactPhone: '+7 999 123-45-67',
-    contactEmail: 'hr@example.ru',
+    contactPhone: '+7 932 262 13 44',
+    contactEmail: 'recruitmentagency@legalcareerist.ru',
     companyAddress: 'Москва, м. Выставочная, Пресненская наб., 12, БЦ «Москва-Сити»',
     officeCoords: { lat: 55.749792, lng: 37.536131 },
     status: 'open',
@@ -54,5 +54,6 @@ export const vacancies: Vacancy[] = [
     urgent: true,
     employerId: 'e1',
     technicalExample: true,
+    number: 46,
   },
 ]

@@ -122,6 +122,8 @@ export default function VacancyDetail() {
               showRecommendationUpload
               requireAll
               vacancySlug={vacancy.slug}
+              vacancyTitle={vacancy.title}
+              vacancyNumber={vacancy.number}
             />
             <VacancyContactsBlock vacancy={vacancy} />
           </div>

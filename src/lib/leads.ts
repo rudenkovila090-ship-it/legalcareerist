@@ -73,7 +73,7 @@ function directionLabel(sourceBlock: LeadSourceBlock, formType: string): string 
 // на рекрутинг (работодатель ищет сотрудника) и карьерную консультацию
 // (соискатель). Остальные формы используют обычный текстовый формат выше.
 const RICH_EMPLOYER_TYPES = new Set(['employer_request', 'service_order', 'candidates_selection_request'])
-const RICH_CANDIDATE_TYPES = new Set(['consultation_help_request', 'consultation_order'])
+const RICH_CANDIDATE_TYPES = new Set(['consultation_help_request', 'consultation_order', 'vacancy_application'])
 
 function richTemplate(formType: string): 'kadry-employer' | 'kadry-candidate' | undefined {
   if (RICH_EMPLOYER_TYPES.has(formType)) return 'kadry-employer'
@@ -93,6 +93,8 @@ export interface LeadInput {
   telegram?: string
   /** Компания — для заявок работодателя (рекрутинг), см. Lead в types.ts. */
   company?: string
+  /** Переопределяет «Услугу» в уведомлении — см. Lead в types.ts. */
+  serviceOverride?: string
   interest?: string[]
   /** Slug вакансии — если задан, бэкенд считает это в реальный счетчик откликов вакансии. */
   vacancySlug?: string
@@ -100,10 +102,19 @@ export interface LeadInput {
   eventSlug?: string
 }
 
-// Номер заявки — короткий, читаемый на слух номер для клиента (не техничный
+// Номер заявки — короткий, читаемый на слух номер для клиента (не технический
 // id лида выше), чтобы было что назвать в переписке/по телефону при вопросе
 // в поддержку. Используется формами обратной связи (Контакты, Поддержка).
-export function makeTicketNumber(): string {
+// Сквозной, растёт с 1 — считает бэкенд (server/lib/ticketCounter.js), чтобы
+// номер был общим для всех посетителей, а не начинался заново в каждой вкладке.
+export async function nextTicketNumber(): Promise<string> {
+  try {
+    const res = await fetch('/api/ticket/next', { method: 'POST' })
+    const data = await res.json()
+    if (typeof data.number === 'number') return String(data.number)
+  } catch {
+    // бэкенд недоступен — не блокируем клиента
+  }
   return String(100000 + (Date.now() % 900000))
 }
 
@@ -118,6 +129,7 @@ export function submitLead(input: LeadInput): Lead {
     email: input.email,
     telegram: input.telegram,
     company: input.company,
+    serviceOverride: input.serviceOverride,
     interest: input.interest ?? [],
     status: 'new',
     date: new Date().toISOString(),
@@ -148,7 +160,7 @@ function notifyTelegram(lead: Lead, vacancySlug?: string, eventSlug?: string) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       direction,
-      service: SERVICE_LABELS[lead.formType] ?? lead.formType,
+      service: lead.serviceOverride ?? (SERVICE_LABELS[lead.formType] ?? lead.formType),
       source: sourceLabels[lead.sourceBlock] ?? lead.sourceBlock,
       formType: lead.formType,
       template,

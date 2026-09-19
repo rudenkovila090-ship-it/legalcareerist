@@ -4,6 +4,17 @@ import PhoneInput from './PhoneInput'
 import LeadSuccessCard from './LeadSuccessCard'
 import type { LeadSourceBlock } from '../types'
 
+// Пересылка загруженного файла (резюме и т.п.) админу документом в Telegram —
+// см. /api/upload-document на бэкенде. Не блокирует отправку формы при ошибке.
+function uploadDocument(file: File | null, label: string, name: string) {
+  if (!file || typeof fetch === 'undefined') return
+  const body = new FormData()
+  body.append('file', file)
+  body.append('label', label)
+  body.append('name', name)
+  fetch('/api/upload-document', { method: 'POST', body }).catch(() => {})
+}
+
 interface LeadFormProps {
   sourceBlock: LeadSourceBlock
   formType: string
@@ -15,7 +26,7 @@ interface LeadFormProps {
   showPhone?: boolean
   /** Показать отдельное поле Telegram-контакта (в дополнение к телефону/почте). */
   showTelegram?: boolean
-  /** Показать загрузку файла резюме (демо: имя файла попадает в заявку, реальной загрузки на сервер нет). */
+  /** Показать загрузку файла резюме — файл реально пересылается админу в Telegram документом (см. /api/upload-document). */
   showResumeUpload?: boolean
   /** Показать загрузку мотивационного письма. */
   showMotivationUpload?: boolean
@@ -27,6 +38,9 @@ interface LeadFormProps {
   requireAll?: boolean
   /** Slug вакансии — если задан, отклик учитывается в реальном счетчике откликов вакансии. */
   vacancySlug?: string
+  /** Название и номер вакансии — попадают в «Услугу» уведомления админу вместо общей подписи формы. */
+  vacancyTitle?: string
+  vacancyNumber?: number
 }
 
 // LeadCapture UI — единая форма, переиспользуемая во всех разделах сайта.
@@ -47,6 +61,8 @@ export default function LeadForm({
   showRecommendationUpload = false,
   requireAll = false,
   vacancySlug,
+  vacancyTitle,
+  vacancyNumber,
 }: LeadFormProps) {
   const [name, setName] = useState('')
   const [contact, setContact] = useState('')
@@ -83,6 +99,8 @@ export default function LeadForm({
       return
     }
 
+    const vacancyLabel = vacancyTitle ? `Отклик на вакансию «${vacancyTitle}»${vacancyNumber ? ` №${vacancyNumber}` : ''}` : undefined
+
     submitLead({
       sourceBlock,
       formType,
@@ -91,15 +109,25 @@ export default function LeadForm({
       phone: phone || undefined,
       email: contact.includes('@') && !contact.startsWith('@') ? contact : undefined,
       telegram: telegram || undefined,
+      serviceOverride: vacancyLabel,
       interest: [
         ...interest,
-        resumeFile ? `Резюме: ${resumeFile.name}` : '',
-        motivationFile ? `Мотивационное письмо: ${motivationFile.name}` : '',
-        coverLetterFile ? `Сопроводительное письмо: ${coverLetterFile.name}` : '',
-        recommendationFile ? `Рекомендация: ${recommendationFile.name}` : '',
+        resumeFile ? 'Резюме — приложено документом ниже' : '',
+        motivationFile ? 'Мотивационное письмо — приложено документом ниже' : '',
+        coverLetterFile ? 'Сопроводительное письмо — приложено документом ниже' : '',
+        recommendationFile ? 'Рекомендация — приложена документом ниже' : '',
       ].filter(Boolean),
       vacancySlug,
     })
+
+    // Настоящая пересылка файлов админу в Telegram — не блокирует отправку
+    // формы, работает в фоне (см. /api/upload-document на бэкенде).
+    const candidateLabel = [name, vacancyLabel].filter(Boolean).join(' — ')
+    uploadDocument(resumeFile, 'Резюме', candidateLabel)
+    uploadDocument(motivationFile, 'Мотивационное письмо', candidateLabel)
+    uploadDocument(coverLetterFile, 'Сопроводительное письмо', candidateLabel)
+    uploadDocument(recommendationFile, 'Рекомендация', candidateLabel)
+
     setSent(true)
   }
 
@@ -116,7 +144,7 @@ export default function LeadForm({
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Имя"
+          placeholder="ФИО"
           required
           className="rounded-lg border border-ink/15 px-3 py-2 text-sm outline-none focus:border-ink/40"
         />

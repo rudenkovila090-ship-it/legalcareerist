@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react'
 import PageHero from '../components/PageHero'
 import PhoneInput from '../components/PhoneInput'
 import LeadSuccessCard from '../components/LeadSuccessCard'
-import { submitLead, makeTicketNumber } from '../lib/leads'
+import { submitLead, nextTicketNumber } from '../lib/leads'
 import { useDocumentTitle } from '../lib/useDocumentTitle'
 import type { LeadSourceBlock } from '../types'
 
@@ -36,7 +36,7 @@ export default function Contacts({ eyebrow, sourceBlock }: { eyebrow: string; so
       telegram: telegram || undefined,
       interest: [question],
     })
-    setTicket(makeTicketNumber())
+    nextTicketNumber().then(setTicket)
   }
 
   return (

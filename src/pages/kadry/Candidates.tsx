@@ -8,7 +8,7 @@ import { TagRow } from '../../components/Tag'
 import LeadForm from '../../components/LeadForm'
 import PhoneInput from '../../components/PhoneInput'
 import LeadSuccessCard from '../../components/LeadSuccessCard'
-import { submitLead, makeTicketNumber } from '../../lib/leads'
+import { submitLead, nextTicketNumber } from '../../lib/leads'
 import VacancyDetailBody, { VacancyContactsBlock } from '../../components/VacancyDetailBody'
 import { vacancies } from '../../data/vacancies'
 import { IndustryFilter, EducationFilter } from '../../components/VacancyFilters'
@@ -162,7 +162,7 @@ export default function Candidates() {
   function handleSupportSubmit(e: FormEvent) {
     e.preventDefault()
     setSupportMissing(false)
-    if (!supportForm.fio.trim() || !supportForm.phone.trim()) {
+    if (!supportForm.fio.trim() || !supportForm.phone.trim() || !supportForm.email.trim() || !supportForm.telegram.trim()) {
       setSupportMissing(true)
       return
     }
@@ -176,7 +176,7 @@ export default function Candidates() {
       telegram: supportForm.telegram || undefined,
       interest: supportForm.question.trim() ? [supportForm.question.trim()] : [],
     })
-    setSupportTicket(makeTicketNumber())
+    nextTicketNumber().then(setSupportTicket)
   }
   const [selectedVacancySlug, setSelectedVacancySlug] = useState<string | null>(null)
   const selectedVacancy = vacancies.find((v) => v.slug === selectedVacancySlug) ?? null
@@ -272,14 +272,14 @@ export default function Candidates() {
             <div className="rounded-2xl bg-ink px-6 py-10 text-center text-white sm:px-10">
               <div className="text-xl font-semibold">Не знаете, с чего начать?</div>
               <p className="mx-auto mt-2 max-w-lg text-sm text-white/70">
-                Напишите в Telegram — подскажем, какая услуга подойдет именно вам.
+                Напишите нам — подскажем, какая услуга подойдет именно вам.
               </p>
               <button
                 type="button"
                 onClick={() => setSupportOpen(true)}
                 className="mt-5 inline-block rounded-full bg-gold-light px-6 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-white"
               >
-                Написать в Telegram
+                Напишите нам
               </button>
             </div>
           </section>
@@ -309,7 +309,7 @@ export default function Candidates() {
                     <input
                       value={supportForm.fio}
                       onChange={(e) => setSupportForm((s) => ({ ...s, fio: e.target.value }))}
-                      placeholder="Имя"
+                      placeholder="ФИО"
                       required
                       className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
                     />
@@ -324,13 +324,15 @@ export default function Candidates() {
                         type="email"
                         value={supportForm.email}
                         onChange={(e) => setSupportForm((s) => ({ ...s, email: e.target.value }))}
-                        placeholder="Почта (необязательно)"
+                        placeholder="Почта"
+                        required
                         className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
                       />
                       <input
                         value={supportForm.telegram}
                         onChange={(e) => setSupportForm((s) => ({ ...s, telegram: e.target.value }))}
-                        placeholder="Telegram (необязательно)"
+                        placeholder="Telegram"
+                        required
                         className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
                       />
                     </div>
@@ -342,7 +344,7 @@ export default function Candidates() {
                       className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
                     />
                     {supportMissing && (
-                      <p className="text-sm text-red-600">Заполните имя и телефон.</p>
+                      <p className="text-sm text-red-600">Заполните все поля — ФИО, телефон, почту и Telegram.</p>
                     )}
                     <button
                       type="submit"
@@ -395,6 +397,8 @@ export default function Candidates() {
                   showRecommendationUpload
                   requireAll
                   vacancySlug={selectedVacancy.slug}
+                  vacancyTitle={selectedVacancy.title}
+                  vacancyNumber={selectedVacancy.number}
                 />
                 <VacancyContactsBlock vacancy={selectedVacancy} />
               </div>

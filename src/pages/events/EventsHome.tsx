@@ -1,7 +1,7 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { events } from '../../data/events'
-import { submitLead, makeTicketNumber } from '../../lib/leads'
+import { submitLead, nextTicketNumber } from '../../lib/leads'
 import PhoneInput from '../../components/PhoneInput'
 import LeadSuccessCard from '../../components/LeadSuccessCard'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
@@ -406,7 +406,7 @@ export default function EventsHome() {
       telegram: supportForm.telegram || undefined,
       interest: [supportForm.question],
     })
-    setSupportTicket(makeTicketNumber())
+    nextTicketNumber().then(setSupportTicket)
   }
 
   return (
