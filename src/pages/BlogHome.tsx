@@ -3,6 +3,7 @@ import PageHero from '../components/PageHero'
 import { NewsCard } from '../components/cards'
 import KnowledgeList from './KnowledgeList'
 import { news } from '../data/news'
+import { podcastEpisodes } from '../data/podcast'
 import { useDocumentTitle } from '../lib/useDocumentTitle'
 
 const blogTabs = [
@@ -62,11 +63,34 @@ export default function BlogHome() {
           <div className="container-page text-center">
             <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Блог</div>
             <h2 className="mb-2 text-2xl font-semibold">Подкаст</h2>
-            <p className="mx-auto mb-6 max-w-lg text-sm text-ink/60">
-              Разговоры о найме, карьере и юридическом рынке — выпуски скоро появятся здесь.
+            <p className="mx-auto mb-10 max-w-2xl text-sm text-ink/60">
+              Подкаст, в котором профессионалы из разных областей права и резиденты Сообщества
+              рассказывают о своём опыте, карьерных сложностях и особенностях профессии, а также
+              делятся практическими советами для тех, кто только начинает или уже строит свою
+              юридическую карьеру.
             </p>
-            <div className="mx-auto max-w-lg rounded-2xl border border-dashed border-ink/15 p-10 text-sm text-ink/30">
-              Временно недоступно. В разработке.
+
+            <div className="mb-6 text-left text-sm font-semibold uppercase tracking-wide text-ink/40">1 сезон</div>
+            <div className="grid gap-4 text-left sm:grid-cols-2 lg:grid-cols-4">
+              {podcastEpisodes.map((ep) => (
+                <div key={ep.episode} className="flex flex-col justify-between rounded-xl bg-ink p-5 text-white">
+                  <div>
+                    <div className="text-xs font-semibold uppercase tracking-wide text-gold-light">
+                      {ep.season} сезон {ep.episode} выпуск
+                    </div>
+                    <div className="mt-1 text-xs text-white/50">{ep.date}</div>
+                    <p className="mt-3 text-sm leading-snug text-white/85">{ep.title}</p>
+                  </div>
+                  <a
+                    href={ep.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-5 inline-block rounded-full bg-gold-light px-4 py-2 text-center text-sm font-semibold text-ink hover:opacity-90"
+                  >
+                    Слушать
+                  </a>
+                </div>
+              ))}
             </div>
           </div>
         </section>
