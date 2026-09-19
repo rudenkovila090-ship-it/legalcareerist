@@ -107,13 +107,9 @@ export default function CommunityFooter() {
             <li><Link className="hover:text-white" to="/legal/offer">Оферта</Link></li>
           </ul>
         </div>
-      </div>
-
-      {/* Соцсети — отдельной полноширинной строкой, не колонкой сетки выше:
-          8 иконок в один ряд не помещались бы в узкую колонку и переносились
-          на вторую строку (тот же прием, что и в EventsFooter). */}
-      <div className="border-t border-white/10 py-8">
-        <div className="container-page">
+        {/* Соцсети — тот же flex-item в общей строке, не отдельная секция с
+            собственным border-t/py ниже. */}
+        <div>
           <div className="mb-3 min-h-[2rem] text-xs font-bold uppercase leading-tight tracking-wide text-white">Социальные сети</div>
           <div className="flex flex-wrap gap-2.5">
             <a href="https://t.me/legalcareerist" target="_blank" rel="noreferrer" aria-label="Telegram" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 hover:text-white">
