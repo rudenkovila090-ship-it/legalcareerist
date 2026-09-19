@@ -116,7 +116,7 @@ export default function EventsFooter() {
           <div className="mb-3 text-sm font-bold uppercase tracking-wide text-white">Помощь</div>
           <ul className="space-y-2 text-sm">
             <li><Link className="hover:text-white" to="/events?tab=support">Поддержка</Link></li>
-            <li><Link className="hover:text-white" to="/blog#kb-meropriyatiya">База знаний</Link></li>
+            <li><Link className="hover:text-white" to="/blog?category=Мероприятия">База знаний</Link></li>
           </ul>
         </div>
 
