@@ -66,9 +66,14 @@ function IconPodcast() {
 export default function Footer() {
   return (
     <footer className="border-t border-white/10 bg-ink text-white/40">
-      <div className="container-page grid gap-8 py-12 sm:grid-cols-2 lg:grid-cols-10">
-        <div className="lg:col-span-2">
-          <div className="mb-3 whitespace-nowrap text-xs font-bold uppercase tracking-wide text-white">Карьерный юрист</div>
+      {/* flex + одинаковый gap вместо grid-cols: у grid-колонок фиксированная
+          ширина трека независимо от длины текста внутри, из-за чего
+          визуальные промежутки между блоками "плавали" (то длиннее, то
+          короче). На flex-боксах, размеры которых равны их содержимому,
+          промежуток между соседними блоками всегда равен gap. */}
+      <div className="container-page flex flex-wrap gap-x-6 gap-y-8 py-12">
+        <div>
+          <div className="mb-3 min-h-[2rem] whitespace-nowrap text-xs font-bold uppercase leading-tight tracking-wide text-white">Карьерный юрист</div>
           <ul className="space-y-1.5 text-xs">
             <li><Link className="hover:text-white" to="/about">О нас</Link></li>
           </ul>
@@ -84,7 +89,7 @@ export default function Footer() {
 
         <div>
           <div className="mb-3 min-h-[2rem] text-xs font-bold uppercase leading-tight tracking-wide text-white">Сообщество</div>
-          <ul className="space-y-1.5 text-xs">
+          <ul className="max-w-[10rem] space-y-1.5 text-xs">
             <li><Link className="hover:text-white" to="/community">Вступить в сообщество</Link></li>
           </ul>
         </div>
@@ -110,8 +115,8 @@ export default function Footer() {
           </ul>
         </div>
 
-        <div className="lg:col-span-3">
-          <div className="mb-3 whitespace-nowrap text-xs font-bold uppercase tracking-wide text-white">Юридический блок</div>
+        <div className="max-w-xs">
+          <div className="mb-3 min-h-[2rem] whitespace-nowrap text-xs font-bold uppercase leading-tight tracking-wide text-white">Юридический блок</div>
           <ul className="space-y-1.5 text-xs">
             <li><Link className="hover:text-white" to="/legal/privacy">Политика обработки персональных данных</Link></li>
             <li><Link className="hover:text-white" to="/legal/consent">Согласие на обработку персональных данных</Link></li>

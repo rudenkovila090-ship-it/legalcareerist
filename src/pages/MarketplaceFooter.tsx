@@ -62,7 +62,7 @@ function IconPodcast() {
 export default function MarketplaceFooter() {
   return (
     <footer className="border-t border-white/10 bg-ink text-white/40">
-      <div className="container-page grid gap-8 py-12 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="container-page flex flex-wrap gap-x-6 gap-y-8 py-12">
         <div>
           <div className="mb-3 min-h-[2rem] text-xs font-bold uppercase leading-tight tracking-wide text-white">Маркетплейс</div>
           <ul className="space-y-1.5 text-xs">
@@ -79,8 +79,8 @@ export default function MarketplaceFooter() {
           </ul>
         </div>
 
-        <div className="lg:col-span-3">
-          <div className="mb-3 whitespace-nowrap text-xs font-bold uppercase tracking-wide text-white">Юридический блок</div>
+        <div className="max-w-xs">
+          <div className="mb-3 min-h-[2rem] whitespace-nowrap text-xs font-bold uppercase leading-tight tracking-wide text-white">Юридический блок</div>
           <ul className="space-y-1.5 text-xs">
             <li><Link className="hover:text-white" to="/legal/privacy">Политика обработки персональных данных</Link></li>
             <li><Link className="hover:text-white" to="/legal/consent">Согласие на обработку персональных данных</Link></li>
