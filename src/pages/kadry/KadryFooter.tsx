@@ -64,10 +64,10 @@ function IconPodcast() {
 export default function KadryFooter() {
   return (
     <footer className="border-t border-white/10 bg-ink text-white/40">
-      <div className="container-page grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-7">
+      <div className="container-page grid gap-8 py-12 sm:grid-cols-2 lg:grid-cols-7">
         <div>
-          <div className="mb-3 text-sm font-bold uppercase tracking-wide text-white">Кадры</div>
-          <ul className="space-y-2 text-sm">
+          <div className="mb-3 min-h-[2rem] text-xs font-bold uppercase leading-tight tracking-wide text-white">Кадры</div>
+          <ul className="space-y-1.5 text-xs">
             <li><Link className="hover:text-white" to="/about">О нас</Link></li>
             <li><Link className="hover:text-white" to="/blog?category=Кадры">Блог</Link></li>
             <li><Link className="hover:text-white" to="/news">Новости</Link></li>
@@ -75,8 +75,8 @@ export default function KadryFooter() {
         </div>
 
         <div>
-          <div className="mb-3 text-sm font-bold uppercase tracking-wide text-white">Работодателям</div>
-          <ul className="space-y-2 text-sm">
+          <div className="mb-3 min-h-[2rem] text-xs font-bold uppercase leading-tight tracking-wide text-white">Работодателям</div>
+          <ul className="space-y-1.5 text-xs">
             <li><Link className="hover:text-white" to="/kadry/employers#pricing">Система оплаты</Link></li>
             {SHOW_FIND_EMPLOYEE && (
               <li><Link className="hover:text-white" to="/kadry/employers?tab=candidates">Найти сотрудника</Link></li>
@@ -86,8 +86,8 @@ export default function KadryFooter() {
         </div>
 
         <div>
-          <div className="mb-3 text-sm font-bold uppercase tracking-wide text-white">Соискателям</div>
-          <ul className="space-y-2 text-sm">
+          <div className="mb-3 min-h-[2rem] text-xs font-bold uppercase leading-tight tracking-wide text-white">Соискателям</div>
+          <ul className="space-y-1.5 text-xs">
             <li><Link className="hover:text-white" to="/kadry/vacancies">Вакансии</Link></li>
             <li><Link className="hover:text-white" to="/kadry/candidates/consultation">Карьерная консультация</Link></li>
             <li><Link className="hover:text-white" to="/kadry/candidates/reserve">Кадровый резерв</Link></li>
@@ -96,16 +96,16 @@ export default function KadryFooter() {
         </div>
 
         <div>
-          <div className="mb-3 text-sm font-bold uppercase tracking-wide text-white">Помощь</div>
-          <ul className="space-y-2 text-sm">
+          <div className="mb-3 min-h-[2rem] text-xs font-bold uppercase leading-tight tracking-wide text-white">Помощь</div>
+          <ul className="space-y-1.5 text-xs">
             <li><Link className="hover:text-white" to="/kadry/contacts">Поддержка</Link></li>
             <li><Link className="hover:text-white" to="/blog?category=Кадры">База знаний</Link></li>
           </ul>
         </div>
 
         <div className="lg:col-span-3">
-          <div className="mb-3 whitespace-nowrap text-sm font-bold uppercase tracking-wide text-white">Юридический блок</div>
-          <ul className="space-y-2 text-sm">
+          <div className="mb-3 whitespace-nowrap text-xs font-bold uppercase tracking-wide text-white">Юридический блок</div>
+          <ul className="space-y-1.5 text-xs">
             <li><Link className="hover:text-white" to="/legal/privacy">Политика обработки персональных данных</Link></li>
             <li><Link className="hover:text-white" to="/legal/consent">Согласие на обработку персональных данных</Link></li>
             <li><Link className="hover:text-white" to="/legal/marketing-consent">Согласие на получение рекламных и информационных материалов</Link></li>
@@ -118,7 +118,7 @@ export default function KadryFooter() {
           на вторую строку (тот же прием, что и в EventsFooter/CommunityFooter). */}
       <div className="border-t border-white/10 py-8">
         <div className="container-page">
-          <div className="mb-3 text-sm font-bold uppercase tracking-wide text-white">Социальные сети</div>
+          <div className="mb-3 min-h-[2rem] text-xs font-bold uppercase leading-tight tracking-wide text-white">Социальные сети</div>
           <div className="flex flex-wrap gap-2.5">
             <a href="https://t.me/legalcareerist" target="_blank" rel="noreferrer" aria-label="Telegram" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 hover:text-white">
               <IconTelegram />

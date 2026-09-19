@@ -76,33 +76,33 @@ export default function EventsFooter() {
           считывалась с первого взгляда. Порядок: Мероприятия, Все события,
           Партнерам, Организаторам, Помощь, Юридический блок; соцсети —
           отдельной строкой ниже на всю ширину, чтобы поместились в один ряд. */}
-      <div className="container-page grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-8">
+      <div className="container-page grid gap-8 py-12 sm:grid-cols-2 lg:grid-cols-8">
         <div>
-          <div className="mb-3 text-sm font-bold uppercase tracking-wide text-white">Мероприятия</div>
-          <ul className="space-y-2 text-sm">
+          <div className="mb-3 min-h-[2rem] text-xs font-bold uppercase leading-tight tracking-wide text-white">Мероприятия</div>
+          <ul className="space-y-1.5 text-xs">
             <li><Link className="hover:text-white" to="/about">О нас</Link></li>
             <li><Link className="hover:text-white" to="/blog?category=Мероприятия">Блог</Link></li>
           </ul>
         </div>
 
         <div>
-          <div className="mb-3 text-sm font-bold uppercase tracking-wide text-white">Все события</div>
-          <ul className="space-y-2 text-sm">
+          <div className="mb-3 min-h-[2rem] text-xs font-bold uppercase leading-tight tracking-wide text-white">Все события</div>
+          <ul className="space-y-1.5 text-xs">
             <li><Link className="hover:text-white" to="/events?tab=poster">Афиша</Link></li>
             <li><Link className="hover:text-white" to="/events/ticket-refund">Возврат билета</Link></li>
           </ul>
         </div>
 
         <div>
-          <div className="mb-3 text-sm font-bold uppercase tracking-wide text-white">Партнерам</div>
-          <ul className="space-y-2 text-sm">
+          <div className="mb-3 min-h-[2rem] text-xs font-bold uppercase leading-tight tracking-wide text-white">Партнерам</div>
+          <ul className="space-y-1.5 text-xs">
             <li><Link className="hover:text-white" to="/events?tab=partner">Стать партнером</Link></li>
           </ul>
         </div>
 
         <div>
-          <div className="mb-3 text-sm font-bold uppercase tracking-wide text-white">Организаторам</div>
-          <ul className="space-y-2 text-sm">
+          <div className="mb-3 min-h-[2rem] text-xs font-bold uppercase leading-tight tracking-wide text-white">Организаторам</div>
+          <ul className="space-y-1.5 text-xs">
             {SHOW_CREATE_EVENT && (
               <li><Link className="hover:text-white" to="/events?tab=create">Создать событие</Link></li>
             )}
@@ -112,16 +112,16 @@ export default function EventsFooter() {
         </div>
 
         <div>
-          <div className="mb-3 text-sm font-bold uppercase tracking-wide text-white">Помощь</div>
-          <ul className="space-y-2 text-sm">
+          <div className="mb-3 min-h-[2rem] text-xs font-bold uppercase leading-tight tracking-wide text-white">Помощь</div>
+          <ul className="space-y-1.5 text-xs">
             <li><Link className="hover:text-white" to="/events?tab=support">Поддержка</Link></li>
             <li><Link className="hover:text-white" to="/blog?category=Мероприятия">База знаний</Link></li>
           </ul>
         </div>
 
         <div className="lg:col-span-3">
-          <div className="mb-3 whitespace-nowrap text-sm font-bold uppercase tracking-wide text-white">Юридический блок</div>
-          <ul className="space-y-2 text-sm">
+          <div className="mb-3 whitespace-nowrap text-xs font-bold uppercase tracking-wide text-white">Юридический блок</div>
+          <ul className="space-y-1.5 text-xs">
             <li><Link className="hover:text-white" to="/legal/privacy">Политика обработки персональных данных</Link></li>
             <li><Link className="hover:text-white" to="/legal/consent">Согласие на обработку персональных данных</Link></li>
           </ul>
@@ -133,7 +133,7 @@ export default function EventsFooter() {
           на вторую строку. */}
       <div className="border-t border-white/10 py-8">
         <div className="container-page">
-          <div className="mb-3 text-sm font-bold uppercase tracking-wide text-white">Социальные сети</div>
+          <div className="mb-3 min-h-[2rem] text-xs font-bold uppercase leading-tight tracking-wide text-white">Социальные сети</div>
           <div className="flex flex-wrap gap-2.5">
             <a href="https://t.me/legalcareerist" target="_blank" rel="noreferrer" aria-label="Telegram" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 hover:text-white">
               <IconTelegram />
