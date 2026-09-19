@@ -11,6 +11,7 @@ import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import PhoneInput from '../../components/PhoneInput'
 import { demoCandidates, candidateContactPrice } from '../../data/candidateContacts'
 import { SHOW_FIND_EMPLOYEE, SHOW_PERSONAL_ACCOUNTS } from '../../lib/featureFlags'
+import KadryFooter from './KadryFooter'
 
 const railItems = [
   { id: 'hero', label: 'Обзор' },
@@ -914,7 +915,7 @@ export default function KadryHome() {
           <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold-light">О компании</div>
           {/* Контент раздела уточняется — временно пусто по просьбе клиента. */}
           <div className="rounded-2xl border border-dashed border-white/15 p-10 text-center text-sm text-white/30">
-            Раздел «О компании» — наполнение уточняется
+            Временно недоступно. В разработке.
           </div>
         </div>
       </section>
@@ -1518,6 +1519,7 @@ export default function KadryHome() {
       )}
       </>
       )}
+      <KadryFooter />
     </div>
   )
 }

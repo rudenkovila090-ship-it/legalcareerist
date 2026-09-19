@@ -1,11 +1,11 @@
 import { Link } from 'react-router-dom'
-import { SHOW_AMBASSADORS } from '../../lib/featureFlags'
+import { SHOW_FIND_EMPLOYEE } from '../../lib/featureFlags'
 
-// Единый подвал раздела «Сообщество» — построен по тому же принципу, что и
-// EventsFooter (см. комментарий там): один компонент рендерится и на
-// /community, и на детальной странице клуба (ClubDetail.tsx), ссылки на
-// внутренние разделы страницы /community ведут через якоря (#id), а не
-// callback-пропсы, поэтому подвал работает одинаково с любой страницы.
+// Единый подвал раздела «Кадры» — та же структура и для работодателей
+// (KadryHome, /kadry/employers), и для соискателей (Candidates,
+// /kadry/candidates), построен по тому же принципу, что и EventsFooter/
+// CommunityFooter (см. комментарий там): один компонент рендерится на обеих
+// страницах, а не заводится двумя похожими копиями.
 
 function IconTelegram() {
   return (
@@ -61,41 +61,46 @@ function IconPodcast() {
   )
 }
 
-export default function CommunityFooter() {
+export default function KadryFooter() {
   return (
     <footer className="border-t border-white/10 bg-ink text-white/40">
       <div className="container-page grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-5">
         <div>
-          <div className="mb-3 text-sm font-bold uppercase tracking-wide text-white">Сообщество</div>
+          <div className="mb-3 text-sm font-bold uppercase tracking-wide text-white">Кадры</div>
           <ul className="space-y-2 text-sm">
-            <li><Link className="hover:text-white" to="/community#main">О сообществе</Link></li>
+            <li><Link className="hover:text-white" to="/about">О нас</Link></li>
             <li><Link className="hover:text-white" to="/blog">Блог</Link></li>
             <li><Link className="hover:text-white" to="/news">Новости</Link></li>
-            <li><Link className="hover:text-white" to="/community/documents">Документы</Link></li>
+            <li><Link className="hover:text-white" to="/kadry/documents">Документы</Link></li>
           </ul>
         </div>
 
         <div>
-          <div className="mb-3 text-sm font-bold uppercase tracking-wide text-white">Вступление</div>
+          <div className="mb-3 text-sm font-bold uppercase tracking-wide text-white">Работодателям</div>
           <ul className="space-y-2 text-sm">
-            <li><Link className="hover:text-white" to="/community#join">Тарифы</Link></li>
-            <li><Link className="hover:text-white" to="/community#benefits">Возможности</Link></li>
+            <li><Link className="hover:text-white" to="/kadry/employers#pricing">Система оплаты</Link></li>
+            {SHOW_FIND_EMPLOYEE && (
+              <li><Link className="hover:text-white" to="/kadry/employers?tab=candidates">Найти сотрудника</Link></li>
+            )}
+            <li><Link className="hover:text-white" to="/kadry/knowledge">База знаний</Link></li>
           </ul>
         </div>
 
-        {SHOW_AMBASSADORS && (
         <div>
-          <div className="mb-3 text-sm font-bold uppercase tracking-wide text-white">Партнерам</div>
+          <div className="mb-3 text-sm font-bold uppercase tracking-wide text-white">Соискателям</div>
           <ul className="space-y-2 text-sm">
-            <li><Link className="hover:text-white" to="/community#ambassador-form">Стать амбассадором сообщества</Link></li>
+            <li><Link className="hover:text-white" to="/kadry/vacancies">Вакансии</Link></li>
+            <li><Link className="hover:text-white" to="/kadry/candidates/consultation">Карьерная консультация</Link></li>
+            <li><Link className="hover:text-white" to="/kadry/candidates/reserve">Кадровый резерв</Link></li>
+            <li><Link className="hover:text-white" to="/kadry/knowledge">База знаний</Link></li>
           </ul>
         </div>
-        )}
 
         <div>
           <div className="mb-3 text-sm font-bold uppercase tracking-wide text-white">Помощь</div>
           <ul className="space-y-2 text-sm">
-            <li><Link className="hover:text-white" to="/community/contacts">Поддержка</Link></li>
+            <li><Link className="hover:text-white" to="/kadry/contacts">Поддержка</Link></li>
+            <li><Link className="hover:text-white" to="/kadry/knowledge">База знаний</Link></li>
           </ul>
         </div>
 
@@ -105,14 +110,13 @@ export default function CommunityFooter() {
             <li><Link className="hover:text-white" to="/legal/privacy">Политика обработки персональных данных</Link></li>
             <li><Link className="hover:text-white" to="/legal/consent">Согласие на обработку персональных данных</Link></li>
             <li><Link className="hover:text-white" to="/legal/marketing-consent">Согласие на получение рекламных и информационных материалов</Link></li>
-            <li><Link className="hover:text-white" to="/legal/offer">Оферта</Link></li>
           </ul>
         </div>
       </div>
 
       {/* Соцсети — отдельной полноширинной строкой, не колонкой сетки выше:
           8 иконок в один ряд не помещались бы в узкую колонку и переносились
-          на вторую строку (тот же прием, что и в EventsFooter). */}
+          на вторую строку (тот же прием, что и в EventsFooter/CommunityFooter). */}
       <div className="border-t border-white/10 py-8">
         <div className="container-page">
           <div className="mb-3 text-sm font-bold uppercase tracking-wide text-white">Социальные сети</div>

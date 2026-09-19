@@ -68,6 +68,7 @@ export default function App() {
             }
           />
           <Route path="/kadry/contacts" element={<Contacts eyebrow="Кадры" sourceBlock="kadry" />} />
+          <Route path="/kadry/documents" element={<Documents eyebrow="Кадры" description="Договоры, политики и другие документы раздела «Кадры»." />} />
           <Route path="/vacancies/:slug" element={<VacancyDetail />} />
 
           {/* Сообщество */}
@@ -131,6 +132,7 @@ export default function App() {
           <Route path="/legal/privacy" element={<Privacy />} />
           <Route path="/legal/consent" element={<Consent />} />
           <Route path="/legal/offer" element={<Placeholder eyebrow="Юридический блок" title="Оферта" />} />
+          <Route path="/legal/marketing-consent" element={<Placeholder eyebrow="Юридический блок" title="Согласие на получение рекламных и информационных материалов" />} />
 
           <Route path="*" element={<NotFound />} />
         </Route>

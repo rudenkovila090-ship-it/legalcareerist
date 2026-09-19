@@ -532,14 +532,14 @@ export default function EventsHome() {
               <div className="glass rounded-2xl p-6 text-center">
                 <h3 className="text-lg font-semibold">Стать партнером мероприятия</h3>
                 <p className="mx-auto mt-2 max-w-sm text-sm text-ink/60">
-                  Условия партнерства — раздел в разработке, наполнение уточняется.
+                  Временно недоступно. В разработке.
                 </p>
               </div>
               {SHOW_CREATE_EVENT && (
                 <button type="button" onClick={() => setTab('create')} className="glass rounded-2xl p-6 text-center">
                   <h3 className="text-lg font-semibold">Разместить свое мероприятие</h3>
                   <p className="mx-auto mt-2 max-w-sm text-sm text-ink/60">
-                    Форма подачи мероприятия — раздел в разработке, наполнение уточняется.
+                    Временно недоступно. В разработке.
                   </p>
                 </button>
               )}

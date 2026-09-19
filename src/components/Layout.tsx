@@ -80,11 +80,16 @@ export default function Layout() {
   const communityStaticSubpages = [
     '/community/success', '/community/contacts', '/community/documents',
   ]
+  // «Кадры» — тот же прием: свой единый подвал (KadryFooter) только на
+  // основных страницах работодателя/соискателя, статичные подстраницы
+  // раздела остаются на общем футере сайта.
+  const kadryPagesWithOwnFooter = ['/kadry', '/kadry/employers', '/kadry/candidates']
   const hideGlobalFooter =
     pathname === '/events' ||
     (pathname.startsWith('/events/') && !eventsStaticSubpages.includes(pathname)) ||
     pathname === '/community' ||
-    (pathname.startsWith('/community/') && !communityStaticSubpages.includes(pathname))
+    (pathname.startsWith('/community/') && !communityStaticSubpages.includes(pathname)) ||
+    kadryPagesWithOwnFooter.includes(pathname)
 
   return (
     <div className="flex min-h-screen flex-col">

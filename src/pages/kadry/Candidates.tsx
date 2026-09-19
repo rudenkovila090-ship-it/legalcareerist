@@ -20,6 +20,7 @@ import CareerConsultation from './CareerConsultation'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import { pluralRu } from '../../lib/plural'
 import { SHOW_PERSONAL_ACCOUNTS } from '../../lib/featureFlags'
+import KadryFooter from './KadryFooter'
 
 const money = new Intl.NumberFormat('ru-RU')
 
@@ -439,6 +440,7 @@ export default function Candidates() {
           </div>
         </section>
       )}
+      <KadryFooter />
     </div>
   )
 }
