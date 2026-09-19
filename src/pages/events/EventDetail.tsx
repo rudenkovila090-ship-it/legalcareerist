@@ -561,28 +561,6 @@ export default function EventDetail() {
             )}
           </div>
 
-          {event.organizer && (
-            <div className="glass mt-4 rounded-2xl p-6">
-              <div className="text-xs font-semibold uppercase tracking-wide text-ink/40">Организатор</div>
-              <div className="mt-2 text-lg font-semibold text-ink">{event.organizer.name}</div>
-              {event.organizer.description && (
-                <p className="mt-2 text-sm text-ink/60">{event.organizer.description}</p>
-              )}
-              <div className="mt-3 flex flex-wrap gap-3 text-sm">
-                {event.organizer.site && (
-                  <a href={event.organizer.site} target="_blank" rel="noreferrer" className="font-medium text-ink underline hover:no-underline">
-                    Сайт
-                  </a>
-                )}
-                {event.organizer.socialLinks && (
-                  <a href={event.organizer.socialLinks} target="_blank" rel="noreferrer" className="font-medium text-ink underline hover:no-underline">
-                    Соцсети
-                  </a>
-                )}
-              </div>
-            </div>
-          )}
-
           {event.format === 'offline' && (event.city || event.location) && (
             <div className="glass mt-4 overflow-hidden rounded-2xl">
               <div className="p-6 pb-3">
