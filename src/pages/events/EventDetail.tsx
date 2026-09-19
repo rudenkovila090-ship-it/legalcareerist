@@ -7,6 +7,7 @@ import { submitLead, pingEventRegistrationClick } from '../../lib/leads'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import { useSocialMeta } from '../../lib/useSocialMeta'
 import PhoneInput from '../../components/PhoneInput'
+import LeadSuccessCard from '../../components/LeadSuccessCard'
 import EventsFooter from './EventsFooter'
 import { SPECIALIZATIONS, INDUSTRIES, type EventTariff } from '../../types'
 import { registerForEvent } from '../../lib/eventRegistrations'
@@ -399,9 +400,8 @@ export default function EventDetail() {
               Оставьте заявку — мы свяжемся, чтобы обсудить формат партнерства для этого мероприятия.
             </p>
             {partnerSent ? (
-              <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
-                <div className="font-semibold">Заявка отправлена</div>
-                <p className="mt-1">Мы свяжемся с вами, чтобы обсудить детали партнерства.</p>
+              <div className="mt-4">
+                <LeadSuccessCard description="Мы свяжемся с вами, чтобы обсудить детали партнерства." />
               </div>
             ) : (
               <form onSubmit={handlePartnerSubmit} className="mt-4 grid gap-3 rounded-2xl border border-ink/10 bg-ink/[0.02] p-5 sm:grid-cols-2">

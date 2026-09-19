@@ -6,6 +6,7 @@ import FAQSection from '../../components/FAQSection'
 import SectionRail from '../../components/SectionRail'
 import { submitLead } from '../../lib/leads'
 import PhoneInput from '../../components/PhoneInput'
+import LeadSuccessCard from '../../components/LeadSuccessCard'
 import { consultationCategories, allConsultationServices, tierDiscountPct } from '../../data/consultationServices'
 import { consultationTestimonials } from '../../data/testimonials'
 import ilyaPhoto from '../../assets/ilya-rudenkov.jpg'
@@ -556,9 +557,8 @@ export default function CareerConsultation({ embedded = false }: { embedded?: bo
           </div>
 
           {helpSent ? (
-            <div className="mx-auto mt-6 max-w-md rounded-xl bg-white/10 p-6 text-center">
-              <div className="font-semibold">Заявка отправлена</div>
-              <p className="mt-1 text-sm text-white/70">Мы свяжемся с вами и поможем определиться с услугой.</p>
+            <div className="mx-auto mt-6 max-w-md">
+              <LeadSuccessCard dark description="Мы свяжемся с вами и поможем определиться с услугой." />
             </div>
           ) : (
             <form className="mx-auto mt-6 grid max-w-md gap-3" onSubmit={handleHelpSubmit}>
@@ -690,8 +690,7 @@ export default function CareerConsultation({ embedded = false }: { embedded?: bo
           <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-t-2xl bg-white p-6 sm:rounded-2xl sm:p-8">
             {sent ? (
               <div className="py-8 text-center">
-                <div className="text-lg font-semibold">Заявка отправлена</div>
-                <p className="mt-2 text-sm text-ink/60">Мы свяжемся с вами, чтобы согласовать дату и время консультации.</p>
+                <LeadSuccessCard description="Мы свяжемся с вами, чтобы согласовать дату и время консультации." />
                 <button
                   type="button"
                   onClick={() => {

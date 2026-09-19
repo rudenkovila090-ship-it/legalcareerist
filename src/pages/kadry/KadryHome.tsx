@@ -9,6 +9,7 @@ import KnowledgeList from '../KnowledgeList'
 import { submitLead } from '../../lib/leads'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import PhoneInput from '../../components/PhoneInput'
+import LeadSuccessCard from '../../components/LeadSuccessCard'
 import { demoCandidates, candidateContactPrice } from '../../data/candidateContacts'
 import { SHOW_FIND_EMPLOYEE, SHOW_PERSONAL_ACCOUNTS } from '../../lib/featureFlags'
 import KadryFooter from './KadryFooter'
@@ -811,11 +812,7 @@ export default function KadryHome() {
           <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-white p-6 text-ink sm:rounded-2xl sm:p-8">
             {requestSent ? (
               <div className="py-4 text-center">
-                <div className="mb-3 flex justify-center">
-                  <span className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-2xl text-emerald-600">✓</span>
-                </div>
-                <div className="font-semibold">Заявка отправлена</div>
-                <p className="mt-2 text-sm text-ink/60">Мы свяжемся с вами, чтобы согласовать оплату и передать контакты кандидатов.</p>
+                <LeadSuccessCard description="Мы свяжемся с вами, чтобы согласовать оплату и передать контакты кандидатов." />
                 <button
                   type="button"
                   onClick={() => {
@@ -1384,10 +1381,7 @@ export default function KadryHome() {
 
           <div className="glass-dark rounded-2xl p-8">
             {sent ? (
-              <div className="rounded-xl bg-emerald-400/10 p-6 text-emerald-200">
-                <div className="font-semibold">Заявка отправлена</div>
-                <p className="mt-1 text-sm">Мы свяжемся с вами в ближайшее время.</p>
-              </div>
+              <LeadSuccessCard dark description="Мы свяжемся с вами в ближайшее время." />
             ) : (
               <form onSubmit={handleSubmit} className="grid gap-4">
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -1453,11 +1447,7 @@ export default function KadryHome() {
           <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-white p-6 text-ink sm:rounded-2xl sm:p-8">
             {serviceSent ? (
               <div className="py-4 text-center">
-                <div className="mb-3 flex justify-center">
-                  <span className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-2xl text-emerald-600">✓</span>
-                </div>
-                <div className="font-semibold">Заявка отправлена</div>
-                <p className="mt-2 text-sm text-ink/60">Мы свяжемся с вами, чтобы согласовать детали и запустить поиск.</p>
+                <LeadSuccessCard description="Мы свяжемся с вами, чтобы согласовать детали и запустить поиск." />
                 <button
                   type="button"
                   onClick={() => {

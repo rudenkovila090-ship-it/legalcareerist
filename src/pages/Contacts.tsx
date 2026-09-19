@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import PageHero from '../components/PageHero'
 import PhoneInput from '../components/PhoneInput'
+import LeadSuccessCard from '../components/LeadSuccessCard'
 import { submitLead, makeTicketNumber } from '../lib/leads'
 import { useDocumentTitle } from '../lib/useDocumentTitle'
 import type { LeadSourceBlock } from '../types'
@@ -58,12 +59,7 @@ export default function Contacts({ eyebrow, sourceBlock }: { eyebrow: string; so
         </div>
 
         {ticket ? (
-          <div className="glass rounded-xl p-6 text-emerald-800">
-            <div className="font-semibold">Заявка отправлена</div>
-            <p className="mt-1 text-sm">
-              Номер вашей заявки — <span className="font-semibold">№ {ticket}</span>. Мы свяжемся с вами в ближайшее время.
-            </p>
-          </div>
+          <LeadSuccessCard ticket={ticket} description="Мы свяжемся с вами в ближайшее время." />
         ) : (
           <form onSubmit={handleSubmit} className="glass rounded-xl p-6">
             <div className="font-semibold">Задать вопрос</div>

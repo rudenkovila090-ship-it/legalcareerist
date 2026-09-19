@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { submitLead } from '../lib/leads'
 import PhoneInput from './PhoneInput'
+import LeadSuccessCard from './LeadSuccessCard'
 import type { LeadSourceBlock } from '../types'
 
 interface LeadFormProps {
@@ -103,12 +104,7 @@ export default function LeadForm({
   }
 
   if (sent) {
-    return (
-      <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-6 text-emerald-800">
-        <div className="font-semibold">Заявка отправлена</div>
-        <p className="mt-1 text-sm">Мы свяжемся с вами в ближайшее время. Заявка зафиксирована в CRM с пометкой источника.</p>
-      </div>
-    )
+    return <LeadSuccessCard description="Мы свяжемся с вами в ближайшее время. Заявка зафиксирована в CRM с пометкой источника." />
   }
 
   return (

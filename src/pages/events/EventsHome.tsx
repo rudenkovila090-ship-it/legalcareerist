@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { events } from '../../data/events'
 import { submitLead, makeTicketNumber } from '../../lib/leads'
 import PhoneInput from '../../components/PhoneInput'
+import LeadSuccessCard from '../../components/LeadSuccessCard'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import EventsFooter from './EventsFooter'
 import { INDUSTRIES, type EventItem, type Industry, type AudienceLevel } from '../../types'
@@ -567,10 +568,7 @@ export default function EventsHome() {
 
           <div className="mx-auto max-w-xl">
             {eventSent ? (
-              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-6 text-emerald-800">
-                <div className="font-semibold">Заявка отправлена</div>
-                <p className="mt-1 text-sm">Мы свяжемся с вами, чтобы обсудить детали размещения.</p>
-              </div>
+              <LeadSuccessCard description="Мы свяжемся с вами, чтобы обсудить детали размещения." />
             ) : (
               <form onSubmit={handleEventSubmit} className="glass grid gap-3 rounded-2xl p-6">
                 <input
@@ -624,10 +622,7 @@ export default function EventsHome() {
 
           <div className="mx-auto max-w-xl">
             {orderSent ? (
-              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-6 text-emerald-800">
-                <div className="font-semibold">Заявка отправлена</div>
-                <p className="mt-1 text-sm">Мы свяжемся с вами, чтобы обсудить детали.</p>
-              </div>
+              <LeadSuccessCard description="Мы свяжемся с вами, чтобы обсудить детали." />
             ) : (
               <form onSubmit={handleOrderSubmit} className="glass grid gap-3 rounded-2xl p-6">
                 <input
@@ -681,10 +676,7 @@ export default function EventsHome() {
 
           <div className="mx-auto max-w-xl">
             {partnerSent ? (
-              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-6 text-emerald-800">
-                <div className="font-semibold">Заявка отправлена</div>
-                <p className="mt-1 text-sm">Мы свяжемся с вами, чтобы обсудить формат партнерства.</p>
-              </div>
+              <LeadSuccessCard description="Мы свяжемся с вами, чтобы обсудить формат партнерства." />
             ) : (
               <form onSubmit={handlePartnerSubmit} className="glass grid gap-3 rounded-2xl p-6">
                 <input
@@ -753,12 +745,7 @@ export default function EventsHome() {
             </div>
 
             {supportTicket ? (
-              <div className="glass rounded-xl p-6 text-emerald-800">
-                <div className="font-semibold">Заявка отправлена</div>
-                <p className="mt-1 text-sm">
-                  Номер вашей заявки — <span className="font-semibold">№ {supportTicket}</span>. Мы свяжемся с вами в ближайшее время.
-                </p>
-              </div>
+              <LeadSuccessCard ticket={supportTicket} description="Мы свяжемся с вами в ближайшее время." />
             ) : (
               <form onSubmit={handleSupportSubmit} className="glass rounded-xl p-6">
                 <div className="font-semibold">Задать вопрос</div>

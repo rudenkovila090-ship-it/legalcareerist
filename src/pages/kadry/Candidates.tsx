@@ -7,6 +7,7 @@ import FAQSection from '../../components/FAQSection'
 import { TagRow } from '../../components/Tag'
 import LeadForm from '../../components/LeadForm'
 import PhoneInput from '../../components/PhoneInput'
+import LeadSuccessCard from '../../components/LeadSuccessCard'
 import { submitLead, makeTicketNumber } from '../../lib/leads'
 import VacancyDetailBody, { VacancyContactsBlock } from '../../components/VacancyDetailBody'
 import { vacancies } from '../../data/vacancies'
@@ -298,12 +299,10 @@ export default function Candidates() {
                   </button>
                 </div>
                 {supportTicket ? (
-                  <div className="text-emerald-800">
-                    <div className="font-semibold">Заявка отправлена</div>
-                    <p className="mt-1 text-sm">
-                      Номер вашей заявки — <span className="font-semibold">№ {supportTicket}</span>. Мы напишем вам в ближайшее время и подскажем, какая услуга подойдет.
-                    </p>
-                  </div>
+                  <LeadSuccessCard
+                    ticket={supportTicket}
+                    description="Мы напишем вам в ближайшее время и подскажем, какая услуга подойдет."
+                  />
                 ) : (
                   <form onSubmit={handleSupportSubmit} className="grid gap-3">
                     <p className="text-sm text-ink/60">Оставьте контакты — подскажем, какая услуга подойдет именно вам.</p>

@@ -10,6 +10,7 @@ import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import { tariffs } from '../../data/tariffs'
 import CommunityFooter from './CommunityFooter'
 import PhoneInput from '../../components/PhoneInput'
+import LeadSuccessCard from '../../components/LeadSuccessCard'
 import { SHOW_AMBASSADORS } from '../../lib/featureFlags'
 
 const railItems = [
@@ -459,9 +460,8 @@ export default function CommunityHome() {
           </p>
 
           {ambassadorSent ? (
-            <div className="mx-auto max-w-md rounded-2xl border border-emerald-200 bg-emerald-50 p-6 text-sm text-emerald-800">
-              <div className="font-semibold">Заявка отправлена</div>
-              <p className="mt-1">Мы свяжемся с вами в Telegram.</p>
+            <div className="mx-auto max-w-md">
+              <LeadSuccessCard description="Мы свяжемся с вами в Telegram." />
             </div>
           ) : (
             <form onSubmit={handleAmbassadorSubmit} className="glass mx-auto grid max-w-2xl gap-3 rounded-2xl p-6 text-left sm:grid-cols-2">

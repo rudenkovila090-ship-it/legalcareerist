@@ -7,6 +7,7 @@ import SectionRail from '../../components/SectionRail'
 import { submitLead } from '../../lib/leads'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import PhoneInput from '../../components/PhoneInput'
+import LeadSuccessCard from '../../components/LeadSuccessCard'
 
 const proof = [
   { value: '8 000+', label: 'кандидатов в кадровом резерве' },
@@ -234,9 +235,8 @@ export default function CareerReserve({ embedded = false }: { embedded?: boolean
             </div>
 
             {prioritySent ? (
-              <div className="mx-auto mt-6 max-w-md rounded-xl bg-white/10 p-6 text-center">
-                <div className="font-semibold">Заявка отправлена</div>
-                <p className="mt-1 text-sm text-white/70">Мы свяжемся с вами, чтобы оформить вступление в кадровый резерв.</p>
+              <div className="mx-auto mt-6 max-w-md">
+                <LeadSuccessCard dark description="Мы свяжемся с вами, чтобы оформить вступление в кадровый резерв." />
               </div>
             ) : (
               <form className="mx-auto mt-6 grid max-w-2xl gap-3 sm:grid-cols-2" onSubmit={handlePrioritySubmit}>
@@ -322,10 +322,7 @@ export default function CareerReserve({ embedded = false }: { embedded?: boolean
 
           <div className="glass-dark rounded-2xl p-6 sm:p-8">
             {sent ? (
-              <div className="rounded-xl bg-white/10 p-6 text-center">
-                <div className="text-lg font-semibold">Заявка отправлена</div>
-                <p className="mt-2 text-sm text-white/70">Мы свяжемся с вами, как только появится подходящая вакансия.</p>
-              </div>
+              <LeadSuccessCard dark description="Мы свяжемся с вами, как только появится подходящая вакансия." />
             ) : (
               <form className="grid gap-3 sm:grid-cols-2" onSubmit={handleSubmit}>
                 <input
