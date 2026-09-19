@@ -231,13 +231,13 @@ export default function Home() {
                   <li className="flex gap-2"><span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-gold" /><span>Основатель «Карьерного юриста»</span></li>
                   <li className="flex gap-2"><span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-gold" /><span>Юрист по персональным данным и рекламному праву</span></li>
                   <li className="flex gap-2"><span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-gold" /><span>Карьерный консультант для студентов и юристов</span></li>
-                  <li className="flex gap-2"><span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-gold" /><span>Студент НИУ ВШЭ по программе Legal Tech</span></li>
+                  <li className="flex gap-2"><span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-gold" /><span>Студент НИУ ВШЭ программы Legal Tech</span></li>
                 </ul>
               </div>
             </div>
             <blockquote className="border-l-2 border-gold pl-4 text-sm italic text-ink/70">
               «Карьерный юрист — это пространство возможностей для юридического рынка, где каждый
-              человек может найти что-то особенно полезное для себя».
+              юрист может найти что-то особенно полезное для себя».
             </blockquote>
           </div>
         </div>
