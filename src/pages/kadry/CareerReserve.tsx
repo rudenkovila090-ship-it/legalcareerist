@@ -335,7 +335,7 @@ export default function CareerReserve({ embedded = false }: { embedded?: boolean
               <form className="grid gap-3 sm:grid-cols-2" onSubmit={handleSubmit}>
                 <input
                   className="rounded-lg border border-white/15 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
-                  placeholder="Имя"
+                  placeholder="ФИО"
                   value={form.name}
                   onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                 />

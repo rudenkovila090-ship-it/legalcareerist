@@ -153,7 +153,7 @@ export default function TariffJoinBlock() {
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Имя"
+                placeholder="ФИО"
                 required
                 className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
               />

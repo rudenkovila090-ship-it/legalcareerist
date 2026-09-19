@@ -565,7 +565,7 @@ export default function CareerConsultation({ embedded = false }: { embedded?: bo
               <div className="grid gap-3 sm:grid-cols-2">
                 <input
                   className="rounded-lg border border-white/15 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
-                  placeholder="Имя"
+                  placeholder="ФИО"
                   value={helpForm.name}
                   onChange={(e) => setHelpForm((f) => ({ ...f, name: e.target.value }))}
                 />

@@ -194,7 +194,7 @@ export default function MaterialDetail() {
             <form className="grid gap-3" onSubmit={handlePurchaseSubmit}>
               <input
                 required
-                placeholder="Имя"
+                placeholder="ФИО"
                 value={purchaseForm.name}
                 onChange={(e) => setPurchaseForm((f) => ({ ...f, name: e.target.value }))}
                 className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"

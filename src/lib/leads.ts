@@ -78,9 +78,12 @@ const RICH_CANDIDATE_TYPES = new Set([
   'candidate_application', 'reserve_join_request',
 ])
 
-function richTemplate(formType: string): 'kadry-employer' | 'kadry-candidate' | undefined {
+function richTemplate(sourceBlock: LeadSourceBlock, formType: string): 'kadry-employer' | 'kadry-candidate' | 'kadry-support' | undefined {
   if (RICH_EMPLOYER_TYPES.has(formType)) return 'kadry-employer'
   if (RICH_CANDIDATE_TYPES.has(formType)) return 'kadry-candidate'
+  // «Не знаете, с чего начать?» на /kadry/candidates — вопрос от соискателя,
+  // не общая форма поддержки (та же formType используется и в Мероприятиях).
+  if (sourceBlock === 'kadry' && formType === 'support_request') return 'kadry-support'
   return undefined
 }
 
@@ -153,10 +156,11 @@ export function submitLead(input: LeadInput): Lead {
  *  откликов вакансии / переходов к регистрации на мероприятие. */
 function notifyTelegram(lead: Lead, vacancySlug?: string, eventSlug?: string) {
   if (typeof fetch === 'undefined') return
-  const template = richTemplate(lead.formType)
+  const template = richTemplate(lead.sourceBlock, lead.formType)
   const direction =
     template === 'kadry-employer' ? 'Кадры → Работодатель'
     : template === 'kadry-candidate' ? 'Кадры → Соискатель'
+    : template === 'kadry-support' ? 'Кадры → Поддержка'
     : directionLabel(lead.sourceBlock, lead.formType)
   fetch('/api/notify', {
     method: 'POST',

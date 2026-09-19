@@ -174,7 +174,8 @@ export default function Candidates() {
       phone: supportForm.phone || undefined,
       email: supportForm.email || undefined,
       telegram: supportForm.telegram || undefined,
-      interest: supportForm.question.trim() ? [supportForm.question.trim()] : [],
+      serviceOverride: 'вопрос',
+      interest: supportForm.question.trim() ? [`Вопрос: ${supportForm.question.trim()}`] : [],
     })
     nextTicketNumber().then(setSupportTicket)
   }

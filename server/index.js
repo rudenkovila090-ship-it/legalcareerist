@@ -130,19 +130,23 @@ function richDetailIcon(line) {
   if (/^Ставка/i.test(line)) return '📊'
   if (/приложен[оа]? документом/i.test(line)) return '📎'
   if (/^Кандидат/i.test(line)) return '👥'
+  if (/^Вопрос/i.test(line)) return '💬'
   return '📋'
 }
 
-// Расширенный формат с иконками по полям — только для рекрутинга (работодатель
-// ищет сотрудника) и карьерной консультации (соискатель), по запросу заказчика.
-// Остальные формы идут через обычный buildLeadNotification выше.
+// Расширенный формат с иконками по полям — рекрутинг/карьерная консультация/
+// отклик на вакансию/кадровый резерв/вопрос в поддержку (Соискателям), по
+// запросу заказчика. Остальные формы идут через обычный buildLeadNotification.
+// kadry-support — направление и услуга в одну строку через «·» (короче,
+// заявок-вопросов много); остальные шаблоны — направление и услуга отдельными строками.
 function buildKadryRichNotification({ template, direction, service, date, name, phone, email, telegram, company, details }) {
-  const contactLabel = template === 'kadry-employer' ? 'фио' : 'контакт'
+  const contactLabel = template === 'kadry-employer' ? 'фио' : template === 'kadry-support' ? 'фио' : 'контакт'
+  const header = template === 'kadry-support' ? [direction, service].filter(Boolean).join(' · ') : null
   const lines = [
     '🔔 Новая заявка с сайта',
     '',
-    direction || null,
-    service || null,
+    header ?? (direction || null),
+    header ? null : (service || null),
     '',
     `📅 ${formatMoscowDateTime(date)}`,
     '',
@@ -293,7 +297,7 @@ app.post('/api/notify', async (req, res) => {
   // phone/email/telegram — отдельными полями с фронтенда (см.
   // src/lib/leads.ts); contact — старая склеенная строка, остаётся как
   // запасной вариант, если фронтенд почему-то не прислал разбивку.
-  const isRich = template === 'kadry-employer' || template === 'kadry-candidate'
+  const isRich = template === 'kadry-employer' || template === 'kadry-candidate' || template === 'kadry-support'
   const text = isRich
     ? buildKadryRichNotification({
         template,
