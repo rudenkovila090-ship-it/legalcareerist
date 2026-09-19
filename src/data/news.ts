@@ -11,6 +11,7 @@ export const news: NewsItem[] = [
     id: 'n1',
     slug: 'reyting-reputatsionnogo-kapitala-raso-lbf',
     tag: 'Достижения',
+    category: 'Карьерный юрист',
     date: '24 июня 2026',
     title: 'Вошли в рейтинг репутационного капитала РАСО и Legal Business Forum',
     text:

@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import PageHero from '../components/PageHero'
 import { NewsCard } from '../components/cards'
 import KnowledgeList from './KnowledgeList'
 import { news } from '../data/news'
 import { podcastEpisodes } from '../data/podcast'
 import { useDocumentTitle } from '../lib/useDocumentTitle'
+import type { NewsCategory } from '../types'
 
 const blogTabs = [
   { id: 'news', label: 'Новости' },
@@ -12,18 +13,26 @@ const blogTabs = [
   { id: 'community', label: 'Сообщество' },
 ] as const
 
+const newsCategories: NewsCategory[] = ['Карьерный юрист', 'Кадры', 'Сообщество', 'Мероприятия', 'Маркетплейс', 'Подкаст']
+
 // /blog — демо-каркас, добавлен по запросу рядом с Кадрами/Сообществом/
 // Мероприятиями/Маркетплейсом. Наполнение еще не согласовано с бизнесом.
 export default function BlogHome() {
   useDocumentTitle('Блог')
   const [tab, setTab] = useState<(typeof blogTabs)[number]['id']>('news')
+  const [newsCategory, setNewsCategory] = useState<NewsCategory | 'all'>('all')
+
+  const filteredNews = useMemo(
+    () => (newsCategory === 'all' ? news : news.filter((n) => n.category === newsCategory)),
+    [newsCategory],
+  )
 
   return (
     <div>
       <PageHero
         eyebrow="Карьерный Юрист"
         title="Блог"
-        description="Статьи о карьере в праве, подборе персонала и юридическом рынке."
+        description="Здесь делимся новостями и жизнью «Карьерного юриста»."
       />
 
       {/* Подвкладки — Новости / Подкаст */}
@@ -50,10 +59,36 @@ export default function BlogHome() {
         <div className="container-page py-12">
           <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Новости</div>
           <h2 className="mb-6 text-2xl font-semibold">Что нового у «Карьерного юриста»</h2>
+
+          <div className="mb-6 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setNewsCategory('all')}
+              className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+                newsCategory === 'all' ? 'bg-ink text-white' : 'border border-ink/15 text-ink/60 hover:text-ink'
+              }`}
+            >
+              Все
+            </button>
+            {newsCategories.map((c) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setNewsCategory(c)}
+                className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+                  newsCategory === c ? 'bg-ink text-white' : 'border border-ink/15 text-ink/60 hover:text-ink'
+                }`}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {news.map((n) => (
+            {filteredNews.map((n) => (
               <NewsCard key={n.slug} n={n} />
             ))}
+            {filteredNews.length === 0 && <p className="text-sm text-ink/50">В этой категории пока нет новостей.</p>}
           </div>
         </div>
       )}

@@ -397,10 +397,16 @@ export interface Article extends Tagged {
   cta?: 'community-tariff'
 }
 
+/** Раздел сайта, к которому относится новость — фильтр вкладки «Новости»
+ *  в Блоге (чипы «Все / Карьерный юрист / Кадры / …»). «Карьерный юрист» —
+ *  общие новости бренда, не привязанные к конкретному разделу. */
+export type NewsCategory = 'Карьерный юрист' | 'Кадры' | 'Сообщество' | 'Мероприятия' | 'Маркетплейс' | 'Подкаст'
+
 export interface NewsItem {
   id: string
   slug: string
   tag: string
+  category: NewsCategory
   date: string
   title: string
   /** Полный текст новости на детальной странице (/news/:slug) — поддерживает
