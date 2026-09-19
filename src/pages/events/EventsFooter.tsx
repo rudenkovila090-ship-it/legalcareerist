@@ -81,8 +81,7 @@ export default function EventsFooter() {
           <div className="mb-3 text-sm font-bold uppercase tracking-wide text-white">Мероприятия</div>
           <ul className="space-y-2 text-sm">
             <li><Link className="hover:text-white" to="/about">О нас</Link></li>
-            <li><Link className="hover:text-white" to="/blog">Блог</Link></li>
-            <li><Link className="hover:text-white" to="/news">Новости</Link></li>
+            <li><Link className="hover:text-white" to="/blog?category=Мероприятия">Блог</Link></li>
             <li><Link className="hover:text-white" to="/events/documents">Документы</Link></li>
           </ul>
         </div>
@@ -92,8 +91,6 @@ export default function EventsFooter() {
           <ul className="space-y-2 text-sm">
             <li><Link className="hover:text-white" to="/events?tab=poster">Афиша</Link></li>
             <li><Link className="hover:text-white" to="/events/ticket-refund">Возврат билета</Link></li>
-            <li><Link className="hover:text-white" to="/events/research">Участие в исследованиях</Link></li>
-            <li><Link className="hover:text-white" to="/events/ticketing">Билетная система</Link></li>
           </ul>
         </div>
 
@@ -119,7 +116,7 @@ export default function EventsFooter() {
           <div className="mb-3 text-sm font-bold uppercase tracking-wide text-white">Помощь</div>
           <ul className="space-y-2 text-sm">
             <li><Link className="hover:text-white" to="/events?tab=support">Поддержка</Link></li>
-            <li><Link className="hover:text-white" to="/events/knowledge">База знаний</Link></li>
+            <li><Link className="hover:text-white" to="/blog#kb-meropriyatiya">База знаний</Link></li>
           </ul>
         </div>
 

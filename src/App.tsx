@@ -76,7 +76,7 @@ export default function App() {
           <Route path="/community/success" element={<JoinSuccess />} />
           <Route path="/community/clubs/:slug" element={<ClubDetail />} />
           <Route path="/community/contacts" element={<Contacts eyebrow="Сообщество" sourceBlock="community" />} />
-          <Route path="/community/documents" element={<Placeholder eyebrow="Сообщество" title="Документы" />} />
+          <Route path="/community/documents" element={<Documents eyebrow="Сообщество" description="Юридические документы сообщества." legalLinks />} />
 
           {/* Мероприятия */}
           <Route path="/events" element={<EventsHome />} />

@@ -69,8 +69,7 @@ export default function CommunityFooter() {
           <div className="mb-3 text-sm font-bold uppercase tracking-wide text-white">Сообщество</div>
           <ul className="space-y-2 text-sm">
             <li><Link className="hover:text-white" to="/community#main">О сообществе</Link></li>
-            <li><Link className="hover:text-white" to="/blog">Блог</Link></li>
-            <li><Link className="hover:text-white" to="/news">Новости</Link></li>
+            <li><Link className="hover:text-white" to="/blog?category=Сообщество">Блог</Link></li>
             <li><Link className="hover:text-white" to="/community/documents">Документы</Link></li>
           </ul>
         </div>

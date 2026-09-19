@@ -364,25 +364,27 @@ export default function CommunityHome() {
               <p className="mt-1 text-sm text-ink/60">{b.text}</p>
             </div>
           ))}
-        </div>
 
-        {/* База знаний — отдельным компактным блоком с тегами, а не длинным списком в карточке */}
-        <div className="glass mt-4 rounded-xl border border-ink/5 p-5 shadow-sm">
-          <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ink text-white">
-              <IconBook />
+          {/* База знаний — справа от «Встреч», растянута на 2 ячейки (в
+              последней строке сетки из 7 карточек остаются ровно 2 свободные
+              ячейки — блок занимает их целиком вместо отдельной полосы ниже). */}
+          <div className="glass rounded-xl border border-ink/5 p-5 shadow-sm sm:col-span-2 lg:col-span-2">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ink text-white">
+                <IconBook />
+              </div>
+              <div>
+                <div className="font-semibold text-ink">База знаний</div>
+                <p className="mt-1 text-sm text-ink/60">Темы, которые доступны резидентам:</p>
+              </div>
             </div>
-            <div>
-              <div className="font-semibold text-ink">База знаний</div>
-              <p className="mt-1 text-sm text-ink/60">Темы, которые доступны резидентам:</p>
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {[...knowledgeCategories, 'Нетворкинг', 'Книжный клуб', 'Психологический клуб'].map((topic) => (
+                <span key={topic} className="rounded-full bg-ink/[0.05] px-3 py-1 text-xs font-medium text-ink/70">
+                  {topic}
+                </span>
+              ))}
             </div>
-          </div>
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {[...knowledgeCategories, 'Нетворкинг', 'Книжный клуб', 'Психологический клуб'].map((topic) => (
-              <span key={topic} className="rounded-full bg-ink/[0.05] px-3 py-1 text-xs font-medium text-ink/70">
-                {topic}
-              </span>
-            ))}
           </div>
         </div>
       </section>
