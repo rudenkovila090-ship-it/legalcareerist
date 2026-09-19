@@ -17,7 +17,7 @@ export default function Contacts({ eyebrow, sourceBlock }: { eyebrow: string; so
   const [missingFields, setMissingFields] = useState(false)
   const [ticket, setTicket] = useState<string | null>(null)
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setMissingFields(false)
 
@@ -26,6 +26,7 @@ export default function Contacts({ eyebrow, sourceBlock }: { eyebrow: string; so
       return
     }
 
+    const ticketNumber = await nextTicketNumber()
     submitLead({
       sourceBlock,
       formType: 'contact',
@@ -34,9 +35,10 @@ export default function Contacts({ eyebrow, sourceBlock }: { eyebrow: string; so
       phone: phone || undefined,
       email: email || undefined,
       telegram: telegram || undefined,
-      interest: [question],
+      ticketNumber,
+      interest: [`Вопрос: ${question}`],
     })
-    nextTicketNumber().then(setTicket)
+    setTicket(ticketNumber)
   }
 
   return (
@@ -54,7 +56,7 @@ export default function Contacts({ eyebrow, sourceBlock }: { eyebrow: string; so
           </div>
           <div className="glass rounded-xl p-5">
             <div className="text-sm text-ink/50">Telegram</div>
-            <div className="font-medium">@LegalcareeristBot</div>
+            <div className="font-medium">@legalcareerist_support</div>
           </div>
         </div>
 

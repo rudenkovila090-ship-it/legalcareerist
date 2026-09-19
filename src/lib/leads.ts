@@ -78,12 +78,13 @@ const RICH_CANDIDATE_TYPES = new Set([
   'candidate_application', 'reserve_join_request',
 ])
 
-function richTemplate(sourceBlock: LeadSourceBlock, formType: string): 'kadry-employer' | 'kadry-candidate' | 'kadry-support' | undefined {
+function richTemplate(sourceBlock: LeadSourceBlock, formType: string): 'kadry-employer' | 'kadry-candidate' | 'support' | undefined {
   if (RICH_EMPLOYER_TYPES.has(formType)) return 'kadry-employer'
   if (RICH_CANDIDATE_TYPES.has(formType)) return 'kadry-candidate'
-  // «Не знаете, с чего начать?» на /kadry/candidates — вопрос от соискателя,
-  // не общая форма поддержки (та же formType используется и в Мероприятиях).
-  if (sourceBlock === 'kadry' && formType === 'support_request') return 'kadry-support'
+  // Обращение через форму контактов (любой раздел) и «Не знаете, с чего
+  // начать?» на /kadry/candidates — одна и та же «шапка поддержки».
+  if (formType === 'contact') return 'support'
+  if (sourceBlock === 'kadry' && formType === 'support_request') return 'support'
   return undefined
 }
 
@@ -101,6 +102,9 @@ export interface LeadInput {
   company?: string
   /** Переопределяет «Услугу» в уведомлении — см. Lead в types.ts. */
   serviceOverride?: string
+  /** Номер заявки (см. nextTicketNumber) — если задан, попадает в первую
+   *  строку уведомления админу («Заявка №N»), тем же числом, что видит клиент. */
+  ticketNumber?: string
   interest?: string[]
   /** Slug вакансии — если задан, бэкенд считает это в реальный счетчик откликов вакансии. */
   vacancySlug?: string
@@ -136,6 +140,7 @@ export function submitLead(input: LeadInput): Lead {
     telegram: input.telegram,
     company: input.company,
     serviceOverride: input.serviceOverride,
+    ticketNumber: input.ticketNumber,
     interest: input.interest ?? [],
     status: 'new',
     date: new Date().toISOString(),
@@ -160,7 +165,7 @@ function notifyTelegram(lead: Lead, vacancySlug?: string, eventSlug?: string) {
   const direction =
     template === 'kadry-employer' ? 'Кадры → Работодатель'
     : template === 'kadry-candidate' ? 'Кадры → Соискатель'
-    : template === 'kadry-support' ? 'Кадры → Поддержка'
+    : template === 'support' ? `${sourceLabels[lead.sourceBlock] ?? lead.sourceBlock} → Поддержка`
     : directionLabel(lead.sourceBlock, lead.formType)
   fetch('/api/notify', {
     method: 'POST',
@@ -177,6 +182,7 @@ function notifyTelegram(lead: Lead, vacancySlug?: string, eventSlug?: string) {
       email: lead.email,
       telegram: lead.telegram,
       company: lead.company,
+      ticketNumber: lead.ticketNumber,
       interest: lead.interest,
       date: lead.date,
       vacancySlug,

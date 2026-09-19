@@ -159,13 +159,14 @@ export default function Candidates() {
     setSupportMissing(false)
   }
 
-  function handleSupportSubmit(e: FormEvent) {
+  async function handleSupportSubmit(e: FormEvent) {
     e.preventDefault()
     setSupportMissing(false)
     if (!supportForm.fio.trim() || !supportForm.phone.trim() || !supportForm.email.trim() || !supportForm.telegram.trim()) {
       setSupportMissing(true)
       return
     }
+    const ticketNumber = await nextTicketNumber()
     submitLead({
       sourceBlock: 'kadry',
       formType: 'support_request',
@@ -175,9 +176,10 @@ export default function Candidates() {
       email: supportForm.email || undefined,
       telegram: supportForm.telegram || undefined,
       serviceOverride: 'вопрос',
+      ticketNumber,
       interest: supportForm.question.trim() ? [`Вопрос: ${supportForm.question.trim()}`] : [],
     })
-    nextTicketNumber().then(setSupportTicket)
+    setSupportTicket(ticketNumber)
   }
   const [selectedVacancySlug, setSelectedVacancySlug] = useState<string | null>(null)
   const selectedVacancy = vacancies.find((v) => v.slug === selectedVacancySlug) ?? null

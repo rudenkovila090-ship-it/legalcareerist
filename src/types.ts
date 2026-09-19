@@ -612,6 +612,8 @@ export interface Lead {
   /** Переопределяет «Услугу» в уведомлении админу (например, название и
    *  номер вакансии для отклика) вместо общей подписи по formType. */
   serviceOverride?: string
+  /** Номер заявки — см. LeadInput в lib/leads.ts. */
+  ticketNumber?: string
   interest: string[]
   utm?: Record<string, string>
   status: 'new' | 'processing' | 'done'

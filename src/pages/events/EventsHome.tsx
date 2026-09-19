@@ -389,13 +389,14 @@ export default function EventsHome() {
   const [supportTicket, setSupportTicket] = useState<string | null>(null)
   const [supportMissing, setSupportMissing] = useState(false)
 
-  function handleSupportSubmit(e: FormEvent) {
+  async function handleSupportSubmit(e: FormEvent) {
     e.preventDefault()
     setSupportMissing(false)
     if (!supportForm.fio.trim() || !supportForm.phone.trim() || !supportForm.question.trim()) {
       setSupportMissing(true)
       return
     }
+    const ticketNumber = await nextTicketNumber()
     submitLead({
       sourceBlock: 'events',
       formType: 'support_request',
@@ -404,9 +405,10 @@ export default function EventsHome() {
       phone: supportForm.phone || undefined,
       email: supportForm.email || undefined,
       telegram: supportForm.telegram || undefined,
-      interest: [supportForm.question],
+      ticketNumber,
+      interest: [`Вопрос: ${supportForm.question}`],
     })
-    nextTicketNumber().then(setSupportTicket)
+    setSupportTicket(ticketNumber)
   }
 
   return (
@@ -740,7 +742,7 @@ export default function EventsHome() {
               </div>
               <div className="glass rounded-xl p-5">
                 <div className="text-sm text-ink/50">Telegram</div>
-                <div className="font-medium">@LegalcareeristBot</div>
+                <div className="font-medium">@legalcareerist_support</div>
               </div>
             </div>
 

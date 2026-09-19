@@ -103,9 +103,9 @@ function formatMoscowDateTime(iso) {
   }
 }
 
-function buildLeadNotification({ direction, service, date, name, phone, email, telegram, details }) {
+function buildLeadNotification({ direction, service, date, name, phone, email, telegram, details, ticketNumber }) {
   const lines = [
-    '🔔 Новая заявка с сайта',
+    `🔔 Новая заявка с сайта${ticketNumber ? `. Заявка №${ticketNumber}` : ''}`,
     direction ? `Направление: ${direction}` : null,
     service ? `Услуга: ${service}` : null,
     `Дата и время заявки: ${formatMoscowDateTime(date)}`,
@@ -135,15 +135,16 @@ function richDetailIcon(line) {
 }
 
 // Расширенный формат с иконками по полям — рекрутинг/карьерная консультация/
-// отклик на вакансию/кадровый резерв/вопрос в поддержку (Соискателям), по
-// запросу заказчика. Остальные формы идут через обычный buildLeadNotification.
-// kadry-support — направление и услуга в одну строку через «·» (короче,
-// заявок-вопросов много); остальные шаблоны — направление и услуга отдельными строками.
-function buildKadryRichNotification({ template, direction, service, date, name, phone, email, telegram, company, details }) {
-  const contactLabel = template === 'kadry-employer' ? 'фио' : template === 'kadry-support' ? 'фио' : 'контакт'
-  const header = template === 'kadry-support' ? [direction, service].filter(Boolean).join(' · ') : null
+// отклик на вакансию/кадровый резерв/обращения в поддержку (Контакты и
+// «Не знаете, с чего начать?»), по запросу заказчика. Остальные формы идут
+// через обычный buildLeadNotification. support — направление и услуга в одну
+// строку через «·» (короче, обращений много); остальные шаблоны — направление
+// и услуга отдельными строками.
+function buildKadryRichNotification({ template, direction, service, date, name, phone, email, telegram, company, details, ticketNumber }) {
+  const contactLabel = template === 'kadry-employer' ? 'фио' : template === 'support' ? 'фио' : 'контакт'
+  const header = template === 'support' ? [direction, service].filter(Boolean).join(' · ') : null
   const lines = [
-    '🔔 Новая заявка с сайта',
+    `🔔 Новая заявка с сайта${ticketNumber ? `. Заявка №${ticketNumber}` : ''}`,
     '',
     header ?? (direction || null),
     header ? null : (service || null),
@@ -266,7 +267,7 @@ app.post('/api/upload-document', upload.single('file'), async (req, res) => {
 })
 
 app.post('/api/notify', async (req, res) => {
-  const { direction, service, source, formType, name, contact, phone, email, telegram, company, template, interest, date, vacancySlug, eventSlug } = req.body ?? {}
+  const { direction, service, source, formType, name, contact, phone, email, telegram, company, template, interest, date, vacancySlug, eventSlug, ticketNumber } = req.body ?? {}
 
   // Отклик на вакансию — считаем реальный счётчик независимо от того,
   // настроен ли Telegram-бот ниже: заявка не должна "теряться" из
@@ -297,7 +298,7 @@ app.post('/api/notify', async (req, res) => {
   // phone/email/telegram — отдельными полями с фронтенда (см.
   // src/lib/leads.ts); contact — старая склеенная строка, остаётся как
   // запасной вариант, если фронтенд почему-то не прислал разбивку.
-  const isRich = template === 'kadry-employer' || template === 'kadry-candidate' || template === 'kadry-support'
+  const isRich = template === 'kadry-employer' || template === 'kadry-candidate' || template === 'support'
   const text = isRich
     ? buildKadryRichNotification({
         template,
@@ -310,6 +311,7 @@ app.post('/api/notify', async (req, res) => {
         telegram,
         company,
         details: interest,
+        ticketNumber,
       })
     : buildLeadNotification({
         direction: direction || source,
@@ -320,6 +322,7 @@ app.post('/api/notify', async (req, res) => {
         email,
         telegram,
         details: interest,
+        ticketNumber,
       })
 
   const ok = await sendTelegramMessage(ADMIN_CHAT_ID, text).catch((err) => {
