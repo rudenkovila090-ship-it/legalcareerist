@@ -492,6 +492,8 @@ export default function EmployerAccount() {
       formType: 'candidate_contact_request',
       name: demoEmployer.name,
       contact: demoEmployer.phone ?? demoEmployer.email,
+      phone: demoEmployer.phone || undefined,
+      email: demoEmployer.email || undefined,
       interest: [`Кандидат №${c.id} — ${c.position}`, `${candidateContactPrice(c).toLocaleString('ru-RU')} ₽`],
     })
     setRequestedCandidateIds((prev) => new Set(prev).add(c.id))
@@ -521,6 +523,7 @@ export default function EmployerAccount() {
       formType: 'event_placement_purchase',
       name: demoEmployer.name,
       contact: eventBuyerPhone,
+      phone: eventBuyerPhone || undefined,
       interest: [`${buyingEventPack.count} размещений мероприятий за ${buyingEventPack.price} ₽`],
     })
     addCredits(EVENT_CREDITS_KEY, buyingEventPack.count)
@@ -584,6 +587,8 @@ export default function EmployerAccount() {
       formType: 'candidate_contact_purchase',
       name: demoEmployer.name,
       contact: demoEmployer.phone ?? demoEmployer.email,
+      phone: demoEmployer.phone || undefined,
+      email: demoEmployer.email || undefined,
       interest: [`Контакты кандидата «${name}» — ${price} ₽`],
     })
     refreshResponses()
@@ -801,6 +806,7 @@ export default function EmployerAccount() {
       formType: 'vacancy_credits_purchase',
       name: demoEmployer.name,
       contact: buyerPhone,
+      phone: buyerPhone || undefined,
       interest: [`${buyingPack.count} генераций вакансий за ${buyingPack.price} ₽`],
     })
     addCredits(VACANCY_CREDITS_KEY, buyingPack.count)

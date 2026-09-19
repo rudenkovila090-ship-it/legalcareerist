@@ -76,6 +76,34 @@ async function afterResponse(tag, work) {
   }
 }
 
+// Единый шаблон уведомления админу — используется и для обычных лид-форм
+// (/api/notify), и для покупки материала маркетплейса (там своя ветка в
+// вебхуке Prodamus, но формат сообщения должен быть тем же).
+function formatMoscowDateTime(iso) {
+  try {
+    return new Intl.DateTimeFormat('ru-RU', {
+      timeZone: 'Europe/Moscow', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
+    }).format(iso ? new Date(iso) : new Date())
+  } catch {
+    return new Date().toLocaleString('ru-RU')
+  }
+}
+
+function buildLeadNotification({ direction, service, date, name, phone, email, telegram, details }) {
+  const lines = [
+    '🔔 Новая заявка с сайта',
+    direction ? `Направление: ${direction}` : null,
+    service ? `Услуга: ${service}` : null,
+    `Дата и время заявки: ${formatMoscowDateTime(date)}`,
+    name ? `Контакт: ${name}` : null,
+    phone ? `Номер телефона: ${phone}` : null,
+    email ? `Почта: ${email}` : null,
+    telegram ? `Телеграм: ${telegram}` : null,
+    ...(Array.isArray(details) && details.length ? details.map((i) => `• ${i}`) : []),
+  ].filter(Boolean)
+  return lines.join('\n')
+}
+
 async function sendInviteLink(chatId, join) {
   const tariff = TARIFFS[join.tariffId]
   const label = tariff?.label ?? 'Сообщество'
@@ -155,7 +183,7 @@ app.put('/api/store/:key', (req, res) => {
 })
 
 app.post('/api/notify', async (req, res) => {
-  const { source, formType, name, contact, interest, vacancySlug, eventSlug } = req.body ?? {}
+  const { direction, service, source, formType, name, contact, phone, email, telegram, interest, date, vacancySlug, eventSlug } = req.body ?? {}
 
   // Отклик на вакансию — считаем реальный счётчик независимо от того,
   // настроен ли Telegram-бот ниже: заявка не должна "теряться" из
@@ -183,16 +211,21 @@ app.post('/api/notify', async (req, res) => {
     return res.status(500).json({ ok: false, error: 'not_configured' })
   }
 
-  const lines = [
-    '🔔 Новая заявка с сайта',
-    source ? `Раздел: ${source}` : null,
-    formType ? `Форма: ${formType}` : null,
-    name ? `Имя: ${name}` : null,
-    contact ? `Контакт: ${contact}` : null,
-    ...(Array.isArray(interest) && interest.length ? interest.map((i) => `• ${i}`) : []),
-  ].filter(Boolean)
+  // phone/email/telegram — отдельными полями с фронтенда (см.
+  // src/lib/leads.ts); contact — старая склеенная строка, остаётся как
+  // запасной вариант, если фронтенд почему-то не прислал разбивку.
+  const text = buildLeadNotification({
+    direction: direction || source,
+    service: service || formType,
+    date,
+    name,
+    phone: phone || (!email && !telegram ? contact : undefined),
+    email,
+    telegram,
+    details: interest,
+  })
 
-  const ok = await sendTelegramMessage(ADMIN_CHAT_ID, lines.join('\n')).catch((err) => {
+  const ok = await sendTelegramMessage(ADMIN_CHAT_ID, text).catch((err) => {
     console.error('[notify] ошибка запроса к Telegram:', err)
     return false
   })
@@ -334,10 +367,16 @@ app.post('/api/prodamus/webhook', async (req, res) => {
     if (purchase) {
       const material = MATERIALS[purchase.materialSlug]
       const cabinetUrl = `${SITE_URL}/materials/cabinet?token=${purchase.token}`
-      await sendTelegramMessage(
-        ADMIN_CHAT_ID,
-        `💰 Покупка материала\nЧто: ${material?.title ?? purchase.materialSlug}\nСумма: ${body.sum} ₽\nКто: ${purchase.name || '—'}\nКонтакт: ${phone}${purchase.email ? ` / ${purchase.email}` : ''}\nЛичный кабинет: ${cabinetUrl}`,
-      )
+      const text = buildLeadNotification({
+        direction: 'Маркетплейс',
+        service: 'Покупка полезного материала',
+        date: new Date().toISOString(),
+        name: purchase.name || '—',
+        phone,
+        email: purchase.email,
+        details: [`Материал: ${material?.title ?? purchase.materialSlug}`, `Сумма: ${body.sum} ₽`, `Личный кабинет: ${cabinetUrl}`],
+      })
+      await sendTelegramMessage(ADMIN_CHAT_ID, text)
     }
   })
 })

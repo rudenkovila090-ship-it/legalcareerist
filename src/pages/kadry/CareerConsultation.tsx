@@ -245,6 +245,9 @@ export default function CareerConsultation({ embedded = false }: { embedded?: bo
       formType: 'consultation_help_request',
       name: helpForm.name,
       contact: [helpForm.email, helpForm.phone, helpForm.telegram].filter(Boolean).join(' / '),
+      phone: helpForm.phone || undefined,
+      email: helpForm.email || undefined,
+      telegram: helpForm.telegram || undefined,
       interest: [helpForm.question],
     })
     setHelpSent(true)
@@ -272,6 +275,9 @@ export default function CareerConsultation({ embedded = false }: { embedded?: bo
       formType: 'consultation_order',
       name: form.name,
       contact: [form.email, form.telegram, form.phone].filter(Boolean).join(' / '),
+      phone: form.phone || undefined,
+      email: form.email || undefined,
+      telegram: form.telegram || undefined,
       interest: [
         ...selectedServices.map((s) => s.title),
         promo.trim() ? `Промокод: ${promo.trim()}` : '',

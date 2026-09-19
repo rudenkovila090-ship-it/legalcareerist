@@ -87,6 +87,9 @@ export default function LeadForm({
       formType,
       name,
       contact: [contact, phone, telegram].filter(Boolean).join(' / '),
+      phone: phone || undefined,
+      email: contact.includes('@') && !contact.startsWith('@') ? contact : undefined,
+      telegram: telegram || undefined,
       interest: [
         ...interest,
         resumeFile ? `Резюме: ${resumeFile.name}` : '',

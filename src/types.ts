@@ -598,6 +598,12 @@ export interface Lead {
   formType: string
   name: string
   contact: string
+  /** Телефон/почта/Telegram отдельными полями — для уведомления админу в
+   *  Telegram (см. notifyTelegram в lib/leads.ts). contact выше остается
+   *  единой строкой для отображения в списке заявок кабинета. */
+  phone?: string
+  email?: string
+  telegram?: string
   interest: string[]
   utm?: Record<string, string>
   status: 'new' | 'processing' | 'done'

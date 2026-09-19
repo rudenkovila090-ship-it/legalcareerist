@@ -198,6 +198,9 @@ export default function EventDetail() {
       formType: 'event_registration',
       name: form.fio,
       contact: [form.phone, form.email, form.telegram].filter(Boolean).join(' / '),
+      phone: form.phone || undefined,
+      email: form.email || undefined,
+      telegram: form.telegram || undefined,
       interest: [event.title, tariff.name],
       eventSlug: event.slug,
     })
@@ -214,6 +217,8 @@ export default function EventDetail() {
       formType: 'event_partner_application',
       name: partnerForm.fio,
       contact: [partnerForm.phone, partnerForm.email].filter(Boolean).join(' / '),
+      phone: partnerForm.phone || undefined,
+      email: partnerForm.email || undefined,
       interest: [event.title, partnerForm.company],
     })
     setPartnerSent(true)

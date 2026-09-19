@@ -342,6 +342,7 @@ export default function CandidateAccount() {
       formType: 'resume_credits_purchase',
       name: demoUser.name,
       contact: buyerPhone,
+      phone: buyerPhone || undefined,
       interest: [`${buyingPack.count} генераций резюме за ${buyingPack.price} ₽`],
     })
     addCredits(RESUME_CREDITS_KEY, buyingPack.count)

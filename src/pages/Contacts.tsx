@@ -30,6 +30,9 @@ export default function Contacts({ eyebrow, sourceBlock }: { eyebrow: string; so
       formType: 'contact',
       name,
       contact: [phone, email, telegram].filter(Boolean).join(' / '),
+      phone: phone || undefined,
+      email: email || undefined,
+      telegram: telegram || undefined,
       interest: [question],
     })
     setTicket(makeTicketNumber())
@@ -50,7 +53,7 @@ export default function Contacts({ eyebrow, sourceBlock }: { eyebrow: string; so
           </div>
           <div className="glass rounded-xl p-5">
             <div className="text-sm text-ink/50">Telegram</div>
-            <div className="font-medium">@career_lawyer_bot</div>
+            <div className="font-medium">@LegalcareeristBot</div>
           </div>
         </div>
 

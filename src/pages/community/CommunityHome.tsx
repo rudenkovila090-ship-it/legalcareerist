@@ -267,6 +267,9 @@ export default function CommunityHome() {
       formType: 'community_join',
       name,
       contact: telegram.startsWith('@') ? telegram : `@${telegram}`,
+      phone: phone || undefined,
+      email: email || undefined,
+      telegram: telegram ? (telegram.startsWith('@') ? telegram : `@${telegram}`) : undefined,
       interest: [tariff.period],
     })
 
@@ -298,6 +301,9 @@ export default function CommunityHome() {
       formType: 'ambassador_application',
       name: ambassadorForm.name,
       contact: [ambassadorForm.phone, ambassadorForm.email, ambassadorForm.telegram].filter(Boolean).join(' / '),
+      phone: ambassadorForm.phone || undefined,
+      email: ambassadorForm.email || undefined,
+      telegram: ambassadorForm.telegram || undefined,
       interest: [ambassadorForm.about].filter(Boolean),
     })
     setAmbassadorSent(true)

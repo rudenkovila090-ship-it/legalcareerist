@@ -57,6 +57,9 @@ export default function TariffJoinBlock() {
       formType: 'community_join',
       name,
       contact: telegram.startsWith('@') ? telegram : `@${telegram}`,
+      phone: phone || undefined,
+      email: email || undefined,
+      telegram: telegram ? (telegram.startsWith('@') ? telegram : `@${telegram}`) : undefined,
       interest: [tariff.period],
     })
 

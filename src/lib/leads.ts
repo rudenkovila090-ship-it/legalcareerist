@@ -9,12 +9,64 @@ import type { Lead, LeadSourceBlock } from '../types'
 
 const LEADS_KEY = 'ky_leads'
 
+// «Направление» в уведомлении админу — Кадры разделены на работодателя и
+// соискателя по formType (см. KADRY_EMPLOYER_TYPES/KADRY_CANDIDATE_TYPES
+// ниже), остальные разделы соответствуют sourceBlock один в один.
 const sourceLabels: Record<LeadSourceBlock, string> = {
   kadry: 'Кадры',
   community: 'Сообщество',
   events: 'Мероприятия',
-  home: 'Главная',
+  home: 'Карьерный юрист',
   marketplace: 'Маркетплейс',
+}
+
+const KADRY_EMPLOYER_TYPES = new Set([
+  'employer_request', 'service_order', 'candidates_selection_request',
+  'candidate_contact_request', 'candidate_contact_purchase',
+  'event_placement_purchase', 'vacancy_credits_purchase',
+])
+const KADRY_CANDIDATE_TYPES = new Set([
+  'candidate_application', 'reserve_join_request', 'consultation_help_request',
+  'consultation_order', 'resume_credits_purchase', 'vacancy_application',
+  'salary_report_request',
+])
+
+// «Услуга» — человекочитаемая расшифровка formType для уведомления. Ключ,
+// которого здесь нет, просто не покажет строку "Услуга" — форма всё равно
+// уйдет по остальным полям, ничего не потеряется.
+const SERVICE_LABELS: Record<string, string> = {
+  employer_request: 'Рекрутинг — заявка на подбор',
+  service_order: 'Рекрутинг — расчет и заказ услуги',
+  candidates_selection_request: 'Рекрутинг — запрос контактов кандидатов из базы',
+  candidate_contact_request: 'Рекрутинг — запрос контакта кандидата (кабинет)',
+  candidate_contact_purchase: 'Рекрутинг — покупка контакта кандидата (кабинет)',
+  event_placement_purchase: 'Размещение вакансии на мероприятии (кабинет)',
+  vacancy_credits_purchase: 'Покупка пакета публикаций вакансий (кабинет)',
+  consultation_help_request: 'Карьерная консультация — вопрос без выбора услуг',
+  consultation_order: 'Карьерная консультация — заказ',
+  candidate_application: 'Кадровый резерв — заявка кандидата',
+  reserve_join_request: 'Кадровый резерв — вступление',
+  vacancy_application: 'Отклик на вакансию',
+  salary_report_request: 'Запрос отчета по зарплатам',
+  resume_credits_purchase: 'Покупка генераций резюме (кабинет)',
+  community_join: 'Вступление в сообщество',
+  ambassador_application: 'Заявка амбассадора сообщества',
+  event_registration: 'Покупка билета на мероприятие',
+  event_partner_application: 'Партнерство (со страницы мероприятия)',
+  event_submission: 'Мероприятия — подать свое мероприятие',
+  event_order: 'Мероприятия — заказать мероприятие под ключ',
+  partner_application: 'Мероприятия — стать партнером',
+  support_request: 'Поддержка — вопрос',
+  contact: 'Обращение через форму контактов',
+  material_purchase: 'Покупка полезного материала',
+}
+
+function directionLabel(sourceBlock: LeadSourceBlock, formType: string): string {
+  if (sourceBlock === 'kadry') {
+    if (KADRY_EMPLOYER_TYPES.has(formType)) return 'Кадры — работодатель'
+    if (KADRY_CANDIDATE_TYPES.has(formType)) return 'Кадры — соискатель'
+  }
+  return sourceLabels[sourceBlock] ?? sourceBlock
 }
 
 export interface LeadInput {
@@ -22,6 +74,11 @@ export interface LeadInput {
   formType: string
   name: string
   contact: string
+  /** Телефон/почта/Telegram отдельными полями — попадают отдельными
+   *  строками в уведомление админу (см. LeadInput в types.ts). */
+  phone?: string
+  email?: string
+  telegram?: string
   interest?: string[]
   /** Slug вакансии — если задан, бэкенд считает это в реальный счетчик откликов вакансии. */
   vacancySlug?: string
@@ -43,6 +100,9 @@ export function submitLead(input: LeadInput): Lead {
     formType: input.formType,
     name: input.name,
     contact: input.contact,
+    phone: input.phone,
+    email: input.email,
+    telegram: input.telegram,
     interest: input.interest ?? [],
     status: 'new',
     date: new Date().toISOString(),
@@ -67,11 +127,17 @@ function notifyTelegram(lead: Lead, vacancySlug?: string, eventSlug?: string) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
+      direction: directionLabel(lead.sourceBlock, lead.formType),
+      service: SERVICE_LABELS[lead.formType] ?? lead.formType,
       source: sourceLabels[lead.sourceBlock] ?? lead.sourceBlock,
       formType: lead.formType,
       name: lead.name,
       contact: lead.contact,
+      phone: lead.phone,
+      email: lead.email,
+      telegram: lead.telegram,
       interest: lead.interest,
+      date: lead.date,
       vacancySlug,
       eventSlug,
     }),

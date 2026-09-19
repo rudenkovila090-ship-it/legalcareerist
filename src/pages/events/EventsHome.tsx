@@ -333,6 +333,9 @@ export default function EventsHome() {
       formType: 'event_submission',
       name: eventForm.fio,
       contact: [eventForm.phone, eventForm.email, eventForm.telegram].filter(Boolean).join(' / '),
+      phone: eventForm.phone || undefined,
+      email: eventForm.email || undefined,
+      telegram: eventForm.telegram || undefined,
       interest: eventForm.about ? [eventForm.about] : [],
     })
     setEventSent(true)
@@ -350,6 +353,9 @@ export default function EventsHome() {
       formType: 'event_order',
       name: orderForm.fio,
       contact: [orderForm.phone, orderForm.email, orderForm.telegram].filter(Boolean).join(' / '),
+      phone: orderForm.phone || undefined,
+      email: orderForm.email || undefined,
+      telegram: orderForm.telegram || undefined,
       interest: orderForm.about ? [orderForm.about] : [],
     })
     setOrderSent(true)
@@ -368,6 +374,9 @@ export default function EventsHome() {
       formType: 'partner_application',
       name: partnerForm.fio,
       contact: [partnerForm.phone, partnerForm.email, partnerForm.telegram].filter(Boolean).join(' / '),
+      phone: partnerForm.phone || undefined,
+      email: partnerForm.email || undefined,
+      telegram: partnerForm.telegram || undefined,
       interest: [partnerForm.company],
     })
     setPartnerSent(true)
@@ -391,6 +400,9 @@ export default function EventsHome() {
       formType: 'support_request',
       name: supportForm.fio,
       contact: [supportForm.phone, supportForm.email, supportForm.telegram].filter(Boolean).join(' / '),
+      phone: supportForm.phone || undefined,
+      email: supportForm.email || undefined,
+      telegram: supportForm.telegram || undefined,
       interest: [supportForm.question],
     })
     setSupportTicket(makeTicketNumber())
@@ -736,7 +748,7 @@ export default function EventsHome() {
               </div>
               <div className="glass rounded-xl p-5">
                 <div className="text-sm text-ink/50">Telegram</div>
-                <div className="font-medium">@career_lawyer_bot</div>
+                <div className="font-medium">@LegalcareeristBot</div>
               </div>
             </div>
 

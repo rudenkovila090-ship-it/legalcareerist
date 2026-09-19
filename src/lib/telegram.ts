@@ -5,6 +5,7 @@
 // бэкенд (server/index.js, /api/telegram/webhook) разбирает его и для
 // resident_<tariffId> сразу присылает подписанную ссылку на оплату подписки.
 export const TELEGRAM_BOT_USERNAME = 'LegalcareeristBot'
+export const TELEGRAM_BOT_DISPLAY_NAME = 'Карьерный юрист | Помощник'
 
 export function openTelegramBot(startParam: string) {
   if (typeof window === 'undefined') return

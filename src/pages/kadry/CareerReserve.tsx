@@ -96,6 +96,9 @@ export default function CareerReserve({ embedded = false }: { embedded?: boolean
       formType: 'candidate_application',
       name: form.name,
       contact: [form.email, form.phone, form.telegram].filter(Boolean).join(' / '),
+      phone: form.phone || undefined,
+      email: form.email || undefined,
+      telegram: form.telegram || undefined,
       interest: [form.position, resumeFile ? `Резюме: ${resumeFile.name}` : ''].filter(Boolean),
     })
     setSent(true)
@@ -113,6 +116,9 @@ export default function CareerReserve({ embedded = false }: { embedded?: boolean
       formType: 'reserve_join_request',
       name: priorityForm.name,
       contact: [priorityForm.phone, priorityForm.email, priorityForm.telegram].filter(Boolean).join(' / '),
+      phone: priorityForm.phone || undefined,
+      email: priorityForm.email || undefined,
+      telegram: priorityForm.telegram || undefined,
       interest: ['Вступление в кадровый резерв', priorityResumeFile ? `Резюме: ${priorityResumeFile.name}` : ''].filter(Boolean),
     })
     setPrioritySent(true)
