@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import PageHero from '../components/PageHero'
+import { useSearchParams } from 'react-router-dom'
 import { NewsCard } from '../components/cards'
 import KnowledgeList from './KnowledgeList'
 import { news } from '../data/news'
@@ -17,9 +17,17 @@ const newsCategories: NewsCategory[] = ['Карьерный юрист', 'Кад
 
 // /blog — демо-каркас, добавлен по запросу рядом с Кадрами/Сообществом/
 // Мероприятиями/Маркетплейсом. Наполнение еще не согласовано с бизнесом.
+// Заголовок страницы и переключатель вкладок (Новости/Подкаст/Сообщество)
+// сняты с экрана по просьбе клиента — по умолчанию открыты Новости, а
+// Подкаст и Сообщество остаются доступны по прямой ссылке (?tab=...), тот
+// же прием, что и у скрытых вкладок в /events и /kadry (см. featureFlags.ts).
 export default function BlogHome() {
   useDocumentTitle('Блог')
-  const [tab, setTab] = useState<(typeof blogTabs)[number]['id']>('news')
+  const [searchParams] = useSearchParams()
+  const tabParam = searchParams.get('tab')
+  const validTabIds = new Set<string>(blogTabs.map((t) => t.id))
+  const tab: (typeof blogTabs)[number]['id'] =
+    tabParam && validTabIds.has(tabParam) ? (tabParam as (typeof blogTabs)[number]['id']) : 'news'
   const [newsCategory, setNewsCategory] = useState<NewsCategory | 'all'>('all')
 
   const filteredNews = useMemo(
@@ -29,32 +37,6 @@ export default function BlogHome() {
 
   return (
     <div>
-      <PageHero
-        eyebrow="Карьерный Юрист"
-        title="Блог"
-        description="Здесь делимся новостями и жизнью «Карьерного юриста»."
-      />
-
-      {/* Подвкладки — Новости / Подкаст */}
-      <div className="border-b border-ink/10 bg-white py-4">
-        <div className="container-page">
-          <div className="flex flex-wrap gap-3">
-            {blogTabs.map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => setTab(t.id)}
-                className={`rounded-full px-5 py-2.5 text-sm font-semibold transition-colors ${
-                  tab === t.id ? 'bg-ink text-white' : 'border border-ink/15 text-ink/60 hover:text-ink'
-                }`}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
       {tab === 'news' && (
         <div className="container-page py-12">
           <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Новости</div>
