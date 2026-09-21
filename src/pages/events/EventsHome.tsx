@@ -115,6 +115,14 @@ function IconAccountCircle() {
     </svg>
   )
 }
+function IconHandshake() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <path d="M3.5 12.5l3.7-3.7a2 2 0 0 1 2.83 0l1.47 1.47M20.5 12.5l-3.7-3.7a2 2 0 0 0-2.83 0L12.5 10.3" />
+      <path d="M7.2 10.8l-3.7 3.7 3 3a2 2 0 0 0 2.83 0l.5-.5M16.8 10.8l3.7 3.7-3 3a2 2 0 0 1-2.83 0l-3.37-3.37a1.5 1.5 0 0 1 0-2.12v0a1.5 1.5 0 0 1 2.12 0l1.25 1.25" />
+    </svg>
+  )
+}
 
 const eventTabs = [
   { id: 'poster', label: 'Афиша', icon: IconGrid },
@@ -433,6 +441,18 @@ export default function EventsHome() {
                 {t.label}
               </button>
             ))}
+            {/* Реальной формы партнёрства из этого меню пока нет (форма есть
+                только в подвале/на странице мероприятия) — кнопка неактивна,
+                текст подсказки виден по наведению. */}
+            <button
+              type="button"
+              disabled
+              title="Временно недоступно. В разработке."
+              className="flex cursor-not-allowed items-center gap-2 rounded-full border border-ink/10 px-5 py-2.5 text-sm font-semibold text-ink/30"
+            >
+              <IconHandshake />
+              Стать партнером мероприятия
+            </button>
           </div>
         </div>
       </div>
@@ -541,25 +561,21 @@ export default function EventsHome() {
             </div>
           </section>
 
-          {/* Партнерам и организаторам */}
-          <section className="border-t border-ink/10 bg-white py-12">
-            <div className="container-page grid gap-4 sm:grid-cols-2">
-              <div className="glass rounded-2xl p-6 text-center">
-                <h3 className="text-lg font-semibold">Стать партнером мероприятия</h3>
-                <p className="mx-auto mt-2 max-w-sm text-sm text-ink/60">
-                  Временно недоступно. В разработке.
-                </p>
-              </div>
-              {SHOW_CREATE_EVENT && (
-                <button type="button" onClick={() => setTab('create')} className="glass rounded-2xl p-6 text-center">
+          {/* Организаторам — «Стать партнером мероприятия» перенесена в
+              подменю сверху (неактивная кнопка рядом с Афишей и Заказать
+              мероприятие), здесь остается только карточка создания события. */}
+          {SHOW_CREATE_EVENT && (
+            <section className="border-t border-ink/10 bg-white py-12">
+              <div className="container-page">
+                <button type="button" onClick={() => setTab('create')} className="glass mx-auto block max-w-sm rounded-2xl p-6 text-center">
                   <h3 className="text-lg font-semibold">Разместить свое мероприятие</h3>
                   <p className="mx-auto mt-2 max-w-sm text-sm text-ink/60">
                     Временно недоступно. В разработке.
                   </p>
                 </button>
-              )}
-            </div>
-          </section>
+              </div>
+            </section>
+          )}
         </>
       )}
 
