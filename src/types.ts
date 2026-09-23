@@ -455,6 +455,11 @@ export interface EventTariff {
   name: string
   price: number
   includes: string[]
+  /** Готовая (заранее подписанная) ссылка на оплату этого тарифа в Prodamus —
+   *  если задана, «Приобрести билет» уводит на неё вместо демо-регистрации.
+   *  Для событий пока нет своего бэкенд-эндпоинта генерации ссылки (как у
+   *  подписки сообщества/покупки материала), поэтому ссылка статическая. */
+  paymentLink?: string
 }
 
 export interface EventItem extends Tagged {

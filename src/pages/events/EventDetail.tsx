@@ -206,6 +206,12 @@ export default function EventDetail() {
       eventSlug: event.slug,
     })
     registerForEvent(event.id, event.title)
+    // Тариф с готовой ссылкой на оплату (Prodamus) — уводим сразу платить,
+    // а не показываем демо-подтверждение локальной регистрации.
+    if (tariff.paymentLink) {
+      window.location.assign(tariff.paymentLink)
+      return
+    }
     setRegistered(true)
   }
 

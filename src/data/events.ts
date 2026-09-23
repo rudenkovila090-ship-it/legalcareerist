@@ -39,7 +39,13 @@ export const events: EventItem[] = [
       'Базу, с которой можно приходить на первую конференцию или защиту без страха, что тело выдаст неуверенность раньше, чем вы скажете первое слово',
     ],
     tariffs: [
-      { id: 'light', name: 'Участник', price: 1000, includes: ['Билет на мастер-класс'] },
+      {
+        id: 'light',
+        name: 'Участник',
+        price: 1000,
+        includes: ['Билет на мастер-класс'],
+        paymentLink: 'https://eventcareer.payform.ru/?do=pay&sys=bothelp&callbackType=json&_param_cusid=574138&_param_pid=23&_param_cid=4&urlNotification=https%3A%2F%2Fprodamus.bothelp.io%2Fproduct&products%5B0%5D%5Bname%5D=%D0%9C%D0%B0%D1%81%D1%82%D0%B5%D1%80+%D0%BA%D0%BB%D0%B0%D1%81%D1%81+%D0%BF%D0%BE+%D0%BE%D1%80%D0%B0%D1%82%D0%BE%D1%80%D1%81%D0%BA%D0%BE%D0%BC%D1%83+%D0%B8%D1%81%D0%BA%D1%83%D1%81%D1%81%D1%82%D0%B2%D1%83&products%5B0%5D%5Bprice%5D=1000&products%5B0%5D%5Bquantity%5D=1&customer_phone=&customer_email=&customer_extra=%D0%9C%D0%B0%D1%81%D1%82%D0%B5%D1%80+%D0%BA%D0%BB%D0%B0%D1%81%D1%81+%D0%BF%D0%BE+%D0%BE%D1%80%D0%B0%D1%82%D0%BE%D1%80%D1%81%D0%BA%D0%BE%D0%BC%D1%83+%D0%B8%D1%81%D0%BA%D1%83%D1%81%D1%81%D1%82%D0%B2%D1%83&tg_user_id=888972025&signature=b433eb73400ef43a88c21bf74d1992486c221648fbb9a717180f7286c35313e6',
+      },
     ],
     location: 'Санкт-Петербург, м. Чернышевская, ул. Чехова, 18, лекторий в «Практик Чехова»',
     description: 'Живой тренинг для тех, кто делает первые шаги в публичных выступлениях — не нужно уже иметь опыт или ораторский талант с рождения. Разбираем страх перед аудиторией как эволюционную реакцию, с которой можно работать через конкретные техники: невербалику, контакт с телом и взглядом.',
