@@ -201,7 +201,7 @@ function EventCard({ e }: { e: EventItem }) {
 
         <div className="mt-3 space-y-1 text-sm text-ink/60">
           <div>{e.format === 'online' ? 'Онлайн' : e.city}</div>
-          <div>{date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })} · {date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</div>
+          <div>{date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })} · {date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Moscow' })}</div>
           <div>{e.location}</div>
         </div>
 

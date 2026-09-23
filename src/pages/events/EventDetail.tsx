@@ -254,7 +254,7 @@ export default function EventDetail() {
           <div className="mt-5 flex flex-wrap items-center gap-3 text-xl font-bold text-white sm:text-2xl">
             <span>{new Date(event.dateTime).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
             <span className="h-6 w-px shrink-0 bg-white/40" aria-hidden="true" />
-            <span>{new Date(event.dateTime).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })} по Москве</span>
+            <span>{new Date(event.dateTime).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Moscow' })} по Москве</span>
             <span className="h-6 w-px shrink-0 bg-white/40" aria-hidden="true" />
             <span>{event.format === 'online' ? 'Онлайн' : event.city}</span>
           </div>

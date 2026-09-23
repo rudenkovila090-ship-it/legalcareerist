@@ -18,7 +18,7 @@ function seed(): StoredEventRegistration[] {
       eventId: 'ev1',
       userId: DEMO_USER_ID,
       status: 'registered',
-      eventTitle: 'Вебинар «Карьера в M&A»',
+      eventTitle: 'Как тело и взгляд создают уверенного спикера',
       registeredAt: '2026-08-20T10:00:00.000Z',
     },
   ]

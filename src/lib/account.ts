@@ -64,7 +64,7 @@ export const demoEventRegistrations: (EventRegistration & { eventTitle: string }
     eventId: 'ev1',
     userId: 'u_demo',
     status: 'registered',
-    eventTitle: 'Вебинар «Карьера в M&A»',
+    eventTitle: 'Как тело и взгляд создают уверенного спикера',
   },
 ]
 
