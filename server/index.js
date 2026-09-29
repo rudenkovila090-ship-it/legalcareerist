@@ -60,8 +60,24 @@ const PRODAMUS_SECRET_KEY = process.env.PRODAMUS_SECRET_KEY
 const SITE_URL = process.env.SITE_URL || 'https://legalcareerist.ru'
 const COMMUNITY_INVITE_LINK = process.env.COMMUNITY_INVITE_LINK
 
+// Сервер стоит в РФ, и соединение с api.telegram.org время от времени
+// обрывается по таймауту — поэтому до трёх попыток с паузой, а не одна.
+async function telegramFetch(method, init) {
+  let lastError
+  for (const delay of [0, 2000, 5000]) {
+    if (delay) await new Promise((resolve) => setTimeout(resolve, delay))
+    try {
+      return await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/${method}`, { ...init, signal: AbortSignal.timeout(10000) })
+    } catch (err) {
+      lastError = err
+      console.error(`[telegram] ${method}: сеть недоступна, повтор через несколько секунд`)
+    }
+  }
+  throw lastError
+}
+
 async function sendTelegramMessage(chatId, text) {
-  const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+  const res = await telegramFetch('sendMessage', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ chat_id: chatId, text }),
@@ -77,7 +93,7 @@ async function sendTelegramDocument(chatId, buffer, filename, caption) {
   form.append('chat_id', chatId)
   if (caption) form.append('caption', caption)
   form.append('document', new Blob([buffer]), filename)
-  const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendDocument`, { method: 'POST', body: form })
+  const res = await telegramFetch('sendDocument', { method: 'POST', body: form })
   if (!res.ok) console.error('[telegram] sendDocument ошибка:', await res.text())
   return res.ok
 }
