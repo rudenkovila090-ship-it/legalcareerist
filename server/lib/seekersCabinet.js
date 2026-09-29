@@ -3,6 +3,7 @@
 // Только тексты и кнопки — данные приходят готовыми.
 import { CONSULTATION_STATUSES } from './consultations.js'
 import { mskDayKey } from './dailyReport.js'
+import { INTEREST_KINDS } from './interests.js'
 
 const MSK = 'Europe/Moscow'
 const rub = (n) => `${Math.round(n).toLocaleString('ru-RU')} ₽`
@@ -22,6 +23,10 @@ export const SEEKERS_KEYBOARD = [
   [
     { text: '🎯 Консультации', callback_data: 'a:s:cons' },
     { text: '📊 Итоги месяца', callback_data: 'a:s:month:cur' },
+  ],
+  [
+    { text: '➕ Записать интерес', callback_data: 'a:s:inew' },
+    { text: '📇 Интересовались', callback_data: 'a:s:ilist' },
   ],
   [{ text: '⬅️ Кадры', callback_data: 'a:sec:kadry' }, { text: '🏠 Меню', callback_data: 'a:menu' }],
 ]
@@ -219,4 +224,69 @@ export function seekersMonthSummary(applications, orders, which, now = Date.now(
     `⏳ Сейчас в работе или новых: ${orders.filter((c) => c.status === 'new' || c.status === 'in_progress').length}`,
   )
   return { text: lines.join('\n'), keyboard: [[{ text: 'Прошлый месяц', callback_data: 'a:s:month:prev' }, { text: 'Текущий', callback_data: 'a:s:month:cur' }], BACK_ROW] }
+}
+
+// ---- «Интересовались»: обращения в поддержку без заявки на сайте ----
+
+const INTEREST_STATUS = { waiting: '⏳ Ждёт напоминания', done: '✅ Написали', closed: '🚫 Неактуально' }
+const intTitle = (i) => `№${i.number} · ${i.name || 'без имени'}`
+
+export const INTEREST_KIND_KEYBOARD = [
+  [{ text: INTEREST_KINDS.consultation, callback_data: 'a:s:ikind:consultation' }],
+  [{ text: INTEREST_KINDS.vacancy, callback_data: 'a:s:ikind:vacancy' }],
+  BACK_ROW,
+]
+
+export function interestPrompt(kind) {
+  return [
+    `➕ Записать интерес: ${INTEREST_KINDS[kind]}`,
+    '',
+    'Отправьте одним сообщением, каждая строка — отдельное поле:',
+    '1. Имя или ФИО',
+    '2. Telegram (например @ivan)',
+    '3. Телефон',
+    '4. Когда обращался — ДД.ММ или ДД.ММ.ГГГГ (или «-», если сегодня)',
+    '5. Что спрашивал (можно несколькими строками)',
+    '',
+    'Ненужное поле — «-». Бот напомнит написать этому человеку через неделю после обращения. Отмена — /cancel.',
+  ].join('\n')
+}
+
+export function interestsScreen(list) {
+  const waiting = list.filter((i) => i.status === 'waiting').sort((a, b) => a.remindAt - b.remindAt)
+  const other = list.filter((i) => i.status !== 'waiting').sort((a, b) => (b.doneAt ?? 0) - (a.doneAt ?? 0)).slice(0, 5)
+  const keyboard = [[{ text: '➕ Записать интерес', callback_data: 'a:s:inew' }]]
+  if (!list.length) return { text: '📇 Пока никого не записано.\n\nЕсли кто-то написал в поддержку и спросил про консультацию или вакансию — запишите, бот напомнит через неделю.', keyboard: [...keyboard, BACK_ROW] }
+  const lines = [`📇 Интересовались: ждут напоминания ${waiting.length}, всего ${list.length}`, '']
+  for (const i of [...waiting, ...other]) {
+    lines.push(`${INTEREST_STATUS[i.status].split(' ')[0]} ${intTitle(i)} · ${i.kind === 'vacancy' ? 'вакансия' : 'консультация'} · обращался ${ruDate(i.contactedAt)}${i.status === 'waiting' ? ` · напомню ${ruDate(i.remindAt)}` : ''}`)
+    keyboard.push([{ text: `${INTEREST_STATUS[i.status].split(' ')[0]} ${intTitle(i)}`.slice(0, 60), callback_data: `a:s:icard:${i.number}` }])
+  }
+  keyboard.push(BACK_ROW)
+  return { text: lines.join('\n'), keyboard }
+}
+
+export function interestCard(i, { reminder = false } = {}) {
+  const lines = [
+    reminder ? `🔔 Напишите этому человеку · ${intTitle(i)}` : `📇 ${intTitle(i)}`,
+    reminder ? 'Он ранее интересовался — возможно, что-то изменилось.' : `Статус: ${INTEREST_STATUS[i.status]}`,
+    '',
+    `Интерес: ${INTEREST_KINDS[i.kind]}`,
+    `📅 Обращался: ${ruDate(i.contactedAt)}`,
+    i.name ? `👤 ${i.name}` : null,
+    i.telegram ? `💬 Telegram: ${i.telegram}` : null,
+    i.phone ? `📞 Телефон: ${i.phone}` : null,
+    i.email ? `✉️ Почта: ${i.email}` : null,
+    i.note ? `❓ Запрос: ${i.note}` : null,
+    i.remindCount ? `Напоминаний было: ${i.remindCount}` : null,
+  ].filter((l) => l !== null)
+  const keyboard = []
+  if (i.status === 'waiting') {
+    keyboard.push([{ text: '✅ Написал(а)', callback_data: `a:s:idone:${i.number}` }, { text: '⏰ Ещё через неделю', callback_data: `a:s:isnooze:${i.number}` }])
+    keyboard.push([{ text: '🚫 Неактуально', callback_data: `a:s:iclose:${i.number}` }])
+  } else {
+    keyboard.push([{ text: '↩️ Вернуть в ожидание', callback_data: `a:s:isnooze:${i.number}` }])
+  }
+  keyboard.push([{ text: '⬅️ К списку', callback_data: 'a:s:ilist' }, { text: '🏠 Меню', callback_data: 'a:menu' }])
+  return { text: lines.join('\n'), keyboard }
 }

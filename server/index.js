@@ -43,7 +43,8 @@ import { incrementView, incrementApplication, allVacancyStats } from './lib/vaca
 import { utmLabel } from './lib/utm.js'
 import { createApplication, listApplications } from './lib/candidateApplications.js'
 import { createConsultation, listConsultations, getConsultation, setConsultationStatus } from './lib/consultations.js'
-import { SEEKERS_KEYBOARD, buildVacancyViews, vacanciesScreen, vacancyCard, vacancyApplicationsScreen, recentApplicationsScreen, consultationsScreen, consultationCard, seekersMonthSummary } from './lib/seekersCabinet.js'
+import { createInterest, getInterest, listInterests, markInterestDone, closeInterest, snoozeInterest, interestsDueForReminder, markInterestReminded, REMIND_AFTER_DAYS } from './lib/interests.js'
+import { INTEREST_KIND_KEYBOARD, interestPrompt, interestsScreen, interestCard, SEEKERS_KEYBOARD, buildVacancyViews, vacanciesScreen, vacancyCard, vacancyApplicationsScreen, recentApplicationsScreen, consultationsScreen, consultationCard, seekersMonthSummary } from './lib/seekersCabinet.js'
 import { incrementArticleView, getArticleViews } from './lib/articleStats.js'
 import { incrementNewsView, getNewsViews } from './lib/newsStats.js'
 import { incrementEventView, incrementEventRegistration, getEventStats } from './lib/eventStats.js'
@@ -703,8 +704,27 @@ function readVacancyCatalog() {
   }
 }
 
+/** «10.09» или «10.09.2026» → момент времени (полдень по Москве); пустая строка → undefined-дата = сегодня (null — не разобрал). */
+function parseRuDate(text) {
+  if (!text) return undefined
+  const m = text.match(/^(\d{1,2})\.(\d{1,2})(?:\.(\d{2,4}))?$/)
+  if (!m) return null
+  const nowY = Number(mskDayKey(Date.now()).slice(0, 4))
+  let year = m[3] ? Number(m[3]) : nowY
+  if (year < 100) year += 2000
+  let ts = Date.parse(`${year}-${String(m[2]).padStart(2, '0')}-${String(m[1]).padStart(2, '0')}T12:00:00+03:00`)
+  // «10.09» без года, введённое в январе про прошлый год: не уходим в будущее
+  if (!m[3] && ts > Date.now() + 86400000) ts = Date.parse(`${year - 1}-${String(m[2]).padStart(2, '0')}-${String(m[1]).padStart(2, '0')}T12:00:00+03:00`)
+  return Number.isNaN(ts) ? null : ts
+}
+
 /** Кнопки «Кадры → Соискатели»: parts — callback_data без префикса «a:s:». */
-function seekersAction(parts, now) {
+const interestScreen = (number) => {
+  const i = getInterest(number)
+  return i ? interestCard(i) : { text: `Запись №${number} не найдена.`, keyboard: SEEKERS_KEYBOARD }
+}
+
+function seekersAction(parts, now, chatId) {
   const [action, arg, arg2] = parts
   const applications = listApplications()
   const vacancies = buildVacancyViews(readVacancyCatalog(), allVacancyStats(), applications, SITE_URL)
@@ -733,6 +753,24 @@ function seekersAction(parts, now) {
       const c = setConsultationStatus(arg, arg2)
       return c ? consultationCard(c) : { text: `Консультация №${arg} не найдена.`, keyboard: SEEKERS_KEYBOARD }
     }
+    case 'inew':
+      return { text: '➕ Записать интерес\n\nЧем интересовался человек?', keyboard: INTEREST_KIND_KEYBOARD }
+    case 'ikind':
+      adminInput.set(String(chatId), { type: 'interest', kind: arg })
+      return { text: interestPrompt(arg), keyboard: [[{ text: '⬅️ Соискатели', callback_data: 'a:sec:seekers' }]] }
+    case 'ilist':
+      return interestsScreen(listInterests())
+    case 'icard':
+      return interestScreen(arg)
+    case 'idone':
+      markInterestDone(arg)
+      return interestScreen(arg)
+    case 'iclose':
+      closeInterest(arg)
+      return interestScreen(arg)
+    case 'isnooze':
+      snoozeInterest(arg)
+      return interestScreen(arg)
     case 'month':
       return seekersMonthSummary(applications, listConsultations(), arg, now)
     default:
@@ -806,6 +844,26 @@ async function handlePendingInput(chatId, pending, text) {
     await sendLongMessage(chatId, `✅ Выручка записана: ${formatRub(amount)}\n\n${screen.text}`, screen.keyboard)
     return
   }
+  if (pending.type === 'interest') {
+    const rows = text.split('\n')
+    const [name, telegram, phone, dateText] = rows.slice(0, 4).map((l) => (l.trim() === '-' ? '' : l.trim()))
+    const note = rows.slice(4).join('\n').trim().replace(/^-$/, '')
+    const contactedAt = parseRuDate(dateText)
+    if (!name && !telegram && !phone) {
+      adminInput.set(String(chatId), pending)
+      await sendTelegramMessage(chatId, 'Нужно хотя бы имя, Telegram или телефон. Отправьте ещё раз или /cancel.')
+      return
+    }
+    if (dateText && contactedAt === null) {
+      adminInput.set(String(chatId), pending)
+      await sendTelegramMessage(chatId, 'Не разобрал дату. Напишите ДД.ММ (например 10.09) или «-», если обращение сегодня. Отправьте всё сообщение ещё раз или /cancel.')
+      return
+    }
+    const created = createInterest({ kind: pending.kind, name, telegram: normalizeTelegram(telegram), phone, note, contactedAt: contactedAt ?? undefined })
+    const card = interestCard(created)
+    await sendLongMessage(chatId, `✅ Записано. Напомню написать ${new Intl.DateTimeFormat('ru-RU', { timeZone: 'Europe/Moscow', day: '2-digit', month: '2-digit' }).format(new Date(created.remindAt))} (примерно через ${REMIND_AFTER_DAYS} дней после обращения).\n\n${card.text}`, card.keyboard)
+    return
+  }
   if (pending.type === 'newdeal') {
     const [company, name, phone, email, telegram, request] = text.split('\n').map((l) => (l.trim() === '-' ? '' : l.trim()))
     if (!company || (!phone && !email && !telegram)) {
@@ -838,6 +896,25 @@ async function sendDealRemindersIfDue() {
     }
   } finally {
     dealRemindersRunning = false
+  }
+}
+
+/** Напоминания «напишите тем, кто интересовался»: раз в сутки после 10:00 МСК, потом каждую неделю, пока не отметите. */
+let interestRemindersRunning = false
+async function sendInterestRemindersIfDue() {
+  if (!BOT_TOKEN || !ADMIN_CHAT_ID || interestRemindersRunning) return
+  const now = Date.now()
+  const hour = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Moscow', hour: '2-digit', hour12: false }).format(new Date(now)))
+  if (hour < 10) return
+  interestRemindersRunning = true
+  try {
+    for (const item of interestsDueForReminder(now)) {
+      const card = interestCard(item, { reminder: true })
+      const ok = await sendTelegramMessage(ADMIN_CHAT_ID, card.text, card.keyboard).catch(() => false)
+      if (ok) markInterestReminded(item.number, now + REMIND_AFTER_DAYS * 24 * 3600 * 1000)
+    }
+  } finally {
+    interestRemindersRunning = false
   }
 }
 
@@ -882,7 +959,7 @@ async function sendLongMessage(chatId, text, keyboard) {
 /** Экран кабинета по callback_data кнопки. Возвращает { text, keyboard }. */
 async function adminScreen(data, now, chatId) {
   if (data.startsWith('a:k:')) return kadryAction(data.split(':').slice(2), now, chatId)
-  if (data.startsWith('a:s:')) return seekersAction(data.split(':').slice(2), now)
+  if (data.startsWith('a:s:')) return seekersAction(data.split(':').slice(2), now, chatId)
   const joins = listJoins()
   const [, action, arg] = data.split(':')
   if (action === 'sec') return sectionScreen(arg)
@@ -1138,6 +1215,7 @@ if (process.env.DISABLE_DAILY_REPORT !== '1') {
   setInterval(() => afterResponse('daily-report', sendDailyReportIfDue), 60 * 1000)
   setInterval(() => afterResponse('deal-reminders', sendDealRemindersIfDue), 60 * 1000)
   setInterval(() => afterResponse('kadry-monthly', sendKadryMonthlyIfDue), 60 * 1000)
+  setInterval(() => afterResponse('interest-reminders', sendInterestRemindersIfDue), 60 * 1000)
 }
 
 // Страховка от падения процесса из-за необработанной ошибки где-то в фоне
