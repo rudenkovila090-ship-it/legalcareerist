@@ -46,6 +46,7 @@ import { incrementEventView, incrementEventRegistration, getEventStats } from '.
 import { isValidKey, writeCollection, readAllCollections } from './lib/collectionStore.js'
 import { nextTicketNumber } from './lib/ticketCounter.js'
 import { buildDailyReport, mskDayKey, parseReportPeriod } from './lib/dailyReport.js'
+import { logWebhook, lastWebhook } from './lib/webhookLog.js'
 import fs from 'node:fs'
 import path from 'node:path'
 
@@ -298,6 +299,15 @@ function buildCancellationNotification({ record, tariff, at }) {
  * первый или как продление, пишет админу и — при первой оплате — присылает
  * ссылку на сообщество, если человек уже нажимал Start у бота.
  */
+/** Отчёт + строка о том, когда от Prodamus в последний раз приходил вебхук — чтобы «нет продаж» нельзя было спутать с «вебхуки не доходят». */
+function reportText(period, now = Date.now()) {
+  const last = lastWebhook()
+  const footer = last
+    ? `\n\n🔌 Последний вебхук Prodamus: ${new Intl.DateTimeFormat('ru-RU', { timeZone: 'Europe/Moscow', dateStyle: 'short', timeStyle: 'short' }).format(new Date(last.at))} МСК (${last.status})`
+    : '\n\n⚠️ От Prodamus ещё не приходило ни одного вебхука с оплатой — учёт может быть неполным, сверьте с кабинетом Prodamus.'
+  return buildDailyReport(listJoins(), now, TARIFFS, period) + footer
+}
+
 async function handleSubscriptionPayment(body, phone) {
   const subscription = body.subscription
   const tariffId = tariffIdBySubscriptionId(subscription.id)
@@ -627,7 +637,7 @@ async function handleTelegramUpdate(update) {
   const text = message?.text
   const chatId = message?.chat?.id
   if (chatId && text?.startsWith('/report') && String(chatId) === String(ADMIN_CHAT_ID)) {
-    await sendTelegramMessage(chatId, buildDailyReport(listJoins(), Date.now(), TARIFFS, parseReportPeriod(text.slice('/report'.length))))
+    await sendTelegramMessage(chatId, reportText(parseReportPeriod(text.slice('/report'.length))))
     return
   }
   if (!chatId || !text || !text.startsWith('/start')) return
@@ -680,6 +690,7 @@ app.post('/api/prodamus/webhook', async (req, res) => {
   // реальным платежам: payment_status "success"/что-то ещё, customer_phone,
   // subscription.id и т.д.
   console.log('[prodamus] webhook:', JSON.stringify(body))
+  logWebhook(body)
   res.sendStatus(200)
 
   await afterResponse('prodamus/webhook', async () => {
@@ -745,7 +756,7 @@ async function sendDailyReportIfDue() {
 
   fs.mkdirSync(path.dirname(REPORT_STATE_FILE), { recursive: true })
   fs.writeFileSync(REPORT_STATE_FILE, JSON.stringify({ lastDay: today }))
-  const ok = await sendTelegramMessage(ADMIN_CHAT_ID, buildDailyReport(listJoins(), now, TARIFFS)).catch(() => false)
+  const ok = await sendTelegramMessage(ADMIN_CHAT_ID, reportText('today', now)).catch(() => false)
   if (!ok) fs.writeFileSync(REPORT_STATE_FILE, JSON.stringify({ lastDay: null })) // не ушло — попробуем в следующую минуту
 }
 
