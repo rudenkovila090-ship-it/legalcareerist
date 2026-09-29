@@ -36,7 +36,7 @@ import cors from 'cors'
 import multer from 'multer'
 import { createPaymentLink, TARIFFS, tariffIdBySubscriptionId, createProductPaymentLink, MATERIALS } from './lib/prodamus.js'
 import { HmacHelper } from './lib/hmac.js'
-import { createPendingJoin, createOrphanJoin, setTgUserId, findJoinForPayment, recordPayment } from './lib/store.js'
+import { createPendingJoin, createOrphanJoin, setTgUserId, findJoinForPayment, recordPayment, setSubscriptionActive } from './lib/store.js'
 import { normalizePhone } from './lib/jsonStore.js'
 import { createPendingPurchase, getPurchase, markPurchasePaidByPhone } from './lib/materialsStore.js'
 import { incrementView, incrementApplication } from './lib/vacancyStats.js'
@@ -183,9 +183,21 @@ function addMonths(timestamp, months) {
   return d.getTime()
 }
 
-/** Дата платежа из вебхука (поле date, например 2026-09-21T12:00:00+03:00); если её нет или она битая — текущий момент. */
+/**
+ * Дата из вебхука Prodamus: верхний уровень приходит как
+ * 2026-09-21T12:00:00+03:00, а даты внутри subscription — как
+ * «2026-10-21 12:00:00» без часового пояса (по Москве) — его дописываем сами,
+ * иначе время съедет на часовой пояс сервера.
+ */
+function parseProdamusDate(value) {
+  if (!value) return NaN
+  const text = String(value).trim()
+  return Date.parse(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(text) ? `${text.replace(' ', 'T')}+03:00` : text)
+}
+
+/** Дата платежа из вебхука (поле date); если её нет или она битая — текущий момент. */
 function parsePaymentDate(value) {
-  const ts = value ? Date.parse(value) : NaN
+  const ts = parseProdamusDate(value)
   return Number.isNaN(ts) ? Date.now() : ts
 }
 
@@ -195,7 +207,7 @@ function parsePaymentDate(value) {
  * тогда считаем сами: дата платежа + срок тарифа.
  */
 function pickNextPaymentDate(subscription, paidAt) {
-  const ts = subscription?.date_next_payment ? Date.parse(subscription.date_next_payment) : NaN
+  const ts = parseProdamusDate(subscription?.date_next_payment)
   return !Number.isNaN(ts) && ts > paidAt ? ts : null
 }
 
@@ -216,12 +228,17 @@ function formatRub(amount) {
 /** Уведомление админу о каждой оплате подписки — первой и каждом продлении. */
 function buildPaymentNotification({ kind, number, tariff, amount, paidAt, nextPaymentAt, name, phone, email, telegram, orphan }) {
   const renewal = kind === 'renewal'
+  const orphanNote = !orphan
+    ? null
+    : renewal
+      ? '⚠️ Подписка оформлена не через форму на сайте (например, через бота) — карточка создана автоматически по данным Prodamus'
+      : '⚠️ Оплата без заявки с сайта — контакты взяты из Prodamus, проверьте вручную'
   const lines = [
     '💳 Оплата получена',
     '',
     `Сообщество → Подписка · ${tariff?.period ?? 'тариф не определён'}`,
     renewal ? `Продление подписки · оплата №${number}` : 'Первая оплата',
-    orphan ? '⚠️ Оплата без заявки с сайта — контакты взяты из Prodamus, проверьте вручную' : null,
+    orphanNote,
     '',
     `📅 ${formatMoscowDateTime(new Date(paidAt).toISOString())}`,
     '',
@@ -236,6 +253,26 @@ function buildPaymentNotification({ kind, number, tariff, amount, paidAt, nextPa
   return lines.join('\n')
 }
 
+/** Уведомление админу об отключении подписки — чтобы написать человеку и узнать причину. */
+function buildCancellationNotification({ record, tariff, at }) {
+  const lines = [
+    '🔕 Подписка отключена',
+    '',
+    `Сообщество → Подписка · ${tariff?.period ?? 'тариф не определён'}`,
+    '',
+    `📅 ${formatMoscowDateTime(new Date(at).toISOString())}`,
+    '',
+    record.name && record.name !== '—' ? `👤 фио: ${record.name}` : null,
+    record.phone ? `📞 телефон: ${record.phone}` : null,
+    record.email ? `✉️ почта: ${record.email}` : null,
+    record.telegram ? `💬 телеграм: ${record.telegram}` : null,
+    '',
+    record.lastPaidAt ? `💰 Последняя оплата: ${formatMoscowDateTime(new Date(record.lastPaidAt).toISOString()).split(',')[0]}` : null,
+    'Стоит написать человеку и узнать, что пошло не так.',
+  ].filter((l) => l !== null)
+  return lines.join('\n')
+}
+
 /**
  * Успешная оплата подписки от Prodamus: находит карточку подписчика (или
  * заводит новую, если заявки с сайта не нашлось), записывает платёж как
@@ -243,24 +280,28 @@ function buildPaymentNotification({ kind, number, tariff, amount, paidAt, nextPa
  * ссылку на сообщество, если человек уже нажимал Start у бота.
  */
 async function handleSubscriptionPayment(body, phone) {
-  const tariffId = tariffIdBySubscriptionId(body.subscription.id)
+  const subscription = body.subscription
+  const tariffId = tariffIdBySubscriptionId(subscription.id)
   const tariff = TARIFFS[tariffId]
   const email = body.customer_email
   const extra = parseCustomerExtra(body.customer_extra)
   const paidAt = parsePaymentDate(body.date)
   const amount = Number(body.sum) || tariff?.price || 0
-  const orderKey = String(body.order_id || body.order_num || '') || null
-  console.log('[prodamus] подписка сообщества — телефон:', phone, 'почта:', email, 'тариф:', tariffId)
+  const orderKey = String(body.order_id || '') || null
+  const profileId = subscription.profile_id ? String(subscription.profile_id) : null
+  const tgUserId = body.tg_user_id ? String(body.tg_user_id) : null
+  const paymentNum = Number(subscription.payment_num) || null
+  console.log('[prodamus] подписка сообщества — телефон:', phone, 'почта:', email, 'тариф:', tariffId, 'профиль:', profileId, 'платёж №', paymentNum)
 
-  let match = findJoinForPayment({ phone, email, telegram: extra.telegram, tariffId })
+  let match = findJoinForPayment({ phone, email, telegram: extra.telegram, tgUserId, profileId, tariffId })
   const orphan = !match
   if (!match) {
     const token = createOrphanJoin({ tariffId, name: extra.name, phone, email, telegram: extra.telegram })
     match = { join: { token }, isFirst: true }
   }
 
-  const nextPaymentAt = pickNextPaymentDate(body.subscription, paidAt) ?? (tariff ? addMonths(paidAt, tariff.months) : null)
-  const result = recordPayment(match.join.token, { tariffId, amount, paidAt, orderKey, nextPaymentAt })
+  const nextPaymentAt = pickNextPaymentDate(subscription, paidAt) ?? (tariff ? addMonths(paidAt, tariff.months) : null)
+  const result = recordPayment(match.join.token, { tariffId, amount, paidAt, orderKey, nextPaymentAt, profileId, tgUserId, paymentNum })
   if (!result) {
     console.error('[prodamus] не удалось записать платёж — карточка не найдена:', match.join.token)
     return
@@ -292,6 +333,34 @@ async function handleSubscriptionPayment(body, phone) {
 
   if (result.kind === 'first' && rec.tgUserId) {
     await sendInviteLink(rec.tgUserId, rec)
+  }
+}
+
+/**
+ * Состояние подписки из любого вебхука с блоком subscription: если человек
+ * или менеджер отключил подписку (active_user / active_manager = 0), а мы
+ * знаем этого подписчика по profile_id — помечаем «отключена» и пишем админу.
+ * Точный вид отдельных вебхуков об отписке пока не подтверждён реальными
+ * данными, поэтому срабатывает только на явный "0" у известного профиля.
+ */
+async function handleSubscriptionState(body) {
+  const sub = body.subscription
+  const profileId = sub?.profile_id ? String(sub.profile_id) : null
+  if (!profileId) return
+  const match = findJoinForPayment({ profileId })
+  if (!match) return
+
+  const inactive = String(sub.active_user) === '0' || String(sub.active_manager) === '0'
+  const at = Date.now()
+  const result = setSubscriptionActive(match.join.token, !inactive, at)
+  if (!result?.changed) return
+
+  console.log(`[prodamus] статус подписки ${match.join.token} изменился →`, inactive ? 'отключена' : 'включена')
+  if (inactive) {
+    await sendTelegramMessage(
+      ADMIN_CHAT_ID,
+      buildCancellationNotification({ record: result.record, tariff: TARIFFS[result.record.tariffId], at }),
+    )
   }
 }
 
@@ -584,6 +653,8 @@ app.post('/api/prodamus/webhook', async (req, res) => {
   res.sendStatus(200)
 
   await afterResponse('prodamus/webhook', async () => {
+    if (body.subscription) await handleSubscriptionState(body)
+
     if (body.payment_status !== 'success') {
       console.log('[prodamus] статус не success — пропускаю:', body.payment_status)
       return

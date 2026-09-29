@@ -48,7 +48,14 @@ export function listJoins() {
  * иначе продление 1 месяца можно принять за оплату новой заявки на
  * 3 месяца с того же номера.
  */
-export function findJoinForPayment({ phone, email, telegram, tariffId }) {
+export function findJoinForPayment({ phone, email, telegram, tgUserId, profileId, tariffId }) {
+  // profile_id — постоянный номер подписчика в Prodamus, одинаков во всех его
+  // платежах: самый надёжный ключ для продлений.
+  if (profileId) {
+    const byProfile = store.all().find((j) => String(j.prodamusProfileId ?? '') === String(profileId))
+    if (byProfile) return { join: byProfile, isFirst: !byProfile.paid }
+  }
+
   const phoneKey = normalizePhone(phone)
   const emailKey = String(email ?? '').trim().toLowerCase()
   const telegramKey = normalizeTelegramKey(telegram)
@@ -57,9 +64,10 @@ export function findJoinForPayment({ phone, email, telegram, tariffId }) {
   const byPhone = (j) => phoneKey && normalizePhone(j.phone) === phoneKey
   const byEmail = (j) => emailKey && String(j.email ?? '').trim().toLowerCase() === emailKey
   const byTelegram = (j) => telegramKey && normalizeTelegramKey(j.telegram) === telegramKey
+  const byTgUser = (j) => tgUserId && String(j.tgUserId ?? '') === String(tgUserId)
 
   for (const paid of [false, true]) {
-    for (const matches of [byPhone, byEmail, byTelegram]) {
+    for (const matches of [byPhone, byEmail, byTelegram, byTgUser]) {
       const join = joins.find((j) => Boolean(j.paid) === paid && sameTariff(j) && matches(j))
       if (join) return { join, isFirst: !paid }
     }
@@ -73,7 +81,7 @@ export function findJoinForPayment({ phone, email, telegram, tariffId }) {
  * платежа по счёту. Повторный вебхук с тем же orderKey (Prodamus может
  * прислать уведомление дважды) второй раз не учитывается.
  */
-export function recordPayment(token, { tariffId, amount, paidAt, orderKey, nextPaymentAt }) {
+export function recordPayment(token, { tariffId, amount, paidAt, orderKey, nextPaymentAt, profileId, tgUserId, paymentNum }) {
   let result = null
   store.update(token, (join) => {
     const payments = Array.isArray(join.payments) ? [...join.payments] : []
@@ -87,10 +95,14 @@ export function recordPayment(token, { tariffId, amount, paidAt, orderKey, nextP
       return join
     }
 
-    const kind = payments.length === 0 ? 'first' : 'renewal'
-    payments.push({ kind, at: paidAt, amount, tariffId, orderKey: orderKey ?? null })
+    // payment_num из Prodamus — номер платежа по подписке (1 — первый); он
+    // точнее нашего счёта, если подписка началась ещё до учёта на сайте.
+    const kind = paymentNum ? (paymentNum > 1 ? 'renewal' : 'first') : payments.length === 0 ? 'first' : 'renewal'
+    payments.push({ kind, at: paidAt, amount, tariffId, orderKey: orderKey ?? null, paymentNum: paymentNum ?? null })
     const next = {
       ...join,
+      ...(profileId ? { prodamusProfileId: String(profileId) } : {}),
+      ...(tgUserId && !join.tgUserId ? { tgUserId } : {}),
       paid: true,
       status: 'active',
       payments,
@@ -98,7 +110,28 @@ export function recordPayment(token, { tariffId, amount, paidAt, orderKey, nextP
       lastPaidAt: paidAt,
       nextPaymentAt,
     }
-    result = { duplicate: false, kind, number: payments.length, record: { token, ...next } }
+    result = { duplicate: false, kind, number: paymentNum || payments.length, record: { token, ...next } }
+    return next
+  })
+  return result
+}
+
+/**
+ * Отмечает подписку отключённой/включённой (по флагам active_user /
+ * active_manager из блока subscription в вебхуках Prodamus). changed=true
+ * только если статус реально поменялся — чтобы не слать админу одно и то
+ * же уведомление на каждый вебхук.
+ */
+export function setSubscriptionActive(token, active, at) {
+  let result = null
+  store.update(token, (join) => {
+    const status = active ? 'active' : 'cancelled'
+    if (join.status === status || (!join.paid && !active)) {
+      result = { changed: false, record: { token, ...join } }
+      return join
+    }
+    const next = { ...join, status, ...(active ? {} : { cancelledAt: at }) }
+    result = { changed: true, record: { token, ...next } }
     return next
   })
   return result
