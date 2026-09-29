@@ -66,7 +66,7 @@ export const COMMUNITY_KEYBOARD = [
 ]
 
 export function menuScreen() {
-  return { text: '🛠 Кабинет администратора\n\nВыберите раздел:', keyboard: COMMUNITY_KEYBOARD }
+  return { text: '🛠 Кабинет администратора\n\nВыберите раздел:', keyboard: MENU_KEYBOARD }
 }
 
 const SECTIONS = {
