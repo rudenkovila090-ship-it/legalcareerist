@@ -11,7 +11,7 @@ const ruDate = (ts) => new Intl.DateTimeFormat('ru-RU', { timeZone: MSK, day: '2
 const monthOf = (ts) => mskDayKey(ts).slice(0, 7)
 
 const BACK_ROW = [
-  { text: '⬅️ Кадры', callback_data: 'a:sec:kadry' },
+  { text: '⬅️ Работодатели', callback_data: 'a:sec:employers' },
   { text: '🏠 Меню', callback_data: 'a:menu' },
 ]
 
@@ -28,11 +28,25 @@ export const KADRY_KEYBOARD = [
     { text: '💵 Итоги месяца', callback_data: 'a:k:month:cur' },
     { text: 'Прошлый месяц', callback_data: 'a:k:month:prev' },
   ],
-  [{ text: '⬅️ Меню', callback_data: 'a:menu' }],
+  [{ text: '⬅️ Кадры', callback_data: 'a:sec:kadry' }, { text: '🏠 Меню', callback_data: 'a:menu' }],
 ]
 
+/** Верхний уровень раздела «Кадры»: работодатели (сделки) и соискатели. */
+export function kadryTop() {
+  return {
+    text: '⚖️ Кадры\n\nВыберите направление:',
+    keyboard: [
+      [
+        { text: '🏢 Работодатели', callback_data: 'a:sec:employers' },
+        { text: '🎓 Соискатели', callback_data: 'a:sec:seekers' },
+      ],
+      [{ text: '⬅️ Меню', callback_data: 'a:menu' }],
+    ],
+  }
+}
+
 export function kadrySection() {
-  return { text: '⚖️ Кадры — сделки с работодателями\n\nЗаявки на рекрутинг с сайта становятся сделками с номером и проходят 8 этапов. Бот напоминает, что делать на каждом этапе.', keyboard: KADRY_KEYBOARD }
+  return { text: '🏢 Работодатели — сделки\n\nЗаявки на рекрутинг с сайта становятся сделками с номером и проходят 8 этапов. Бот напоминает, что делать на каждом этапе.', keyboard: KADRY_KEYBOARD }
 }
 
 const dealTitle = (d) => `№${d.number} · ${d.company || d.name || 'без названия'}`
@@ -145,7 +159,7 @@ export function monthKeyFor(which, now) {
 }
 
 /** Итоги месяца по кадровому агентству: заявки, закрытые сделки, выручка. */
-export function monthSummary(deals, monthKey, now = Date.now()) {
+export function monthSummary(deals, monthKey) {
   const inMonth = (ts) => Boolean(ts) && monthOf(ts) === monthKey
   const title = new Intl.DateTimeFormat('ru-RU', { timeZone: 'UTC', month: 'long', year: 'numeric' }).format(new Date(`${monthKey}-15T12:00:00Z`)).replace(/\s*г\.$/, '')
 

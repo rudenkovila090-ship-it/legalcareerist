@@ -6,6 +6,7 @@
 // (/api/notify), который шлет сообщение админу через Bot API. Бэкенд сам решает,
 // настроен ли токен/chat_id — если нет, просто отвечает ok:false, страница это не блокирует.
 import type { Lead, LeadSourceBlock } from '../types'
+import { getUtm } from './utm'
 
 const LEADS_KEY = 'ky_leads'
 
@@ -187,6 +188,7 @@ function notifyTelegram(lead: Lead, vacancySlug?: string, eventSlug?: string) {
       date: lead.date,
       vacancySlug,
       eventSlug,
+      utm: getUtm(),
     }),
   }).catch(() => {
     // Бэкенд недоступен/не настроен — заявка все равно сохранена в localStorage, не мешаем пользователю.

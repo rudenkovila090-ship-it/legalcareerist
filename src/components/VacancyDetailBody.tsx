@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { SpecTag, IndustryTag } from './Tag'
 import { pluralRu } from '../lib/plural'
+import { getUtm } from '../lib/utm'
 import { WORK_FORMATS, WORK_SCHEDULES, EMPLOYMENT_TYPES, type Vacancy } from '../types'
 
 const money = new Intl.NumberFormat('ru-RU')
@@ -47,7 +48,7 @@ function useVacancyStats(slug: string) {
 
   useEffect(() => {
     let cancelled = false
-    fetch(`/api/vacancy/${slug}/view`, { method: 'POST' })
+    fetch(`/api/vacancy/${slug}/view`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ utm: getUtm() }) })
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (!cancelled && data) setState({ slug, views: data.views, applications: data.applications })

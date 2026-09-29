@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom'
 import './index.css'
 import App from './App.tsx'
 import { hydrateFromServer, patchLocalStorage } from './lib/serverSync'
+import { captureUtm } from './lib/utm'
 
 // Синхронизация демо-данных кабинетов с сервером — ДО первого рендера
 // (см. lib/serverSync.ts). Ограничена по времени изнутри hydrateFromServer,
@@ -11,6 +12,7 @@ import { hydrateFromServer, patchLocalStorage } from './lib/serverSync'
 // секунды-другой — index.html тем временем показывает статичный (без JS)
 // лоадер, замещаемый первым рендером React.
 async function bootstrap() {
+  captureUtm()
   await hydrateFromServer()
   patchLocalStorage()
 

@@ -39,7 +39,11 @@ import { HmacHelper } from './lib/hmac.js'
 import { createPendingJoin, createOrphanJoin, listJoins, setTgUserId, findJoinForPayment, recordPayment, setSubscriptionActive, markReminded } from './lib/store.js'
 import { normalizePhone } from './lib/jsonStore.js'
 import { createPendingPurchase, getPurchase, markPurchasePaidByPhone } from './lib/materialsStore.js'
-import { incrementView, incrementApplication } from './lib/vacancyStats.js'
+import { incrementView, incrementApplication, allVacancyStats } from './lib/vacancyStats.js'
+import { utmLabel } from './lib/utm.js'
+import { createApplication, listApplications } from './lib/candidateApplications.js'
+import { createConsultation, listConsultations, getConsultation, setConsultationStatus } from './lib/consultations.js'
+import { SEEKERS_KEYBOARD, buildVacancyViews, vacanciesScreen, vacancyCard, vacancyApplicationsScreen, recentApplicationsScreen, consultationsScreen, consultationCard, seekersMonthSummary } from './lib/seekersCabinet.js'
 import { incrementArticleView, getArticleViews } from './lib/articleStats.js'
 import { incrementNewsView, getNewsViews } from './lib/newsStats.js'
 import { incrementEventView, incrementEventRegistration, getEventStats } from './lib/eventStats.js'
@@ -413,7 +417,7 @@ async function sendInviteLink(chatId, join) {
 // заходы (не демо-число), но не завязываем это на успех/провал остального
 // стека — счётчик пишется сам по себе, до всех проверок ниже.
 app.post('/api/vacancy/:slug/view', (req, res) => {
-  const stats = incrementView(req.params.slug)
+  const stats = incrementView(req.params.slug, utmLabel(req.body?.utm))
   res.json({ ok: true, ...stats })
 })
 
@@ -508,14 +512,15 @@ app.post('/api/upload-document', upload.single('file'), async (req, res) => {
 const DEAL_FORM_TYPES = new Set(['service_order', 'employer_request'])
 
 app.post('/api/notify', async (req, res) => {
-  const { direction, service, source, formType, name, contact, phone, email, telegram, company, template, interest, date, vacancySlug, eventSlug, ticketNumber } = req.body ?? {}
+  const { direction, service, source, formType, name, contact, phone, email, telegram, company, template, interest, date, vacancySlug, eventSlug, ticketNumber, utm } = req.body ?? {}
+  const utmSource = utmLabel(utm)
 
   // Отклик на вакансию — считаем реальный счётчик независимо от того,
   // настроен ли Telegram-бот ниже: заявка не должна "теряться" из
   // статистики только потому, что уведомление не смогло уйти.
   if (vacancySlug) {
     try {
-      incrementApplication(vacancySlug)
+      incrementApplication(vacancySlug, utmSource)
     } catch (err) {
       console.error('[notify] ошибка счётчика откликов:', err)
     }
@@ -553,6 +558,28 @@ app.post('/api/notify', async (req, res) => {
     }
   }
 
+  // Отклик на вакансию и заказ карьерной консультации — тоже записи со
+  // сквозным номером: по ним строятся списки и итоги в разделе «Кадры → Соискатели».
+  let record = null
+  const lines = Array.isArray(interest) ? interest.map(String) : []
+  try {
+    if (vacancySlug) {
+      const catalogTitle = readVacancyCatalog().find((v) => v.slug === vacancySlug)?.title
+      const documents = lines.filter((l) => /приложен/i.test(l)).map((l) => l.split(' — ')[0])
+      const app = createApplication({ vacancySlug, vacancyTitle: catalogTitle || String(service ?? '').match(/«(.+)»/)?.[1], name, phone, email, telegram, source: utmSource, documents })
+      record = { text: `\n\n🗂 Отклик №${app.number}`, keyboard: [[{ text: '📥 Отклики на вакансию', callback_data: `a:s:vacs` }]] }
+    } else if (formType === 'consultation_order' || formType === 'consultation_help_request') {
+      const isOrder = formType === 'consultation_order'
+      const total = isOrder ? Number((lines.find((l) => /^Итого:/i.test(l)) ?? '').replace(/\D/g, '')) || null : null
+      const promo = lines.find((l) => /^Промокод:/i.test(l))?.replace(/^Промокод:\s*/i, '')
+      const services = isOrder ? lines.filter((l) => !/^(Итого|Промокод):/i.test(l)) : lines
+      const c = createConsultation({ kind: isOrder ? 'order' : 'question', services, promo, total, name, phone, email, telegram, source: utmSource })
+      record = { text: `\n\n🗂 Консультация №${c.number} · ${isOrder ? 'заказ услуг' : 'вопрос'}`, keyboard: [[{ text: `📂 Открыть консультацию №${c.number}`, callback_data: `a:s:con:${c.number}` }]] }
+    }
+  } catch (err) {
+    console.error('[notify] не удалось записать отклик/консультацию:', err)
+  }
+
   // phone/email/telegram — отдельными полями с фронтенда (см.
   // src/lib/leads.ts); contact — старая склеенная строка, остаётся как
   // запасной вариант, если фронтенд почему-то не прислал разбивку.
@@ -584,8 +611,9 @@ app.post('/api/notify', async (req, res) => {
       })
 
   const dealNote = deal ? `\n\n🗂 Сделка №${deal.number} создана · этап 1: ${stageOf(1).name}` : ''
-  const dealKeyboard = deal ? [[{ text: `📂 Открыть сделку №${deal.number}`, callback_data: `a:k:deal:${deal.number}` }]] : undefined
-  const ok = await sendTelegramMessage(ADMIN_CHAT_ID, text + dealNote, dealKeyboard).catch((err) => {
+  const dealKeyboard = deal ? [[{ text: `📂 Открыть сделку №${deal.number}`, callback_data: `a:k:deal:${deal.number}` }]] : record?.keyboard
+  const sourceNote = utm && utmSource !== 'без метки' ? `\n📣 Источник: ${utmSource}` : ''
+  const ok = await sendTelegramMessage(ADMIN_CHAT_ID, text + (record?.text ?? '') + sourceNote + dealNote, dealKeyboard).catch((err) => {
     console.error('[notify] ошибка запроса к Telegram:', err)
     return false
   })
@@ -666,6 +694,52 @@ const dealScreen = (number, now = Date.now()) => {
   return deal ? dealCard(deal, now) : { text: `Сделка №${number} не найдена.`, keyboard: KADRY_KEYBOARD }
 }
 
+/** Каталог вакансий сайта (выгружается при сборке, см. scripts/export-vacancy-catalog.mjs). */
+function readVacancyCatalog() {
+  try {
+    return JSON.parse(fs.readFileSync(path.join(import.meta.dirname, 'data', 'vacancy-catalog.json'), 'utf8'))
+  } catch {
+    return []
+  }
+}
+
+/** Кнопки «Кадры → Соискатели»: parts — callback_data без префикса «a:s:». */
+function seekersAction(parts, now) {
+  const [action, arg, arg2] = parts
+  const applications = listApplications()
+  const vacancies = buildVacancyViews(readVacancyCatalog(), allVacancyStats(), applications, SITE_URL)
+  const findVacancy = (key) => vacancies.find((v) => v.key === key)
+  const missing = { text: 'Не нашёл такую вакансию — возможно, она снята с сайта.', keyboard: SEEKERS_KEYBOARD }
+  switch (action) {
+    case 'vacs':
+      return vacanciesScreen(vacancies)
+    case 'vac': {
+      const v = findVacancy(arg)
+      return v ? vacancyCard(v) : missing
+    }
+    case 'vapps': {
+      const v = findVacancy(arg)
+      return v ? vacancyApplicationsScreen(v, applications) : missing
+    }
+    case 'apps':
+      return recentApplicationsScreen(applications)
+    case 'cons':
+      return consultationsScreen(listConsultations())
+    case 'con': {
+      const c = getConsultation(arg)
+      return c ? consultationCard(c) : { text: `Консультация №${arg} не найдена.`, keyboard: SEEKERS_KEYBOARD }
+    }
+    case 'cst': {
+      const c = setConsultationStatus(arg, arg2)
+      return c ? consultationCard(c) : { text: `Консультация №${arg} не найдена.`, keyboard: SEEKERS_KEYBOARD }
+    }
+    case 'month':
+      return seekersMonthSummary(applications, listConsultations(), arg, now)
+    default:
+      return { text: '🎓 Соискатели', keyboard: SEEKERS_KEYBOARD }
+  }
+}
+
 /** Кнопки «Кадры → сделки»: parts — callback_data без префикса «a:k:». */
 function kadryAction(parts, now, chatId) {
   const [action, arg] = parts
@@ -712,7 +786,7 @@ function kadryAction(parts, now, chatId) {
       return { text: `💰 Сделка №${number}: отправьте сумму выручки числом, например 120000.\nДля отмены — /cancel.`, keyboard: [[{ text: '⬅️ К сделке', callback_data: `a:k:deal:${number}` }]] }
     case 'new':
       adminInput.set(String(chatId), { type: 'newdeal' })
-      return { text: NEW_DEAL_PROMPT, keyboard: [[{ text: '⬅️ Кадры', callback_data: 'a:sec:kadry' }]] }
+      return { text: NEW_DEAL_PROMPT, keyboard: [[{ text: '⬅️ Работодатели', callback_data: 'a:sec:employers' }]] }
     default:
       return { text: 'Раздел «Кадры»', keyboard: KADRY_KEYBOARD }
   }
@@ -808,6 +882,7 @@ async function sendLongMessage(chatId, text, keyboard) {
 /** Экран кабинета по callback_data кнопки. Возвращает { text, keyboard }. */
 async function adminScreen(data, now, chatId) {
   if (data.startsWith('a:k:')) return kadryAction(data.split(':').slice(2), now, chatId)
+  if (data.startsWith('a:s:')) return seekersAction(data.split(':').slice(2), now)
   const joins = listJoins()
   const [, action, arg] = data.split(':')
   if (action === 'sec') return sectionScreen(arg)

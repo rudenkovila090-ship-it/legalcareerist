@@ -2,7 +2,8 @@
 // знает про Telegram API и хранилище — получает карточки подписчиков и
 // возвращает { text, keyboard }, чтобы это можно было проверять отдельно.
 import { mskDayKey } from './dailyReport.js'
-import { kadrySection } from './kadryCabinet.js'
+import { kadryTop, kadrySection } from './kadryCabinet.js'
+import { seekersSection } from './seekersCabinet.js'
 
 const MSK = 'Europe/Moscow'
 const DAY = 24 * 3600 * 1000
@@ -71,7 +72,9 @@ const SECTIONS = {
 
 /** Экран раздела главного меню (finance / community / kadry / events). */
 export function sectionScreen(name) {
-  if (name === 'kadry') return kadrySection()
+  if (name === 'kadry') return kadryTop()
+  if (name === 'employers') return kadrySection()
+  if (name === 'seekers') return seekersSection()
   return SECTIONS[name] ?? menuScreen()
 }
 

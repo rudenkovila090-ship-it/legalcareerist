@@ -22,19 +22,31 @@ function save(data) {
   fs.writeFileSync(FILE, JSON.stringify(data, null, 2))
 }
 
-function bump(slug, field) {
+// source — подпись источника по UTM-меткам (см. lib/utm.js): по ней в боте видно,
+// из какой соцсети пришли просмотры и отклики на вакансию.
+function bump(slug, field, source) {
   const data = load()
   const entry = data[slug] ?? { views: 0, applications: 0 }
   entry[field] += 1
+  if (source) {
+    entry.sources = entry.sources ?? {}
+    entry.sources[source] = entry.sources[source] ?? { views: 0, applications: 0 }
+    entry.sources[source][field] += 1
+  }
   data[slug] = entry
   save(data)
-  return entry
+  return { views: entry.views, applications: entry.applications }
 }
 
-export function incrementView(slug) {
-  return bump(slug, 'views')
+export function incrementView(slug, source) {
+  return bump(slug, 'views', source)
 }
 
-export function incrementApplication(slug) {
-  return bump(slug, 'applications')
+export function incrementApplication(slug, source) {
+  return bump(slug, 'applications', source)
+}
+
+/** Счётчики всех вакансий: { slug: { views, applications, sources } } — для кабинета в боте. */
+export function allVacancyStats() {
+  return load()
 }
