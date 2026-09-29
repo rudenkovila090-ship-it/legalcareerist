@@ -36,7 +36,7 @@ import cors from 'cors'
 import multer from 'multer'
 import { createPaymentLink, TARIFFS, tariffIdBySubscriptionId, createProductPaymentLink, MATERIALS } from './lib/prodamus.js'
 import { HmacHelper } from './lib/hmac.js'
-import { createPendingJoin, createOrphanJoin, setTgUserId, findJoinForPayment, recordPayment, setSubscriptionActive } from './lib/store.js'
+import { createPendingJoin, createOrphanJoin, listJoins, setTgUserId, findJoinForPayment, recordPayment, setSubscriptionActive } from './lib/store.js'
 import { normalizePhone } from './lib/jsonStore.js'
 import { createPendingPurchase, getPurchase, markPurchasePaidByPhone } from './lib/materialsStore.js'
 import { incrementView, incrementApplication } from './lib/vacancyStats.js'
@@ -45,6 +45,9 @@ import { incrementNewsView, getNewsViews } from './lib/newsStats.js'
 import { incrementEventView, incrementEventRegistration, getEventStats } from './lib/eventStats.js'
 import { isValidKey, writeCollection, readAllCollections } from './lib/collectionStore.js'
 import { nextTicketNumber } from './lib/ticketCounter.js'
+import { buildDailyReport, mskDayKey } from './lib/dailyReport.js'
+import fs from 'node:fs'
+import path from 'node:path'
 
 const app = express()
 app.use(cors())
@@ -226,7 +229,7 @@ function formatRub(amount) {
 }
 
 /** Уведомление админу о каждой оплате подписки — первой и каждом продлении. */
-function buildPaymentNotification({ kind, number, tariff, amount, paidAt, nextPaymentAt, name, phone, email, telegram, orphan }) {
+function buildPaymentNotification({ kind, number, tariff, subscriptionName, amount, paidAt, nextPaymentAt, name, phone, email, telegram, orphan }) {
   const renewal = kind === 'renewal'
   const orphanNote = !orphan
     ? null
@@ -236,7 +239,7 @@ function buildPaymentNotification({ kind, number, tariff, amount, paidAt, nextPa
   const lines = [
     '💳 Оплата получена',
     '',
-    `Сообщество → Подписка · ${tariff?.period ?? 'тариф не определён'}`,
+    `Сообщество → Подписка · ${tariff?.period ?? subscriptionName ?? 'тариф не определён'}`,
     renewal ? `Продление подписки · оплата №${number}` : 'Первая оплата',
     orphanNote,
     '',
@@ -291,6 +294,8 @@ async function handleSubscriptionPayment(body, phone) {
   const profileId = subscription.profile_id ? String(subscription.profile_id) : null
   const tgUserId = body.tg_user_id ? String(body.tg_user_id) : null
   const paymentNum = Number(subscription.payment_num) || null
+  // Скидочные тарифы — отдельные подписки Prodamus, которых нет в TARIFFS: тогда называем по имени из вебхука.
+  const subscriptionName = tariff ? null : [subscription.name, subscription.cost ? `${Number(subscription.cost)} ₽` : null].filter(Boolean).join(' · ') || null
   console.log('[prodamus] подписка сообщества — телефон:', phone, 'почта:', email, 'тариф:', tariffId, 'профиль:', profileId, 'платёж №', paymentNum)
 
   let match = findJoinForPayment({ phone, email, telegram: extra.telegram, tgUserId, profileId, tariffId })
@@ -301,7 +306,7 @@ async function handleSubscriptionPayment(body, phone) {
   }
 
   const nextPaymentAt = pickNextPaymentDate(subscription, paidAt) ?? (tariff ? addMonths(paidAt, tariff.months) : null)
-  const result = recordPayment(match.join.token, { tariffId, amount, paidAt, orderKey, nextPaymentAt, profileId, tgUserId, paymentNum })
+  const result = recordPayment(match.join.token, { tariffId, amount, paidAt, orderKey, nextPaymentAt, profileId, tgUserId, paymentNum, subscriptionId: subscription.id, subscriptionName })
   if (!result) {
     console.error('[prodamus] не удалось записать платёж — карточка не найдена:', match.join.token)
     return
@@ -320,6 +325,7 @@ async function handleSubscriptionPayment(body, phone) {
       kind: result.kind,
       number: result.number,
       tariff,
+      subscriptionName,
       amount,
       paidAt,
       nextPaymentAt,
@@ -606,6 +612,10 @@ app.post('/api/telegram/webhook', async (req, res) => {
     const message = req.body?.message
     const text = message?.text
     const chatId = message?.chat?.id
+    if (chatId && text?.startsWith('/report') && String(chatId) === String(ADMIN_CHAT_ID)) {
+      await sendTelegramMessage(chatId, buildDailyReport(listJoins(), Date.now(), TARIFFS))
+      return
+    }
     if (!chatId || !text || !text.startsWith('/start')) return
 
     const payload = text.slice('/start'.length).trim()
@@ -691,6 +701,37 @@ app.post('/api/prodamus/webhook', async (req, res) => {
 })
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }))
+
+// Ежедневный отчёт админу в 21:00 по Москве. Раз в минуту проверяем время;
+// дату последней отправки храним в файле, чтобы перезапуск процесса не
+// приводил ни к повтору, ни к пропуску отчёта за день.
+const REPORT_HOUR_MSK = 21
+const REPORT_STATE_FILE = path.join(import.meta.dirname, 'data', 'daily-report.json')
+
+function readLastReportDay() {
+  try {
+    return JSON.parse(fs.readFileSync(REPORT_STATE_FILE, 'utf8')).lastDay ?? null
+  } catch {
+    return null
+  }
+}
+
+async function sendDailyReportIfDue() {
+  if (!BOT_TOKEN || !ADMIN_CHAT_ID) return
+  const now = Date.now()
+  const hour = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Moscow', hour: '2-digit', hour12: false }).format(new Date(now)))
+  const today = mskDayKey(now)
+  if (hour < REPORT_HOUR_MSK || readLastReportDay() === today) return
+
+  fs.mkdirSync(path.dirname(REPORT_STATE_FILE), { recursive: true })
+  fs.writeFileSync(REPORT_STATE_FILE, JSON.stringify({ lastDay: today }))
+  const ok = await sendTelegramMessage(ADMIN_CHAT_ID, buildDailyReport(listJoins(), now, TARIFFS)).catch(() => false)
+  if (!ok) fs.writeFileSync(REPORT_STATE_FILE, JSON.stringify({ lastDay: null })) // не ушло — попробуем в следующую минуту
+}
+
+if (process.env.DISABLE_DAILY_REPORT !== '1') {
+  setInterval(() => afterResponse('daily-report', sendDailyReportIfDue), 60 * 1000)
+}
 
 // Страховка от падения процесса из-за необработанной ошибки где-то в фоне
 // (например, сорвавшийся запрос к Telegram/Prodamus после ответа клиенту) —

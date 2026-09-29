@@ -81,7 +81,7 @@ export function findJoinForPayment({ phone, email, telegram, tgUserId, profileId
  * платежа по счёту. Повторный вебхук с тем же orderKey (Prodamus может
  * прислать уведомление дважды) второй раз не учитывается.
  */
-export function recordPayment(token, { tariffId, amount, paidAt, orderKey, nextPaymentAt, profileId, tgUserId, paymentNum }) {
+export function recordPayment(token, { tariffId, amount, paidAt, orderKey, nextPaymentAt, profileId, tgUserId, paymentNum, subscriptionId, subscriptionName }) {
   let result = null
   store.update(token, (join) => {
     const payments = Array.isArray(join.payments) ? [...join.payments] : []
@@ -98,7 +98,7 @@ export function recordPayment(token, { tariffId, amount, paidAt, orderKey, nextP
     // payment_num из Prodamus — номер платежа по подписке (1 — первый); он
     // точнее нашего счёта, если подписка началась ещё до учёта на сайте.
     const kind = paymentNum ? (paymentNum > 1 ? 'renewal' : 'first') : payments.length === 0 ? 'first' : 'renewal'
-    payments.push({ kind, at: paidAt, amount, tariffId, orderKey: orderKey ?? null, paymentNum: paymentNum ?? null })
+    payments.push({ kind, at: paidAt, amount, tariffId, orderKey: orderKey ?? null, paymentNum: paymentNum ?? null, subscriptionId: subscriptionId ?? null, subscriptionName: subscriptionName ?? null })
     const next = {
       ...join,
       ...(profileId ? { prodamusProfileId: String(profileId) } : {}),
