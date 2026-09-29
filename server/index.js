@@ -633,6 +633,21 @@ app.get('/api/marketplace/purchase/:token', (req, res) => {
 
 // Апдейты от Telegram-бота @LegalcareeristBot. Настраивается один раз
 // командой setWebhook (см. README сервера).
+/** Длинный текст режет по строкам на части до лимита Telegram (4096 символов); кнопки — под последней. */
+async function sendLongMessage(chatId, text, keyboard) {
+  const chunks = []
+  let current = ''
+  for (const line of text.split('\n')) {
+    if (current && current.length + line.length + 1 > 3800) {
+      chunks.push(current)
+      current = ''
+    }
+    current += (current ? '\n' : '') + line
+  }
+  if (current) chunks.push(current)
+  for (let i = 0; i < chunks.length; i++) await sendTelegramMessage(chatId, chunks[i], i === chunks.length - 1 ? keyboard : undefined)
+}
+
 /** Экран кабинета по callback_data кнопки. Возвращает { text, keyboard }. */
 async function adminScreen(data, now) {
   const joins = listJoins()
@@ -640,8 +655,9 @@ async function adminScreen(data, now) {
   if (action === 'sec') return sectionScreen(arg)
   if (action === 'rep') return { text: reportText(arg, now), keyboard: FINANCE_KEYBOARD }
   if (action === 'subs') return subscribersScreen(joins, TARIFFS)
-  if (action === 'due') return dueScreen(joins, now)
-  if (action === 'cancelled') return cancelledScreen(joins)
+  if (action === 'due') return dueScreen(joins, now, TARIFFS)
+  if (action === 'due14') return dueScreen(joins, now, TARIFFS, 14)
+  if (action === 'cancelled') return cancelledScreen(joins, TARIFFS)
   if (action === 'rem') return arg ? reminderPreviewScreen(joins, now, Number(arg)) : reminderMenuScreen()
   if (action === 'remgo') {
     const days = Number(arg)
@@ -686,7 +702,7 @@ async function handleAdminCallback(query) {
   }
   await answer()
   const screen = await adminScreen(query.data, Date.now())
-  await sendTelegramMessage(chatId, screen.text, screen.keyboard)
+  await sendLongMessage(chatId, screen.text, screen.keyboard)
 }
 
 /** Один апдейт от Telegram — общий для вебхука и для опроса (getUpdates). */

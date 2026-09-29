@@ -5,7 +5,6 @@ import { mskDayKey } from './dailyReport.js'
 
 const MSK = 'Europe/Moscow'
 const DAY = 24 * 3600 * 1000
-const MAX_LINES = 40
 
 const rub = (n) => `${Math.round(n).toLocaleString('ru-RU')} ₽`
 const ruDay = (ts) => new Intl.DateTimeFormat('ru-RU', { timeZone: MSK, day: '2-digit', month: '2-digit' }).format(new Date(ts))
@@ -18,12 +17,6 @@ function tariffLabel(join, tariffs) {
 
 function lastAmount(join) {
   return Number(join.payments?.at(-1)?.amount) || 0
-}
-
-/** Обрезает длинный список, чтобы сообщение влезло в лимит Telegram (4096 символов). */
-function limited(lines) {
-  if (lines.length <= MAX_LINES) return lines
-  return [...lines.slice(0, MAX_LINES), `…и ещё ${lines.length - MAX_LINES}`]
 }
 
 const BACK_ROW = [{ text: '⬅️ Меню', callback_data: 'a:menu' }]
@@ -81,61 +74,114 @@ export function sectionScreen(name) {
   return SECTIONS[name] ?? menuScreen()
 }
 
-/** Активные подписчики по тарифам, у каждого — дата следующего списания. */
+// Сумма, по которой человек сидит в сообществе, — то, что списывается за один
+// период (последний платёж; если истории нет — цена тарифа с сайта).
+function planAmount(join, tariffs) {
+  return lastAmount(join) || tariffs[join.tariffId]?.price || 0
+}
+
+// Известные суммы: стандартные тарифы и скидочные (по промокодам амбассадоров
+// и рекламы). Остальные суммы показываются отдельной строкой «другая сумма».
+const DISCOUNT_PLANS = [350, 500, 530]
+const STANDARD_PLANS = [
+  { amount: 690, label: '1 месяц' },
+  { amount: 1770, label: '3 месяца' },
+  { amount: 3180, label: '6 месяцев' },
+]
+
+function residentLines(list) {
+  return [...list]
+    .sort((a, b) => (a.nextPaymentAt ?? Infinity) - (b.nextPaymentAt ?? Infinity))
+    .map((j) => `   • ${who(j)}${j.nextPaymentAt ? ` — след. списание ${ruDay(j.nextPaymentAt)}` : ''}`)
+}
+
+/** Резиденты по тарифам: сначала скидочные (350/500/530 ₽), затем 690 / 1 770 / 3 180 ₽. */
 export function subscribersScreen(joins, tariffs) {
   const active = joins.filter((j) => j.status === 'active')
-  if (!active.length) return { text: '👥 Активных подписчиков пока нет.', keyboard: COMMUNITY_KEYBOARD }
-
-  const groups = new Map()
+  const byAmount = new Map()
   for (const j of active) {
-    const label = tariffLabel(j, tariffs)
-    if (!groups.has(label)) groups.set(label, [])
-    groups.get(label).push(j)
+    const amount = planAmount(j, tariffs)
+    if (!byAmount.has(amount)) byAmount.set(amount, [])
+    byAmount.get(amount).push(j)
   }
-  const lines = [`👥 Активных подписчиков: ${active.length}`]
-  for (const [label, list] of groups) {
-    lines.push('', `${label} — ${list.length}`)
-    const sorted = [...list].sort((a, b) => (a.nextPaymentAt ?? Infinity) - (b.nextPaymentAt ?? Infinity))
-    for (const j of sorted) lines.push(`• ${who(j)}${j.nextPaymentAt ? ` — списание ${ruDay(j.nextPaymentAt)}` : ''}`)
+  const take = (amount) => {
+    const list = byAmount.get(amount) ?? []
+    byAmount.delete(amount)
+    return list
   }
-  return { text: limitedText(lines), keyboard: COMMUNITY_KEYBOARD }
+
+  const lines = [`👥 Резидентов сейчас: ${active.length}`]
+  const group = (title, list) => {
+    lines.push(`${title} — ${list.length} чел.`, ...residentLines(list))
+  }
+
+  lines.push('', '🏷 Месяц со скидкой')
+  for (const amount of DISCOUNT_PLANS) group(`• ${rub(amount)}/мес`, take(amount))
+
+  lines.push('', '💳 Обычные тарифы')
+  for (const { amount, label } of STANDARD_PLANS) group(`• ${rub(amount)} · ${label}`, take(amount))
+
+  const other = [...byAmount.entries()].sort((a, b) => a[0] - b[0])
+  if (other.length) {
+    lines.push('', '❔ Другие суммы')
+    for (const [amount, list] of other) group(`• ${amount ? rub(amount) : 'сумма неизвестна'}`, list)
+  }
+  return { text: lines.join('\n'), keyboard: COMMUNITY_KEYBOARD }
 }
 
-function limitedText(lines) {
-  // Ограничение по числу строк внутри групп: общий список режем целиком.
-  return limited(lines).join('\n')
-}
+const ruTime = (ts) => new Intl.DateTimeFormat('ru-RU', { timeZone: MSK, hour: '2-digit', minute: '2-digit' }).format(new Date(ts))
+const ruDayTime = (ts) => `${ruDay(ts)} в ${ruTime(ts)}`
 
-/** Списания на ближайшие 14 дней по датам. */
-export function dueScreen(joins, now) {
-  const from = mskDayKey(now)
-  const to = mskDayKey(now + 14 * DAY)
+const DUE_KEYBOARD = [
+  [
+    { text: '📅 На 14 дней', callback_data: 'a:due14' },
+    { text: '🔄 Обновить', callback_data: 'a:due' },
+  ],
+  ...COMMUNITY_KEYBOARD,
+]
+
+/** Списания: сегодня, завтра, послезавтра — с точным временем (МСК) или на 14 дней без времени. */
+export function dueScreen(joins, now, tariffs = {}, horizonDays = 2) {
+  const dayKeys = Array.from({ length: horizonDays + 1 }, (_, i) => mskDayKey(now + i * DAY))
   const due = joins
-    .filter((j) => j.status === 'active' && j.nextPaymentAt && mskDayKey(j.nextPaymentAt) >= from && mskDayKey(j.nextPaymentAt) <= to)
+    .filter((j) => j.status === 'active' && j.nextPaymentAt && dayKeys.includes(mskDayKey(j.nextPaymentAt)))
     .sort((a, b) => a.nextPaymentAt - b.nextPaymentAt)
-  if (!due.length) return { text: '⏭ В ближайшие 14 дней списаний нет.', keyboard: COMMUNITY_KEYBOARD }
 
-  const total = due.reduce((acc, j) => acc + lastAmount(j), 0)
-  const lines = [`⏭ Списания на 14 дней: ${due.length} · ~${rub(total)}`]
-  let day = ''
-  for (const j of due) {
-    const key = mskDayKey(j.nextPaymentAt)
-    if (key !== day) {
-      day = key
-      lines.push('', `${ruDay(j.nextPaymentAt)}:`)
+  const titles = ['Сегодня', 'Завтра', 'Послезавтра']
+  const total = due.reduce((acc, j) => acc + planAmount(j, tariffs), 0)
+  const lines = [horizonDays > 2 ? `⏭ Списания на ${horizonDays} дней: ${due.length} · ~${rub(total)}` : `⏭ Списания на 3 дня: ${due.length} · ~${rub(total)}`, '']
+  dayKeys.forEach((key, i) => {
+    const list = due.filter((j) => mskDayKey(j.nextPaymentAt) === key)
+    const title = horizonDays > 2 ? ruDay(now + i * DAY) : `${titles[i]}, ${ruDay(now + i * DAY)}`
+    if (!list.length) {
+      if (horizonDays <= 2) lines.push(`${title} — списаний нет`, '')
+      return
     }
-    lines.push(`• ${who(j)} — ${lastAmount(j) ? rub(lastAmount(j)) : 'сумма неизвестна'}`)
-  }
-  return { text: limitedText(lines), keyboard: COMMUNITY_KEYBOARD }
+    lines.push(`${title} — ${list.length} · ${rub(list.reduce((acc, j) => acc + planAmount(j, tariffs), 0))}`)
+    for (const j of list) {
+      const passed = j.nextPaymentAt < now
+      const amount = planAmount(j, tariffs)
+      lines.push(`• ${horizonDays > 2 ? '' : `${ruTime(j.nextPaymentAt)} — `}${who(j)} — ${amount ? rub(amount) : 'сумма неизвестна'}${passed ? ' ⚠️ время прошло, оплата не зафиксирована' : ''}`)
+    }
+    lines.push('')
+  })
+  if (!due.length && horizonDays > 2) lines.push('Списаний нет.')
+  lines.push('Время — московское, как указано в Prodamus.')
+  return { text: lines.join('\n'), keyboard: DUE_KEYBOARD }
 }
 
-/** Кто отключил подписку — с датой, чтобы можно было написать и спросить причину. */
-export function cancelledScreen(joins) {
+/** Отписки: кто, когда (день и время) и на каком тарифе сидел. */
+export function cancelledScreen(joins, tariffs = {}) {
   const list = joins.filter((j) => j.status === 'cancelled').sort((a, b) => (b.cancelledAt ?? 0) - (a.cancelledAt ?? 0))
   if (!list.length) return { text: '🔕 Отписавшихся нет.', keyboard: COMMUNITY_KEYBOARD }
-  const lines = [`🔕 Отключили подписку: ${list.length}`, '']
-  for (const j of list) lines.push(`• ${who(j)}${j.cancelledAt ? ` — ${ruDay(j.cancelledAt)}` : ''}`)
-  return { text: limitedText(lines), keyboard: COMMUNITY_KEYBOARD }
+  const lines = [`🔕 Отписались от сообщества: ${list.length}`, '']
+  for (const j of list) {
+    const amount = planAmount(j, tariffs)
+    const plan = STANDARD_PLANS.find((p) => p.amount === amount)?.label ?? (DISCOUNT_PLANS.includes(amount) ? 'со скидкой' : tariffLabel(j, tariffs))
+    lines.push(`• ${who(j)}`, `   ${j.cancelledAt ? ruDayTime(j.cancelledAt) : 'дата неизвестна'} · тариф: ${amount ? `${rub(amount)}, ` : ''}${plan}`)
+  }
+  lines.push('', 'Время — московское, момент, когда мы получили уведомление от Prodamus.')
+  return { text: lines.join('\n'), keyboard: COMMUNITY_KEYBOARD }
 }
 
 /**
@@ -189,7 +235,7 @@ export function reminderPreviewScreen(joins, now, days) {
   const keyboard = []
   if (t.reachable.length) keyboard.push([{ text: `✅ Отправить (${t.reachable.length})`, callback_data: `a:remgo:${days}` }])
   keyboard.push([{ text: '⬅️ Назад', callback_data: 'a:rem' }])
-  return { text: limitedText(lines), keyboard }
+  return { text: lines.join('\n'), keyboard }
 }
 
 /** Текст напоминания подписчику. */
