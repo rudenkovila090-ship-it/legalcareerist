@@ -26,13 +26,33 @@ function limited(lines) {
   return [...lines.slice(0, MAX_LINES), `…и ещё ${lines.length - MAX_LINES}`]
 }
 
+const BACK_ROW = [{ text: '⬅️ Меню', callback_data: 'a:menu' }]
+
+// Главное меню — блоки; внутри каждого блока свои кнопки и «⬅️ Меню».
 export const MENU_KEYBOARD = [
+  [
+    { text: '⚖️ Кадры', callback_data: 'a:sec:kadry' },
+    { text: '👥 Сообщество', callback_data: 'a:sec:community' },
+  ],
+  [
+    { text: '🎟 Мероприятия', callback_data: 'a:sec:events' },
+    { text: '💰 Финансы', callback_data: 'a:sec:finance' },
+  ],
+]
+
+export const FINANCE_KEYBOARD = [
   [
     { text: '📊 Сегодня', callback_data: 'a:rep:today' },
     { text: 'Вчера', callback_data: 'a:rep:yesterday' },
+  ],
+  [
     { text: '7 дней', callback_data: 'a:rep:week' },
     { text: 'Месяц', callback_data: 'a:rep:month' },
   ],
+  BACK_ROW,
+]
+
+export const COMMUNITY_KEYBOARD = [
   [
     { text: '👥 Подписчики', callback_data: 'a:subs' },
     { text: '⏭ Списания', callback_data: 'a:due' },
@@ -42,16 +62,29 @@ export const MENU_KEYBOARD = [
     { text: '🔔 Напоминания', callback_data: 'a:rem' },
   ],
   [{ text: '🔌 Состояние системы', callback_data: 'a:status' }],
+  BACK_ROW,
 ]
 
 export function menuScreen() {
-  return { text: '🛠 Кабинет администратора\n\nВыберите, что показать:', keyboard: MENU_KEYBOARD }
+  return { text: '🛠 Кабинет администратора\n\nВыберите раздел:', keyboard: COMMUNITY_KEYBOARD }
+}
+
+const SECTIONS = {
+  finance: { text: '💰 Финансы\n\nОтчёты по оплатам подписки за период:', keyboard: FINANCE_KEYBOARD },
+  community: { text: '👥 Сообщество\n\nПодписчики, списания, отписки и напоминания:', keyboard: COMMUNITY_KEYBOARD },
+  kadry: { text: '⚖️ Кадры\n\nРаздел пока пустой — наполним следующим шагом.', keyboard: [BACK_ROW] },
+  events: { text: '🎟 Мероприятия\n\nРаздел пока пустой — наполним следующим шагом.', keyboard: [BACK_ROW] },
+}
+
+/** Экран раздела главного меню (finance / community / kadry / events). */
+export function sectionScreen(name) {
+  return SECTIONS[name] ?? menuScreen()
 }
 
 /** Активные подписчики по тарифам, у каждого — дата следующего списания. */
 export function subscribersScreen(joins, tariffs) {
   const active = joins.filter((j) => j.status === 'active')
-  if (!active.length) return { text: '👥 Активных подписчиков пока нет.', keyboard: MENU_KEYBOARD }
+  if (!active.length) return { text: '👥 Активных подписчиков пока нет.', keyboard: COMMUNITY_KEYBOARD }
 
   const groups = new Map()
   for (const j of active) {
@@ -65,7 +98,7 @@ export function subscribersScreen(joins, tariffs) {
     const sorted = [...list].sort((a, b) => (a.nextPaymentAt ?? Infinity) - (b.nextPaymentAt ?? Infinity))
     for (const j of sorted) lines.push(`• ${who(j)}${j.nextPaymentAt ? ` — списание ${ruDay(j.nextPaymentAt)}` : ''}`)
   }
-  return { text: limitedText(lines), keyboard: MENU_KEYBOARD }
+  return { text: limitedText(lines), keyboard: COMMUNITY_KEYBOARD }
 }
 
 function limitedText(lines) {
@@ -80,7 +113,7 @@ export function dueScreen(joins, now) {
   const due = joins
     .filter((j) => j.status === 'active' && j.nextPaymentAt && mskDayKey(j.nextPaymentAt) >= from && mskDayKey(j.nextPaymentAt) <= to)
     .sort((a, b) => a.nextPaymentAt - b.nextPaymentAt)
-  if (!due.length) return { text: '⏭ В ближайшие 14 дней списаний нет.', keyboard: MENU_KEYBOARD }
+  if (!due.length) return { text: '⏭ В ближайшие 14 дней списаний нет.', keyboard: COMMUNITY_KEYBOARD }
 
   const total = due.reduce((acc, j) => acc + lastAmount(j), 0)
   const lines = [`⏭ Списания на 14 дней: ${due.length} · ~${rub(total)}`]
@@ -93,16 +126,16 @@ export function dueScreen(joins, now) {
     }
     lines.push(`• ${who(j)} — ${lastAmount(j) ? rub(lastAmount(j)) : 'сумма неизвестна'}`)
   }
-  return { text: limitedText(lines), keyboard: MENU_KEYBOARD }
+  return { text: limitedText(lines), keyboard: COMMUNITY_KEYBOARD }
 }
 
 /** Кто отключил подписку — с датой, чтобы можно было написать и спросить причину. */
 export function cancelledScreen(joins) {
   const list = joins.filter((j) => j.status === 'cancelled').sort((a, b) => (b.cancelledAt ?? 0) - (a.cancelledAt ?? 0))
-  if (!list.length) return { text: '🔕 Отписавшихся нет.', keyboard: MENU_KEYBOARD }
+  if (!list.length) return { text: '🔕 Отписавшихся нет.', keyboard: COMMUNITY_KEYBOARD }
   const lines = [`🔕 Отключили подписку: ${list.length}`, '']
   for (const j of list) lines.push(`• ${who(j)}${j.cancelledAt ? ` — ${ruDay(j.cancelledAt)}` : ''}`)
-  return { text: limitedText(lines), keyboard: MENU_KEYBOARD }
+  return { text: limitedText(lines), keyboard: COMMUNITY_KEYBOARD }
 }
 
 /**
@@ -131,7 +164,7 @@ export function reminderMenuScreen() {
         { text: 'Списание завтра', callback_data: 'a:rem:1' },
         { text: 'Через 3 дня', callback_data: 'a:rem:3' },
       ],
-      [{ text: '⬅️ Меню', callback_data: 'a:menu' }],
+      [{ text: '⬅️ Назад', callback_data: 'a:sec:community' }],
     ],
   }
 }

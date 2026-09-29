@@ -47,7 +47,7 @@ import { isValidKey, writeCollection, readAllCollections } from './lib/collectio
 import { nextTicketNumber } from './lib/ticketCounter.js'
 import { buildDailyReport, mskDayKey, parseReportPeriod } from './lib/dailyReport.js'
 import { logWebhook, lastWebhook } from './lib/webhookLog.js'
-import { MENU_KEYBOARD, menuScreen, subscribersScreen, dueScreen, cancelledScreen, reminderMenuScreen, reminderPreviewScreen, reminderTargets, reminderMessage } from './lib/adminCabinet.js'
+import { FINANCE_KEYBOARD, COMMUNITY_KEYBOARD, sectionScreen, menuScreen, subscribersScreen, dueScreen, cancelledScreen, reminderMenuScreen, reminderPreviewScreen, reminderTargets, reminderMessage } from './lib/adminCabinet.js'
 import fs from 'node:fs'
 import path from 'node:path'
 
@@ -637,7 +637,8 @@ app.get('/api/marketplace/purchase/:token', (req, res) => {
 async function adminScreen(data, now) {
   const joins = listJoins()
   const [, action, arg] = data.split(':')
-  if (action === 'rep') return { text: reportText(arg, now), keyboard: MENU_KEYBOARD }
+  if (action === 'sec') return sectionScreen(arg)
+  if (action === 'rep') return { text: reportText(arg, now), keyboard: FINANCE_KEYBOARD }
   if (action === 'subs') return subscribersScreen(joins, TARIFFS)
   if (action === 'due') return dueScreen(joins, now)
   if (action === 'cancelled') return cancelledScreen(joins)
@@ -656,7 +657,7 @@ async function adminScreen(data, now) {
     }
     const lines = [`✅ Напоминаний отправлено: ${sent}`]
     if (failed.length) lines.push('', 'Не дошло (человек не начинал диалог с ботом или заблокировал его):', ...failed.map((j) => `• ${[j.name, j.telegram, j.phone].filter(Boolean).join(', ')}`))
-    return { text: lines.join('\n'), keyboard: MENU_KEYBOARD }
+    return { text: lines.join('\n'), keyboard: COMMUNITY_KEYBOARD }
   }
   if (action === 'status') {
     const last = lastWebhook()
@@ -670,7 +671,7 @@ async function adminScreen(data, now) {
         : '⚠️ Вебхуков Prodamus с оплатой ещё не было',
       `Ежедневный отчёт: в ${REPORT_HOUR_MSK}:00 МСК`,
     ]
-    return { text: lines.join('\n'), keyboard: MENU_KEYBOARD }
+    return { text: lines.join('\n'), keyboard: COMMUNITY_KEYBOARD }
   }
   return menuScreen()
 }
@@ -698,8 +699,13 @@ async function handleTelegramUpdate(update) {
   const text = message?.text
   const chatId = message?.chat?.id
   const isAdmin = chatId && String(chatId) === String(ADMIN_CHAT_ID)
+  // Диагностика: показывает номер чата и то, считает ли бот его админским.
+  if (chatId && text === '/id') {
+    await sendTelegramMessage(chatId, `Ваш chat id: ${chatId}\nАдминский chat id в настройках бота: ${ADMIN_CHAT_ID || 'не задан'}\n${isAdmin ? '✅ Это админский чат' : '❌ Это не админский чат — кабинет здесь не откроется'}`)
+    return
+  }
   if (isAdmin && text?.startsWith('/report')) {
-    await sendTelegramMessage(chatId, reportText(parseReportPeriod(text.slice('/report'.length))), MENU_KEYBOARD)
+    await sendTelegramMessage(chatId, reportText(parseReportPeriod(text.slice('/report'.length))), FINANCE_KEYBOARD)
     return
   }
   // Админу обычный /start (и /menu) открывает кабинет с кнопками; /start access_… работает как у всех.
@@ -824,7 +830,7 @@ async function sendDailyReportIfDue() {
 
   fs.mkdirSync(path.dirname(REPORT_STATE_FILE), { recursive: true })
   fs.writeFileSync(REPORT_STATE_FILE, JSON.stringify({ lastDay: today }))
-  const ok = await sendTelegramMessage(ADMIN_CHAT_ID, reportText('today', now)).catch(() => false)
+  const ok = await sendTelegramMessage(ADMIN_CHAT_ID, reportText('today', now), FINANCE_KEYBOARD).catch(() => false)
   if (!ok) fs.writeFileSync(REPORT_STATE_FILE, JSON.stringify({ lastDay: null })) // не ушло — попробуем в следующую минуту
 }
 
