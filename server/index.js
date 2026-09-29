@@ -36,7 +36,7 @@ import cors from 'cors'
 import multer from 'multer'
 import { createPaymentLink, TARIFFS, tariffIdBySubscriptionId, createProductPaymentLink, MATERIALS } from './lib/prodamus.js'
 import { HmacHelper } from './lib/hmac.js'
-import { createPendingJoin, createOrphanJoin, listJoins, setTgUserId, findJoinForPayment, recordPayment, setSubscriptionActive } from './lib/store.js'
+import { createPendingJoin, createOrphanJoin, listJoins, setTgUserId, findJoinForPayment, recordPayment, setSubscriptionActive, markReminded } from './lib/store.js'
 import { normalizePhone } from './lib/jsonStore.js'
 import { createPendingPurchase, getPurchase, markPurchasePaidByPhone } from './lib/materialsStore.js'
 import { incrementView, incrementApplication } from './lib/vacancyStats.js'
@@ -47,6 +47,7 @@ import { isValidKey, writeCollection, readAllCollections } from './lib/collectio
 import { nextTicketNumber } from './lib/ticketCounter.js'
 import { buildDailyReport, mskDayKey, parseReportPeriod } from './lib/dailyReport.js'
 import { logWebhook, lastWebhook } from './lib/webhookLog.js'
+import { MENU_KEYBOARD, menuScreen, subscribersScreen, dueScreen, cancelledScreen, reminderMenuScreen, reminderPreviewScreen, reminderTargets, reminderMessage } from './lib/adminCabinet.js'
 import fs from 'node:fs'
 import path from 'node:path'
 
@@ -60,6 +61,7 @@ const ADMIN_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID
 const PRODAMUS_SECRET_KEY = process.env.PRODAMUS_SECRET_KEY
 const SITE_URL = process.env.SITE_URL || 'https://legalcareerist.ru'
 const COMMUNITY_INVITE_LINK = process.env.COMMUNITY_INVITE_LINK
+const SUPPORT_HANDLE = process.env.SUPPORT_HANDLE || '@legalcareerist_support'
 
 // Сервер стоит в РФ, и соединение с api.telegram.org время от времени
 // обрывается по таймауту — поэтому до трёх попыток с паузой, а не одна.
@@ -77,11 +79,11 @@ async function telegramFetch(method, init) {
   throw lastError
 }
 
-async function sendTelegramMessage(chatId, text) {
+async function sendTelegramMessage(chatId, text, replyMarkup) {
   const res = await telegramFetch('sendMessage', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: chatId, text }),
+    body: JSON.stringify({ chat_id: chatId, text, ...(replyMarkup ? { reply_markup: { inline_keyboard: replyMarkup } } : {}) }),
   })
   if (!res.ok) console.error('[telegram] sendMessage ошибка:', await res.text())
   return res.ok
@@ -631,13 +633,79 @@ app.get('/api/marketplace/purchase/:token', (req, res) => {
 
 // Апдейты от Telegram-бота @LegalcareeristBot. Настраивается один раз
 // командой setWebhook (см. README сервера).
+/** Экран кабинета по callback_data кнопки. Возвращает { text, keyboard }. */
+async function adminScreen(data, now) {
+  const joins = listJoins()
+  const [, action, arg] = data.split(':')
+  if (action === 'rep') return { text: reportText(arg, now), keyboard: MENU_KEYBOARD }
+  if (action === 'subs') return subscribersScreen(joins, TARIFFS)
+  if (action === 'due') return dueScreen(joins, now)
+  if (action === 'cancelled') return cancelledScreen(joins)
+  if (action === 'rem') return arg ? reminderPreviewScreen(joins, now, Number(arg)) : reminderMenuScreen()
+  if (action === 'remgo') {
+    const days = Number(arg)
+    const { reachable } = reminderTargets(joins, now, days)
+    let sent = 0
+    const failed = []
+    for (const join of reachable) {
+      const ok = await sendTelegramMessage(join.tgUserId, reminderMessage(join, SUPPORT_HANDLE)).catch(() => false)
+      if (ok) {
+        markReminded(join.token, join.nextPaymentAt)
+        sent += 1
+      } else failed.push(join)
+    }
+    const lines = [`✅ Напоминаний отправлено: ${sent}`]
+    if (failed.length) lines.push('', 'Не дошло (человек не начинал диалог с ботом или заблокировал его):', ...failed.map((j) => `• ${[j.name, j.telegram, j.phone].filter(Boolean).join(', ')}`))
+    return { text: lines.join('\n'), keyboard: MENU_KEYBOARD }
+  }
+  if (action === 'status') {
+    const last = lastWebhook()
+    const active = joins.filter((j) => j.status === 'active').length
+    const lines = [
+      '🔌 Состояние системы',
+      '',
+      `Карточек подписчиков: ${joins.length}, активных: ${active}`,
+      last
+        ? `Последний вебхук Prodamus: ${new Intl.DateTimeFormat('ru-RU', { timeZone: 'Europe/Moscow', dateStyle: 'short', timeStyle: 'short' }).format(new Date(last.at))} МСК (${last.status})`
+        : '⚠️ Вебхуков Prodamus с оплатой ещё не было',
+      `Ежедневный отчёт: в ${REPORT_HOUR_MSK}:00 МСК`,
+    ]
+    return { text: lines.join('\n'), keyboard: MENU_KEYBOARD }
+  }
+  return menuScreen()
+}
+
+/** Нажатие кнопки кабинета — только от админа; остальным молча отвечаем. */
+async function handleAdminCallback(query) {
+  const chatId = query.message?.chat?.id
+  const answer = (text) => telegramFetch('answerCallbackQuery', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ callback_query_id: query.id, ...(text ? { text } : {}) }) }).catch(() => null)
+  if (!chatId || String(query.from?.id) !== String(ADMIN_CHAT_ID) || !String(query.data ?? '').startsWith('a:')) {
+    await answer()
+    return
+  }
+  await answer()
+  const screen = await adminScreen(query.data, Date.now())
+  await sendTelegramMessage(chatId, screen.text, screen.keyboard)
+}
+
 /** Один апдейт от Telegram — общий для вебхука и для опроса (getUpdates). */
 async function handleTelegramUpdate(update) {
+  if (update?.callback_query) {
+    await handleAdminCallback(update.callback_query)
+    return
+  }
   const message = update?.message
   const text = message?.text
   const chatId = message?.chat?.id
-  if (chatId && text?.startsWith('/report') && String(chatId) === String(ADMIN_CHAT_ID)) {
-    await sendTelegramMessage(chatId, reportText(parseReportPeriod(text.slice('/report'.length))))
+  const isAdmin = chatId && String(chatId) === String(ADMIN_CHAT_ID)
+  if (isAdmin && text?.startsWith('/report')) {
+    await sendTelegramMessage(chatId, reportText(parseReportPeriod(text.slice('/report'.length))), MENU_KEYBOARD)
+    return
+  }
+  // Админу обычный /start (и /menu) открывает кабинет с кнопками; /start access_… работает как у всех.
+  if (isAdmin && (text === '/menu' || text === '/admin' || text === '/start')) {
+    const screen = menuScreen()
+    await sendTelegramMessage(chatId, screen.text, screen.keyboard)
     return
   }
   if (!chatId || !text || !text.startsWith('/start')) return

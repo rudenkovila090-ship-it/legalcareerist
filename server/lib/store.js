@@ -136,3 +136,8 @@ export function setSubscriptionActive(token, active, at) {
   })
   return result
 }
+
+/** Запоминает, что напоминание о списании на эту дату подписчику уже отправлено. */
+export function markReminded(token, nextPaymentAt) {
+  return store.setField(token, 'remindedFor', nextPaymentAt)
+}
