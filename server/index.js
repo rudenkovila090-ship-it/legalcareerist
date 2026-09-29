@@ -47,7 +47,7 @@ import { isValidKey, writeCollection, readAllCollections } from './lib/collectio
 import { nextTicketNumber } from './lib/ticketCounter.js'
 import { buildDailyReport, mskDayKey, parseReportPeriod } from './lib/dailyReport.js'
 import { logWebhook, lastWebhook } from './lib/webhookLog.js'
-import { FINANCE_KEYBOARD, COMMUNITY_KEYBOARD, sectionScreen, menuScreen, subscribersScreen, dueScreen, cancelledScreen, reminderMenuScreen, reminderPreviewScreen, reminderTargets, reminderMessage } from './lib/adminCabinet.js'
+import { FINANCE_KEYBOARD, COMMUNITY_KEYBOARD, sectionScreen, menuScreen, subscribersScreen, planScreen, dueScreen, cancelledScreen, reminderMenuScreen, reminderPreviewScreen, reminderTargets, reminderMessage } from './lib/adminCabinet.js'
 import fs from 'node:fs'
 import path from 'node:path'
 
@@ -655,6 +655,7 @@ async function adminScreen(data, now) {
   if (action === 'sec') return sectionScreen(arg)
   if (action === 'rep') return { text: reportText(arg, now), keyboard: FINANCE_KEYBOARD }
   if (action === 'subs') return subscribersScreen(joins, TARIFFS)
+  if (action === 'plan') return planScreen(joins, TARIFFS, arg)
   if (action === 'due') return dueScreen(joins, now, TARIFFS)
   if (action === 'due14') return dueScreen(joins, now, TARIFFS, 14)
   if (action === 'cancelled') return cancelledScreen(joins, TARIFFS)

@@ -89,44 +89,92 @@ const STANDARD_PLANS = [
   { amount: 3180, label: '6 месяцев' },
 ]
 
-function residentLines(list) {
-  return [...list]
-    .sort((a, b) => (a.nextPaymentAt ?? Infinity) - (b.nextPaymentAt ?? Infinity))
-    .map((j) => `   • ${who(j)}${j.nextPaymentAt ? ` — след. списание ${ruDay(j.nextPaymentAt)}` : ''}`)
-}
+const BACK_TO_COMMUNITY = [{ text: '⬅️ Назад', callback_data: 'a:sec:community' }, { text: '🏠 Меню', callback_data: 'a:menu' }]
 
-/** Резиденты по тарифам: сначала скидочные (350/500/530 ₽), затем 690 / 1 770 / 3 180 ₽. */
-export function subscribersScreen(joins, tariffs) {
-  const active = joins.filter((j) => j.status === 'active')
+/** Активные резиденты, разложенные по сумме списания: Map(сумма → карточки). */
+function activeByAmount(joins, tariffs) {
   const byAmount = new Map()
-  for (const j of active) {
+  for (const j of joins.filter((x) => x.status === 'active')) {
     const amount = planAmount(j, tariffs)
     if (!byAmount.has(amount)) byAmount.set(amount, [])
     byAmount.get(amount).push(j)
   }
-  const take = (amount) => {
-    const list = byAmount.get(amount) ?? []
-    byAmount.delete(amount)
-    return list
-  }
+  return byAmount
+}
 
-  const lines = [`👥 Резидентов сейчас: ${active.length}`]
-  const group = (title, list) => {
-    lines.push(`${title} — ${list.length} чел.`, ...residentLines(list))
-  }
+const KNOWN_AMOUNTS = [...DISCOUNT_PLANS, ...STANDARD_PLANS.map((p) => p.amount)]
 
-  lines.push('', '🏷 Месяц со скидкой')
-  for (const amount of DISCOUNT_PLANS) group(`• ${rub(amount)}/мес`, take(amount))
+function planTitle(amount) {
+  const standard = STANDARD_PLANS.find((p) => p.amount === amount)
+  if (standard) return `${rub(amount)} · ${standard.label}`
+  return DISCOUNT_PLANS.includes(amount) ? `${rub(amount)}/мес · со скидкой` : amount ? rub(amount) : 'сумма неизвестна'
+}
 
-  lines.push('', '💳 Обычные тарифы')
-  for (const { amount, label } of STANDARD_PLANS) group(`• ${rub(amount)} · ${label}`, take(amount))
+/**
+ * Резиденты по тарифам: количество по каждой сумме и кнопки, по которым
+ * открывается подробный список людей (planScreen).
+ */
+export function subscribersScreen(joins, tariffs) {
+  const byAmount = activeByAmount(joins, tariffs)
+  const total = [...byAmount.values()].reduce((acc, list) => acc + list.length, 0)
+  const count = (amount) => byAmount.get(amount)?.length ?? 0
+  const otherCount = [...byAmount.entries()].filter(([amount]) => !KNOWN_AMOUNTS.includes(amount)).reduce((acc, [, list]) => acc + list.length, 0)
 
-  const other = [...byAmount.entries()].sort((a, b) => a[0] - b[0])
-  if (other.length) {
-    lines.push('', '❔ Другие суммы')
-    for (const [amount, list] of other) group(`• ${amount ? rub(amount) : 'сумма неизвестна'}`, list)
-  }
-  return { text: lines.join('\n'), keyboard: COMMUNITY_KEYBOARD }
+  const lines = [
+    `👥 Резидентов сейчас: ${total}`,
+    '',
+    '🏷 Месяц со скидкой',
+    ...DISCOUNT_PLANS.map((amount) => `• ${rub(amount)}/мес — ${count(amount)} чел.`),
+    '',
+    '💳 Обычные тарифы',
+    ...STANDARD_PLANS.map(({ amount, label }) => `• ${rub(amount)} · ${label} — ${count(amount)} чел.`),
+  ]
+  if (otherCount) lines.push('', `❔ Другие суммы — ${otherCount} чел.`)
+  lines.push('', 'Нажмите на тариф, чтобы увидеть людей:')
+
+  const btn = (amount) => ({ text: `${rub(amount)} · ${count(amount)}`, callback_data: `a:plan:${amount}` })
+  const keyboard = [DISCOUNT_PLANS.map(btn), STANDARD_PLANS.map((p) => btn(p.amount))]
+  if (otherCount) keyboard.push([{ text: `Другие суммы · ${otherCount}`, callback_data: 'a:plan:other' }])
+  keyboard.push(BACK_TO_COMMUNITY)
+  return { text: lines.join('\n'), keyboard }
+}
+
+const ruDate = (ts) => new Intl.DateTimeFormat('ru-RU', { timeZone: MSK, day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(ts))
+
+/**
+ * Подробный список резидентов одного тарифа (key — сумма или "other"):
+ * ФИО, ник в Telegram, телефон, почта, дата начала подписки. Дата рождения
+ * показывается, только если она есть в карточке — на сайте её пока не спрашиваем.
+ */
+export function planScreen(joins, tariffs, key) {
+  const byAmount = activeByAmount(joins, tariffs)
+  const isOther = key === 'other'
+  const amount = Number(key)
+  const list = isOther
+    ? [...byAmount.entries()].filter(([a]) => !KNOWN_AMOUNTS.includes(a)).flatMap(([, l]) => l)
+    : byAmount.get(amount) ?? []
+  const title = isOther ? 'Другие суммы' : planTitle(amount)
+  const keyboard = [[{ text: '⬅️ К тарифам', callback_data: 'a:subs' }, { text: '🏠 Меню', callback_data: 'a:menu' }]]
+  if (!list.length) return { text: `📋 ${title}\n\nНа этом тарифе сейчас никого нет.`, keyboard }
+
+  const lines = [`📋 ${title} — ${list.length} чел.`]
+  const sorted = [...list].sort((a, b) => (a.firstPaidAt ?? a.createdAt ?? 0) - (b.firstPaidAt ?? b.createdAt ?? 0))
+  sorted.forEach((j, i) => {
+    const started = j.firstPaidAt ?? j.createdAt
+    const payments = (j.payments ?? []).filter((p) => !p.estimated).length
+    lines.push(
+      '',
+      `${i + 1}. ${j.name && j.name !== '—' ? j.name : 'Имя не указано'}`,
+      ...(j.birthDate ? [`   Дата рождения: ${j.birthDate}`] : []),
+      `   Telegram: ${j.telegram || 'не указан'}`,
+      `   Телефон: ${j.phone || 'не указан'}`,
+      `   Почта: ${j.email || 'не указана'}`,
+      `   Подписка с: ${started ? ruDate(started) : 'дата неизвестна'}${payments ? ` · оплат: ${payments}` : ''}`,
+      ...(isOther ? [`   Сумма списания: ${planAmount(j, tariffs) ? rub(planAmount(j, tariffs)) : 'неизвестна'}`] : []),
+      ...(j.nextPaymentAt ? [`   Следующее списание: ${ruDate(j.nextPaymentAt)}`] : []),
+    )
+  })
+  return { text: lines.join('\n'), keyboard }
 }
 
 const ruTime = (ts) => new Intl.DateTimeFormat('ru-RU', { timeZone: MSK, hour: '2-digit', minute: '2-digit' }).format(new Date(ts))
