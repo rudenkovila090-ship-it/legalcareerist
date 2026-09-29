@@ -45,7 +45,7 @@ import { incrementNewsView, getNewsViews } from './lib/newsStats.js'
 import { incrementEventView, incrementEventRegistration, getEventStats } from './lib/eventStats.js'
 import { isValidKey, writeCollection, readAllCollections } from './lib/collectionStore.js'
 import { nextTicketNumber } from './lib/ticketCounter.js'
-import { buildDailyReport, mskDayKey } from './lib/dailyReport.js'
+import { buildDailyReport, mskDayKey, parseReportPeriod } from './lib/dailyReport.js'
 import fs from 'node:fs'
 import path from 'node:path'
 
@@ -629,7 +629,7 @@ app.post('/api/telegram/webhook', async (req, res) => {
     const text = message?.text
     const chatId = message?.chat?.id
     if (chatId && text?.startsWith('/report') && String(chatId) === String(ADMIN_CHAT_ID)) {
-      await sendTelegramMessage(chatId, buildDailyReport(listJoins(), Date.now(), TARIFFS))
+      await sendTelegramMessage(chatId, buildDailyReport(listJoins(), Date.now(), TARIFFS, parseReportPeriod(text.slice('/report'.length))))
       return
     }
     if (!chatId || !text || !text.startsWith('/start')) return
