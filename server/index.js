@@ -50,6 +50,8 @@ import { logWebhook, lastWebhook } from './lib/webhookLog.js'
 import { FINANCE_KEYBOARD, COMMUNITY_KEYBOARD, sectionScreen, menuScreen, subscribersScreen, planScreen, dueScreen, cancelledScreen, reminderMenuScreen, reminderPreviewScreen, reminderTargets, reminderMessage } from './lib/adminCabinet.js'
 import fs from 'node:fs'
 import path from 'node:path'
+import { createDeal, listDeals as listAllDeals, getDeal, moveDeal, setQualified, closeDeal, setRevenue, scheduleReminder, reopenDeal, dealsDueForReminder, stageOf, LAST_STAGE } from './lib/deals.js'
+import { dealCard, activeDealsScreen, funnelScreen, stageScreen, closedScreen, monthSummary, monthKeyFor, dealReminder, NEW_DEAL_PROMPT, KADRY_KEYBOARD } from './lib/kadryCabinet.js'
 
 const app = express()
 app.use(cors())
@@ -229,7 +231,7 @@ function parsePaymentDate(value) {
  * тогда считаем сами: дата платежа + срок тарифа.
  */
 function pickNextPaymentDate(subscription, paidAt) {
-  const ts = parseProdamusDate(subscription?.date_next_payment)
+  const ts = parseProdamusDate(subscription?.date_next_payment ?? subscription?.next_payment)
   return !Number.isNaN(ts) && ts > paidAt ? ts : null
 }
 
@@ -502,6 +504,9 @@ app.post('/api/upload-document', upload.single('file'), async (req, res) => {
   res.json({ ok: true })
 })
 
+// Формы, которые считаются заказом услуги рекрутинга и становятся сделкой.
+const DEAL_FORM_TYPES = new Set(['service_order', 'employer_request'])
+
 app.post('/api/notify', async (req, res) => {
   const { direction, service, source, formType, name, contact, phone, email, telegram, company, template, interest, date, vacancySlug, eventSlug, ticketNumber } = req.body ?? {}
 
@@ -531,6 +536,23 @@ app.post('/api/notify', async (req, res) => {
     return res.status(500).json({ ok: false, error: 'not_configured' })
   }
 
+  // Заявка работодателя на рекрутинг — заводим сделку в разделе «Кадры»:
+  // сквозной номер, этап «Формирование заказа», напоминания по этапам.
+  let deal = null
+  if (template === 'kadry-employer' && DEAL_FORM_TYPES.has(formType)) {
+    try {
+      const lines = Array.isArray(interest) ? interest : []
+      const request = lines.map((l) => String(l).match(/^(?:Кого ищем|Ищем):\s*(.+)$/i)?.[1]).find(Boolean)
+      const feeLine = lines.map((l) => String(l).match(/^Итого:\s*(.+)$/i)?.[1]).find(Boolean)
+      const expectedFee = feeLine ? Number(feeLine.replace(/\D/g, '')) || null : null
+      const created = createDeal({ company, name, phone, email, telegram, request: request === 'не указано' ? '' : request, details: lines, source: formType, expectedFee })
+      if (created.duplicate) return res.json({ ok: true })
+      deal = created.deal
+    } catch (err) {
+      console.error('[notify] не удалось завести сделку:', err)
+    }
+  }
+
   // phone/email/telegram — отдельными полями с фронтенда (см.
   // src/lib/leads.ts); contact — старая склеенная строка, остаётся как
   // запасной вариант, если фронтенд почему-то не прислал разбивку.
@@ -547,7 +569,7 @@ app.post('/api/notify', async (req, res) => {
         telegram,
         company,
         details: interest,
-        ticketNumber,
+        ticketNumber: deal ? String(deal.number) : ticketNumber,
       })
     : buildLeadNotification({
         direction: direction || source,
@@ -561,7 +583,9 @@ app.post('/api/notify', async (req, res) => {
         ticketNumber,
       })
 
-  const ok = await sendTelegramMessage(ADMIN_CHAT_ID, text).catch((err) => {
+  const dealNote = deal ? `\n\n🗂 Сделка №${deal.number} создана · этап 1: ${stageOf(1).name}` : ''
+  const dealKeyboard = deal ? [[{ text: `📂 Открыть сделку №${deal.number}`, callback_data: `a:k:deal:${deal.number}` }]] : undefined
+  const ok = await sendTelegramMessage(ADMIN_CHAT_ID, text + dealNote, dealKeyboard).catch((err) => {
     console.error('[notify] ошибка запроса к Telegram:', err)
     return false
   })
@@ -633,6 +657,139 @@ app.get('/api/marketplace/purchase/:token', (req, res) => {
 
 // Апдейты от Telegram-бота @LegalcareeristBot. Настраивается один раз
 // командой setWebhook (см. README сервера).
+// Ожидание текстового ответа от админа (сумма выручки, данные новой сделки):
+// chatId → { type, number? }. Живёт в памяти — после перезапуска сервера просто нажмите кнопку ещё раз.
+const adminInput = new Map()
+
+const dealScreen = (number, now = Date.now()) => {
+  const deal = getDeal(number)
+  return deal ? dealCard(deal, now) : { text: `Сделка №${number} не найдена.`, keyboard: KADRY_KEYBOARD }
+}
+
+/** Кнопки «Кадры → сделки»: parts — callback_data без префикса «a:k:». */
+function kadryAction(parts, now, chatId) {
+  const [action, arg] = parts
+  const number = Number(arg)
+  const deals = listAllDeals()
+  switch (action) {
+    case 'list':
+      return activeDealsScreen(deals)
+    case 'funnel':
+      return funnelScreen(deals)
+    case 'stage':
+      return stageScreen(deals, number)
+    case 'closed':
+      return closedScreen(deals)
+    case 'month':
+      return monthSummary(deals, monthKeyFor(arg, now), now)
+    case 'deal':
+      return dealScreen(number, now)
+    case 'adv':
+      moveDeal(number, 1)
+      return dealScreen(number, now)
+    case 'back':
+      moveDeal(number, -1)
+      return dealScreen(number, now)
+    case 'q1':
+      setQualified(number, true)
+      return dealScreen(number, now)
+    case 'q0':
+      setQualified(number, false)
+      return dealScreen(number, now)
+    case 'lost':
+      closeDeal(number, 'lost', 'закрыта вручную')
+      return dealScreen(number, now)
+    case 'reopen':
+      reopenDeal(number)
+      return dealScreen(number, now)
+    case 'revok': {
+      const deal = getDeal(number)
+      if (deal?.expectedFee) setRevenue(number, deal.expectedFee)
+      return dealScreen(number, now)
+    }
+    case 'rev':
+      adminInput.set(String(chatId), { type: 'revenue', number })
+      return { text: `💰 Сделка №${number}: отправьте сумму выручки числом, например 120000.\nДля отмены — /cancel.`, keyboard: [[{ text: '⬅️ К сделке', callback_data: `a:k:deal:${number}` }]] }
+    case 'new':
+      adminInput.set(String(chatId), { type: 'newdeal' })
+      return { text: NEW_DEAL_PROMPT, keyboard: [[{ text: '⬅️ Кадры', callback_data: 'a:sec:kadry' }]] }
+    default:
+      return { text: 'Раздел «Кадры»', keyboard: KADRY_KEYBOARD }
+  }
+}
+
+/** Текстовый ответ админа на вопрос бота (выручка / новая сделка). */
+async function handlePendingInput(chatId, pending, text) {
+  if (pending.type === 'revenue') {
+    const amount = Number(text.replace(/[^\d.,]/g, '').replace(',', '.'))
+    if (!(amount > 0)) {
+      adminInput.set(String(chatId), pending)
+      await sendTelegramMessage(chatId, 'Не разобрал сумму. Отправьте число, например 120000, или /cancel.')
+      return
+    }
+    setRevenue(pending.number, amount)
+    const screen = dealScreen(pending.number)
+    await sendLongMessage(chatId, `✅ Выручка записана: ${formatRub(amount)}\n\n${screen.text}`, screen.keyboard)
+    return
+  }
+  if (pending.type === 'newdeal') {
+    const [company, name, phone, email, telegram, request] = text.split('\n').map((l) => (l.trim() === '-' ? '' : l.trim()))
+    if (!company || (!phone && !email && !telegram)) {
+      adminInput.set(String(chatId), pending)
+      await sendTelegramMessage(chatId, 'Нужны как минимум компания (1-я строка) и один контакт — телефон, почта или Telegram. Отправьте ещё раз или /cancel.')
+      return
+    }
+    const { deal } = createDeal({ company, name, phone, email, telegram, request, details: [], source: 'manual' })
+    const screen = dealCard(deal)
+    await sendLongMessage(chatId, `✅ Сделка №${deal.number} создана\n\n${screen.text}`, screen.keyboard)
+  }
+}
+
+/** Напоминания по сделкам: раз в день после 10:00 по Москве, по каждой сделке — когда подошёл срок этапа. */
+let dealRemindersRunning = false
+async function sendDealRemindersIfDue() {
+  if (!BOT_TOKEN || !ADMIN_CHAT_ID || dealRemindersRunning) return
+  const now = Date.now()
+  const hour = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Moscow', hour: '2-digit', hour12: false }).format(new Date(now)))
+  if (hour < 10) return
+  dealRemindersRunning = true
+  try {
+    for (const deal of dealsDueForReminder(now)) {
+      const screen = dealReminder(deal)
+      const ok = await sendTelegramMessage(ADMIN_CHAT_ID, screen.text, screen.keyboard).catch(() => false)
+      if (!ok) continue
+      // На испытательном сроке первое напоминание — на 30-й день, дальше каждые 3 дня, пока сделку не закроют.
+      const everyDays = deal.stage === LAST_STAGE ? 3 : stageOf(deal.stage).remindDays
+      scheduleReminder(deal.number, now + everyDays * 24 * 3600 * 1000)
+    }
+  } finally {
+    dealRemindersRunning = false
+  }
+}
+
+// Итоги месяца по кадровому агентству — автоматически в начале следующего месяца (после 10:00 МСК).
+const KADRY_MONTHLY_FILE = path.join(import.meta.dirname, 'data', 'kadry-monthly.json')
+async function sendKadryMonthlyIfDue() {
+  if (!BOT_TOKEN || !ADMIN_CHAT_ID) return
+  const now = Date.now()
+  const hour = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Moscow', hour: '2-digit', hour12: false }).format(new Date(now)))
+  const prev = monthKeyFor('prev', now)
+  let lastSent = null
+  try {
+    lastSent = JSON.parse(fs.readFileSync(KADRY_MONTHLY_FILE, 'utf8')).lastSent
+  } catch {
+    // первый запуск: не шлём итоги за месяц, когда учёта ещё не было
+    fs.mkdirSync(path.dirname(KADRY_MONTHLY_FILE), { recursive: true })
+    fs.writeFileSync(KADRY_MONTHLY_FILE, JSON.stringify({ lastSent: prev }))
+    return
+  }
+  if (lastSent === prev || hour < 10) return
+  fs.writeFileSync(KADRY_MONTHLY_FILE, JSON.stringify({ lastSent: prev }))
+  const screen = monthSummary(listAllDeals(), prev, now)
+  const ok = await sendTelegramMessage(ADMIN_CHAT_ID, screen.text, screen.keyboard).catch(() => false)
+  if (!ok) fs.writeFileSync(KADRY_MONTHLY_FILE, JSON.stringify({ lastSent }))
+}
+
 /** Длинный текст режет по строкам на части до лимита Telegram (4096 символов); кнопки — под последней. */
 async function sendLongMessage(chatId, text, keyboard) {
   const chunks = []
@@ -649,7 +806,8 @@ async function sendLongMessage(chatId, text, keyboard) {
 }
 
 /** Экран кабинета по callback_data кнопки. Возвращает { text, keyboard }. */
-async function adminScreen(data, now) {
+async function adminScreen(data, now, chatId) {
+  if (data.startsWith('a:k:')) return kadryAction(data.split(':').slice(2), now, chatId)
   const joins = listJoins()
   const [, action, arg] = data.split(':')
   if (action === 'sec') return sectionScreen(arg)
@@ -702,7 +860,7 @@ async function handleAdminCallback(query) {
     return
   }
   await answer()
-  const screen = await adminScreen(query.data, Date.now())
+  const screen = await adminScreen(query.data, Date.now(), chatId)
   await sendLongMessage(chatId, screen.text, screen.keyboard)
 }
 
@@ -723,6 +881,17 @@ async function handleTelegramUpdate(update) {
   }
   if (isAdmin && text?.startsWith('/report')) {
     await sendTelegramMessage(chatId, reportText(parseReportPeriod(text.slice('/report'.length))), FINANCE_KEYBOARD)
+    return
+  }
+  if (isAdmin && text === '/cancel') {
+    adminInput.delete(String(chatId))
+    await sendTelegramMessage(chatId, 'Отменено.', KADRY_KEYBOARD)
+    return
+  }
+  const pendingInput = isAdmin && text && !text.startsWith('/') ? adminInput.get(String(chatId)) : null
+  if (pendingInput) {
+    adminInput.delete(String(chatId))
+    await handlePendingInput(chatId, pendingInput, text)
     return
   }
   // Админу обычный /start (и /menu) открывает кабинет с кнопками; /start access_… работает как у всех.
@@ -892,6 +1061,8 @@ if (BOT_TOKEN && process.env.TELEGRAM_POLLING !== '0') {
 
 if (process.env.DISABLE_DAILY_REPORT !== '1') {
   setInterval(() => afterResponse('daily-report', sendDailyReportIfDue), 60 * 1000)
+  setInterval(() => afterResponse('deal-reminders', sendDealRemindersIfDue), 60 * 1000)
+  setInterval(() => afterResponse('kadry-monthly', sendKadryMonthlyIfDue), 60 * 1000)
 }
 
 // Страховка от падения процесса из-за необработанной ошибки где-то в фоне
