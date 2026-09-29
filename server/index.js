@@ -621,40 +621,44 @@ app.get('/api/marketplace/purchase/:token', (req, res) => {
 
 // Апдейты от Telegram-бота @LegalcareeristBot. Настраивается один раз
 // командой setWebhook (см. README сервера).
+/** Один апдейт от Telegram — общий для вебхука и для опроса (getUpdates). */
+async function handleTelegramUpdate(update) {
+  const message = update?.message
+  const text = message?.text
+  const chatId = message?.chat?.id
+  if (chatId && text?.startsWith('/report') && String(chatId) === String(ADMIN_CHAT_ID)) {
+    await sendTelegramMessage(chatId, buildDailyReport(listJoins(), Date.now(), TARIFFS, parseReportPeriod(text.slice('/report'.length))))
+    return
+  }
+  if (!chatId || !text || !text.startsWith('/start')) return
+
+  const payload = text.slice('/start'.length).trim()
+  const match = payload.match(/^access_(\w+)$/)
+  const token = match?.[1]
+
+  if (!token) {
+    await sendTelegramMessage(chatId, 'Привет! Это бот «Карьерного юриста». Чтобы вступить в сообщество, начните с сайта — раздел «Сообщество».')
+    return
+  }
+
+  const join = setTgUserId(token, chatId)
+  if (!join) {
+    await sendTelegramMessage(chatId, 'Не нашли вашу заявку — попробуйте оформить подписку заново на сайте.')
+    return
+  }
+
+  if (join.paid) {
+    await sendInviteLink(chatId, join)
+  } else {
+    await sendTelegramMessage(chatId, 'Ждём подтверждения оплаты от банка — обычно это занимает меньше минуты. Как только оплата пройдёт, здесь появится ссылка на вступление.')
+  }
+}
+
+// Вебхук оставлен на случай, если Telegram сможет достучаться до сервера, но
+// по умолчанию бот сам опрашивает Telegram (см. pollTelegramUpdates ниже).
 app.post('/api/telegram/webhook', async (req, res) => {
   res.sendStatus(200) // Telegram ждёт быстрый ответ, обрабатываем после
-
-  await afterResponse('telegram/webhook', async () => {
-    const message = req.body?.message
-    const text = message?.text
-    const chatId = message?.chat?.id
-    if (chatId && text?.startsWith('/report') && String(chatId) === String(ADMIN_CHAT_ID)) {
-      await sendTelegramMessage(chatId, buildDailyReport(listJoins(), Date.now(), TARIFFS, parseReportPeriod(text.slice('/report'.length))))
-      return
-    }
-    if (!chatId || !text || !text.startsWith('/start')) return
-
-    const payload = text.slice('/start'.length).trim()
-    const match = payload.match(/^access_(\w+)$/)
-    const token = match?.[1]
-
-    if (!token) {
-      await sendTelegramMessage(chatId, 'Привет! Это бот «Карьерного юриста». Чтобы вступить в сообщество, начните с сайта — раздел «Сообщество».')
-      return
-    }
-
-    const join = setTgUserId(token, chatId)
-    if (!join) {
-      await sendTelegramMessage(chatId, 'Не нашли вашу заявку — попробуйте оформить подписку заново на сайте.')
-      return
-    }
-
-    if (join.paid) {
-      await sendInviteLink(chatId, join)
-    } else {
-      await sendTelegramMessage(chatId, 'Ждём подтверждения оплаты от банка — обычно это занимает меньше минуты. Как только оплата пройдёт, здесь появится ссылка на вступление.')
-    }
-  })
+  await afterResponse('telegram/webhook', () => handleTelegramUpdate(req.body))
 })
 
 // Уведомления Prodamus об оплате подписки.
@@ -743,6 +747,45 @@ async function sendDailyReportIfDue() {
   fs.writeFileSync(REPORT_STATE_FILE, JSON.stringify({ lastDay: today }))
   const ok = await sendTelegramMessage(ADMIN_CHAT_ID, buildDailyReport(listJoins(), now, TARIFFS)).catch(() => false)
   if (!ok) fs.writeFileSync(REPORT_STATE_FILE, JSON.stringify({ lastDay: null })) // не ушло — попробуем в следующую минуту
+}
+
+// Приём сообщений боту через getUpdates (long polling): нужно только
+// исходящее соединение с Telegram. С хостинга сервера входящие запросы от
+// Telegram (вебхук) не доходили — в nginx не было ни одного, а Telegram
+// писал «Connection timed out». Telegram не даёт использовать getUpdates
+// при установленном вебхуке, поэтому при старте вебхук снимается; накопившиеся
+// сообщения при этом не теряются. Отключить: TELEGRAM_POLLING=0 в server/.env.
+async function pollTelegramUpdates() {
+  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+  try {
+    await telegramFetch('deleteWebhook', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ drop_pending_updates: false }) })
+  } catch (err) {
+    console.error('[telegram] не удалось снять вебхук перед опросом:', err)
+  }
+
+  let offset = 0
+  console.log('[telegram] приём сообщений боту: опрос getUpdates')
+  for (;;) {
+    try {
+      const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getUpdates?timeout=30&offset=${offset}`, { signal: AbortSignal.timeout(45000) })
+      const data = await res.json()
+      if (!Array.isArray(data.result)) {
+        console.error('[telegram] getUpdates ответил неожиданно:', JSON.stringify(data).slice(0, 200))
+        await sleep(5000)
+        continue
+      }
+      for (const update of data.result) {
+        offset = update.update_id + 1
+        await afterResponse('telegram/poll', () => handleTelegramUpdate(update))
+      }
+    } catch {
+      await sleep(5000) // сеть моргнула — пробуем снова
+    }
+  }
+}
+
+if (BOT_TOKEN && process.env.TELEGRAM_POLLING !== '0') {
+  pollTelegramUpdates()
 }
 
 if (process.env.DISABLE_DAILY_REPORT !== '1') {
