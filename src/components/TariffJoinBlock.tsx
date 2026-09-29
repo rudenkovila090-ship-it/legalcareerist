@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { tariffs, type TariffId } from '../data/tariffs'
 import { submitLead } from '../lib/leads'
 import PhoneInput from './PhoneInput'
+import { validateJoinContacts } from '../lib/joinValidation'
 
 /**
  * Виджет выбора и оплаты тарифа сообщества — та же логика и тот же бэкенд
@@ -19,6 +20,7 @@ export default function TariffJoinBlock() {
   const [telegram, setTelegram] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState(false)
+  const [formError, setFormError] = useState('')
 
   // При возврате кнопкой «Назад» после редиректа на оплату bfcache может
   // восстановить страницу с «замороженной» кнопкой — сбрасываем загрузку.
@@ -50,7 +52,9 @@ export default function TariffJoinBlock() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    if (!name.trim() || !telegram.trim() || !phone.trim()) return
+    const invalid = validateJoinContacts({ name, phone, email, telegram })
+    setFormError(invalid ?? '')
+    if (invalid) return
 
     submitLead({
       sourceBlock: 'community',
@@ -168,7 +172,8 @@ export default function TariffJoinBlock() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Почта (необязательно)"
+                  placeholder="Почта"
+                  required
                   className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
                 />
               </div>
@@ -179,6 +184,7 @@ export default function TariffJoinBlock() {
                 required
                 className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
               />
+              {formError && <p className="text-sm text-red-600">{formError}</p>}
               {submitError && (
                 <p className="text-sm text-red-600">Не получилось перейти к оплате — попробуйте еще раз через минуту.</p>
               )}

@@ -12,9 +12,10 @@
 // 5. GET /api/marketplace/purchase/:token — данные для личного кабинета
 //    (что купили, оплачено ли, ссылка на материал).
 // 6. POST /api/prodamus/webhook — уведомления Prodamus об оплате: и для
-//    подписок сообщества (находит заявку по телефону+тарифу, шлёт ссылку
-//    в бота), и для разовых покупок материалов (шлёт админу уведомление
-//    о покупке).
+//    подписок сообщества (находит карточку подписчика по телефону/почте/
+//    нику, записывает оплату как первую или как продление, пишет админу,
+//    при первой оплате шлёт ссылку в бота), и для разовых покупок
+//    материалов (шлёт админу уведомление о покупке).
 // 7. POST /api/vacancy/:slug/view — реальный счётчик просмотров вакансии
 //    (+1 при каждом открытии страницы).
 // 8. POST /api/article/:slug/view — реальный счётчик просмотров статьи
@@ -35,7 +36,8 @@ import cors from 'cors'
 import multer from 'multer'
 import { createPaymentLink, TARIFFS, tariffIdBySubscriptionId, createProductPaymentLink, MATERIALS } from './lib/prodamus.js'
 import { HmacHelper } from './lib/hmac.js'
-import { createPendingJoin, setTgUserId, markPaidByPhone } from './lib/store.js'
+import { createPendingJoin, createOrphanJoin, setTgUserId, findJoinForPayment, recordPayment } from './lib/store.js'
+import { normalizePhone } from './lib/jsonStore.js'
 import { createPendingPurchase, getPurchase, markPurchasePaidByPhone } from './lib/materialsStore.js'
 import { incrementView, incrementApplication } from './lib/vacancyStats.js'
 import { incrementArticleView, getArticleViews } from './lib/articleStats.js'
@@ -160,6 +162,137 @@ function buildKadryRichNotification({ template, direction, service, date, name, 
     ...(Array.isArray(details) ? details.map((d) => `${richDetailIcon(d)} ${d}`) : []),
   ].filter((l) => l !== null)
   return lines.join('\n')
+}
+
+// ---- Подписка сообщества: проверка данных формы и учёт оплат ----
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+/** Приводит ник в Telegram к виду @nick (принимает @nick, nick и ссылку t.me/nick). */
+function normalizeTelegram(value) {
+  const nick = String(value ?? '').trim().replace(/^https?:\/\/t\.me\//i, '').replace(/^@/, '')
+  return nick ? `@${nick}` : ''
+}
+
+/** Прибавляет календарные месяцы; 31 января + 1 месяц — последний день февраля, а не 3 марта. */
+function addMonths(timestamp, months) {
+  const d = new Date(timestamp)
+  const day = d.getDate()
+  d.setMonth(d.getMonth() + months)
+  if (d.getDate() !== day) d.setDate(0)
+  return d.getTime()
+}
+
+/** Дата платежа из вебхука (поле date, например 2026-09-21T12:00:00+03:00); если её нет или она битая — текущий момент. */
+function parsePaymentDate(value) {
+  const ts = value ? Date.parse(value) : NaN
+  return Number.isNaN(ts) ? Date.now() : ts
+}
+
+/**
+ * Дата следующего списания, если Prodamus её прислал в блоке subscription
+ * (date_next_payment) и она разумная (позже даты платежа); иначе null —
+ * тогда считаем сами: дата платежа + срок тарифа.
+ */
+function pickNextPaymentDate(subscription, paidAt) {
+  const ts = subscription?.date_next_payment ? Date.parse(subscription.date_next_payment) : NaN
+  return !Number.isNaN(ts) && ts > paidAt ? ts : null
+}
+
+/**
+ * customer_extra мы формируем сами как «Подписка ... | ФИО | @ник» (см.
+ * buildSubscriptionLink) — из него можно достать ФИО и Telegram, даже если
+ * человек на странице оплаты поменял телефон и почту.
+ */
+function parseCustomerExtra(extra) {
+  const [, name, telegram] = String(extra ?? '').split(' | ')
+  return { name: name?.trim() || '', telegram: telegram?.trim() || '' }
+}
+
+function formatRub(amount) {
+  return `${Number(amount).toLocaleString('ru-RU')} ₽`
+}
+
+/** Уведомление админу о каждой оплате подписки — первой и каждом продлении. */
+function buildPaymentNotification({ kind, number, tariff, amount, paidAt, nextPaymentAt, name, phone, email, telegram, orphan }) {
+  const renewal = kind === 'renewal'
+  const lines = [
+    '💳 Оплата получена',
+    '',
+    `Сообщество → Подписка · ${tariff?.period ?? 'тариф не определён'}`,
+    renewal ? `Продление подписки · оплата №${number}` : 'Первая оплата',
+    orphan ? '⚠️ Оплата без заявки с сайта — контакты взяты из Prodamus, проверьте вручную' : null,
+    '',
+    `📅 ${formatMoscowDateTime(new Date(paidAt).toISOString())}`,
+    '',
+    name && name !== '—' ? `👤 фио: ${name}` : null,
+    phone ? `📞 телефон: ${phone}` : null,
+    email ? `✉️ почта: ${email}` : null,
+    telegram ? `💬 телеграм: ${telegram}` : null,
+    '',
+    `💰 Сумма: ${formatRub(amount)}`,
+    nextPaymentAt ? `⏭️ Следующее списание: ${formatMoscowDateTime(new Date(nextPaymentAt).toISOString()).split(',')[0]}` : null,
+  ].filter((l) => l !== null)
+  return lines.join('\n')
+}
+
+/**
+ * Успешная оплата подписки от Prodamus: находит карточку подписчика (или
+ * заводит новую, если заявки с сайта не нашлось), записывает платёж как
+ * первый или как продление, пишет админу и — при первой оплате — присылает
+ * ссылку на сообщество, если человек уже нажимал Start у бота.
+ */
+async function handleSubscriptionPayment(body, phone) {
+  const tariffId = tariffIdBySubscriptionId(body.subscription.id)
+  const tariff = TARIFFS[tariffId]
+  const email = body.customer_email
+  const extra = parseCustomerExtra(body.customer_extra)
+  const paidAt = parsePaymentDate(body.date)
+  const amount = Number(body.sum) || tariff?.price || 0
+  const orderKey = String(body.order_id || body.order_num || '') || null
+  console.log('[prodamus] подписка сообщества — телефон:', phone, 'почта:', email, 'тариф:', tariffId)
+
+  let match = findJoinForPayment({ phone, email, telegram: extra.telegram, tariffId })
+  const orphan = !match
+  if (!match) {
+    const token = createOrphanJoin({ tariffId, name: extra.name, phone, email, telegram: extra.telegram })
+    match = { join: { token }, isFirst: true }
+  }
+
+  const nextPaymentAt = pickNextPaymentDate(body.subscription, paidAt) ?? (tariff ? addMonths(paidAt, tariff.months) : null)
+  const result = recordPayment(match.join.token, { tariffId, amount, paidAt, orderKey, nextPaymentAt })
+  if (!result) {
+    console.error('[prodamus] не удалось записать платёж — карточка не найдена:', match.join.token)
+    return
+  }
+  if (result.duplicate) {
+    console.log('[prodamus] повторный вебхук по уже учтённой оплате — пропускаю:', orderKey)
+    return
+  }
+
+  const rec = result.record
+  console.log(`[prodamus] оплата учтена: ${rec.token} (${result.kind}, платёж №${result.number}), следующее списание:`, nextPaymentAt ? new Date(nextPaymentAt).toISOString() : 'неизвестно')
+
+  await sendTelegramMessage(
+    ADMIN_CHAT_ID,
+    buildPaymentNotification({
+      kind: result.kind,
+      number: result.number,
+      tariff,
+      amount,
+      paidAt,
+      nextPaymentAt,
+      name: rec.name,
+      phone: rec.phone || phone,
+      email: rec.email || email,
+      telegram: rec.telegram,
+      orphan,
+    }),
+  )
+
+  if (result.kind === 'first' && rec.tgUserId) {
+    await sendInviteLink(rec.tgUserId, rec)
+  }
 }
 
 async function sendInviteLink(chatId, join) {
@@ -336,14 +469,25 @@ app.post('/api/notify', async (req, res) => {
 // Выбор тарифа на сайте → ссылка на оплату Prodamus. После оплаты Prodamus
 // вернёт человека на urlSuccess (страница сайта), где предлагаем перейти в бота.
 app.post('/api/community/subscribe', async (req, res) => {
-  const { tariffId, name, phone, email, telegram } = req.body ?? {}
+  const { tariffId } = req.body ?? {}
   if (!TARIFFS[tariffId]) return res.status(400).json({ ok: false, error: 'unknown_tariff' })
-  if (!phone) return res.status(400).json({ ok: false, error: 'phone_required' })
+
+  // Все четыре контакта обязательны и проверяются здесь, а не только на
+  // форме: по ним мы потом опознаём плательщика в вебхуке и ведём CRM —
+  // на странице оплаты Prodamus люди не всегда указывают свои данные.
+  const name = String(req.body.name ?? '').trim()
+  const phone = String(req.body.phone ?? '').trim()
+  const email = String(req.body.email ?? '').trim()
+  const telegram = normalizeTelegram(req.body.telegram)
+  if (!name) return res.status(400).json({ ok: false, error: 'name_required' })
+  if (normalizePhone(phone).length < 11) return res.status(400).json({ ok: false, error: 'phone_required' })
+  if (!EMAIL_RE.test(email)) return res.status(400).json({ ok: false, error: 'email_required' })
+  if (!telegram) return res.status(400).json({ ok: false, error: 'telegram_required' })
 
   try {
     const token = createPendingJoin({ tariffId, name, phone, email, telegram })
     const urlSuccess = `${SITE_URL}/community/success?token=${token}`
-    const url = await createPaymentLink({ tariffId, phone, email, urlSuccess })
+    const url = await createPaymentLink({ tariffId, phone, email, urlSuccess, name, telegram })
     res.json({ ok: true, url })
   } catch (err) {
     console.error('[subscribe] ошибка генерации ссылки на оплату:', err)
@@ -451,13 +595,7 @@ app.post('/api/prodamus/webhook', async (req, res) => {
     // покупка материала маркетплейса. Это единственное надёжное отличие,
     // которое приходит в вебхуке.
     if (body.subscription) {
-      const tariffId = tariffIdBySubscriptionId(body.subscription.id)
-      console.log('[prodamus] подписка сообщества — телефон:', phone, 'тариф:', tariffId)
-      const join = markPaidByPhone(phone, tariffId)
-      console.log('[prodamus] результат поиска заявки:', join ? `найдена ${join.token} (${join.tariffId}), tgUserId=${join.tgUserId}` : 'не найдена')
-      if (join?.tgUserId) {
-        await sendInviteLink(join.tgUserId, join)
-      }
+      await handleSubscriptionPayment(body, phone)
       return
     }
 

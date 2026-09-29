@@ -31,10 +31,11 @@ export const MATERIALS = {
 
 // ID подписок в клубной системе Prodamus — заведены вручную в личном
 // кабинете, совпадают с тарифами на странице /community.
+// months — срок одного периода подписки (для расчёта даты следующего списания).
 const TARIFFS = {
-  '1m': { subscription: 2854597, price: 690, label: 'Подписка на сообщество 1 месяц' },
-  '3m': { subscription: 3005286, price: 1770, label: 'Подписка на сообщество 3 месяца' },
-  '6m': { subscription: 3005289, price: 3180, label: 'Подписка на сообщество 6 месяцев' },
+  '1m': { subscription: 2854597, price: 690, months: 1, period: '1 месяц', label: 'Подписка на сообщество 1 месяц' },
+  '3m': { subscription: 3005286, price: 1770, months: 3, period: '3 месяца', label: 'Подписка на сообщество 3 месяца' },
+  '6m': { subscription: 3005289, price: 3180, months: 6, period: '6 месяцев', label: 'Подписка на сообщество 6 месяцев' },
 }
 
 /**
@@ -42,8 +43,12 @@ const TARIFFS = {
  * tgUserId обязателен для идентификации клиента при последующем
  * управлении подпиской (setActivity и т.д.) — без него Prodamus не
  * свяжет оплату с конкретным Telegram-пользователем для наших целей.
+ * name/telegram уходят в customer_extra — это свободное поле, которое
+ * видно в кабинете Prodamus и приходит обратно в вебхуке, поэтому по нему
+ * можно опознать плательщика, даже если на странице оплаты он изменил
+ * телефон или почту.
  */
-export function buildSubscriptionLink({ tariffId, tgUserId, phone, email, urlSuccess }) {
+export function buildSubscriptionLink({ tariffId, tgUserId, phone, email, urlSuccess, name, telegram }) {
   const tariff = TARIFFS[tariffId]
   if (!tariff) throw new Error(`unknown tariff: ${tariffId}`)
   if (!SECRET_KEY) throw new Error('PRODAMUS_SECRET_KEY not set')
@@ -52,7 +57,7 @@ export function buildSubscriptionLink({ tariffId, tgUserId, phone, email, urlSuc
   const data = {
     do: 'link',
     subscription: tariff.subscription,
-    customer_extra: tariff.label,
+    customer_extra: [tariff.label, name, telegram].filter(Boolean).join(' | '),
     urlNotification: `${SITE_URL}/api/prodamus/webhook`,
   }
   if (tgUserId) data.tg_user_id = tgUserId

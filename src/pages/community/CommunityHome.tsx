@@ -11,6 +11,7 @@ import { tariffs } from '../../data/tariffs'
 import CommunityFooter from './CommunityFooter'
 import PhoneInput from '../../components/PhoneInput'
 import LeadSuccessCard from '../../components/LeadSuccessCard'
+import { validateJoinContacts } from '../../lib/joinValidation'
 import { SHOW_AMBASSADORS } from '../../lib/featureFlags'
 
 const railItems = [
@@ -228,6 +229,7 @@ export default function CommunityHome() {
   const [telegram, setTelegram] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState(false)
+  const [formError, setFormError] = useState('')
 
   // При возврате кнопкой «Назад» браузер часто восстанавливает страницу из
   // bfcache вместе с "замороженным" состоянием — кнопка так и осталась бы
@@ -260,7 +262,9 @@ export default function CommunityHome() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    if (!name.trim() || !telegram.trim() || !phone.trim()) return
+    const invalid = validateJoinContacts({ name, phone, email, telegram })
+    setFormError(invalid ?? '')
+    if (invalid) return
 
     submitLead({
       sourceBlock: 'community',
@@ -695,7 +699,8 @@ export default function CommunityHome() {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Почта (необязательно)"
+                    placeholder="Почта"
+                    required
                     className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
                   />
                 </div>
@@ -706,6 +711,7 @@ export default function CommunityHome() {
                   required
                   className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
                 />
+                {formError && <p className="text-sm text-red-600">{formError}</p>}
                 {submitError && (
                   <p className="text-sm text-red-600">Не получилось перейти к оплате — попробуйте еще раз через минуту.</p>
                 )}

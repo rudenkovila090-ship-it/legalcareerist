@@ -69,7 +69,25 @@ export function createJsonStore(fileName) {
     return data[token]
   }
 
-  return { create, get, markPaidByPhone, setField }
+  /** Все записи массивом { token, ...значения } — для поиска и отчётов. */
+  function all() {
+    return Object.entries(load()).map(([token, value]) => ({ token, ...value }))
+  }
+
+  /**
+   * Применяет fn к записи и сохраняет результат (fn возвращает новое
+   * значение записи). Чтение и запись синхронные, поэтому в рамках одного
+   * процесса два вебхука подряд не затрут друг друга.
+   */
+  function update(token, fn) {
+    const data = load()
+    if (!data[token]) return null
+    data[token] = fn(data[token]) ?? data[token]
+    save(data)
+    return { token, ...data[token] }
+  }
+
+  return { create, get, all, update, markPaidByPhone, setField }
 }
 
 /** Оставляет только цифры и сводит ведущую "8" к "7" — для сравнения номеров. */
