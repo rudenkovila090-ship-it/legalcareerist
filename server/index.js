@@ -36,13 +36,19 @@ import cors from 'cors'
 import multer from 'multer'
 import { createPaymentLink, TARIFFS, tariffIdBySubscriptionId, createProductPaymentLink, MATERIALS } from './lib/prodamus.js'
 import { HmacHelper } from './lib/hmac.js'
-import { createPendingJoin, createOrphanJoin, listJoins, setTgUserId, findJoinForPayment, recordPayment, setSubscriptionActive, markReminded } from './lib/store.js'
+import { createPendingJoin, createOrphanJoin, listJoins, setTgUserId, findJoinForPayment, recordPayment, setSubscriptionActive, markReminded, getJoin, setCancelReason } from './lib/store.js'
 import { normalizePhone } from './lib/jsonStore.js'
 import { createPendingPurchase, getPurchase, markPurchasePaidByPhone } from './lib/materialsStore.js'
 import { incrementView, incrementApplication, allVacancyStats } from './lib/vacancyStats.js'
 import { utmLabel } from './lib/utm.js'
 import { createApplication, listApplications } from './lib/candidateApplications.js'
 import { createConsultation, listConsultations, getConsultation, setConsultationStatus } from './lib/consultations.js'
+import { createAmbassador, listAmbassadors, getAmbassador, addReferral, deleteAmbassador } from './lib/ambassadors.js'
+import { createExpense, listExpenses, deleteExpense } from './lib/expenses.js'
+import { createEventLead, listEventLeads, getEventLead, setEventLeadStatus } from './lib/eventLeads.js'
+import { logAction, recentActions } from './lib/auditLog.js'
+import { healthLines, makeBackup, readBackupState, writeBackupState } from './lib/healthBackup.js'
+import { ambassadorsScreen, ambassadorCard, AMBASSADOR_PROMPT, overdueScreen, retentionScreen, cancelCard, financeSummary, forecastScreen, expensesScreen, EXPENSE_PROMPT, parseExpense, eventRegistrationsScreen, eventScreen, eventLeadCard, eventRequestsScreen, eventsMonthSummary, FIND_PROMPT, searchScreen, digestScreen, systemScreen, auditScreen, monthKeyFor as extraMonthKey } from './lib/extraCabinet.js'
 import { createInterest, getInterest, listInterests, markInterestDone, closeInterest, snoozeInterest, interestsDueForReminder, markInterestReminded, REMIND_AFTER_DAYS } from './lib/interests.js'
 import { createReserveCandidate, listReserve, getReserveCandidate, setReserveField, deleteReserveCandidate } from './lib/reserve.js'
 import { reserveListScreen, reserveCard, reserveFieldPrompt, reserveDeleteConfirm, RESERVE_NEW_PROMPT, INTEREST_KIND_KEYBOARD, interestPrompt, interestsScreen, interestCard, SEEKERS_KEYBOARD, buildVacancyViews, vacanciesScreen, vacancyCard, vacancyApplicationsScreen, recentApplicationsScreen, consultationsScreen, consultationCard, seekersMonthSummary } from './lib/seekersCabinet.js'
@@ -70,6 +76,24 @@ const PRODAMUS_SECRET_KEY = process.env.PRODAMUS_SECRET_KEY
 const SITE_URL = process.env.SITE_URL || 'https://legalcareerist.ru'
 const COMMUNITY_INVITE_LINK = process.env.COMMUNITY_INVITE_LINK
 const SUPPORT_HANDLE = process.env.SUPPORT_HANDLE || '@legalcareerist_support'
+// Chat id помощников (через запятую): видят кабинет, но не могут ничего менять. По умолчанию — никого.
+const VIEWER_IDS = new Set(String(process.env.TELEGRAM_VIEWER_CHAT_IDS ?? '').split(',').map((v) => v.trim()).filter(Boolean))
+
+// Последние ошибки сервера для проверки состояния в боте («ошибок за сутки»).
+const recentErrors = []
+const originalConsoleError = console.error.bind(console)
+console.error = (...args) => {
+  let msg = ''
+  try {
+    msg = args.map((a) => (a instanceof Error ? a.message : typeof a === 'string' ? a : JSON.stringify(a))).join(' ').slice(0, 160)
+  } catch {
+    msg = 'ошибка'
+  }
+  recentErrors.push({ at: Date.now(), msg })
+  if (recentErrors.length > 100) recentErrors.shift()
+  originalConsoleError(...args)
+}
+let lastPollAt = 0
 
 // Сервер стоит в РФ, и соединение с api.telegram.org время от времени
 // обрывается по таймауту — поэтому до трёх попыток с паузой, а не одна.
@@ -403,6 +427,13 @@ async function handleSubscriptionState(body) {
       ADMIN_CHAT_ID,
       buildCancellationNotification({ record: result.record, tariff: TARIFFS[result.record.tariffId], at }),
     )
+    // Подписчику, который общался с ботом, — вопрос о причине (отключается CANCEL_SURVEY=0).
+    if (result.record.tgUserId && process.env.CANCEL_SURVEY !== '0') {
+      await sendTelegramMessage(
+        result.record.tgUserId,
+        `Здравствуйте! Мы увидели, что вы отключили подписку на сообщество «Карьерный юрист». Нам важно понять, что можно улучшить — если не сложно, напишите причину: ${SUPPORT_HANDLE}. Спасибо, что были с нами!`,
+      ).catch(() => false)
+    }
   }
 }
 
@@ -512,6 +543,8 @@ app.post('/api/upload-document', upload.single('file'), async (req, res) => {
 
 // Формы, которые считаются заказом услуги рекрутинга и становятся сделкой.
 const DEAL_FORM_TYPES = new Set(['service_order', 'employer_request'])
+// Формы раздела «Мероприятия», которые записываются в кабинет: регистрация на билет и заявки.
+const EVENT_LEAD_TYPES = new Set(['event_registration', 'event_partner_application', 'event_order', 'partner_application', 'event_submission'])
 
 app.post('/api/notify', async (req, res) => {
   const { direction, service, source, formType, name, contact, phone, email, telegram, company, template, interest, date, vacancySlug, eventSlug, ticketNumber, utm } = req.body ?? {}
@@ -587,6 +620,26 @@ app.post('/api/notify', async (req, res) => {
       record = {
         text: `\n\n🗃 Кадровый резерв: кандидат №${candidate.number} добавлен (всего в резерве: ${listReserve().length})\nПрикрепите ссылку на резюме в карточке.`,
         keyboard: [[{ text: `📂 Открыть кандидата №${candidate.number}`, callback_data: `a:s:rcard:${candidate.number}` }]],
+      }
+    } else if (EVENT_LEAD_TYPES.has(formType)) {
+      const isRegistration = formType === 'event_registration'
+      const e = createEventLead({
+        kind: isRegistration ? 'registration' : 'request',
+        formType,
+        eventSlug: eventSlug || '',
+        eventTitle: isRegistration || formType === 'event_partner_application' ? lines[0] : '',
+        tariff: isRegistration ? lines[1] : '',
+        name,
+        phone,
+        email,
+        telegram,
+        company: company || (formType === 'event_partner_application' ? lines[1] : formType === 'partner_application' ? lines[0] : ''),
+        note: isRegistration ? '' : lines.join(' · '),
+        source: utmSource,
+      })
+      record = {
+        text: `\n\n🗂 ${isRegistration ? 'Регистрация' : 'Заявка по мероприятиям'} №${e.number}`,
+        keyboard: [[{ text: `📂 Открыть №${e.number}`, callback_data: `a:x:evcard:${e.number}` }]],
       }
     } else if (formType === 'consultation_order' || formType === 'consultation_help_request') {
       const isOrder = formType === 'consultation_order'
@@ -737,6 +790,133 @@ function parseRuDate(text) {
   return Number.isNaN(ts) ? null : ts
 }
 
+/** Все данные кабинета одним объектом — для поиска, сводки дня и финансов. */
+function allData() {
+  return {
+    joins: listJoins(),
+    deals: listAllDeals(),
+    applications: listApplications(),
+    consultations: listConsultations(),
+    interests: listInterests(),
+    reserve: listReserve(),
+    eventLeads: listEventLeads(),
+    ambassadors: listAmbassadors(),
+    expenses: listExpenses(),
+  }
+}
+
+function currentHealth() {
+  return healthLines({
+    lastWebhook: lastWebhook(),
+    lastPollAt,
+    pollingEnabled: Boolean(BOT_TOKEN && process.env.TELEGRAM_POLLING !== '0'),
+    errors: recentErrors,
+    lastBackupAt: readBackupState().lastAt,
+    activeSubscribers: listJoins().filter((j) => j.status === 'active').length,
+  })
+}
+
+/** Резервная копия папки data админу в Telegram файлом. Возвращает true, если ушла. */
+async function sendBackup(caption) {
+  const buffer = await makeBackup()
+  if (buffer.length > 45 * 1024 * 1024) {
+    await sendTelegramMessage(ADMIN_CHAT_ID, '⚠️ Резервная копия больше 45 МБ — Telegram не принимает такой файл. Снимите копию папки server/data вручную.')
+    return false
+  }
+  const ok = await sendTelegramDocument(ADMIN_CHAT_ID, buffer, `legalcareerist-data-${mskDayKey(Date.now())}.tar.gz`, caption)
+  if (ok) writeBackupState({ ...readBackupState(), lastAt: Date.now() })
+  return ok
+}
+
+const menuBack = (text, data) => [[{ text, callback_data: data }, { text: '🏠 Меню', callback_data: 'a:menu' }]]
+
+/** Кнопки дополнительных разделов (callback «a:x:…»). */
+async function extrasAction(parts, now, chatId) {
+  const [action, arg, arg2] = parts
+  const data = allData()
+  const ambOr = (n) => {
+    const a = getAmbassador(n)
+    return a ? ambassadorCard(a) : ambassadorsScreen(listAmbassadors())
+  }
+  const eventCard = (n) => {
+    const e = getEventLead(n)
+    return e ? eventLeadCard(e) : { text: `Запись №${n} не найдена.`, keyboard: menuBack('⬅️ Мероприятия', 'a:sec:events') }
+  }
+  switch (action) {
+    case 'amb':
+      return ambassadorsScreen(data.ambassadors)
+    case 'ambcard':
+      return ambOr(arg)
+    case 'ambnew':
+      adminInput.set(String(chatId), { type: 'ambassador' })
+      return { text: AMBASSADOR_PROMPT, keyboard: menuBack('⬅️ Амбассадоры', 'a:x:amb') }
+    case 'ambplus':
+      addReferral(arg, Number(arg2))
+      return ambOr(arg)
+    case 'ambdel':
+      return { text: `🗑 Удалить амбассадора №${arg}?`, keyboard: [[{ text: '✅ Да, удалить', callback_data: `a:x:ambdelok:${arg}` }, { text: 'Отмена', callback_data: `a:x:ambcard:${arg}` }]] }
+    case 'ambdelok':
+      deleteAmbassador(arg)
+      return ambassadorsScreen(listAmbassadors())
+    case 'over':
+      return overdueScreen(data.joins, TARIFFS, now)
+    case 'ret':
+      return retentionScreen(data.joins)
+    case 'cxl': {
+      const j = getJoin(arg)
+      return j ? cancelCard(j) : cancelledScreen(data.joins, TARIFFS)
+    }
+    case 'cr': {
+      setCancelReason(arg, arg2)
+      const j = getJoin(arg)
+      return j ? cancelCard(j) : cancelledScreen(listJoins(), TARIFFS)
+    }
+    case 'fsum':
+      return financeSummary(data, extraMonthKey(arg, now))
+    case 'fcast':
+      return forecastScreen(data.joins, data.deals, TARIFFS, now)
+    case 'fexp':
+      return expensesScreen(data.expenses, extraMonthKey('cur', now))
+    case 'fexpnew':
+      adminInput.set(String(chatId), { type: 'expense' })
+      return { text: EXPENSE_PROMPT, keyboard: menuBack('⬅️ Расходы', 'a:x:fexp') }
+    case 'fexpdel':
+      deleteExpense(arg)
+      return expensesScreen(listExpenses(), extraMonthKey('cur', now))
+    case 'evreg':
+      return eventRegistrationsScreen(data.eventLeads)
+    case 'evone':
+      return eventScreen(data.eventLeads, arg)
+    case 'evcard':
+      return eventCard(arg)
+    case 'evst':
+      setEventLeadStatus(arg, arg2)
+      return eventCard(arg)
+    case 'evpaid':
+      adminInput.set(String(chatId), { type: 'event-paid', number: Number(arg) })
+      return { text: `💳 Регистрация №${arg}: отправьте сумму оплаты числом, например 3500. Отмена — /cancel.`, keyboard: menuBack('⬅️ К карточке', `a:x:evcard:${arg}`) }
+    case 'evreq':
+      return eventRequestsScreen(data.eventLeads)
+    case 'evmonth':
+      return eventsMonthSummary(data.eventLeads, arg, now)
+    case 'find':
+      adminInput.set(String(chatId), { type: 'find' })
+      return { text: FIND_PROMPT, keyboard: [[{ text: '⬅️ Меню', callback_data: 'a:menu' }]] }
+    case 'digest':
+      return digestScreen(data, TARIFFS, now, currentHealth())
+    case 'sys':
+      return systemScreen(currentHealth())
+    case 'backup': {
+      const ok = await sendBackup('💾 Резервная копия данных бота (по запросу)').catch(() => false)
+      return { text: ok ? '💾 Резервная копия отправлена файлом выше.' : '⚠️ Не удалось отправить резервную копию — подробности в логе сервера.', keyboard: menuBack('⬅️ Система', 'a:x:sys') }
+    }
+    case 'audit':
+      return auditScreen(recentActions())
+    default:
+      return { text: 'Раздел не найден.', keyboard: menuBack('⬅️ Меню', 'a:menu') }
+  }
+}
+
 /** Кнопки «Кадры → Соискатели»: parts — callback_data без префикса «a:s:». */
 const reserveScreen = (number) => {
   const c = getReserveCandidate(number)
@@ -876,6 +1056,7 @@ function kadryAction(parts, now, chatId) {
 
 /** Текстовый ответ админа на вопрос бота (выручка / новая сделка). */
 async function handlePendingInput(chatId, pending, text) {
+  if (pending.type !== 'find') logAction(chatId, `input:${pending.type}${pending.number ? `:${pending.number}` : ''}`)
   if (pending.type === 'revenue') {
     const amount = Number(text.replace(/[^\d.,]/g, '').replace(',', '.'))
     if (!(amount > 0)) {
@@ -886,6 +1067,48 @@ async function handlePendingInput(chatId, pending, text) {
     setRevenue(pending.number, amount)
     const screen = dealScreen(pending.number)
     await sendLongMessage(chatId, `✅ Выручка записана: ${formatRub(amount)}\n\n${screen.text}`, screen.keyboard)
+    return
+  }
+  if (pending.type === 'find') {
+    const screen = searchScreen(text, allData(), TARIFFS)
+    await sendLongMessage(chatId, screen.text, screen.keyboard)
+    return
+  }
+  if (pending.type === 'ambassador') {
+    const [name, telegram, phone, promo, note] = text.split('\n').map((l) => (l.trim() === '-' ? '' : l.trim()))
+    if (!name) {
+      adminInput.set(String(chatId), pending)
+      await sendTelegramMessage(chatId, 'Нужно хотя бы имя (первая строка). Отправьте ещё раз или /cancel.')
+      return
+    }
+    const a = createAmbassador({ name, telegram: normalizeTelegram(telegram), phone, promo, note })
+    const card = ambassadorCard(a)
+    await sendLongMessage(chatId, `✅ Амбассадор добавлен\n\n${card.text}`, card.keyboard)
+    return
+  }
+  if (pending.type === 'expense') {
+    const parsed = parseExpense(text)
+    if (!parsed) {
+      adminInput.set(String(chatId), pending)
+      await sendTelegramMessage(chatId, 'Не разобрал. Начните с суммы, например: 5000 реклама ВК. Или /cancel.')
+      return
+    }
+    const e = createExpense(parsed)
+    const screen = expensesScreen(listExpenses(), extraMonthKey('cur', Date.now()))
+    await sendLongMessage(chatId, `✅ Расход записан: ${formatRub(e.amount)} · ${e.category}\n\n${screen.text}`, screen.keyboard)
+    return
+  }
+  if (pending.type === 'event-paid') {
+    const amount = Number(text.replace(/[^\d.,]/g, '').replace(',', '.'))
+    if (!(amount > 0)) {
+      adminInput.set(String(chatId), pending)
+      await sendTelegramMessage(chatId, 'Не разобрал сумму. Отправьте число, например 3500, или /cancel.')
+      return
+    }
+    setEventLeadStatus(pending.number, 'paid', amount)
+    const e = getEventLead(pending.number)
+    const card = eventLeadCard(e)
+    await sendLongMessage(chatId, `✅ Оплата отмечена: ${formatRub(amount)}\n\n${card.text}`, card.keyboard)
     return
   }
   if (pending.type === 'reserve-field') {
@@ -1028,6 +1251,7 @@ async function sendLongMessage(chatId, text, keyboard) {
 async function adminScreen(data, now, chatId) {
   if (data.startsWith('a:k:')) return kadryAction(data.split(':').slice(2), now, chatId)
   if (data.startsWith('a:s:')) return seekersAction(data.split(':').slice(2), now, chatId)
+  if (data.startsWith('a:x:')) return extrasAction(data.split(':').slice(2), now, chatId)
   const joins = listJoins()
   const [, action, arg] = data.split(':')
   if (action === 'sec') return sectionScreen(arg)
@@ -1046,7 +1270,7 @@ async function adminScreen(data, now, chatId) {
     for (const join of reachable) {
       const ok = await sendTelegramMessage(join.tgUserId, reminderMessage(join, SUPPORT_HANDLE)).catch(() => false)
       if (ok) {
-        markReminded(join.token, join.nextPaymentAt)
+        markReminded(join.token, `${join.nextPaymentAt}:${days}`)
         sent += 1
       } else failed.push(join)
     }
@@ -1071,15 +1295,29 @@ async function adminScreen(data, now, chatId) {
   return menuScreen()
 }
 
-/** Нажатие кнопки кабинета — только от админа; остальным молча отвечаем. */
+// Кнопки, которые что-то меняют или отправляют данные: помощникам (только просмотр) они недоступны, в журнал попадают только они.
+// Кнопки, которые только открывают ввод текста или подтверждение — в журнал не пишем (запишется само действие).
+const PROMPT_ONLY = /^a:(k:(rev|new)|s:(ikind|inew|rnew|redit|rdel)|x:(ambnew|ambdel|fexpnew|evpaid))\b/
+const MUTATING = /^a:(k:(adv|back|q1|q0|lost|reopen|revok|rev|new)|s:(cst|idone|iclose|isnooze|ikind|inew|rnew|redit|rdel|rdelok)|x:(ambnew|ambplus|ambdel|ambdelok|cr|fexpnew|fexpdel|evst|evpaid|backup)|remgo)\b/
+
+/** Нажатие кнопки кабинета — от админа (все кнопки) или помощника (только просмотр); остальным молча отвечаем. */
 async function handleAdminCallback(query) {
   const chatId = query.message?.chat?.id
-  const answer = (text) => telegramFetch('answerCallbackQuery', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ callback_query_id: query.id, ...(text ? { text } : {}) }) }).catch(() => null)
-  if (!chatId || String(query.from?.id) !== String(ADMIN_CHAT_ID) || !String(query.data ?? '').startsWith('a:')) {
+  const answer = (text) => telegramFetch('answerCallbackQuery', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ callback_query_id: query.id, ...(text ? { text, show_alert: true } : {}) }) }).catch(() => null)
+  const fromId = String(query.from?.id)
+  const isAdmin = fromId === String(ADMIN_CHAT_ID)
+  const isViewer = VIEWER_IDS.has(fromId)
+  if (!chatId || !(isAdmin || isViewer) || !String(query.data ?? '').startsWith('a:')) {
     await answer()
     return
   }
+  const mutating = MUTATING.test(query.data)
+  if (!isAdmin && mutating) {
+    await answer('Этот аккаунт — только для просмотра.')
+    return
+  }
   await answer()
+  if (mutating && !PROMPT_ONLY.test(query.data)) logAction(fromId, query.data)
   const screen = await adminScreen(query.data, Date.now(), chatId)
   await sendLongMessage(chatId, screen.text, screen.keyboard)
 }
@@ -1094,12 +1332,13 @@ async function handleTelegramUpdate(update) {
   const text = message?.text
   const chatId = message?.chat?.id
   const isAdmin = chatId && String(chatId) === String(ADMIN_CHAT_ID)
+  const isViewer = chatId && VIEWER_IDS.has(String(chatId))
   // Диагностика: показывает номер чата и то, считает ли бот его админским.
   if (chatId && text === '/id') {
-    await sendTelegramMessage(chatId, `Ваш chat id: ${chatId}\nАдминский chat id в настройках бота: ${ADMIN_CHAT_ID || 'не задан'}\n${isAdmin ? '✅ Это админский чат' : '❌ Это не админский чат — кабинет здесь не откроется'}`)
+    await sendTelegramMessage(chatId, `Ваш chat id: ${chatId}\nАдминский chat id в настройках бота: ${ADMIN_CHAT_ID || 'не задан'}\n${isAdmin ? '✅ Это админский чат' : isViewer ? '👁 Это чат помощника (только просмотр)' : '❌ Это не админский чат — кабинет здесь не откроется'}`)
     return
   }
-  if (isAdmin && text?.startsWith('/report')) {
+  if ((isAdmin || isViewer) && text?.startsWith('/report')) {
     await sendTelegramMessage(chatId, reportText(parseReportPeriod(text.slice('/report'.length))), FINANCE_KEYBOARD)
     return
   }
@@ -1108,14 +1347,15 @@ async function handleTelegramUpdate(update) {
     await sendTelegramMessage(chatId, 'Отменено.', KADRY_KEYBOARD)
     return
   }
-  const pendingInput = isAdmin && text && !text.startsWith('/') ? adminInput.get(String(chatId)) : null
+  const pendingRaw = (isAdmin || isViewer) && text && !text.startsWith('/') ? adminInput.get(String(chatId)) : null
+  const pendingInput = pendingRaw && (isAdmin || pendingRaw.type === 'find') ? pendingRaw : null
   if (pendingInput) {
     adminInput.delete(String(chatId))
     await handlePendingInput(chatId, pendingInput, text)
     return
   }
   // Админу обычный /start (и /menu) открывает кабинет с кнопками; /start access_… работает как у всех.
-  if (isAdmin && (text === '/menu' || text === '/admin' || text === '/start')) {
+  if ((isAdmin || isViewer) && (text === '/menu' || text === '/admin' || text === '/start')) {
     const screen = menuScreen()
     await sendTelegramMessage(chatId, screen.text, screen.keyboard)
     return
@@ -1240,6 +1480,50 @@ async function sendDailyReportIfDue() {
   if (!ok) fs.writeFileSync(REPORT_STATE_FILE, JSON.stringify({ lastDay: null })) // не ушло — попробуем в следующую минуту
 }
 
+// Раз в сутки после указанного часа (МСК): дата последнего запуска хранится в файле, чтобы перезапуск не повторял и не пропускал задачу.
+const DAILY_JOBS_FILE = path.join(import.meta.dirname, 'data', 'daily-jobs.json')
+async function runDailyOnce(key, minHour, work) {
+  if (!BOT_TOKEN || !ADMIN_CHAT_ID) return
+  const now = Date.now()
+  const hour = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Moscow', hour: '2-digit', hour12: false }).format(new Date(now)))
+  const today = mskDayKey(now)
+  let state = {}
+  try {
+    state = JSON.parse(fs.readFileSync(DAILY_JOBS_FILE, 'utf8'))
+  } catch {
+    // файла ещё нет
+  }
+  if (hour < minHour || state[key] === today) return
+  const save = (value) => {
+    fs.mkdirSync(path.dirname(DAILY_JOBS_FILE), { recursive: true })
+    fs.writeFileSync(DAILY_JOBS_FILE, JSON.stringify({ ...state, [key]: value }))
+  }
+  save(today)
+  const ok = await work().catch((err) => {
+    console.error(`[${key}] ошибка:`, err)
+    return false
+  })
+  if (ok === false) save(state[key] ?? null) // не вышло — повторим в следующую минуту
+}
+
+/** Автонапоминания резидентам о списании: за 3 дня и за день, только тем, кто общался с ботом. Отключить: AUTO_RESIDENT_REMINDERS=0. */
+async function sendAutoResidentReminders() {
+  if (process.env.AUTO_RESIDENT_REMINDERS === '0') return true
+  const now = Date.now()
+  let sent = 0
+  let failed = 0
+  for (const days of [3, 1]) {
+    for (const join of reminderTargets(listJoins(), now, days).reachable) {
+      const ok = await sendTelegramMessage(join.tgUserId, reminderMessage(join, SUPPORT_HANDLE)).catch(() => false)
+      markReminded(join.token, `${join.nextPaymentAt}:${days}`) // отмечаем и при неудаче, чтобы не пытаться каждую минуту
+      if (ok) sent += 1
+      else failed += 1
+    }
+  }
+  if (sent || failed) await sendTelegramMessage(ADMIN_CHAT_ID, `🔔 Автонапоминания резидентам о списании: отправлено ${sent}${failed ? `, не дошло ${failed}` : ''}.`)
+  return true
+}
+
 // Приём сообщений боту через getUpdates (long polling): нужно только
 // исходящее соединение с Telegram. С хостинга сервера входящие запросы от
 // Telegram (вебхук) не доходили — в nginx не было ни одного, а Telegram
@@ -1265,6 +1549,7 @@ async function pollTelegramUpdates() {
         await sleep(5000)
         continue
       }
+      lastPollAt = Date.now()
       for (const update of data.result) {
         offset = update.update_id + 1
         await afterResponse('telegram/poll', () => handleTelegramUpdate(update))
@@ -1284,6 +1569,14 @@ if (process.env.DISABLE_DAILY_REPORT !== '1') {
   setInterval(() => afterResponse('deal-reminders', sendDealRemindersIfDue), 60 * 1000)
   setInterval(() => afterResponse('kadry-monthly', sendKadryMonthlyIfDue), 60 * 1000)
   setInterval(() => afterResponse('interest-reminders', sendInterestRemindersIfDue), 60 * 1000)
+  setInterval(() => afterResponse('resident-reminders', () => runDailyOnce('residentReminders', 10, sendAutoResidentReminders)), 60 * 1000)
+  setInterval(() => afterResponse('morning-digest', () => runDailyOnce('digest', 9, async () => {
+    const screen = digestScreen(allData(), TARIFFS, Date.now(), currentHealth())
+    return sendTelegramMessage(ADMIN_CHAT_ID, screen.text, screen.keyboard)
+  })), 60 * 1000)
+  if (process.env.DISABLE_BACKUP !== '1') {
+    setInterval(() => afterResponse('backup', () => runDailyOnce('backup', 3, () => sendBackup('💾 Ежедневная резервная копия данных бота'))), 60 * 1000)
+  }
 }
 
 // Страховка от падения процесса из-за необработанной ошибки где-то в фоне

@@ -141,3 +141,8 @@ export function setSubscriptionActive(token, active, at) {
 export function markReminded(token, nextPaymentAt) {
   return store.setField(token, 'remindedFor', nextPaymentAt)
 }
+
+/** Причина отписки (код из CANCEL_REASONS в adminCabinet.js) — указывается вручную в карточке отписавшегося. */
+export function setCancelReason(token, reason) {
+  return store.setField(token, 'cancelReason', reason)
+}

@@ -8,9 +8,9 @@ import { seekersSection } from './seekersCabinet.js'
 const MSK = 'Europe/Moscow'
 const DAY = 24 * 3600 * 1000
 
-const rub = (n) => `${Math.round(n).toLocaleString('ru-RU')} ₽`
-const ruDay = (ts) => new Intl.DateTimeFormat('ru-RU', { timeZone: MSK, day: '2-digit', month: '2-digit' }).format(new Date(ts))
-const who = (j) => [j.name && j.name !== '—' ? j.name : null, j.telegram || null, j.phone || null].filter(Boolean).join(', ') || 'контакты не указаны'
+export const rub = (n) => `${Math.round(n).toLocaleString('ru-RU')} ₽`
+export const ruDay = (ts) => new Intl.DateTimeFormat('ru-RU', { timeZone: MSK, day: '2-digit', month: '2-digit' }).format(new Date(ts))
+export const who = (j) => [j.name && j.name !== '—' ? j.name : null, j.telegram || null, j.phone || null].filter(Boolean).join(', ') || 'контакты не указаны'
 
 function tariffLabel(join, tariffs) {
   const last = join.payments?.at(-1)
@@ -33,6 +33,11 @@ export const MENU_KEYBOARD = [
     { text: '🎟 Мероприятия', callback_data: 'a:sec:events' },
     { text: '💰 Финансы', callback_data: 'a:sec:finance' },
   ],
+  [
+    { text: '🔍 Найти человека', callback_data: 'a:x:find' },
+    { text: '🌅 Сводка дня', callback_data: 'a:x:digest' },
+  ],
+  [{ text: '🛠 Система', callback_data: 'a:x:sys' }],
 ]
 
 export const FINANCE_KEYBOARD = [
@@ -44,6 +49,11 @@ export const FINANCE_KEYBOARD = [
     { text: '7 дней', callback_data: 'a:rep:week' },
     { text: 'Месяц', callback_data: 'a:rep:month' },
   ],
+  [
+    { text: '🧾 Сводка месяца', callback_data: 'a:x:fsum:cur' },
+    { text: '🔮 Прогноз', callback_data: 'a:x:fcast' },
+  ],
+  [{ text: '💸 Расходы', callback_data: 'a:x:fexp' }],
   BACK_ROW,
 ]
 
@@ -57,9 +67,14 @@ export const COMMUNITY_KEYBOARD = [
     { text: '🔔 Напоминания', callback_data: 'a:rem' },
   ],
   [
-    { text: '➕ Записать интерес', callback_data: 'a:s:ikind:community' },
+    { text: '⚠️ Просрочено', callback_data: 'a:x:over' },
+    { text: '📈 Удержание', callback_data: 'a:x:ret' },
+  ],
+  [
+    { text: '🌟 Амбассадоры', callback_data: 'a:x:amb' },
     { text: '📇 Интересовались', callback_data: 'a:s:ilist:community' },
   ],
+  [{ text: '➕ Записать интерес', callback_data: 'a:s:ikind:community' }],
   [{ text: '🔌 Состояние системы', callback_data: 'a:status' }],
   BACK_ROW,
 ]
@@ -71,7 +86,17 @@ export function menuScreen() {
 const SECTIONS = {
   finance: { text: '💰 Финансы\n\nОтчёты по оплатам подписки за период:', keyboard: FINANCE_KEYBOARD },
   community: { text: '👥 Сообщество\n\nПодписчики, списания, отписки и напоминания:', keyboard: COMMUNITY_KEYBOARD },
-  events: { text: '🎟 Мероприятия\n\nРаздел пока пустой — наполним следующим шагом.', keyboard: [BACK_ROW] },
+  events: {
+    text: '🎟 Мероприятия\n\nРегистрации на мероприятия, заявки партнёров и организаторов, оплата и выручка.',
+    keyboard: [
+      [
+        { text: '🎟 Регистрации', callback_data: 'a:x:evreg' },
+        { text: '📨 Заявки', callback_data: 'a:x:evreq' },
+      ],
+      [{ text: '📊 Итоги месяца', callback_data: 'a:x:evmonth' }],
+      BACK_ROW,
+    ],
+  },
 }
 
 /** Экран раздела главного меню (finance / community / kadry / events). */
@@ -84,7 +109,7 @@ export function sectionScreen(name) {
 
 // Сумма, по которой человек сидит в сообществе, — то, что списывается за один
 // период (последний платёж; если истории нет — цена тарифа с сайта).
-function planAmount(join, tariffs) {
+export function planAmount(join, tariffs) {
   return lastAmount(join) || tariffs[join.tariffId]?.price || 0
 }
 
@@ -226,18 +251,26 @@ export function dueScreen(joins, now, tariffs = {}, horizonDays = 2) {
   return { text: lines.join('\n'), keyboard: DUE_KEYBOARD }
 }
 
-/** Отписки: кто, когда (день и время) и на каком тарифе сидел. */
+export const CANCEL_REASONS = { price: 'Дорого', time: 'Нет времени', content: 'Не то содержание', other: 'Другое' }
+
+/** Отписки: кто, когда (день и время), на каком тарифе сидел и причина (если указана). */
 export function cancelledScreen(joins, tariffs = {}) {
   const list = joins.filter((j) => j.status === 'cancelled').sort((a, b) => (b.cancelledAt ?? 0) - (a.cancelledAt ?? 0))
   if (!list.length) return { text: '🔕 Отписавшихся нет.', keyboard: COMMUNITY_KEYBOARD }
-  const lines = [`🔕 Отписались от сообщества: ${list.length}`, '']
+  const lines = [`🔕 Отписались от сообщества: ${list.length}`]
+  const reasons = Object.entries(CANCEL_REASONS).map(([code, label]) => [label, list.filter((j) => j.cancelReason === code).length]).filter(([, n]) => n)
+  const unknown = list.filter((j) => !j.cancelReason).length
+  if (reasons.length) lines.push(`Причины: ${reasons.map(([label, n]) => `${label} — ${n}`).join(', ')}${unknown ? `, не указана — ${unknown}` : ''}`)
+  lines.push('')
+  const keyboard = []
   for (const j of list) {
     const amount = planAmount(j, tariffs)
     const plan = STANDARD_PLANS.find((p) => p.amount === amount)?.label ?? (DISCOUNT_PLANS.includes(amount) ? 'со скидкой' : tariffLabel(j, tariffs))
-    lines.push(`• ${who(j)}`, `   ${j.cancelledAt ? ruDayTime(j.cancelledAt) : 'дата неизвестна'} · тариф: ${amount ? `${rub(amount)}, ` : ''}${plan}`)
+    lines.push(`• ${who(j)}`, `   ${j.cancelledAt ? ruDayTime(j.cancelledAt) : 'дата неизвестна'} · тариф: ${amount ? `${rub(amount)}, ` : ''}${plan}${j.cancelReason ? ` · причина: ${CANCEL_REASONS[j.cancelReason]}` : ''}`)
   }
-  lines.push('', 'Время — московское, момент, когда мы получили уведомление от Prodamus.')
-  return { text: lines.join('\n'), keyboard: COMMUNITY_KEYBOARD }
+  for (const j of list.slice(0, 20)) keyboard.push([{ text: `${(j.name && j.name !== '—' ? j.name : j.telegram || j.phone || 'без имени')}${j.cancelReason ? '' : ' · причина?'}`.slice(0, 60), callback_data: `a:x:cxl:${j.token}` }])
+  lines.push('', 'Время — московское, момент, когда мы получили уведомление от Prodamus. Нажмите на человека, чтобы указать причину.')
+  return { text: lines.join('\n'), keyboard: [...keyboard, ...COMMUNITY_KEYBOARD] }
 }
 
 /**
@@ -249,7 +282,7 @@ export function cancelledScreen(joins, tariffs = {}) {
 export function reminderTargets(joins, now, days) {
   const day = mskDayKey(now + days * DAY)
   const due = joins.filter((j) => j.status === 'active' && j.nextPaymentAt && mskDayKey(j.nextPaymentAt) === day)
-  const fresh = due.filter((j) => j.remindedFor !== j.nextPaymentAt)
+  const fresh = due.filter((j) => j.remindedFor !== `${j.nextPaymentAt}:${days}`)
   return {
     day,
     reachable: fresh.filter((j) => j.tgUserId),
