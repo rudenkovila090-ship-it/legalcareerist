@@ -181,7 +181,7 @@ function formatMoscowDateTime(iso) {
 
 function buildLeadNotification({ direction, service, date, name, phone, email, telegram, details, ticketNumber }) {
   const lines = [
-    `🔔 Новая заявка ${origin}${ticketNumber ? `. Заявка №${ticketNumber}` : ''}`,
+    `🔔 Новая заявка с сайта${ticketNumber ? `. Заявка №${ticketNumber}` : ''}`,
     direction ? `Направление: ${direction}` : null,
     service ? `Услуга: ${service}` : null,
     `Дата и время заявки: ${formatMoscowDateTime(date)}`,
@@ -220,7 +220,7 @@ function buildKadryRichNotification({ template, direction, service, date, name, 
   const contactLabel = template === 'kadry-employer' ? 'фио' : template === 'support' ? 'фио' : 'контакт'
   const header = template === 'support' ? [direction, service].filter(Boolean).join(' · ') : null
   const lines = [
-    `🔔 Новая заявка с сайта${ticketNumber ? `. Заявка №${ticketNumber}` : ''}`,
+    `🔔 Новая заявка ${origin}${ticketNumber ? `. Заявка №${ticketNumber}` : ''}`,
     '',
     header ?? (direction || null),
     header ? null : (service || null),

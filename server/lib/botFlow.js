@@ -109,7 +109,7 @@ export function legalScreen(siteUrl) {
 }
 
 /** Блок «О нас» (кнопка «О КЮ»). Подразделы «Достижения», «Отзывы», «О CEO» пока ведут на страницы сайта. */
-export function aboutScreen(siteUrl, supportHandle) {
+export function aboutScreen(siteUrl, _supportHandle) {
   return {
     text: [
       'Карьерный юрист — кадровое юридическое агентство.',
