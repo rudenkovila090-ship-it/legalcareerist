@@ -81,7 +81,7 @@ export function mainMenuScreen(siteUrl, firstName, isResident = false) {
 }
 
 /** Блок «Поддержка». */
-export function supportScreen(supportHandle) {
+export function supportScreen(_supportHandle) {
   return {
     text: [
       'Поддержка 🛠',
