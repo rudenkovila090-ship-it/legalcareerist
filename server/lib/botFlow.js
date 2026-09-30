@@ -137,7 +137,7 @@ export function aboutScreen(siteUrl, supportHandle) {
 }
 
 /** Блок «Консультации / Главное меню». */
-export function consultScreen(supportHandle) {
+export function consultScreen(_supportHandle) {
   return {
     text: [
       'Карьерный юрист | Консультации — твой надежный помощник в построении успешной карьеры.',
@@ -270,7 +270,7 @@ export function paidKeyboard() {
 }
 
 /** «Сообщение 51»: оплата не найдена. */
-export function paymentNotFoundScreen(slug, supportHandle) {
+export function paymentNotFoundScreen(slug, _supportHandle) {
   return {
     text: 'Странно, но я не вижу подтверждения твоей оплаты 🙂\n\nЕсли оплата действительно была произведена успешно, пожалуйста, напиши нам в поддержку и приложи чек или скрин платежа, мы оперативно проверим и все уладим 👉',
     keyboard: [[{ text: 'Поддержка', callback_data: 'u:support' }], [{ text: 'Назад', callback_data: `u:mat:${slug}` }], [{ text: 'Главное меню', callback_data: 'u:menu' }]],
