@@ -38,7 +38,7 @@ import { createPaymentLink, TARIFFS, tariffIdBySubscriptionId, createProductPaym
 import { HmacHelper } from './lib/hmac.js'
 import { createPendingJoin, createOrphanJoin, listJoins, setTgUserId, findJoinForPayment, recordPayment, setSubscriptionActive, markReminded, getJoin, setCancelReason } from './lib/store.js'
 import { normalizePhone } from './lib/jsonStore.js'
-import { createPendingPurchase, getPurchase, markPurchasePaidByPhone, recordPurchasePayment, listPurchases } from './lib/materialsStore.js'
+import { createPendingPurchase, getPurchase, markPurchasePaidByPhone, markPurchasePaidByTg, findPaidPurchase, recordPurchasePayment, listPurchases } from './lib/materialsStore.js'
 import { incrementView, incrementApplication, allVacancyStats } from './lib/vacancyStats.js'
 import { utmLabel } from './lib/utm.js'
 import { createApplication, listApplications } from './lib/candidateApplications.js'
@@ -46,8 +46,9 @@ import { createConsultation, listConsultations, getConsultation, setConsultation
 import { createAmbassador, listAmbassadors, getAmbassador, addReferral, deleteAmbassador } from './lib/ambassadors.js'
 import { createExpense, listExpenses, deleteExpense } from './lib/expenses.js'
 import { createEventLead, listEventLeads, getEventLead, setEventLeadStatus } from './lib/eventLeads.js'
-import { touchBotUser, giveConsent, setMailingConsent, listBotUsers } from './lib/botUsers.js'
-import { isStartKeyword, welcomeScreen, noConsentScreen, mailingScreen, mainMenuScreen, supportScreen, legalScreen, aboutScreen } from './lib/botFlow.js'
+import { getMaterialFile, setMaterialFile } from './lib/materialFiles.js'
+import { touchBotUser, giveConsent, setMailingConsent, addTag, getBotUser, listBotUsers } from './lib/botUsers.js'
+import { isStartKeyword, welcomeScreen, noConsentScreen, mailingScreen, mainMenuScreen, supportScreen, legalScreen, aboutScreen, consultScreen, consultBookedScreen, marketScreen, materialsListScreen, materialCard, payLinkScreen, PAID_TEXT, paidKeyboard, paymentNotFoundScreen, reviewScreen } from './lib/botFlow.js'
 import { buildMonthCsv } from './lib/exportCsv.js'
 import { vacancyOverrides, setVacancyStatus } from './lib/vacancyOverrides.js'
 import { residentMenu, subscriptionScreen, linkScreen, offScreen } from './lib/residentCabinet.js'
@@ -137,6 +138,17 @@ async function sendTelegramDocument(chatId, buffer, filename, caption) {
   form.append('document', new Blob([buffer]), filename)
   const res = await telegramFetch('sendDocument', { method: 'POST', body: form })
   if (!res.ok) console.error('[telegram] sendDocument ошибка:', await res.text())
+  return res.ok
+}
+
+// Отправка уже загруженного в Telegram файла по file_id (материалы маркетплейса).
+async function sendTelegramDocumentById(chatId, fileId, caption) {
+  const res = await telegramFetch('sendDocument', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ chat_id: chatId, document: fileId, ...(caption ? { caption } : {}) }),
+  })
+  if (!res.ok) console.error('[telegram] sendDocument по file_id ошибка:', await res.text())
   return res.ok
 }
 
@@ -1379,36 +1391,95 @@ async function sendFlowStep(chatId, user) {
   await sendTelegramMessage(chatId, screen.text, screen.keyboard)
 }
 
+/** Материалы для бота: цена и название — из серверного списка (источник истины), описание — из каталога сайта. */
+function materialList() {
+  let catalog = []
+  try {
+    catalog = JSON.parse(fs.readFileSync(path.join(import.meta.dirname, 'data', 'material-catalog.json'), 'utf8'))
+  } catch {
+    // каталог ещё не выгружен — карточки будут без описания
+  }
+  return Object.entries(MATERIALS).map(([slug, m]) => {
+    const c = catalog.find((x) => x.slug === slug)
+    return { slug, title: m.title, price: m.price, accessUrl: m.accessUrl, description: c?.description ?? '', forWhom: c?.forWhom ?? '' }
+  })
+}
+
+/** Выдача материала после оплаты: файл (если админ его загрузил), иначе ссылка, иначе — передаём поддержке. Затем просьба об отзыве. */
+async function deliverMaterial(chatId, slug) {
+  const material = materialList().find((m) => m.slug === slug)
+  await sendTelegramMessage(chatId, PAID_TEXT, paidKeyboard())
+  const file = getMaterialFile(slug)
+  if (file) {
+    await sendTelegramDocumentById(chatId, file.fileId, material?.title)
+  } else if (material?.accessUrl) {
+    await sendTelegramMessage(chatId, `${material.title}\n${material.accessUrl}`)
+  } else {
+    await sendTelegramMessage(chatId, `Файл материала пришлёт поддержка — ${SUPPORT_HANDLE}.`)
+    await sendTelegramMessage(ADMIN_CHAT_ID, `⚠️ Оплачен материал «${material?.title ?? slug}», но файл не загружен в бота. Отправьте боту PDF с подписью /material ${slug} и перешлите файл покупателю (chat id ${chatId}).`)
+  }
+  if (getBotUser(chatId)?.mailingConsent === true) {
+    const screen = reviewScreen(`${SITE_URL}/materials/${slug}`)
+    await sendTelegramMessage(chatId, screen.text, screen.keyboard)
+  }
+}
+
 async function handleUserCallback(query) {
   const chatId = query.message?.chat?.id
   await telegramFetch('answerCallbackQuery', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ callback_query_id: query.id }) }).catch(() => null)
   if (!chatId || String(query.from?.id) !== String(chatId)) return
-  const action = String(query.data).split(':')[1]
+  const [, action, arg] = String(query.data).split(':')
   let user = touchBotUser(query.from)
-  if (action === 'nc') {
-    const screen = noConsentScreen()
-    await sendTelegramMessage(chatId, screen.text, screen.keyboard)
-    return
-  }
+  const reply = (screen) => sendTelegramMessage(chatId, screen.text, screen.keyboard)
+  if (action === 'nc') return reply(noConsentScreen())
   if (action === 'consent') user = giveConsent(query.from.id) ?? user
   if (action === 'mail1') user = setMailingConsent(query.from.id, true) ?? user
   if (action === 'mail0') user = setMailingConsent(query.from.id, false) ?? user
   // Без согласия на обработку ПД остальные кнопки воронки недоступны — показываем нужный шаг.
-  if (!user.consentAt) {
-    await sendFlowStep(chatId, user)
-    return
-  }
-  if (action === 'support') {
-    const screen = supportScreen(SUPPORT_HANDLE)
-    await sendTelegramMessage(chatId, screen.text, screen.keyboard)
-  } else if (action === 'legal') {
-    const screen = legalScreen(SITE_URL)
-    await sendTelegramMessage(chatId, screen.text, screen.keyboard)
-  } else if (action === 'about') {
-    const screen = aboutScreen(SITE_URL)
-    await sendTelegramMessage(chatId, screen.text, screen.keyboard)
-  } else {
-    await sendFlowStep(chatId, user)
+  if (!user.consentAt) return sendFlowStep(chatId, user)
+
+  const materials = materialList()
+  const material = materials.find((m) => m.slug === arg)
+  switch (action) {
+    case 'support':
+      return reply(supportScreen(SUPPORT_HANDLE))
+    case 'legal':
+      return reply(legalScreen(SITE_URL))
+    case 'about':
+      return reply(aboutScreen(SITE_URL, SUPPORT_HANDLE))
+    case 'consult':
+      return reply(consultScreen(SUPPORT_HANDLE))
+    case 'book': {
+      // Заявка на консультацию из бота: запись в кабинет и уведомление админу.
+      const c = createConsultation({ kind: 'question', services: ['Заявка из бота: карьерная консультация'], name: [user.firstName, user.lastName].filter(Boolean).join(' '), telegram: user.username, source: 'бот' })
+      await reply(consultBookedScreen())
+      await sendTelegramMessage(ADMIN_CHAT_ID, `🔔 Заявка из бота\nПользователь ${user.firstName || 'без имени'}${user.username ? ` (${user.username})` : ''} оставил заявку на карьерную консультацию.\n\n🗂 Консультация №${c.number}`, [[{ text: `📂 Открыть консультацию №${c.number}`, callback_data: `a:s:con:${c.number}` }]])
+      return
+    }
+    case 'market':
+      return reply(marketScreen())
+    case 'mats':
+      return reply(materialsListScreen(materials))
+    case 'mat':
+      return material ? reply(materialCard(material)) : reply(marketScreen())
+    case 'buy': {
+      if (!material) return reply(marketScreen())
+      try {
+        const token = createPendingPurchase({ materialSlug: material.slug, name: user.firstName, tgUserId: chatId })
+        const url = await createProductPaymentLink({ materialSlug: material.slug, tgUserId: String(chatId), urlSuccess: `${SITE_URL}/materials/cabinet?token=${token}` })
+        return reply(payLinkScreen(material, url))
+      } catch (err) {
+        console.error('[bot] ошибка ссылки на оплату материала:', err)
+        return sendTelegramMessage(chatId, `Не получилось создать ссылку на оплату. Напишите в поддержку — ${SUPPORT_HANDLE}, поможем.`)
+      }
+    }
+    case 'paid': {
+      if (!material) return reply(marketScreen())
+      if (findPaidPurchase(chatId, material.slug)) return deliverMaterial(chatId, material.slug)
+      return reply(paymentNotFoundScreen(material.slug, SUPPORT_HANDLE))
+    }
+    default:
+      return sendFlowStep(chatId, user)
   }
 }
 
@@ -1454,6 +1525,18 @@ async function handleTelegramUpdate(update) {
   }
   if ((isAdmin || isViewer) && text?.startsWith('/report')) {
     await sendTelegramMessage(chatId, reportText(parseReportPeriod(text.slice('/report'.length))), FINANCE_KEYBOARD)
+    return
+  }
+  // Админ присылает PDF с подписью «/material <slug>» — бот запоминает файл для выдачи покупателям.
+  if (isAdmin && message?.document && /^\/material\b/i.test(message.caption ?? '')) {
+    const slug = message.caption.replace(/^\/material\s*/i, '').trim()
+    if (!MATERIALS[slug]) {
+      await sendTelegramMessage(chatId, `Не знаю такой материал. Подпись должна быть вида /material <slug>. Доступные:\n${Object.keys(MATERIALS).map((k) => `/material ${k}`).join('\n')}`)
+      return
+    }
+    setMaterialFile(slug, message.document.file_id, message.document.file_name)
+    logAction(chatId, `input:material-file:${slug}`)
+    await sendTelegramMessage(chatId, `✅ Файл «${message.document.file_name}» сохранён для «${MATERIALS[slug].title}» — теперь бот выдаёт его после оплаты.`)
     return
   }
   if (isAdmin && text === '/cancel') {
@@ -1558,10 +1641,14 @@ app.post('/api/prodamus/webhook', async (req, res) => {
     }
 
     console.log('[prodamus] покупка материала — телефон:', phone)
-    const purchase = markPurchasePaidByPhone(phone)
+    const purchase = (body.tg_user_id && markPurchasePaidByTg(body.tg_user_id)) || markPurchasePaidByPhone(phone)
     console.log('[prodamus] результат поиска покупки:', purchase ? `найдена ${purchase.token}` : 'не найдена')
     if (purchase) {
       recordPurchasePayment(purchase.token, Number(body.sum) || MATERIALS[purchase.materialSlug]?.price || 0)
+      if (purchase.tgUserId) {
+        addTag(purchase.tgUserId, `оплатил_${purchase.materialSlug}`)
+        await deliverMaterial(purchase.tgUserId, purchase.materialSlug).catch((err) => console.error('[bot] не удалось выдать материал:', err))
+      }
       const material = MATERIALS[purchase.materialSlug]
       const cabinetUrl = `${SITE_URL}/materials/cabinet?token=${purchase.token}`
       const text = buildLeadNotification({

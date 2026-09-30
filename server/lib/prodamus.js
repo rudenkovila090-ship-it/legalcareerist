@@ -93,17 +93,18 @@ export async function createPaymentLink(params) {
  * products[N][...] в подписи и в ссылке передаются как вложенная
  * структура, поэтому используем flattenForm для сборки query-строки.
  */
-export async function createProductPaymentLink({ materialSlug, phone, email, urlSuccess }) {
+export async function createProductPaymentLink({ materialSlug, phone, email, urlSuccess, tgUserId }) {
   const material = MATERIALS[materialSlug]
   if (!material) throw new Error(`unknown material: ${materialSlug}`)
   if (!SECRET_KEY) throw new Error('PRODAMUS_SECRET_KEY not set')
-  if (!phone && !email) throw new Error('need phone or email to identify customer')
+  if (!phone && !email && !tgUserId) throw new Error('need phone, email or tg_user_id to identify customer')
 
   const data = {
     do: 'link',
     products: [{ name: material.title, price: material.price, quantity: 1 }],
     urlNotification: `${SITE_URL}/api/prodamus/webhook`,
   }
+  if (tgUserId) data.tg_user_id = tgUserId
   if (phone) data.customer_phone = phone
   if (email) data.customer_email = email
   if (urlSuccess) data.urlSuccess = urlSuccess

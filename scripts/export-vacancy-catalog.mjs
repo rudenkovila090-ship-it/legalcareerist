@@ -31,6 +31,13 @@ try {
   fs.mkdirSync(dir, { recursive: true })
   fs.writeFileSync(path.join(dir, 'vacancy-catalog.json'), JSON.stringify(catalog, null, 2))
   console.log(`vacancy catalog: ${catalog.length}`)
+
+  // Каталог материалов (описания для карточек в боте)
+  const matSource = fs.readFileSync(path.join(ROOT, 'src/data/materials.ts'), 'utf8')
+  const matJs = ts.transpileModule(matSource, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } }).outputText
+  const { materials } = await import(`data:text/javascript;base64,${Buffer.from(matJs).toString('base64')}`)
+  fs.writeFileSync(path.join(dir, 'material-catalog.json'), JSON.stringify(materials.map((m) => ({ slug: m.slug, title: m.title, description: m.description, forWhom: m.forWhom, price: m.price })), null, 2))
+  console.log(`material catalog: ${materials.length}`)
 } catch (err) {
   console.warn('vacancy catalog: не удалось выгрузить —', err.message)
 }

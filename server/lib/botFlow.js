@@ -68,8 +68,8 @@ export function mainMenuScreen(siteUrl, firstName, isResident = false) {
     ].join('\n'),
     keyboard: [
       [{ text: 'Сообщество', url: `${siteUrl}/community` }],
-      [{ text: 'Маркет', url: `${siteUrl}/marketplace` }],
-      [{ text: 'Консультации', url: `${siteUrl}/kadry/candidates/consultation` }],
+      [{ text: 'Маркет', callback_data: 'u:market' }],
+      [{ text: 'Консультации', callback_data: 'u:consult' }],
       ...(isResident ? [[{ text: '💼 Мой кабинет резидента', callback_data: 'r:menu' }]] : []),
       [
         { text: 'Поддержка', callback_data: 'u:support' },
@@ -108,9 +108,133 @@ export function legalScreen(siteUrl) {
   }
 }
 
-export function aboutScreen(siteUrl) {
+/** Блок «О нас» (кнопка «О КЮ»). Подразделы «Достижения», «Отзывы», «О CEO» пока ведут на страницы сайта. */
+export function aboutScreen(siteUrl, supportHandle) {
   return {
-    text: 'О «Карьерном юристе»',
-    keyboard: [[{ text: 'Читать на сайте', url: `${siteUrl}/about` }], [{ text: 'Главное меню', callback_data: 'u:menu' }]],
+    text: [
+      'Карьерный юрист — кадровое юридическое агентство.',
+      '',
+      'Мы помогаем:',
+      '- Юристам находить работу',
+      '- Работодателям — сильных юридических сотрудников',
+      '- Строить и развивать успешную юридическую карьеру',
+      '',
+      'На базе агентства работает закрытое профессиональное сообщество, мы регулярно проводим собственные мероприятия и оказываем карьерные консультации.',
+    ].join('\n'),
+    keyboard: [
+      [
+        { text: 'Достижения', url: `${siteUrl}/about` },
+        { text: 'Отзывы', url: `${siteUrl}/about` },
+        { text: 'О CEO 👤', url: `${siteUrl}/about` },
+      ],
+      [
+        { text: 'Контакты', url: `${siteUrl}/kadry/contacts` },
+        { text: 'Связаться', url: `https://t.me/${String(supportHandle).replace(/^@/, '')}` },
+        { text: 'Главное меню', callback_data: 'u:menu' },
+      ],
+    ],
+  }
+}
+
+/** Блок «Консультации / Главное меню». */
+export function consultScreen(supportHandle) {
+  return {
+    text: [
+      'Карьерный юрист | Консультации — твой надежный помощник в построении успешной карьеры.',
+      '',
+      '• Руденков Илья — карьерный консультант и основатель сообщества. Помогает с карьерным планированием, поиском работы, составлением сильного резюме и подготовкой к собеседованиям.',
+    ].join('\n'),
+    keyboard: [
+      [{ text: 'Получить карьерную консультацию', callback_data: 'u:book' }],
+      [
+        { text: 'Поддержка', url: `https://t.me/${String(supportHandle).replace(/^@/, '')}` },
+        { text: 'Главное меню', callback_data: 'u:menu' },
+      ],
+    ],
+  }
+}
+
+/** Блок «Консультации / Ответ на запись». */
+export function consultBookedScreen() {
+  return {
+    text: 'Отлично, записал!\n\nВ ближайшее время с тобой свяжется Руденков Илья, чтобы обсудить твои запросы и предложить план работы.',
+    keyboard: [[{ text: 'В главное меню', callback_data: 'u:menu' }]],
+  }
+}
+
+/** Блок «Маркет». */
+export function marketScreen() {
+  return {
+    text: [
+      'Маркет 🛒',
+      '',
+      'Здесь можно приобрести полезные материалы для студентов и юристов:',
+      '- практические гайды, чек-листы, шаблоны документов',
+      '- записи вебинаров и мероприятий «Карьерного юриста».',
+      '',
+      'Все материалы доступны для покупки онлайн и направлены на развитие профессиональных навыков, карьерный рост и применение знаний на практике.',
+    ].join('\n'),
+    keyboard: [[{ text: 'Полезные материалы', callback_data: 'u:mats' }], [{ text: 'Главное меню', callback_data: 'u:menu' }]],
+  }
+}
+
+/** Список материалов (кнопки по одному на строку). */
+export function materialsListScreen(materials) {
+  return {
+    text: 'Полезные материалы\n\nВыбери материал:',
+    keyboard: [...materials.map((m) => [{ text: `${m.title} · ${m.price} ₽`.slice(0, 60), callback_data: `u:mat:${m.slug}` }]), [{ text: 'Назад', callback_data: 'u:market' }, { text: 'Главное меню', callback_data: 'u:menu' }]],
+  }
+}
+
+// Тексты карточек, которые уже есть в BotHelp; для остальных материалов — описание с сайта.
+const MATERIAL_TEXTS = {
+  'gaid-stipendii-i-granty': [
+    'Гайд «Стипендии и гранты» 📌',
+    '',
+    'Ищите способ получить дополнительные деньги во время учёбы, но не знаете, с чего начать поиск? Мы собрали в одном гайде все стипендии и гранты, доступные студентам-юристам: от государственной академической стипендии до именных стипендий Минюста, корпоративных грантов.',
+    '',
+    'По каждой программе внутри гайда прописано главное: кто даёт деньги, кому она подходит, какой реальный размер выплаты, какие нужны условия и как правильно подать документы, чтобы не терять время на поиск разрозненной информации по десяткам сайтов и приказов.',
+  ].join('\n'),
+}
+
+export function materialCard(material) {
+  const text = MATERIAL_TEXTS[material.slug] ?? [material.title, '', material.description, material.forWhom ? `\nДля кого: ${material.forWhom}` : ''].filter((l) => l !== null).join('\n')
+  return {
+    text,
+    keyboard: [
+      [{ text: `Купить за ${material.price} ₽`, callback_data: `u:buy:${material.slug}` }],
+      [{ text: 'Уже приобрел', callback_data: `u:paid:${material.slug}` }],
+      [{ text: 'Назад', callback_data: 'u:mats' }, { text: 'Главное меню', callback_data: 'u:menu' }],
+    ],
+  }
+}
+
+export function payLinkScreen(material, url) {
+  return {
+    text: `${material.title}\n\nОплата ${material.price} ₽ — по кнопке ниже. Материал придёт сюда сразу после оплаты.`,
+    keyboard: [[{ text: `Оплатить ${material.price} ₽`, url }], [{ text: 'Уже приобрел', callback_data: `u:paid:${material.slug}` }], [{ text: 'Назад', callback_data: `u:mat:${material.slug}` }, { text: 'Главное меню', callback_data: 'u:menu' }]],
+  }
+}
+
+/** «Сообщение оплата стипендия»: успешная оплата. */
+export const PAID_TEXT = 'Оплата прошла успешно 👌\n\nИзучай, выбирай то, что откликается, и не бойся пробовать новое, ведь именно так строится карьера.'
+
+export function paidKeyboard() {
+  return [[{ text: 'Маркет', callback_data: 'u:market' }], [{ text: 'Главное меню', callback_data: 'u:menu' }]]
+}
+
+/** «Сообщение 51»: оплата не найдена. */
+export function paymentNotFoundScreen(slug, supportHandle) {
+  return {
+    text: 'Странно, но я не вижу подтверждения твоей оплаты 🙂\n\nЕсли оплата действительно была произведена успешно, пожалуйста, напиши нам в поддержку и приложи чек или скрин платежа, мы оперативно проверим и все уладим 👉',
+    keyboard: [[{ text: 'Поддержка', url: `https://t.me/${String(supportHandle).replace(/^@/, '')}` }], [{ text: 'Назад', callback_data: `u:mat:${slug}` }], [{ text: 'Главное меню', callback_data: 'u:menu' }]],
+  }
+}
+
+/** «Сообщение 49»: просьба об отзыве (только согласившимся на рассылку). */
+export function reviewScreen(reviewUrl) {
+  return {
+    text: 'Надеемся, материал оказался полезным 🙌\n\nЕсли понравилось, оставь короткий отзыв',
+    keyboard: [[{ text: 'Оставить отзыв', url: reviewUrl }], [{ text: 'Главное меню', callback_data: 'u:menu' }]],
   }
 }
