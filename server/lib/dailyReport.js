@@ -80,7 +80,7 @@ export function buildDailyReport(joins, now, tariffs, period = 'today') {
   const sum = (list) => list.reduce((acc, p) => acc + (Number(p.amount) || 0), 0)
 
   const cancelled = joins.filter((j) => j.cancelledAt && inRange(j.cancelledAt))
-  const active = joins.filter((j) => j.status === 'active')
+  const active = joins.filter((j) => j.status === 'active' && !j.lifetime)
   const dueTomorrow = active.filter((j) => j.nextPaymentAt && mskDayKey(j.nextPaymentAt) === tomorrow)
 
   const byTariff = new Map()

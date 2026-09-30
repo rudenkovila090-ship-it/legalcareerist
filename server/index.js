@@ -36,7 +36,7 @@ import cors from 'cors'
 import multer from 'multer'
 import { createPaymentLink, TARIFFS, tariffIdBySubscriptionId, createProductPaymentLink, MATERIALS } from './lib/prodamus.js'
 import { HmacHelper } from './lib/hmac.js'
-import { createPendingJoin, createOrphanJoin, listJoins, setTgUserId, findJoinForPayment, recordPayment, setSubscriptionActive, markReminded, getJoin, setCancelReason, setJoinField, extendSubscription } from './lib/store.js'
+import { createPendingJoin, createOrphanJoin, listJoins, setTgUserId, findJoinForPayment, recordPayment, setSubscriptionActive, markReminded, getJoin, setCancelReason, setJoinField, extendSubscription, createLifetimeJoin } from './lib/store.js'
 import { normalizePhone } from './lib/jsonStore.js'
 import { createPendingPurchase, getPurchase, markPurchasePaidByPhone, markPurchasePaidByTg, findPaidPurchase, recordPurchasePayment, listPurchases } from './lib/materialsStore.js'
 import { incrementView, incrementApplication, allVacancyStats } from './lib/vacancyStats.js'
@@ -47,8 +47,8 @@ import { createAmbassador, listAmbassadors, getAmbassador, addReferral, deleteAm
 import { createExpense, listExpenses, deleteExpense } from './lib/expenses.js'
 import { createEventLead, listEventLeads, getEventLead, setEventLeadStatus } from './lib/eventLeads.js'
 import { getMaterialFile, setMaterialFile } from './lib/materialFiles.js'
-import { touchBotUser, giveConsent, setMailingConsent, addTag, getBotUser, listBotUsers, countConversation, updateBotUser } from './lib/botUsers.js'
-import { isStartKeyword, welcomeScreen, noConsentScreen, mailingScreen, mainMenuScreen, supportScreen, legalScreen, aboutScreen, consultScreen, consultBookedScreen, marketScreen, materialsListScreen, materialCard, payLinkScreen, PAID_TEXT, PAID_TEXTS, PAID_TAGS, paidKeyboard, paymentNotFoundScreen, reviewScreen, CONTACT_PROMPTS, contactCancelKeyboard, unsubscribedScreen, communityScreen, communityResidentScreen, periodsScreen, subLinkScreen, CANCEL_REQUESTED_TEXT, careerScreen, clubsScreen, achievementsScreen } from './lib/botFlow.js'
+import { touchBotUser, giveConsent, setMailingConsent, addTag, getBotUser, listBotUsers, countConversation, updateBotUser, setGender } from './lib/botUsers.js'
+import { isStartKeyword, welcomeScreen, noConsentScreen, mailingScreen, mainMenuScreen, supportPrompt, genderScreen, reviewThanks, legalScreen, aboutScreen, consultScreen, consultBookedScreen, marketScreen, materialsListScreen, materialCard, payLinkScreen, PAID_TEXT, PAID_TEXTS, PAID_TAGS, paidKeyboard, paymentNotFoundScreen, reviewScreen, CONTACT_PROMPTS, contactCancelKeyboard, unsubscribedScreen, communityScreen, communityResidentScreen, periodsScreen, subLinkScreen, CANCEL_REQUESTED_TEXT, careerScreen, clubsScreen, achievementsScreen } from './lib/botFlow.js'
 import { buildMonthCsv } from './lib/exportCsv.js'
 import { vacancyOverrides, setVacancyStatus } from './lib/vacancyOverrides.js'
 import { residentMenu, subscriptionScreen, linkScreen, offScreen } from './lib/residentCabinet.js'
@@ -106,15 +106,28 @@ let lastPollAt = 0
 
 // Сервер стоит в РФ, и соединение с api.telegram.org время от времени
 // обрывается по таймауту — поэтому до трёх попыток с паузой, а не одна.
+// Длительность последних запросов к Telegram — для диагностики «долгой загрузки» в «Система».
+const telegramLatencies = []
+// Повторяем запрос только если соединение с Telegram даже не установилось: тогда сообщение точно не доставлено.
+// При таймауте ответа (сообщение могло уже уйти) повтор создавал бы дубли — их не делаем.
+const SAFE_RETRY_CODES = new Set(['UND_ERR_CONNECT_TIMEOUT', 'ECONNREFUSED', 'ENOTFOUND', 'EAI_AGAIN'])
+
 async function telegramFetch(method, init) {
   let lastError
-  for (const delay of [0, 2000, 5000]) {
+  for (const delay of [0, 1500]) {
     if (delay) await new Promise((resolve) => setTimeout(resolve, delay))
+    const started = Date.now()
     try {
-      return await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/${method}`, { ...init, signal: AbortSignal.timeout(10000) })
+      const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/${method}`, { ...init, signal: AbortSignal.timeout(25000) })
+      telegramLatencies.push({ at: Date.now(), ms: Date.now() - started })
+      if (telegramLatencies.length > 60) telegramLatencies.shift()
+      return res
     } catch (err) {
       lastError = err
-      console.error(`[telegram] ${method}: сеть недоступна, повтор через несколько секунд`)
+      telegramLatencies.push({ at: Date.now(), ms: Date.now() - started, failed: true })
+      if (telegramLatencies.length > 60) telegramLatencies.shift()
+      if (!SAFE_RETRY_CODES.has(err?.cause?.code)) break
+      console.error(`[telegram] ${method}: соединение не установилось, повтор`)
     }
   }
   throw lastError
@@ -878,6 +891,7 @@ function currentHealth() {
     errors: recentErrors,
     lastBackupAt: readBackupState().lastAt,
     activeSubscribers: listJoins().filter((j) => j.status === 'active').length,
+    latencies: telegramLatencies,
   })]
 }
 
@@ -1429,12 +1443,12 @@ const MUTATING = /^a:(k:(adv|back|q1|q0|lost|reopen|revok|rev|new|pp|pf)|s:(vst|
 /** Нажатие кнопки кабинета — от админа (все кнопки) или помощника (только просмотр); остальным молча отвечаем. */
 async function handleAdminCallback(query) {
   const chatId = query.message?.chat?.id
-  const answer = (text) => telegramFetch('answerCallbackQuery', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ callback_query_id: query.id, ...(text ? { text, show_alert: true } : {}) }) }).catch(() => null)
+  const answer = (text) => ackCallback(query, text, true)
   const fromId = String(query.from?.id)
   const isAdmin = fromId === String(ADMIN_CHAT_ID)
   const isViewer = VIEWER_IDS.has(fromId)
   if (!chatId || !(isAdmin || isViewer) || !String(query.data ?? '').startsWith('a:')) {
-    await answer()
+    void answer()
     return
   }
   const mutating = MUTATING.test(query.data)
@@ -1442,7 +1456,8 @@ async function handleAdminCallback(query) {
     await answer('Этот аккаунт — только для просмотра.')
     return
   }
-  await answer()
+  void answer()
+  if (isDuplicateTap(query, 1200)) return
   if (mutating && !PROMPT_ONLY.test(query.data)) logAction(fromId, query.data)
   const screen = await adminScreen(query.data, Date.now(), chatId)
   await sendLongMessage(chatId, screen.text, screen.keyboard)
@@ -1454,21 +1469,75 @@ function residentByTelegramId(tgId) {
   return listJoins().filter((j) => j.paid && String(j.tgUserId ?? '') === String(tgId)).sort((a, b) => (b.lastPaidAt ?? 0) - (a.lastPaidAt ?? 0))[0] ?? null
 }
 
-/** Старт воронки: метка «пользователь»; дальше согласие на обработку ПД → согласие на рассылку → главное меню. */
+// Основатель и другие «вечные» резиденты: доступ без оплаты и без срока (env LIFETIME_USERNAMES=ник1,ник2).
+const LIFETIME_USERNAMES = new Set(String(process.env.LIFETIME_USERNAMES ?? 'rudenkovrd').split(',').map((v) => v.trim().replace(/^@/, '').toLowerCase()).filter(Boolean))
+
+/** Если ник в списке «вечных» и карточки резидента ещё нет — заводит её (бессрочная подписка). */
+function ensureLifetimeResident(user) {
+  const nick = String(user.username ?? '').replace(/^@/, '').toLowerCase()
+  if (!nick || !LIFETIME_USERNAMES.has(nick)) return
+  const has = listJoins().some((j) => String(j.tgUserId ?? '') === String(user.id) && j.lifetime)
+  if (!has) createLifetimeJoin({ tgUserId: user.id, name: [user.firstName, user.lastName].filter(Boolean).join(' '), telegram: user.username })
+}
+
+/** Старт воронки: метка «пользователь»; дальше согласие на обработку ПД → пол (если не определён) → согласие на рассылку → главное меню. */
 async function startFlow(chatId, from, startParam) {
   userFlows.delete(String(chatId))
   const user = touchBotUser({ ...from, id: from?.id ?? chatId }, startParam)
+  ensureLifetimeResident(user)
   if (startParam !== undefined) countConversation(user.id)
   await sendFlowStep(chatId, user)
 }
 
-/** Следующий незавершённый шаг воронки для пользователя. */
+/** Экран следующего незавершённого шага воронки. */
+function flowScreen(user) {
+  if (!user.consentAt) return welcomeScreen(user, SITE_URL)
+  if (!user.gender) return genderScreen(user)
+  if (user.mailingConsent === undefined) return mailingScreen(SITE_URL, user)
+  return mainMenuScreen(SITE_URL, user)
+}
+
 async function sendFlowStep(chatId, user) {
-  let screen
-  if (!user.consentAt) screen = welcomeScreen(user.firstName, SITE_URL)
-  else if (user.mailingConsent === undefined) screen = mailingScreen(SITE_URL)
-  else screen = mainMenuScreen(SITE_URL, user.firstName, Boolean(residentByTelegramId(chatId)))
+  const screen = flowScreen(user)
   await sendTelegramMessage(chatId, screen.text, screen.keyboard)
+}
+
+/** Ответ на нажатие кнопки: правим то же сообщение (без новых сообщений и дублей при повторных нажатиях); если не вышло — отправляем новое. */
+async function editOrSend(query, screen) {
+  const chatId = query.message?.chat?.id
+  const messageId = query.message?.message_id
+  if (chatId && messageId) {
+    try {
+      const res = await telegramFetch('editMessageText', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: chatId, message_id: messageId, text: screen.text, reply_markup: { inline_keyboard: screen.keyboard ?? [] }, disable_web_page_preview: true }) })
+      if (res.ok) return true
+      const body = await res.text()
+      if (body.includes('message is not modified')) return true
+    } catch {
+      // упали на сети — ниже пробуем отправить новым сообщением
+    }
+  }
+  return sendTelegramMessage(chatId, screen.text, screen.keyboard)
+}
+
+// Защита от «дребезга»: повторное нажатие той же кнопки в течение 2 секунд игнорируется.
+const recentTaps = new Map()
+function isDuplicateTap(query, windowMs = 2000) {
+  const key = `${query.from?.id}:${query.data}`
+  const now = Date.now()
+  if (now - (recentTaps.get(key) ?? 0) < windowMs) return true
+  recentTaps.set(key, now)
+  if (recentTaps.size > 500) for (const [k, t] of recentTaps) if (now - t > 60000) recentTaps.delete(k)
+  return false
+}
+
+/** Мгновенно подтверждает нажатие (крутилка на кнопке пропадает), не дожидаясь остальной работы. */
+function ackCallback(query, text, alert = false) {
+  return telegramFetch('answerCallbackQuery', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ callback_query_id: query.id, ...(text ? { text, show_alert: alert } : {}) }) }).catch(() => null)
+}
+
+/** «Печатает…» на время долгих действий (создание ссылки на оплату и т. п.). */
+function typing(chatId) {
+  telegramFetch('sendChatAction', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: chatId, action: 'typing' }) }).catch(() => null)
 }
 
 /** Материалы для бота: цена и название — из серверного списка (источник истины), описание — из каталога сайта. */
@@ -1523,40 +1592,33 @@ async function checkCommunityChat() {
 // Диалог «Связаться с поддержкой» в боте: по шагам собираем недостающие контакты и вопрос, админу уходит обращение с номером.
 const userFlows = new Map()
 
+// Порядок: сначала сам вопрос. Контакты просим только если человека нельзя найти (нет ника в Telegram, телефона и почты).
 function nextContactStep(user, data) {
-  if (!data.name && !user.contactName) return 'name'
-  if (!data.phone && !data.email && !user.phone && !user.email && !data.phoneAsked) return 'phone'
-  if (!data.email && !user.email && !data.emailAsked) return 'email'
   if (!data.question) return 'question'
+  const reachable = user.username || user.phone || user.email || data.phone || data.email
+  if (!reachable && !data.contactAsked) return 'contact'
   return null
 }
 
-async function askNextContactStep(chatId, user, flow) {
+async function askNextContactStep(chatId, user, flow, query) {
   const step = nextContactStep(user, flow.data)
   flow.step = step
   if (!step) return finishContactFlow(chatId, user, flow)
   userFlows.set(String(chatId), flow)
-  await sendTelegramMessage(chatId, CONTACT_PROMPTS[step], contactCancelKeyboard())
+  const screen = step === 'question' ? supportPrompt(user) : { text: CONTACT_PROMPTS.contact, keyboard: contactCancelKeyboard() }
+  if (query) await editOrSend(query, screen)
+  else await sendTelegramMessage(chatId, screen.text, screen.keyboard)
 }
 
 async function handleContactFlowInput(chatId, text) {
   const flow = userFlows.get(String(chatId))
   const user = getBotUser(chatId) ?? {}
-  const value = text.trim() === '-' ? '' : text.trim()
-  if (flow.step === 'name') flow.data.name = value
-  else if (flow.step === 'phone') {
-    flow.data.phoneAsked = true
-    flow.data.phone = value
-  } else if (flow.step === 'email') {
-    flow.data.emailAsked = true
-    flow.data.email = value
-  } else if (flow.step === 'question') flow.data.question = text.trim()
-  // Нужен телефон или почта: если человек отказался от обоих — спрашиваем ещё раз почту/телефон один раз
-  if (flow.step === 'email' && !flow.data.email && !flow.data.phone && !user.phone && !user.email && !flow.data.retry) {
-    flow.data.retry = true
-    flow.data.emailAsked = false
-    flow.data.phoneAsked = false
-    await sendTelegramMessage(chatId, 'Чтобы мы могли ответить, нужен хотя бы телефон или почта.', contactCancelKeyboard())
+  if (flow.step === 'question') flow.data.question = text.trim()
+  else if (flow.step === 'contact') {
+    flow.data.contactAsked = true
+    const v = text.trim()
+    if (/^\S+@\S+\.\S+$/.test(v)) flow.data.email = v
+    else if (v.replace(/\D/g, '').length >= 10) flow.data.phone = v
   }
   await askNextContactStep(chatId, user, flow)
 }
@@ -1564,10 +1626,10 @@ async function handleContactFlowInput(chatId, text) {
 async function finishContactFlow(chatId, user, flow) {
   userFlows.delete(String(chatId))
   const d = flow.data
-  const name = d.name || user.contactName || [user.firstName, user.lastName].filter(Boolean).join(' ')
+  const name = user.contactName || [user.firstName, user.lastName].filter(Boolean).join(' ')
   const phone = d.phone || user.phone
   const email = d.email || user.email
-  updateBotUser(chatId, { contactName: d.name, phone: d.phone, email: d.email })
+  updateBotUser(chatId, { phone: d.phone, email: d.email })
   const ticket = nextTicketNumber()
   const text = buildKadryRichNotification({
     template: 'support',
@@ -1583,42 +1645,46 @@ async function finishContactFlow(chatId, user, flow) {
     origin: 'из бота',
   })
   await sendTelegramMessage(ADMIN_CHAT_ID, text, [[{ text: '👤 Карточка человека', callback_data: `a:x:pc:${chatId}` }, { text: '✉️ Написать', url: user.username ? `https://t.me/${user.username.replace(/^@/, '')}` : `tg://user?id=${chatId}` }]])
-  await sendTelegramMessage(chatId, `Спасибо! Вопрос принят, номер обращения №${ticket}. Мы свяжемся с тобой в ближайшее время.`, [[{ text: 'Главное меню', callback_data: 'u:menu' }]])
+  await sendTelegramMessage(chatId, `${user.firstName ? `${user.firstName}, спасибо` : 'Спасибо'}! Вопрос принят, номер обращения №${ticket}. Мы свяжемся с тобой в ближайшее время.`, [[{ text: 'Главное меню', callback_data: 'u:menu' }]])
 }
 
 async function handleUserCallback(query) {
   const chatId = query.message?.chat?.id
-  await telegramFetch('answerCallbackQuery', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ callback_query_id: query.id }) }).catch(() => null)
+  void ackCallback(query)
   if (!chatId || String(query.from?.id) !== String(chatId)) return
+  if (isDuplicateTap(query)) return
   const [, action, arg] = String(query.data).split(':')
   let user = touchBotUser(query.from)
-  const reply = (screen) => sendTelegramMessage(chatId, screen.text, screen.keyboard)
-  if (action === 'nc') return reply(noConsentScreen())
+  ensureLifetimeResident(user)
+  const reply = (screen) => editOrSend(query, screen)
+  if (action !== 'support' && action !== 'contact') userFlows.delete(String(chatId))
+  if (action === 'nc') return reply(noConsentScreen(user))
   if (action === 'consent') user = giveConsent(query.from.id) ?? user
+  if (action === 'g') user = setGender(query.from.id, arg) ?? user
   if (action === 'mail1') user = setMailingConsent(query.from.id, true) ?? user
   if (action === 'mail0') user = setMailingConsent(query.from.id, false) ?? user
   // Без согласия на обработку ПД остальные кнопки воронки недоступны — показываем нужный шаг.
-  if (!user.consentAt) return sendFlowStep(chatId, user)
+  if (!user.consentAt) return reply(flowScreen(user))
+  if (action === 'consent' || action === 'g' || action === 'mail1' || action === 'mail0') return reply(flowScreen(user))
 
   const materials = materialList()
   const material = materials.find((m) => m.slug === arg)
   switch (action) {
     case 'support':
-      return reply(supportScreen(SUPPORT_HANDLE))
+    case 'contact':
+      // «Поддержка» сразу просит написать вопрос: следующее сообщение человека уходит админу.
+      return askNextContactStep(chatId, user, { data: {} }, query)
     case 'legal':
       return reply(legalScreen(SITE_URL))
     case 'about':
       return reply(aboutScreen(SITE_URL, SUPPORT_HANDLE))
     case 'consult':
       return reply(consultScreen(SUPPORT_HANDLE))
-    case 'contact':
-      return askNextContactStep(chatId, user, { data: {} })
     case 'cancelflow':
-      userFlows.delete(String(chatId))
-      return sendFlowStep(chatId, user)
+      return reply(mainMenuScreen(SITE_URL, user))
     case 'unsub': {
       setMailingConsent(query.from.id, false)
-      return reply(unsubscribedScreen())
+      return reply(unsubscribedScreen({ ...user, mailingConsent: false }))
     }
     case 'book': {
       // Заявка на консультацию из бота: запись в кабинет и уведомление админу.
@@ -1636,6 +1702,7 @@ async function handleUserCallback(query) {
     case 'sub': {
       const tariff = TARIFFS[arg]
       if (!tariff) return reply(periodsScreen())
+      typing(chatId)
       try {
         // Заявка привязывается к Telegram-аккаунту: по tg_user_id из вебхука оплата найдёт её, а бот сам пришлёт ссылку на вступление.
         const token = createPendingJoin({ tariffId: arg, name: [user.firstName, user.lastName].filter(Boolean).join(' '), phone: '', email: '', telegram: user.username })
@@ -1644,16 +1711,16 @@ async function handleUserCallback(query) {
         return reply(subLinkScreen(tariff.period, tariff.price, url))
       } catch (err) {
         console.error('[bot] ошибка ссылки на оплату подписки:', err)
-        return sendTelegramMessage(chatId, `Не получилось создать ссылку на оплату. Напишите в поддержку — ${SUPPORT_HANDLE}, поможем.`)
+        return sendTelegramMessage(chatId, `Не получилось создать ссылку на оплату. Напиши в поддержку — ${SUPPORT_HANDLE}, поможем.`)
       }
     }
     case 'aboutclub':
-      return sendTelegramMessage(chatId, 'О сообществе — на сайте:', [[{ text: 'Читать на сайте', url: `${SITE_URL}/community#main` }], [{ text: 'Назад', callback_data: 'u:community' }, { text: 'Главное меню', callback_data: 'u:menu' }]])
+      return reply({ text: 'О сообществе — на сайте:', keyboard: [[{ text: 'Читать на сайте', url: `${SITE_URL}/community#main` }], [{ text: 'Назад', callback_data: 'u:community' }, { text: 'Главное меню', callback_data: 'u:menu' }]] })
     case 'cancelsub': {
       // Отмену подписки в Prodamus пока делает админ вручную: бот принимает запрос и сообщает вам.
       const resident = residentByTelegramId(chatId)
-      await sendTelegramMessage(chatId, CANCEL_REQUESTED_TEXT, [[{ text: 'Главное меню', callback_data: 'u:menu' }]])
-      await sendTelegramMessage(ADMIN_CHAT_ID, `🛑 Запрос на отмену подписки из бота\n${[user.firstName, user.username].filter(Boolean).join(' ')}${resident ? `\n${resident.status === 'active' ? 'Подписка активна' : 'Подписка отключена'}${resident.nextPaymentAt ? `, следующее списание ${new Date(resident.nextPaymentAt).toLocaleDateString('ru-RU', { timeZone: 'Europe/Moscow' })}` : ''}` : '\nВ учёте подписка не найдена — проверьте по нику или телефону.'}\n\nОтключите автопродление в Prodamus и напишите человеку.`, user.username ? [[{ text: '✉️ Написать', url: `https://t.me/${user.username.replace(/^@/, '')}` }]] : undefined)
+      await reply({ text: CANCEL_REQUESTED_TEXT, keyboard: [[{ text: 'Главное меню', callback_data: 'u:menu' }]] })
+      await sendTelegramMessage(ADMIN_CHAT_ID, `🛑 Запрос на отмену подписки из бота\n${[user.firstName, user.username].filter(Boolean).join(' ')}${resident ? `\n${resident.lifetime ? 'Бессрочная подписка (основатель)' : resident.status === 'active' ? 'Подписка активна' : 'Подписка отключена'}${resident.nextPaymentAt ? `, следующее списание ${new Date(resident.nextPaymentAt).toLocaleDateString('ru-RU', { timeZone: 'Europe/Moscow' })}` : ''}` : '\nВ учёте подписка не найдена — проверьте по нику или телефону.'}\n\nОтключите автопродление в Prodamus и напишите человеку.`, user.username ? [[{ text: '✉️ Написать', url: `https://t.me/${user.username.replace(/^@/, '')}` }]] : undefined)
       return
     }
     case 'career':
@@ -1669,16 +1736,17 @@ async function handleUserCallback(query) {
     case 'mats':
       return reply(materialsListScreen(materials))
     case 'mat':
-      return material ? reply(materialCard(material)) : reply(marketScreen())
+      return material ? reply(materialCard(material, user)) : reply(marketScreen())
     case 'buy': {
       if (!material) return reply(marketScreen())
+      typing(chatId)
       try {
         const token = createPendingPurchase({ materialSlug: material.slug, name: user.firstName, tgUserId: chatId })
         const url = await createProductPaymentLink({ materialSlug: material.slug, tgUserId: String(chatId), urlSuccess: `${SITE_URL}/materials/cabinet?token=${token}` })
-        return reply(payLinkScreen(material, url))
+        return reply(payLinkScreen(material, url, user))
       } catch (err) {
         console.error('[bot] ошибка ссылки на оплату материала:', err)
-        return sendTelegramMessage(chatId, `Не получилось создать ссылку на оплату. Напишите в поддержку — ${SUPPORT_HANDLE}, поможем.`)
+        return sendTelegramMessage(chatId, `Не получилось создать ссылку на оплату. Напиши в поддержку — ${SUPPORT_HANDLE}, поможем.`)
       }
     }
     case 'paid': {
@@ -1687,14 +1755,17 @@ async function handleUserCallback(query) {
       return reply(paymentNotFoundScreen(material.slug, SUPPORT_HANDLE))
     }
     default:
-      return sendFlowStep(chatId, user)
+      return reply(flowScreen(user))
   }
 }
 
 async function handleResidentCallback(query) {
   const chatId = query.message?.chat?.id
-  await telegramFetch('answerCallbackQuery', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ callback_query_id: query.id }) }).catch(() => null)
-  const join = chatId && String(query.from?.id) === String(chatId) ? residentByTelegramId(chatId) : null
+  void ackCallback(query)
+  if (isDuplicateTap(query)) return
+  const fromUser = chatId && String(query.from?.id) === String(chatId) ? touchBotUser(query.from) : null
+  if (fromUser) ensureLifetimeResident(fromUser)
+  const join = fromUser ? residentByTelegramId(chatId) : null
   if (!join) {
     await sendTelegramMessage(chatId, `Не нашли вашу подписку. Если вы оплатили, откройте бота по ссылке со страницы «Оплата прошла успешно» или напишите в поддержку: ${SUPPORT_HANDLE}`)
     return
@@ -1705,7 +1776,19 @@ async function handleResidentCallback(query) {
     : action === 'link' ? linkScreen(join, COMMUNITY_INVITE_LINK)
     : action === 'off' ? offScreen(SUPPORT_HANDLE)
     : residentMenu(join, SUPPORT_HANDLE)
-  await sendTelegramMessage(chatId, screen.text, screen.keyboard)
+  await editOrSend(query, screen)
+}
+
+// Обновления одного чата обрабатываются по очереди, разных чатов — параллельно: медленный ответ одному человеку
+// не задерживает остальных, а быстрые повторные нажатия одного человека не обгоняют друг друга.
+const chatQueues = new Map()
+function dispatchUpdate(update) {
+  const key = String(update?.message?.chat?.id ?? update?.callback_query?.from?.id ?? update?.chat_join_request?.from?.id ?? 'other')
+  const next = (chatQueues.get(key) ?? Promise.resolve()).then(() => afterResponse('telegram/update', () => handleTelegramUpdate(update)))
+  chatQueues.set(key, next)
+  next.finally(() => {
+    if (chatQueues.get(key) === next) chatQueues.delete(key)
+  })
 }
 
 async function handleTelegramUpdate(update) {
@@ -1828,7 +1911,7 @@ async function handleTelegramUpdate(update) {
 // по умолчанию бот сам опрашивает Telegram (см. pollTelegramUpdates ниже).
 app.post('/api/telegram/webhook', async (req, res) => {
   res.sendStatus(200) // Telegram ждёт быстрый ответ, обрабатываем после
-  await afterResponse('telegram/webhook', () => handleTelegramUpdate(req.body))
+  dispatchUpdate(req.body)
 })
 
 // Уведомления Prodamus об оплате подписки.
@@ -2018,7 +2101,7 @@ async function processReviewFlow() {
       } else if (j.reviewAskedAt && !j.reviewThankedAt && now - j.reviewAskedAt >= 5 * 3600 * 1000) {
         setJoinField(j.token, 'reviewThankedAt', now)
         extendSubscription(j.token, 4)
-        await sendTelegramMessage(j.tgUserId, 'Вижу ты оставил отзыв, спасибо тебе большое 🙌 это правда важно для нас\n\nКак и обещали, уже добавили тебе +4 дня подписки 🎁', [[{ text: 'Главное меню', callback_data: 'u:menu' }]]).catch(() => false)
+        await sendTelegramMessage(j.tgUserId, reviewThanks(getBotUser(j.tgUserId) ?? {}), [[{ text: 'Главное меню', callback_data: 'u:menu' }]]).catch(() => false)
         await sendTelegramMessage(ADMIN_CHAT_ID, `🎁 ${[j.name, j.telegram].filter(Boolean).join(' ')}: начислено +4 дня подписки за отзыв (автоматически через 5 часов после просьбы, как в BotHelp). Проверьте, что отзыв действительно оставлен.`).catch(() => false)
       }
     }
@@ -2073,7 +2156,7 @@ async function pollTelegramUpdates() {
       lastPollAt = Date.now()
       for (const update of data.result) {
         offset = update.update_id + 1
-        await afterResponse('telegram/poll', () => handleTelegramUpdate(update))
+        dispatchUpdate(update)
       }
     } catch {
       await sleep(5000) // сеть моргнула — пробуем снова

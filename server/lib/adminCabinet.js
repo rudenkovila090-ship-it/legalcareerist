@@ -127,7 +127,7 @@ const BACK_TO_COMMUNITY = [{ text: '⬅️ Назад', callback_data: 'a:sec:co
 /** Активные резиденты, разложенные по сумме списания: Map(сумма → карточки). */
 function activeByAmount(joins, tariffs) {
   const byAmount = new Map()
-  for (const j of joins.filter((x) => x.status === 'active')) {
+  for (const j of joins.filter((x) => x.status === 'active' && !x.lifetime)) {
     const amount = planAmount(j, tariffs)
     if (!byAmount.has(amount)) byAmount.set(amount, [])
     byAmount.get(amount).push(j)

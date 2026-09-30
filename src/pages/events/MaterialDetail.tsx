@@ -122,7 +122,7 @@ export default function MaterialDetail() {
             </div>
           )}
 
-          <p className="mt-6 leading-relaxed text-ink/80">{material.description}</p>
+          <p className="mt-6 whitespace-pre-line leading-relaxed text-ink/80">{material.description}</p>
           <div className="mt-2 text-sm text-ink/50">Для кого: {material.forWhom}</div>
 
           <RelatedContentBlock items={related} />

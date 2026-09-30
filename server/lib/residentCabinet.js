@@ -6,16 +6,16 @@ const MSK = 'Europe/Moscow'
 const rub = (n) => `${Math.round(n).toLocaleString('ru-RU')} ₽`
 const ruDate = (ts) => new Intl.DateTimeFormat('ru-RU', { timeZone: MSK, day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(ts))
 
-const MENU_ROW = [{ text: '⬅️ Мой кабинет', callback_data: 'r:menu' }]
+const MENU_ROW = [{ text: '⬅️ Личный кабинет', callback_data: 'r:menu' }, { text: 'Сообщество', callback_data: 'u:community' }]
 
-export function residentMenu(join, supportHandle) {
+export function residentMenu(join, _supportHandle) {
   const name = join.name && join.name !== '—' ? join.name : null
   return {
-    text: `${name ? `${name}, здравствуйте` : 'Здравствуйте'}! Это ваш кабинет резидента сообщества «Карьерный юрист».`,
+    text: `${name ? `${name}, привет` : 'Привет'}! Это твой личный кабинет резидента сообщества «Карьерный юрист».`,
     keyboard: [
       [{ text: '📋 Моя подписка', callback_data: 'r:sub' }, { text: '🔗 Ссылка на сообщество', callback_data: 'r:link' }],
       [{ text: '🛑 Как отключить подписку', callback_data: 'r:off' }],
-      [{ text: '💬 Написать в поддержку', url: `https://t.me/${String(supportHandle).replace(/^@/, '')}` }],
+      [{ text: '💬 Поддержка', callback_data: 'u:support' }, { text: '⬅️ Сообщество', callback_data: 'u:community' }],
     ],
   }
 }
@@ -25,6 +25,9 @@ export function subscriptionScreen(join, tariffs) {
   const amount = Number(last?.amount) || tariffs[join.tariffId]?.price || null
   const plan = tariffs[join.tariffId]?.period ?? last?.subscriptionName ?? null
   const payments = (join.payments ?? []).filter((p) => !p.estimated).length
+  if (join.lifetime) {
+    return { text: '📋 Моя подписка\n\nСтатус: 🟢 активна\nТариф: Основатель — бессрочно\nСписаний нет, доступ к сообществу сохраняется всегда.', keyboard: [MENU_ROW] }
+  }
   const lines = [
     '📋 Моя подписка',
     '',

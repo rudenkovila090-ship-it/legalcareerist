@@ -2,6 +2,8 @@
 // Блок 1: старт → метка «пользователь» → приветствие с согласием на обработку ПД.
 
 // Ключевые слова запуска из блока «Старт» (срабатывают, если слово содержится в сообщении).
+import { gv } from './gender.js'
+
 export const START_KEYWORDS = ['вступить в сообщество', 'привет', 'запустить', 'старт', 'поехали', 'хай', 'начать', 'здравствуйте', 'карьера']
 
 export function isStartKeyword(text) {
@@ -10,10 +12,10 @@ export function isStartKeyword(text) {
 }
 
 /** Сообщение 2: приветствие и просьба подтвердить согласие на обработку персональных данных. */
-export function welcomeScreen(firstName, siteUrl) {
+export function welcomeScreen(user, siteUrl) {
   return {
     text: [
-      `Привет, ${firstName || 'друг'}! 👋`,
+      `Привет, ${user.firstName || 'друг'}! 👋`,
       'Я — чат-бот «Карьерный юрист». Помогаю тебе:',
       '- вступить в сообщество',
       '- зарегистрироваться на мероприятия',
@@ -27,35 +29,35 @@ export function welcomeScreen(firstName, siteUrl) {
     keyboard: [
       [{ text: 'Политика обработки персональных данных', url: `${siteUrl}/legal/privacy` }],
       [{ text: 'Согласие на обработку персональных данных', url: `${siteUrl}/legal/consent` }],
-      [{ text: 'Не согласен ❌', callback_data: 'u:nc' }, { text: 'Ознакомился ✅', callback_data: 'u:consent' }],
+      [{ text: `${gv(user, 'Не согласен', 'Не согласна', 'Не согласен(на)')} ❌`, callback_data: 'u:nc' }, { text: `${gv(user, 'Ознакомился', 'Ознакомилась', 'Ознакомился(ась)')} ✅`, callback_data: 'u:consent' }],
     ],
   }
 }
 
 /** Сообщение 5: ответ на «Не согласен» — без согласия работа невозможна. */
-export function noConsentScreen() {
+export function noConsentScreen(user) {
   return {
     text: 'Без этого шага мы, к сожалению, не сможем продолжить работу и предоставить все возможности Карьерного юриста.',
-    keyboard: [[{ text: 'Согласен', callback_data: 'u:consent' }]],
+    keyboard: [[{ text: gv(user, 'Согласен', 'Согласна', 'Согласен(на)'), callback_data: 'u:consent' }]],
   }
 }
 
 /** Блок «Рассылка»: согласие на получение сообщений о новостях, мероприятиях и материалах. */
-export function mailingScreen(siteUrl) {
+export function mailingScreen(siteUrl, user) {
   return {
     text: 'Я хотел бы присылать тебе сообщения о новых активностях, мероприятиях и полезных материалах. Для этого мне нужно твое согласие на получение таких сообщений. Ты можешь в любой момент отказаться от рассылки.',
     keyboard: [
       [{ text: 'Согласие на рассылку', url: `${siteUrl}/legal/consent` }],
-      [{ text: 'Не согласен ❌', callback_data: 'u:mail0' }, { text: 'Согласен ✅', callback_data: 'u:mail1' }],
+      [{ text: `${gv(user, 'Не согласен', 'Не согласна', 'Не согласен(на)')} ❌`, callback_data: 'u:mail0' }, { text: `${gv(user, 'Согласен', 'Согласна', 'Согласен(на)')} ✅`, callback_data: 'u:mail1' }],
     ],
   }
 }
 
 /** Главное меню. Строка «Мой кабинет» добавляется только резидентам сообщества. */
-export function mainMenuScreen(siteUrl, firstName, isResident = false) {
+export function mainMenuScreen(siteUrl, user) {
   return {
     text: [
-      `Привет, ${firstName || 'друг'}! 👋`,
+      `Привет, ${user.firstName || 'друг'}! 👋`,
       'Добро пожаловать в главное меню!',
       'Здесь ты можешь:',
       '- Вступить в сообщество',
@@ -68,9 +70,8 @@ export function mainMenuScreen(siteUrl, firstName, isResident = false) {
     ].join('\n'),
     keyboard: [
       [{ text: 'Сообщество', callback_data: 'u:community' }],
-      [{ text: 'Маркет', callback_data: 'u:market' }],
+      [{ text: 'Маркетплейс', callback_data: 'u:market' }],
       [{ text: 'Консультации', callback_data: 'u:consult' }],
-      ...(isResident ? [[{ text: '💼 Мой кабинет резидента', callback_data: 'r:menu' }]] : []),
       [
         { text: 'Поддержка', callback_data: 'u:support' },
         { text: 'Правовая информация', callback_data: 'u:legal' },
@@ -80,18 +81,11 @@ export function mainMenuScreen(siteUrl, firstName, isResident = false) {
   }
 }
 
-/** Блок «Поддержка». */
-export function supportScreen(_supportHandle) {
+/** «Поддержка»: сразу приглашение написать вопрос — без промежуточных кнопок. */
+export function supportPrompt(user) {
   return {
-    text: [
-      'Поддержка 🛠',
-      '',
-      'Здесь вы можете написать свой вопрос, а наша команда свяжется с вами и поможет. Поддержка работает для любых вопросов о сообществе, тарифах, мероприятиях, консультациях или работе с чат-ботом.',
-    ].join('\n'),
-    keyboard: [
-      [{ text: 'Связаться', callback_data: 'u:contact' }],
-      [{ text: 'Главное меню', callback_data: 'u:menu' }],
-    ],
+    text: `${user.firstName || 'Друг'}, здесь ты можешь написать свой вопрос, а наша команда свяжется с тобой и поможет.\n\nНапиши свой вопрос сейчас, и мы ответим на него в ближайшее время.`,
+    keyboard: [[{ text: 'Главное меню', callback_data: 'u:menu' }]],
   }
 }
 
@@ -129,7 +123,7 @@ export function aboutScreen(siteUrl, _supportHandle) {
       ],
       [
         { text: 'Контакты', url: `${siteUrl}/community/contacts` },
-        { text: 'Связаться', callback_data: 'u:contact' },
+        { text: 'Связаться', callback_data: 'u:support' },
         { text: 'Главное меню', callback_data: 'u:menu' },
       ],
     ],
@@ -162,18 +156,10 @@ export function consultBookedScreen() {
   }
 }
 
-/** Блок «Маркет». */
+/** Блок «Маркетплейс»: заголовок и описание — как на сайте (страница /marketplace). */
 export function marketScreen() {
   return {
-    text: [
-      'Маркет 🛒',
-      '',
-      'Здесь можно приобрести полезные материалы для студентов и юристов:',
-      '- практические гайды, чек-листы, шаблоны документов',
-      '- записи вебинаров и мероприятий «Карьерного юриста».',
-      '',
-      'Все материалы доступны для покупки онлайн и направлены на развитие профессиональных навыков, карьерный рост и применение знаний на практике.',
-    ].join('\n'),
+    text: 'Юридический маркетплейс\n\nКаталог полезных материалов для юридической карьеры: гайды, чек-листы, лонглисты, статьи и вебинары.',
     keyboard: [[{ text: 'Полезные материалы', callback_data: 'u:mats' }], [{ text: 'Главное меню', callback_data: 'u:menu' }]],
   }
 }
@@ -208,46 +194,23 @@ export function materialsListScreen(materials) {
   }
 }
 
-// Тексты карточек, которые уже есть в BotHelp; для остальных материалов — описание с сайта.
-const MATERIAL_TEXTS = {
-  'gaid-stipendii-i-granty': [
-    'Гайд «Стипендии и гранты» 📌',
-    '',
-    'Ищите способ получить дополнительные деньги во время учёбы, но не знаете, с чего начать поиск? Мы собрали в одном гайде все стипендии и гранты, доступные студентам-юристам: от государственной академической стипендии до именных стипендий Минюста, корпоративных грантов.',
-    '',
-    'По каждой программе внутри гайда прописано главное: кто даёт деньги, кому она подходит, какой реальный размер выплаты, какие нужны условия и как правильно подать документы, чтобы не терять время на поиск разрозненной информации по десяткам сайтов и приказов.',
-  ].join('\n'),
-}
-
-MATERIAL_TEXTS['gaid-kariera-yurista-v-notariate'] = [
-  'Гайд «Карьера юриста в нотариате» 📌',
-  '',
-  '- Гайд для тех, кто хочет попасть в нотариат — стабильную и высокооплачиваемую сферу для юристов.',
-  '- Разбор ролей: секретарь, стажёр, помощник нотариуса, нотариус — с требованиями по образованию и стажу.',
-  '- Пошаговый путь к статусу нотариуса, включая новые правила сокращения стажировки (с 2024 года).',
-  '- Подготовка к квалификационному экзамену со ссылками на официальные материалы.',
-  '- Реальные зарплаты, в том числе по Санкт-Петербургу.',
-  '- Топ вопросов с собеседований у нотариуса.',
-  '',
-  'Бонус: как собрать капитал юриста, составить резюме и сопроводительное письмо. Практический маршрут от «кто я в профессии» до оффера — без лишней теории.',
-].join('\n')
-
-export function materialCard(material) {
-  const text = MATERIAL_TEXTS[material.slug] ?? [material.title, '', material.description, material.forWhom ? `\nДля кого: ${material.forWhom}` : ''].filter((l) => l !== null).join('\n')
+/** Карточка материала: название и описание — ровно как на сайте (src/data/materials.ts → каталог для бота). */
+export function materialCard(material, user) {
+  const text = [material.title, '', material.description, material.forWhom ? `\nДля кого: ${material.forWhom}` : ''].join('\n').trim()
   return {
     text,
     keyboard: [
       [{ text: `Купить за ${material.price} ₽`, callback_data: `u:buy:${material.slug}` }],
-      [{ text: 'Уже приобрел', callback_data: `u:paid:${material.slug}` }],
+      [{ text: gv(user, 'Уже приобрел', 'Уже приобрела', 'Уже приобрёл(а)'), callback_data: `u:paid:${material.slug}` }],
       [{ text: 'Назад', callback_data: 'u:mats' }, { text: 'Главное меню', callback_data: 'u:menu' }],
     ],
   }
 }
 
-export function payLinkScreen(material, url) {
+export function payLinkScreen(material, url, user) {
   return {
     text: `${material.title}\n\nОплата ${material.price} ₽ — по кнопке ниже. Материал придёт сюда сразу после оплаты.`,
-    keyboard: [[{ text: `Оплатить ${material.price} ₽`, url }], [{ text: 'Уже приобрел', callback_data: `u:paid:${material.slug}` }], [{ text: 'Назад', callback_data: `u:mat:${material.slug}` }, { text: 'Главное меню', callback_data: 'u:menu' }]],
+    keyboard: [[{ text: `Оплатить ${material.price} ₽`, url }], [{ text: gv(user, 'Уже приобрел', 'Уже приобрела', 'Уже приобрёл(а)'), callback_data: `u:paid:${material.slug}` }], [{ text: 'Назад', callback_data: `u:mat:${material.slug}` }, { text: 'Главное меню', callback_data: 'u:menu' }]],
   }
 }
 
@@ -266,7 +229,7 @@ export const PAID_TAGS = {
 export const PAID_TEXT = 'Оплата прошла успешно 👌\n\nИзучай, выбирай то, что откликается, и не бойся пробовать новое, ведь именно так строится карьера.'
 
 export function paidKeyboard() {
-  return [[{ text: 'Маркет', callback_data: 'u:market' }], [{ text: 'Главное меню', callback_data: 'u:menu' }]]
+  return [[{ text: 'Маркетплейс', callback_data: 'u:market' }], [{ text: 'Главное меню', callback_data: 'u:menu' }]]
 }
 
 /** «Сообщение 51»: оплата не найдена. */
@@ -307,6 +270,7 @@ export function communityResidentScreen() {
       [{ text: 'Карьерные возможности', callback_data: 'u:career' }],
       [{ text: 'Клубы', callback_data: 'u:clubs' }],
       [{ text: 'Достижения', callback_data: 'u:ach' }],
+      [{ text: '💼 Личный кабинет резидента', callback_data: 'r:menu' }],
       [{ text: 'В меню', callback_data: 'u:menu' }],
     ],
   }
@@ -427,11 +391,24 @@ export function contactCancelKeyboard() {
 }
 
 /** Отказ от рекламной рассылки (кнопка в сообщениях о мероприятиях и т. п.). */
-export function unsubscribedScreen() {
+export function unsubscribedScreen(user) {
   return {
     text: 'Готово, больше не будем присылать рекламные сообщения. Важные уведомления (об оплате, регистрации и подписке) продолжат приходить. Если передумаешь — согласие можно вернуть в любой момент.',
-    keyboard: [[{ text: 'Снова согласен получать рассылку', callback_data: 'u:mail1' }], [{ text: 'Главное меню', callback_data: 'u:menu' }]],
+    keyboard: [[{ text: gv(user, 'Снова согласен получать рассылку', 'Снова согласна получать рассылку', 'Снова согласен(на) получать рассылку'), callback_data: 'u:mail1' }], [{ text: 'Главное меню', callback_data: 'u:menu' }]],
   }
 }
 
 export const UNSUBSCRIBE_KEYBOARD_ROW = [{ text: 'Отказаться от рекламной рассылки', callback_data: 'u:unsub' }]
+
+/** Один раз спрашиваем, если пол по имени определить не удалось. */
+export function genderScreen(user) {
+  return {
+    text: `${user.firstName || 'Друг'}, подскажи, пожалуйста, как к тебе лучше обращаться — так я не буду путать окончания 🙂`,
+    keyboard: [[{ text: 'Я парень', callback_data: 'u:g:m' }, { text: 'Я девушка', callback_data: 'u:g:f' }]],
+  }
+}
+
+/** Просьба об отзыве и бонус: тексты с учётом пола. */
+export function reviewThanks(user) {
+  return `Вижу ты ${gv(user, 'оставил', 'оставила', 'оставил(а)')} отзыв, спасибо тебе большое 🙌 это правда важно для нас\n\nКак и обещали, уже добавили тебе +4 дня подписки 🎁`
+}

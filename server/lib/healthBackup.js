@@ -34,13 +34,19 @@ function diskFreeGb() {
 }
 
 /** Строки проверки: ✅ всё в порядке, ⚠️ есть замечание. */
-export function healthLines({ lastWebhook, lastPollAt, pollingEnabled, errors, lastBackupAt, activeSubscribers }) {
+export function healthLines({ lastWebhook, lastPollAt, pollingEnabled, errors, lastBackupAt, activeSubscribers, latencies = [] }) {
   const lines = []
   const dayAgo = Date.now() - 24 * 3600 * 1000
   const recent = errors.filter((e) => e.at > dayAgo)
   if (pollingEnabled) lines.push(lastPollAt && Date.now() - lastPollAt < 5 * 60 * 1000 ? `✅ Бот принимает сообщения (опрос ${ago(lastPollAt)})` : `⚠️ Бот давно не опрашивал Telegram (${lastPollAt ? ago(lastPollAt) : 'ни разу с запуска'}) — проверьте сеть сервера`)
   lines.push(lastWebhook ? `${Date.now() - lastWebhook.at > 7 * 24 * 3600 * 1000 && activeSubscribers ? '⚠️' : '✅'} Последний вебхук Prodamus: ${ago(lastWebhook.at)}` : `⚠️ Вебхуков Prodamus ещё не было`)
   lines.push(recent.length ? `⚠️ Ошибок за сутки: ${recent.length}. Последняя: ${recent.at(-1).msg}` : '✅ Ошибок за сутки нет')
+  const okCalls = latencies.filter((l) => !l.failed).map((l) => l.ms).sort((a, b) => a - b)
+  if (okCalls.length) {
+    const median = okCalls[Math.floor(okCalls.length / 2)]
+    const failed = latencies.filter((l) => l.failed).length
+    lines.push(`${median > 2000 || failed > 3 ? '⚠️' : '✅'} Ответ Telegram: обычно ${(median / 1000).toFixed(1).replace('.', ',')} с, максимум ${(okCalls.at(-1) / 1000).toFixed(1).replace('.', ',')} с${failed ? `, сбоев: ${failed}` : ''} (последние ${latencies.length} запросов)`)
+  }
   const free = diskFreeGb()
   if (free != null) lines.push(`${free < 1 ? '⚠️' : '✅'} Свободно на диске: ${free.toFixed(1).replace('.', ',')} ГБ`)
   lines.push(`💾 Данные бота: ${dataSizeMb().toFixed(2).replace('.', ',')} МБ · копия: ${lastBackupAt ? ago(lastBackupAt) : 'ещё не делалась'}`)

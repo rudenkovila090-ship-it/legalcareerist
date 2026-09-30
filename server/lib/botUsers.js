@@ -3,6 +3,7 @@
 // Ключ — Telegram id. Хранится в data/bot-users.json.
 import fs from 'node:fs'
 import path from 'node:path'
+import { detectGender } from './gender.js'
 
 const DATA_DIR = path.join(import.meta.dirname, '..', 'data')
 const FILE = path.join(DATA_DIR, 'bot-users.json')
@@ -39,6 +40,10 @@ export function touchBotUser(from, startParam) {
   user.username = from.username ? `@${from.username}` : user.username || ''
   user.lastSeenAt = now
   user.lastContactAt = now
+  if (!user.gender) {
+    const g = detectGender(user.firstName)
+    if (g) user.gender = g
+  }
   // Параметр из ссылки на бота (t.me/бот?start=...): запоминаем первый; «promo_КОД» заполняет промокод.
   if (startParam) {
     user.startParam = user.startParam || startParam
@@ -119,6 +124,16 @@ export function updateBotUser(tgId, fields) {
   const user = data[String(tgId)]
   if (!user) return null
   for (const [k, v] of Object.entries(fields)) if (v) user[k] = v
+  save(data)
+  return user
+}
+
+/** Пол, выбранный человеком кнопкой (когда по имени определить не удалось). */
+export function setGender(tgId, gender) {
+  const data = load()
+  const user = data[String(tgId)]
+  if (!user || !['m', 'f'].includes(gender)) return null
+  user.gender = gender
   save(data)
   return user
 }

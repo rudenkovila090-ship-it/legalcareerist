@@ -14,7 +14,7 @@ const SITE_URL = process.env.SITE_URL || 'https://legalcareerist.ru'
 export const MATERIALS = {
   'longlist-studencheskie-yuridicheskie-meropriyatiya': {
     title: 'Лонглист «Студенческие юридические мероприятия»',
-    price: 990,
+    price: 490,
     accessUrl: process.env.LONGLIST_EVENTS_ACCESS_URL || '',
   },
   'gaid-kariera-yurista-v-notariate': {
