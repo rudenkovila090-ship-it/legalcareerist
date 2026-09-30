@@ -34,7 +34,7 @@
 import express from 'express'
 import cors from 'cors'
 import multer from 'multer'
-import { createPaymentLink, TARIFFS, tariffIdBySubscriptionId, createProductPaymentLink, MATERIALS } from './lib/prodamus.js'
+import { createPaymentLink, TARIFFS, tariffIdBySubscriptionId, createProductPaymentLink, MATERIALS, setSubscriptionActivity } from './lib/prodamus.js'
 import { HmacHelper } from './lib/hmac.js'
 import { createPendingJoin, createOrphanJoin, listJoins, setTgUserId, findJoinForPayment, recordPayment, setSubscriptionActive, markReminded, getJoin, setCancelReason, setJoinField, extendSubscription, createLifetimeJoin } from './lib/store.js'
 import { normalizePhone } from './lib/jsonStore.js'
@@ -48,10 +48,10 @@ import { createExpense, listExpenses, deleteExpense } from './lib/expenses.js'
 import { createEventLead, listEventLeads, getEventLead, setEventLeadStatus } from './lib/eventLeads.js'
 import { getMaterialFile, setMaterialFile } from './lib/materialFiles.js'
 import { touchBotUser, giveConsent, setMailingConsent, addTag, getBotUser, listBotUsers, countConversation, updateBotUser, setGender } from './lib/botUsers.js'
-import { isStartKeyword, welcomeScreen, noConsentScreen, mailingScreen, mainMenuScreen, supportPrompt, consultPrompt, genderScreen, reviewThanks, legalScreen, aboutScreen, consultScreen, consultBookedScreen, marketScreen, materialsListScreen, materialCard, payLinkScreen, PAID_TEXT, PAID_TEXTS, PAID_TAGS, paidKeyboard, paymentNotFoundScreen, reviewScreen, CONTACT_PROMPTS, contactCancelKeyboard, unsubscribedScreen, communityScreen, communityResidentScreen, periodsScreen, subLinkScreen, CANCEL_REQUESTED_TEXT, careerScreen, clubsScreen, achievementsScreen } from './lib/botFlow.js'
+import { isStartKeyword, welcomeScreen, noConsentScreen, mailingScreen, mainMenuScreen, supportPrompt, consultPrompt, genderScreen, reviewThanks, legalScreen, aboutScreen, consultScreen, consultBookedScreen, marketScreen, materialsListScreen, materialCard, payLinkScreen, PAID_TEXT, PAID_TEXTS, PAID_TAGS, paidKeyboard, paymentNotFoundScreen, reviewScreen, CONTACT_PROMPTS, contactCancelKeyboard, unsubscribedScreen, communityScreen, communityResidentScreen, periodsScreen, subLinkScreen, careerScreen, clubsScreen, achievementsScreen } from './lib/botFlow.js'
 import { buildMonthCsv } from './lib/exportCsv.js'
 import { vacancyOverrides, setVacancyStatus } from './lib/vacancyOverrides.js'
-import { residentMenu, subscriptionScreen, linkScreen, offScreen } from './lib/residentCabinet.js'
+import { residentMenu, subscriptionScreen, linkScreen, settingsScreen, cancelConfirmScreen, cancelReasonPrompt, cancelDoneScreen, hasAccess } from './lib/residentCabinet.js'
 import { logAction, recentActions } from './lib/auditLog.js'
 import { healthLines, makeBackup, readBackupState, writeBackupState } from './lib/healthBackup.js'
 import { listTodos, addTodo, setTodoDone } from './lib/todos.js'
@@ -1723,7 +1723,7 @@ async function handleUserCallback(query) {
       return askNextContactStep(chatId, user, { kind: 'consult', data: {} }, query)
     case 'community': {
       const resident = residentByTelegramId(chatId)
-      return reply(resident?.status === 'active' ? communityResidentScreen() : communityScreen())
+      return reply(hasAccess(resident) ? communityResidentScreen() : communityScreen(Boolean(resident)))
     }
     case 'join':
       return reply(periodsScreen())
@@ -1746,27 +1746,6 @@ async function handleUserCallback(query) {
     }
     case 'aboutclub':
       return reply({ text: 'О сообществе — на сайте:', keyboard: [[{ text: 'Читать на сайте', url: `${SITE_URL}/community#main` }], [{ text: 'Назад', callback_data: 'u:community' }, { text: 'Главное меню', callback_data: 'u:menu' }]] })
-    case 'cancelsub': {
-      // Отмену подписки в Prodamus пока делает админ вручную: бот принимает запрос и присылает вам заявку с номером.
-      const resident = residentByTelegramId(chatId)
-      const ticket = nextTicketNumber()
-      await reply({ text: `${CANCEL_REQUESTED_TEXT}\n\nНомер заявки №${ticket}.`, keyboard: [[{ text: 'Главное меню', callback_data: 'u:menu' }]] })
-      const state = resident ? `${resident.lifetime ? 'Бессрочная подписка (основатель)' : resident.status === 'active' ? 'Подписка активна' : 'Подписка отключена'}${resident.nextPaymentAt ? `, следующее списание ${new Date(resident.nextPaymentAt).toLocaleDateString('ru-RU', { timeZone: 'Europe/Moscow' })}` : ''}` : 'В учёте подписка не найдена — проверьте по нику или телефону'
-      await sendTelegramMessage(ADMIN_CHAT_ID, buildKadryRichNotification({
-        template: 'support',
-        direction: 'Бот → Сообщество',
-        service: 'Запрос на отмену подписки',
-        date: new Date().toISOString(),
-        name: user.contactName || [user.firstName, user.lastName].filter(Boolean).join(' '),
-        phone: user.phone || resident?.phone,
-        email: user.email || resident?.email,
-        telegram: user.username,
-        details: [state, 'Отключите автопродление в Prodamus и напишите человеку'],
-        ticketNumber: String(ticket),
-        origin: 'из бота',
-      }), [[{ text: '👤 Карточка человека', callback_data: `a:x:pc:${chatId}` }, { text: '✉️ Написать', url: user.username ? `https://t.me/${user.username.replace(/^@/, '')}` : `tg://user?id=${chatId}` }]])
-      return
-    }
     case 'career':
       return reply(careerScreen())
     case 'clubs':
@@ -1803,6 +1782,61 @@ async function handleUserCallback(query) {
   }
 }
 
+/** Отключение подписки по просьбе самого резидента: пробуем отключить в Prodamus, отмечаем в учёте, сообщаем админу. */
+async function cancelSubscription(join, reason) {
+  const ids = new Set((join.payments ?? []).map((p) => p.subscriptionId).filter(Boolean).map(String))
+  if (TARIFFS[join.tariffId]) ids.add(String(TARIFFS[join.tariffId].subscription))
+  if (join.importedFromBotHelp) ['2611878', '2611880'].forEach((id) => ids.add(id)) // номера подписок из сценария BotHelp
+  const results = []
+  // Разовые подписки (350/500 ₽) без автопродления в Prodamus не отключаем — доступ просто закончится в срок.
+  if (!join.oneTime && join.tgUserId) {
+    for (const id of ids) {
+      try {
+        results.push({ id, ...(await setSubscriptionActivity({ subscriptionId: id, tgUserId: join.tgUserId, active: false })) })
+      } catch (err) {
+        results.push({ id, ok: false, raw: err.message })
+      }
+    }
+  }
+  const confirmed = join.oneTime || results.some((r) => r.ok)
+  setSubscriptionActive(join.token, false, Date.now())
+  setCancelReason(join.token, 'other')
+  setJoinField(join.token, 'cancelReasonText', reason)
+  return { confirmed, results }
+}
+
+async function finishCancellation(chatId, flow, reason) {
+  userFlows.delete(String(chatId))
+  const join = getJoin(flow.token)
+  const user = getBotUser(chatId) ?? {}
+  if (!join || join.status !== 'active') {
+    await sendTelegramMessage(chatId, 'Подписка уже отключена.', [[{ text: '⬅️ Кабинет', callback_data: 'r:menu' }]])
+    return
+  }
+  const { confirmed, results } = await cancelSubscription(join, reason)
+  const screen = cancelDoneScreen(join.nextPaymentAt, confirmed)
+  await sendTelegramMessage(chatId, screen.text, screen.keyboard)
+  const ticket = nextTicketNumber()
+  await sendTelegramMessage(ADMIN_CHAT_ID, buildKadryRichNotification({
+    template: 'support',
+    direction: 'Бот → Сообщество',
+    service: 'Отмена подписки резидентом',
+    date: new Date().toISOString(),
+    name: user.contactName || [user.firstName, user.lastName].filter(Boolean).join(' ') || join.name,
+    phone: user.phone || join.phone,
+    email: user.email || join.email,
+    telegram: user.username,
+    details: [
+      `Причина: ${reason}`,
+      join.oneTime ? 'Разовая подписка — доступ закончится в срок, списаний нет' : confirmed ? 'Отключена в Prodamus автоматически' : '⚠️ Автоматически отключить в Prodamus не удалось — отключите вручную, иначе спишут деньги',
+      ...results.map((r) => `Prodamus, подписка ${r.id}: ${r.ok ? 'OK' : 'ошибка'} (${r.raw ?? r.status})`),
+      join.nextPaymentAt ? `Доступ до ${new Date(join.nextPaymentAt).toLocaleDateString('ru-RU', { timeZone: 'Europe/Moscow' })}` : 'Дата окончания неизвестна',
+    ],
+    ticketNumber: String(ticket),
+    origin: 'из бота',
+  }), [[{ text: '👤 Карточка человека', callback_data: `a:x:pc:${chatId}` }, { text: '✉️ Написать', url: user.username ? `https://t.me/${user.username.replace(/^@/, '')}` : `tg://user?id=${chatId}` }]])
+}
+
 async function handleResidentCallback(query) {
   const chatId = query.message?.chat?.id
   void ackCallback(query)
@@ -1811,15 +1845,27 @@ async function handleResidentCallback(query) {
   if (fromUser) ensureLifetimeResident(fromUser)
   const join = fromUser ? residentByTelegramId(chatId) : null
   if (!join) {
-    await sendTelegramMessage(chatId, `Не нашли вашу подписку. Если вы оплатили, откройте бота по ссылке со страницы «Оплата прошла успешно» или напишите в поддержку: ${SUPPORT_HANDLE}`)
+    await editOrSend(query, { text: `Не нашли твою подписку. Если ты оплатил${fromUser?.gender === 'f' ? 'а' : '(а)'}, откройте бота по ссылке со страницы «Оплата прошла успешно» или напиши в поддержку.`, keyboard: [[{ text: '💬 Поддержка', callback_data: 'u:support' }, { text: 'Сообщество', callback_data: 'u:community' }]] })
     return
   }
-  const action = String(query.data).split(':')[1]
-  const screen =
-    action === 'sub' ? subscriptionScreen(join, TARIFFS)
-    : action === 'link' ? linkScreen(join, COMMUNITY_INVITE_LINK)
-    : action === 'off' ? offScreen(SUPPORT_HANDLE)
-    : residentMenu(join, SUPPORT_HANDLE)
+  const [, action] = String(query.data).split(':')
+  if (action !== 'cancelyes') userFlows.delete(String(chatId))
+  const user = getBotUser(chatId) ?? fromUser ?? {}
+  let screen
+  if (action === 'sub') screen = subscriptionScreen(join, TARIFFS)
+  else if (action === 'link') screen = linkScreen(join, COMMUNITY_INVITE_LINK)
+  else if (action === 'set') screen = settingsScreen(join, user)
+  else if (action === 'mail') {
+    const updated = setMailingConsent(chatId, user.mailingConsent !== true) ?? user
+    screen = settingsScreen(join, updated)
+  } else if (action === 'cancel') screen = join.status === 'active' && !join.lifetime ? cancelConfirmScreen(user) : settingsScreen(join, user)
+  else if (action === 'cancelyes') {
+    if (join.status !== 'active' || join.lifetime) screen = settingsScreen(join, user)
+    else {
+      userFlows.set(String(chatId), { kind: 'cancel', token: join.token, data: {} })
+      screen = cancelReasonPrompt()
+    }
+  } else screen = residentMenu(join, user)
   await editOrSend(query, screen)
 }
 
@@ -1902,7 +1948,9 @@ async function handleTelegramUpdate(update) {
     return
   }
   if (chatId && text && !text.startsWith('/') && userFlows.has(String(chatId)) && !pendingInput) {
-    await handleContactFlowInput(chatId, text)
+    const flow = userFlows.get(String(chatId))
+    if (flow.kind === 'cancel') await finishCancellation(chatId, flow, text.trim())
+    else await handleContactFlowInput(chatId, text)
     return
   }
   // Админу обычный /start (и /menu) открывает кабинет с кнопками; /start access_… работает как у всех.
@@ -1920,7 +1968,7 @@ async function handleTelegramUpdate(update) {
   if (chatId && text && !text.startsWith('/') && text.toLowerCase().includes('личный кабинет')) {
     const resident = residentByTelegramId(chatId)
     if (resident) {
-      const screen = residentMenu(resident, SUPPORT_HANDLE)
+      const screen = residentMenu(resident, getBotUser(chatId) ?? {})
       await sendTelegramMessage(chatId, screen.text, screen.keyboard)
     } else {
       await startFlow(chatId, message.from)

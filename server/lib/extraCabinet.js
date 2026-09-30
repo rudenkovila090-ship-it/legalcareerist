@@ -120,7 +120,7 @@ export function cancelCard(j) {
     `🔕 ${who(j)}`,
     j.cancelledAt ? `Отписался: ${ruDateTime(j.cancelledAt)}` : null,
     j.email ? `✉️ ${j.email}` : null,
-    `Причина: ${j.cancelReason ? CANCEL_REASONS[j.cancelReason] : 'не указана'}`,
+    `Причина: ${j.cancelReasonText ? j.cancelReasonText : j.cancelReason ? CANCEL_REASONS[j.cancelReason] : 'не указана'}`,
     '',
     'Выберите причину — она попадёт в сводку отписок:',
   ].filter((l) => l !== null)

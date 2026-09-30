@@ -129,3 +129,32 @@ export function tariffIdBySubscriptionId(subscriptionId) {
 }
 
 export { TARIFFS }
+
+/**
+ * Включает/выключает подписку клиента в Prodamus (setActivity). subscription — ID подписки (тарифа), клиент
+ * определяется по Telegram id (или телефону/почте). Возвращает { ok, status, raw }: формат ответа Prodamus мы
+ * проверяем по факту, поэтому сырой ответ отдаём вызывающему — админу он показывается в уведомлении.
+ */
+export async function setSubscriptionActivity({ subscriptionId, tgUserId, phone, email, active }) {
+  if (!SECRET_KEY) throw new Error('PRODAMUS_SECRET_KEY not set')
+  const data = { subscription: String(subscriptionId), active_user: active ? '1' : '0' }
+  if (tgUserId) data.tg_user_id = String(tgUserId)
+  else if (phone) data.customer_phone = phone
+  else if (email) data.customer_email = email
+  data.signature = HmacHelper.create(data, SECRET_KEY)
+  const res = await fetch(`https://${PAYFORM_DOMAIN}/rest/setActivity/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams(data).toString(),
+    signal: AbortSignal.timeout(20000),
+  })
+  const text = (await res.text()).trim()
+  let json = null
+  try {
+    json = JSON.parse(text)
+  } catch {
+    // ответ не JSON — смотрим по тексту
+  }
+  const ok = res.ok && (json ? json.success === true || json.success === 1 || json.status === 'success' : /success|ok/i.test(text) && !/error|ошиб/i.test(text))
+  return { ok, status: res.status, raw: text.slice(0, 200) }
+}

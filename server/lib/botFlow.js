@@ -258,28 +258,30 @@ export function reviewScreen(reviewUrl) {
 
 // ---- Сообщество ----
 
-/** Блок «Сообщество» для тех, кто ещё не резидент. */
-export function communityScreen() {
+const COMMUNITY_TEXT = 'Мы создали комфортное пространство для студентов и молодых юристов, которые хотят развиваться, находить работу и уверенно строить карьеру в поддерживающей и дружеской среде 💗'
+
+/** «Сообщество» для тех, у кого нет действующей подписки. Личный кабинет показываем, если подписка когда-либо была. */
+export function communityScreen(hasCabinet = false) {
   return {
-    text: 'Мы создали комфортное пространство для студентов и молодых юристов, которые хотят развиваться, находить работу и уверенно строить карьеру в поддерживающей и дружеской среде 💗',
+    text: COMMUNITY_TEXT,
     keyboard: [
       [{ text: 'Хочу вступить', callback_data: 'u:join' }],
       [{ text: 'О сообществе', callback_data: 'u:aboutclub' }],
-      [{ text: 'Отменить подписку', callback_data: 'u:cancelsub' }, { text: 'Главное меню', callback_data: 'u:menu' }],
+      ...(hasCabinet ? [[{ text: '💼 Личный кабинет', callback_data: 'r:menu' }]] : []),
+      [{ text: 'Главное меню', callback_data: 'u:menu' }],
     ],
   }
 }
 
-/** Блок «Сообщество» для резидентов. */
+/** «Сообщество» для резидентов: сверху самое нужное — кабинет, дальше разделы сообщества. */
 export function communityResidentScreen() {
   return {
-    text: 'Мы создали комфортное пространство для студентов и молодых юристов, которые хотят развиваться, находить работу и уверенно строить карьеру в поддерживающей и дружеской среде 💗',
+    text: COMMUNITY_TEXT,
     keyboard: [
-      [{ text: 'Карьерные возможности', callback_data: 'u:career' }],
-      [{ text: 'Клубы', callback_data: 'u:clubs' }],
+      [{ text: '💼 Личный кабинет', callback_data: 'r:menu' }],
+      [{ text: 'Карьерные возможности', callback_data: 'u:career' }, { text: 'Клубы', callback_data: 'u:clubs' }],
       [{ text: 'Достижения', callback_data: 'u:ach' }],
-      [{ text: '💼 Личный кабинет резидента', callback_data: 'r:menu' }],
-      [{ text: 'В меню', callback_data: 'u:menu' }],
+      [{ text: 'Главное меню', callback_data: 'u:menu' }],
     ],
   }
 }
@@ -312,7 +314,7 @@ export function subLinkScreen(label, price, url) {
 export const CANCEL_REQUESTED_TEXT = 'Запрос на отмену подписки принят. Мы отключим автопродление и напишем тебе, когда всё будет готово. Подписку можно будет активировать снова в разделе «Сообщество».'
 
 const RESIDENT_NAV = (backTo) => [
-  [{ text: 'Назад', callback_data: backTo }, { text: 'В меню', callback_data: 'u:menu' }],
+  [{ text: backTo === 'u:about' ? '⬅️ О КЮ' : '⬅️ Сообщество', callback_data: backTo }, { text: 'Главное меню', callback_data: 'u:menu' }],
 ]
 
 /** Раздел «Карьерные возможности» (для резидентов). */
@@ -342,7 +344,7 @@ export function careerScreen() {
       '⚖️ Юридические вопросы',
       'взаимопомощь в практике',
     ].join('\n'),
-    keyboard: [[{ text: 'Клубы', callback_data: 'u:clubs' }], [{ text: 'Достижения', callback_data: 'u:ach' }], ...RESIDENT_NAV('u:community')],
+    keyboard: RESIDENT_NAV('u:community'),
   }
 }
 
@@ -364,7 +366,7 @@ export function clubsScreen() {
       '🇬🇧 Английский клуб',
       'практика иностранного языка',
     ].join('\n'),
-    keyboard: [[{ text: 'Карьерные возможности', callback_data: 'u:career' }], [{ text: 'Достижения', callback_data: 'u:ach' }], ...RESIDENT_NAV('u:community')],
+    keyboard: RESIDENT_NAV('u:community'),
   }
 }
 
@@ -380,9 +382,7 @@ export function achievementsScreen(backTo = 'u:community') {
       '',
       'Для нас это знак того, что подход к карьерному развитию, сообществу и образованию замечен и признан на отраслевом уровне.',
     ].join('\n'),
-    keyboard: backTo === 'u:about'
-      ? RESIDENT_NAV(backTo)
-      : [[{ text: 'Карьерные возможности', callback_data: 'u:career' }], [{ text: 'Клубы', callback_data: 'u:clubs' }], ...RESIDENT_NAV(backTo)],
+    keyboard: RESIDENT_NAV(backTo),
   }
 }
 
