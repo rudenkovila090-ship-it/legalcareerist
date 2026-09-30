@@ -48,7 +48,7 @@ import { createExpense, listExpenses, deleteExpense } from './lib/expenses.js'
 import { createEventLead, listEventLeads, getEventLead, setEventLeadStatus } from './lib/eventLeads.js'
 import { getMaterialFile, setMaterialFile } from './lib/materialFiles.js'
 import { touchBotUser, giveConsent, setMailingConsent, addTag, getBotUser, listBotUsers, countConversation, updateBotUser, setGender } from './lib/botUsers.js'
-import { isStartKeyword, welcomeScreen, noConsentScreen, mailingScreen, mainMenuScreen, supportPrompt, genderScreen, reviewThanks, legalScreen, aboutScreen, consultScreen, consultBookedScreen, marketScreen, materialsListScreen, materialCard, payLinkScreen, PAID_TEXT, PAID_TEXTS, PAID_TAGS, paidKeyboard, paymentNotFoundScreen, reviewScreen, CONTACT_PROMPTS, contactCancelKeyboard, unsubscribedScreen, communityScreen, communityResidentScreen, periodsScreen, subLinkScreen, CANCEL_REQUESTED_TEXT, careerScreen, clubsScreen, achievementsScreen } from './lib/botFlow.js'
+import { isStartKeyword, welcomeScreen, noConsentScreen, mailingScreen, mainMenuScreen, supportPrompt, consultPrompt, genderScreen, reviewThanks, legalScreen, aboutScreen, consultScreen, consultBookedScreen, marketScreen, materialsListScreen, materialCard, payLinkScreen, PAID_TEXT, PAID_TEXTS, PAID_TAGS, paidKeyboard, paymentNotFoundScreen, reviewScreen, CONTACT_PROMPTS, contactCancelKeyboard, unsubscribedScreen, communityScreen, communityResidentScreen, periodsScreen, subLinkScreen, CANCEL_REQUESTED_TEXT, careerScreen, clubsScreen, achievementsScreen } from './lib/botFlow.js'
 import { buildMonthCsv } from './lib/exportCsv.js'
 import { vacancyOverrides, setVacancyStatus } from './lib/vacancyOverrides.js'
 import { residentMenu, subscriptionScreen, linkScreen, offScreen } from './lib/residentCabinet.js'
@@ -230,7 +230,7 @@ function richDetailIcon(line) {
 // строку через «·» (короче, обращений много); остальные шаблоны — направление
 // и услуга отдельными строками.
 function buildKadryRichNotification({ template, direction, service, date, name, phone, email, telegram, company, details, ticketNumber, origin = 'с сайта' }) {
-  const contactLabel = template === 'kadry-employer' ? 'фио' : template === 'support' ? 'фио' : 'контакт'
+  const contactLabel = 'фио'
   const header = template === 'support' ? [direction, service].filter(Boolean).join(' · ') : null
   const lines = [
     `🔔 Новая заявка ${origin}${ticketNumber ? `. Заявка №${ticketNumber}` : ''}`,
@@ -1007,6 +1007,11 @@ async function extrasAction(parts, now, chatId) {
     }
     case 'audit':
       return auditScreen(recentActions())
+    case 'grant': {
+      const u = getBotUser(arg)
+      if (u && !listJoins().some((j) => String(j.tgUserId ?? '') === String(u.id) && j.lifetime)) createLifetimeJoin({ tgUserId: u.id, name: [u.firstName, u.lastName].filter(Boolean).join(' '), telegram: u.username })
+      return u ? userCard(u, listJoins().find((j) => String(j.tgUserId ?? '') === String(u.id) && j.lifetime), TARIFFS, now) : { text: 'Пользователь не найден.', keyboard: menuBack('⬅️ Меню', 'a:menu') }
+    }
     case 'todo':
       return todosScreen(listTodos())
     case 'tdone':
@@ -1438,7 +1443,7 @@ async function adminScreen(data, now, chatId) {
 // Кнопки, которые что-то меняют или отправляют данные: помощникам (только просмотр) они недоступны, в журнал попадают только они.
 // Кнопки, которые только открывают ввод текста или подтверждение — в журнал не пишем (запишется само действие).
 const PROMPT_ONLY = /^a:(k:(rev|new)|s:(ikind|inew|rnew|redit|rdel)|x:(tnew|ambnew|ambdel|fexpnew|evpaid))\b/
-const MUTATING = /^a:(k:(adv|back|q1|q0|lost|reopen|revok|rev|new|pp|pf)|s:(vst|cst|idone|iclose|isnooze|ikind|inew|rnew|redit|rdel|rdelok)|x:(tnew|tdone|ambnew|ambplus|ambdel|ambdelok|kickok|cr|fexpnew|fexpdel|evst|evpaid|backup)|remgo)\b/
+const MUTATING = /^a:(k:(adv|back|q1|q0|lost|reopen|revok|rev|new|pp|pf)|s:(vst|cst|idone|iclose|isnooze|ikind|inew|rnew|redit|rdel|rdelok)|x:(grant|tnew|tdone|ambnew|ambplus|ambdel|ambdelok|kickok|cr|fexpnew|fexpdel|evst|evpaid|backup)|remgo)\b/
 
 /** Нажатие кнопки кабинета — от админа (все кнопки) или помощника (только просмотр); остальным молча отвечаем. */
 async function handleAdminCallback(query) {
@@ -1472,10 +1477,14 @@ function residentByTelegramId(tgId) {
 // Основатель и другие «вечные» резиденты: доступ без оплаты и без срока (env LIFETIME_USERNAMES=ник1,ник2).
 const LIFETIME_USERNAMES = new Set(String(process.env.LIFETIME_USERNAMES ?? 'rudenkovrd').split(',').map((v) => v.trim().replace(/^@/, '').toLowerCase()).filter(Boolean))
 
+const LIFETIME_IDS = new Set(String(process.env.LIFETIME_IDS ?? '').split(',').map((v) => v.trim()).filter(Boolean))
+
 /** Если ник в списке «вечных» и карточки резидента ещё нет — заводит её (бессрочная подписка). */
 function ensureLifetimeResident(user) {
   const nick = String(user.username ?? '').replace(/^@/, '').toLowerCase()
-  if (!nick || !LIFETIME_USERNAMES.has(nick)) return
+  // Бессрочный доступ: по нику из LIFETIME_USERNAMES, по id из LIFETIME_IDS и всегда для админского аккаунта.
+  const isLifetime = (nick && LIFETIME_USERNAMES.has(nick)) || LIFETIME_IDS.has(String(user.id)) || String(user.id) === String(ADMIN_CHAT_ID)
+  if (!isLifetime) return
   const has = listJoins().some((j) => String(j.tgUserId ?? '') === String(user.id) && j.lifetime)
   if (!has) createLifetimeJoin({ tgUserId: user.id, name: [user.firstName, user.lastName].filter(Boolean).join(' '), telegram: user.username })
 }
@@ -1605,7 +1614,7 @@ async function askNextContactStep(chatId, user, flow, query) {
   flow.step = step
   if (!step) return finishContactFlow(chatId, user, flow)
   userFlows.set(String(chatId), flow)
-  const screen = step === 'question' ? supportPrompt(user) : { text: CONTACT_PROMPTS.contact, keyboard: contactCancelKeyboard() }
+  const screen = step === 'question' ? (flow.kind === 'consult' ? consultPrompt(user) : supportPrompt(user)) : { text: CONTACT_PROMPTS.contact, keyboard: contactCancelKeyboard() }
   if (query) await editOrSend(query, screen)
   else await sendTelegramMessage(chatId, screen.text, screen.keyboard)
 }
@@ -1623,6 +1632,7 @@ async function handleContactFlowInput(chatId, text) {
   await askNextContactStep(chatId, user, flow)
 }
 
+/** Завершение диалога: обращение в поддержку или заявка на консультацию — админу приходит уведомление в том же оформлении, что с сайта, с номером заявки. */
 async function finishContactFlow(chatId, user, flow) {
   userFlows.delete(String(chatId))
   const d = flow.data
@@ -1630,22 +1640,32 @@ async function finishContactFlow(chatId, user, flow) {
   const phone = d.phone || user.phone
   const email = d.email || user.email
   updateBotUser(chatId, { phone: d.phone, email: d.email })
-  const ticket = nextTicketNumber()
+  const isConsult = flow.kind === 'consult'
+  const consultation = isConsult ? createConsultation({ kind: 'question', services: [`Запрос: ${d.question}`], name, phone, email, telegram: user.username, source: 'бот' }) : null
+  const number = consultation ? consultation.number : nextTicketNumber()
   const text = buildKadryRichNotification({
-    template: 'support',
-    direction: 'Бот → Поддержка',
-    service: 'Обращение в поддержку',
+    template: isConsult ? 'kadry-candidate' : 'support',
+    direction: isConsult ? 'Кадры → Соискатель' : 'Бот → Поддержка',
+    service: isConsult ? 'Карьерная консультация — заявка из бота' : 'Обращение в поддержку',
     date: new Date().toISOString(),
     name,
     phone,
     email,
     telegram: user.username,
-    details: [`Вопрос: ${d.question}`],
-    ticketNumber: String(ticket),
+    details: [`${isConsult ? 'Запрос' : 'Вопрос'}: ${d.question}`],
+    ticketNumber: String(number),
     origin: 'из бота',
   })
-  await sendTelegramMessage(ADMIN_CHAT_ID, text, [[{ text: '👤 Карточка человека', callback_data: `a:x:pc:${chatId}` }, { text: '✉️ Написать', url: user.username ? `https://t.me/${user.username.replace(/^@/, '')}` : `tg://user?id=${chatId}` }]])
-  await sendTelegramMessage(chatId, `${user.firstName ? `${user.firstName}, спасибо` : 'Спасибо'}! Вопрос принят, номер обращения №${ticket}. Мы свяжемся с тобой в ближайшее время.`, [[{ text: 'Главное меню', callback_data: 'u:menu' }]])
+  await sendTelegramMessage(ADMIN_CHAT_ID, text, [
+    ...(consultation ? [[{ text: `📂 Открыть консультацию №${consultation.number}`, callback_data: `a:s:con:${consultation.number}` }]] : []),
+    [{ text: '👤 Карточка человека', callback_data: `a:x:pc:${chatId}` }, { text: '✉️ Написать', url: user.username ? `https://t.me/${user.username.replace(/^@/, '')}` : `tg://user?id=${chatId}` }],
+  ])
+  if (isConsult) {
+    const screen = consultBookedScreen(number)
+    await sendTelegramMessage(chatId, screen.text, screen.keyboard)
+  } else {
+    await sendTelegramMessage(chatId, `${user.firstName ? `${user.firstName}, спасибо` : 'Спасибо'}! Вопрос принят, номер обращения №${number}. Мы свяжемся с тобой в ближайшее время.`, [[{ text: 'Главное меню', callback_data: 'u:menu' }]])
+  }
 }
 
 async function handleUserCallback(query) {
@@ -1657,7 +1677,7 @@ async function handleUserCallback(query) {
   let user = touchBotUser(query.from)
   ensureLifetimeResident(user)
   const reply = (screen) => editOrSend(query, screen)
-  if (action !== 'support' && action !== 'contact') userFlows.delete(String(chatId))
+  if (action !== 'support' && action !== 'contact' && action !== 'book') userFlows.delete(String(chatId))
   if (action === 'nc') return reply(noConsentScreen(user))
   if (action === 'consent') user = giveConsent(query.from.id) ?? user
   if (action === 'g') user = setGender(query.from.id, arg) ?? user
@@ -1686,13 +1706,8 @@ async function handleUserCallback(query) {
       setMailingConsent(query.from.id, false)
       return reply(unsubscribedScreen({ ...user, mailingConsent: false }))
     }
-    case 'book': {
-      // Заявка на консультацию из бота: запись в кабинет и уведомление админу.
-      const c = createConsultation({ kind: 'question', services: ['Заявка из бота: карьерная консультация'], name: [user.firstName, user.lastName].filter(Boolean).join(' '), telegram: user.username, source: 'бот' })
-      await reply(consultBookedScreen())
-      await sendTelegramMessage(ADMIN_CHAT_ID, `🔔 Заявка из бота\nПользователь ${user.firstName || 'без имени'}${user.username ? ` (${user.username})` : ''} оставил заявку на карьерную консультацию.\n\n🗂 Консультация №${c.number}`, [[{ text: `📂 Открыть консультацию №${c.number}`, callback_data: `a:s:con:${c.number}` }]])
-      return
-    }
+    case 'book':
+      return askNextContactStep(chatId, user, { kind: 'consult', data: {} }, query)
     case 'community': {
       const resident = residentByTelegramId(chatId)
       return reply(resident?.status === 'active' ? communityResidentScreen() : communityScreen())
@@ -1717,10 +1732,24 @@ async function handleUserCallback(query) {
     case 'aboutclub':
       return reply({ text: 'О сообществе — на сайте:', keyboard: [[{ text: 'Читать на сайте', url: `${SITE_URL}/community#main` }], [{ text: 'Назад', callback_data: 'u:community' }, { text: 'Главное меню', callback_data: 'u:menu' }]] })
     case 'cancelsub': {
-      // Отмену подписки в Prodamus пока делает админ вручную: бот принимает запрос и сообщает вам.
+      // Отмену подписки в Prodamus пока делает админ вручную: бот принимает запрос и присылает вам заявку с номером.
       const resident = residentByTelegramId(chatId)
-      await reply({ text: CANCEL_REQUESTED_TEXT, keyboard: [[{ text: 'Главное меню', callback_data: 'u:menu' }]] })
-      await sendTelegramMessage(ADMIN_CHAT_ID, `🛑 Запрос на отмену подписки из бота\n${[user.firstName, user.username].filter(Boolean).join(' ')}${resident ? `\n${resident.lifetime ? 'Бессрочная подписка (основатель)' : resident.status === 'active' ? 'Подписка активна' : 'Подписка отключена'}${resident.nextPaymentAt ? `, следующее списание ${new Date(resident.nextPaymentAt).toLocaleDateString('ru-RU', { timeZone: 'Europe/Moscow' })}` : ''}` : '\nВ учёте подписка не найдена — проверьте по нику или телефону.'}\n\nОтключите автопродление в Prodamus и напишите человеку.`, user.username ? [[{ text: '✉️ Написать', url: `https://t.me/${user.username.replace(/^@/, '')}` }]] : undefined)
+      const ticket = nextTicketNumber()
+      await reply({ text: `${CANCEL_REQUESTED_TEXT}\n\nНомер заявки №${ticket}.`, keyboard: [[{ text: 'Главное меню', callback_data: 'u:menu' }]] })
+      const state = resident ? `${resident.lifetime ? 'Бессрочная подписка (основатель)' : resident.status === 'active' ? 'Подписка активна' : 'Подписка отключена'}${resident.nextPaymentAt ? `, следующее списание ${new Date(resident.nextPaymentAt).toLocaleDateString('ru-RU', { timeZone: 'Europe/Moscow' })}` : ''}` : 'В учёте подписка не найдена — проверьте по нику или телефону'
+      await sendTelegramMessage(ADMIN_CHAT_ID, buildKadryRichNotification({
+        template: 'support',
+        direction: 'Бот → Сообщество',
+        service: 'Запрос на отмену подписки',
+        date: new Date().toISOString(),
+        name: user.contactName || [user.firstName, user.lastName].filter(Boolean).join(' '),
+        phone: user.phone || resident?.phone,
+        email: user.email || resident?.email,
+        telegram: user.username,
+        details: [state, 'Отключите автопродление в Prodamus и напишите человеку'],
+        ticketNumber: String(ticket),
+        origin: 'из бота',
+      }), [[{ text: '👤 Карточка человека', callback_data: `a:x:pc:${chatId}` }, { text: '✉️ Написать', url: user.username ? `https://t.me/${user.username.replace(/^@/, '')}` : `tg://user?id=${chatId}` }]])
       return
     }
     case 'career':
@@ -1815,7 +1844,7 @@ async function handleTelegramUpdate(update) {
   const isViewer = chatId && VIEWER_IDS.has(String(chatId))
   // Диагностика: показывает номер чата и то, считает ли бот его админским.
   if (chatId && text === '/id') {
-    await sendTelegramMessage(chatId, isAdmin || isViewer ? `Ваш chat id: ${chatId}\n${isAdmin ? '✅ Это админский чат' : '👁 Это чат помощника (только просмотр)'}` : `Ваш chat id: ${chatId}`)
+    await sendTelegramMessage(chatId, `Ваш chat id: ${chatId}\nВаш ник: ${message.from?.username ? `@${message.from.username}` : 'не задан в Telegram'}${isAdmin ? '\n✅ Это админский чат' : isViewer ? '\n👁 Это чат помощника (только просмотр)' : ''}`)
     return
   }
   if ((isAdmin || isViewer) && text?.startsWith('/report')) {
