@@ -1854,7 +1854,11 @@ async function handleTelegramUpdate(update) {
   const isViewer = chatId && VIEWER_IDS.has(String(chatId))
   // Диагностика: показывает номер чата и то, считает ли бот его админским.
   if (chatId && text === '/id') {
-    await sendTelegramMessage(chatId, `Ваш chat id: ${chatId}\nВаш ник: ${message.from?.username ? `@${message.from.username}` : 'не задан в Telegram'}${isAdmin ? '\n✅ Это админский чат' : isViewer ? '\n👁 Это чат помощника (только просмотр)' : ''}`)
+    const nick = String(message.from?.username ?? '').toLowerCase()
+    const lifetimeRule = (nick && LIFETIME_USERNAMES.has(nick)) || LIFETIME_IDS.has(String(chatId)) || String(chatId) === String(ADMIN_CHAT_ID)
+    const myJoins = listJoins().filter((j) => String(j.tgUserId ?? '') === String(chatId))
+    const resident = residentByTelegramId(chatId)
+    await sendTelegramMessage(chatId, `Ваш chat id: ${chatId}\nВаш ник: ${message.from?.username ? `@${message.from.username}` : 'не задан в Telegram'}${isAdmin ? '\n✅ Это админский чат' : isViewer ? '\n👁 Это чат помощника (только просмотр)' : ''}\nБессрочный доступ по правилам: ${lifetimeRule ? 'да' : 'нет'}\nКарточек подписки на вас: ${myJoins.length}${myJoins.length ? ` (${myJoins.map((j) => `${j.status}${j.lifetime ? ', бессрочная' : ''}${j.paid ? '' : ', не оплачена'}`).join('; ')})` : ''}\nКабинет резидента: ${resident?.status === 'active' ? 'откроется' : 'не откроется'}`)
     return
   }
   if ((isAdmin || isViewer) && text?.startsWith('/report')) {
