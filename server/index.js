@@ -78,6 +78,8 @@ const ADMIN_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID
 const PRODAMUS_SECRET_KEY = process.env.PRODAMUS_SECRET_KEY
 const SITE_URL = process.env.SITE_URL || 'https://legalcareerist.ru'
 const COMMUNITY_INVITE_LINK = process.env.COMMUNITY_INVITE_LINK
+// Секретная команда открытия кабинета разработчика (можно поменять в server/.env: ADMIN_COMMAND=...).
+const ADMIN_COMMAND = process.env.ADMIN_COMMAND || 'KQ21022025RD'
 const SUPPORT_HANDLE = process.env.SUPPORT_HANDLE || '@legalcareerist_support'
 // Chat id помощников (через запятую): видят кабинет, но не могут ничего менять. По умолчанию — никого.
 const VIEWER_IDS = new Set(String(process.env.TELEGRAM_VIEWER_CHAT_IDS ?? '').split(',').map((v) => v.trim()).filter(Boolean))
@@ -1392,7 +1394,7 @@ async function handleTelegramUpdate(update) {
   const isViewer = chatId && VIEWER_IDS.has(String(chatId))
   // Диагностика: показывает номер чата и то, считает ли бот его админским.
   if (chatId && text === '/id') {
-    await sendTelegramMessage(chatId, `Ваш chat id: ${chatId}\nАдминский chat id в настройках бота: ${ADMIN_CHAT_ID || 'не задан'}\n${isAdmin ? '✅ Это админский чат' : isViewer ? '👁 Это чат помощника (только просмотр)' : '❌ Это не админский чат — кабинет здесь не откроется'}`)
+    await sendTelegramMessage(chatId, isAdmin || isViewer ? `Ваш chat id: ${chatId}\n${isAdmin ? '✅ Это админский чат' : '👁 Это чат помощника (только просмотр)'}` : `Ваш chat id: ${chatId}`)
     return
   }
   if ((isAdmin || isViewer) && text?.startsWith('/report')) {
@@ -1412,12 +1414,14 @@ async function handleTelegramUpdate(update) {
     return
   }
   // Админу обычный /start (и /menu) открывает кабинет с кнопками; /start access_… работает как у всех.
-  if ((isAdmin || isViewer) && (text === '/menu' || text === '/admin' || text === '/start')) {
+  // Кабинет разработчика открывается только секретной командой и только с админского (или помощника) аккаунта;
+  // остальным она не отвечает. Обычные /start и /menu у всех, включая админа, работают как у клиентов.
+  if ((isAdmin || isViewer) && text && text.split(/[\s@]/)[0].toLowerCase() === `/${ADMIN_COMMAND}`.toLowerCase()) {
     const screen = menuScreen()
     await sendTelegramMessage(chatId, screen.text, screen.keyboard)
     return
   }
-  if (chatId && (text === '/menu' || text === '/cabinet') && !isAdmin) {
+  if (chatId && (text === '/menu' || text === '/cabinet')) {
     const resident = residentByTelegramId(chatId)
     if (resident) {
       const screen = residentMenu(resident, SUPPORT_HANDLE)
