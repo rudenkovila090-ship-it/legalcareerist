@@ -1478,8 +1478,13 @@ async function handleAdminCallback(query) {
 
 /** Один апдейт от Telegram — общий для вебхука и для опроса (getUpdates). */
 /** Подписчик, чей Telegram уже привязан к оплаченной подписке (иначе кабинет не открывается). */
+// Если у человека несколько карточек (старые тестовые, бессрочная, действующая), выбираем самую «сильную»:
+// бессрочная, затем активная, затем остальные по дате последней оплаты.
 function residentByTelegramId(tgId) {
-  return listJoins().filter((j) => j.paid && String(j.tgUserId ?? '') === String(tgId)).sort((a, b) => (b.lastPaidAt ?? 0) - (a.lastPaidAt ?? 0))[0] ?? null
+  const rank = (j) => (j.lifetime ? 2 : j.status === 'active' ? 1 : 0)
+  return listJoins()
+    .filter((j) => j.paid && String(j.tgUserId ?? '') === String(tgId))
+    .sort((a, b) => rank(b) - rank(a) || (b.lastPaidAt ?? 0) - (a.lastPaidAt ?? 0))[0] ?? null
 }
 
 // Основатель и другие «вечные» резиденты: доступ без оплаты и без срока (env LIFETIME_USERNAMES=ник1,ник2).
@@ -1728,8 +1733,10 @@ async function handleUserCallback(query) {
       typing(chatId)
       try {
         // Заявка привязывается к Telegram-аккаунту: по tg_user_id из вебхука оплата найдёт её, а бот сам пришлёт ссылку на вступление.
-        const token = createPendingJoin({ tariffId: arg, name: [user.firstName, user.lastName].filter(Boolean).join(' '), phone: '', email: '', telegram: user.username })
-        setTgUserId(token, String(chatId))
+        // Повторные нажатия не плодят карточки: берём уже созданную неоплаченную заявку этого человека на этот тариф.
+        const existing = listJoins().find((j) => !j.paid && j.tariffId === arg && String(j.tgUserId ?? '') === String(chatId))
+        const token = existing?.token ?? createPendingJoin({ tariffId: arg, name: [user.firstName, user.lastName].filter(Boolean).join(' '), phone: '', email: '', telegram: user.username })
+        if (!existing) setTgUserId(token, String(chatId))
         const url = await createPaymentLink({ tariffId: arg, tgUserId: String(chatId), name: user.firstName, telegram: user.username, urlSuccess: `${SITE_URL}/community/success?token=${token}` })
         return reply(subLinkScreen(tariff.period, tariff.price, url))
       } catch (err) {
