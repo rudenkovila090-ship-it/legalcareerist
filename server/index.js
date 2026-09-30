@@ -48,7 +48,7 @@ import { createExpense, listExpenses, deleteExpense } from './lib/expenses.js'
 import { createEventLead, listEventLeads, getEventLead, setEventLeadStatus } from './lib/eventLeads.js'
 import { getMaterialFile, setMaterialFile } from './lib/materialFiles.js'
 import { touchBotUser, giveConsent, setMailingConsent, addTag, getBotUser, listBotUsers } from './lib/botUsers.js'
-import { isStartKeyword, welcomeScreen, noConsentScreen, mailingScreen, mainMenuScreen, supportScreen, legalScreen, aboutScreen, consultScreen, consultBookedScreen, marketScreen, materialsListScreen, materialCard, payLinkScreen, PAID_TEXT, paidKeyboard, paymentNotFoundScreen, reviewScreen } from './lib/botFlow.js'
+import { isStartKeyword, welcomeScreen, noConsentScreen, mailingScreen, mainMenuScreen, supportScreen, legalScreen, aboutScreen, consultScreen, consultBookedScreen, marketScreen, materialsListScreen, materialCard, payLinkScreen, PAID_TEXT, PAID_TEXTS, PAID_TAGS, paidKeyboard, paymentNotFoundScreen, reviewScreen, communityScreen, communityResidentScreen, periodsScreen, subLinkScreen, CANCEL_REQUESTED_TEXT, careerScreen, clubsScreen, achievementsScreen } from './lib/botFlow.js'
 import { buildMonthCsv } from './lib/exportCsv.js'
 import { vacancyOverrides, setVacancyStatus } from './lib/vacancyOverrides.js'
 import { residentMenu, subscriptionScreen, linkScreen, offScreen } from './lib/residentCabinet.js'
@@ -1408,7 +1408,7 @@ function materialList() {
 /** Выдача материала после оплаты: файл (если админ его загрузил), иначе ссылка, иначе — передаём поддержке. Затем просьба об отзыве. */
 async function deliverMaterial(chatId, slug) {
   const material = materialList().find((m) => m.slug === slug)
-  await sendTelegramMessage(chatId, PAID_TEXT, paidKeyboard())
+  await sendTelegramMessage(chatId, PAID_TEXTS[slug] ?? PAID_TEXT, paidKeyboard())
   const file = getMaterialFile(slug)
   if (file) {
     await sendTelegramDocumentById(chatId, file.fileId, material?.title)
@@ -1456,6 +1456,43 @@ async function handleUserCallback(query) {
       await sendTelegramMessage(ADMIN_CHAT_ID, `🔔 Заявка из бота\nПользователь ${user.firstName || 'без имени'}${user.username ? ` (${user.username})` : ''} оставил заявку на карьерную консультацию.\n\n🗂 Консультация №${c.number}`, [[{ text: `📂 Открыть консультацию №${c.number}`, callback_data: `a:s:con:${c.number}` }]])
       return
     }
+    case 'community': {
+      const resident = residentByTelegramId(chatId)
+      return reply(resident?.status === 'active' ? communityResidentScreen() : communityScreen())
+    }
+    case 'join':
+      return reply(periodsScreen())
+    case 'sub': {
+      const tariff = TARIFFS[arg]
+      if (!tariff) return reply(periodsScreen())
+      try {
+        // Заявка привязывается к Telegram-аккаунту: по tg_user_id из вебхука оплата найдёт её, а бот сам пришлёт ссылку на вступление.
+        const token = createPendingJoin({ tariffId: arg, name: [user.firstName, user.lastName].filter(Boolean).join(' '), phone: '', email: '', telegram: user.username })
+        setTgUserId(token, String(chatId))
+        const url = await createPaymentLink({ tariffId: arg, tgUserId: String(chatId), name: user.firstName, telegram: user.username, urlSuccess: `${SITE_URL}/community/success?token=${token}` })
+        return reply(subLinkScreen(tariff.period, tariff.price, url))
+      } catch (err) {
+        console.error('[bot] ошибка ссылки на оплату подписки:', err)
+        return sendTelegramMessage(chatId, `Не получилось создать ссылку на оплату. Напишите в поддержку — ${SUPPORT_HANDLE}, поможем.`)
+      }
+    }
+    case 'aboutclub':
+      return sendTelegramMessage(chatId, 'О сообществе — на сайте:', [[{ text: 'Читать на сайте', url: `${SITE_URL}/community` }], [{ text: 'Назад', callback_data: 'u:community' }, { text: 'Главное меню', callback_data: 'u:menu' }]])
+    case 'cancelsub': {
+      // Отмену подписки в Prodamus пока делает админ вручную: бот принимает запрос и сообщает вам.
+      const resident = residentByTelegramId(chatId)
+      await sendTelegramMessage(chatId, CANCEL_REQUESTED_TEXT, [[{ text: 'Главное меню', callback_data: 'u:menu' }]])
+      await sendTelegramMessage(ADMIN_CHAT_ID, `🛑 Запрос на отмену подписки из бота\n${[user.firstName, user.username].filter(Boolean).join(' ')}${resident ? `\n${resident.status === 'active' ? 'Подписка активна' : 'Подписка отключена'}${resident.nextPaymentAt ? `, следующее списание ${new Date(resident.nextPaymentAt).toLocaleDateString('ru-RU', { timeZone: 'Europe/Moscow' })}` : ''}` : '\nВ учёте подписка не найдена — проверьте по нику или телефону.'}\n\nОтключите автопродление в Prodamus и напишите человеку.`, user.username ? [[{ text: '✉️ Написать', url: `https://t.me/${user.username.replace(/^@/, '')}` }]] : undefined)
+      return
+    }
+    case 'career':
+      return reply(careerScreen())
+    case 'clubs':
+      return reply(clubsScreen())
+    case 'ach':
+      return reply(achievementsScreen('u:community'))
+    case 'achabout':
+      return reply(achievementsScreen('u:about'))
     case 'market':
       return reply(marketScreen())
     case 'mats':
@@ -1646,7 +1683,7 @@ app.post('/api/prodamus/webhook', async (req, res) => {
     if (purchase) {
       recordPurchasePayment(purchase.token, Number(body.sum) || MATERIALS[purchase.materialSlug]?.price || 0)
       if (purchase.tgUserId) {
-        addTag(purchase.tgUserId, `оплатил_${purchase.materialSlug}`)
+        addTag(purchase.tgUserId, PAID_TAGS[purchase.materialSlug] ?? `оплатил_${purchase.materialSlug}`)
         await deliverMaterial(purchase.tgUserId, purchase.materialSlug).catch((err) => console.error('[bot] не удалось выдать материал:', err))
       }
       const material = MATERIALS[purchase.materialSlug]

@@ -19,12 +19,12 @@ export const MATERIALS = {
   },
   'gaid-kariera-yurista-v-notariate': {
     title: 'Гайд «Карьера юриста в нотариате»',
-    price: 990,
+    price: 490,
     accessUrl: process.env.GUIDE_NOTARIAT_ACCESS_URL || '',
   },
   'gaid-stipendii-i-granty': {
     title: 'Гайд «Стипендии и гранты»',
-    price: 990,
+    price: 490,
     accessUrl: process.env.GUIDE_GRANTS_ACCESS_URL || '',
   },
 }
