@@ -1820,6 +1820,8 @@ async function handleResidentCallback(query) {
 // не задерживает остальных, а быстрые повторные нажатия одного человека не обгоняют друг друга.
 const chatQueues = new Map()
 function dispatchUpdate(update) {
+  // Журнал входящих обновлений (id чата и начало текста/кнопки) — чтобы по логу видеть, дошло ли сообщение до этого сервера.
+  console.log('[tg]', update?.callback_query ? `кнопка ${update.callback_query.data} от ${update.callback_query.from?.id}` : update?.message ? `сообщение от ${update.message.chat?.id}: ${String(update.message.text ?? update.message.caption ?? '[не текст]').slice(0, 40)}` : Object.keys(update ?? {}).join(','))
   const key = String(update?.message?.chat?.id ?? update?.callback_query?.from?.id ?? update?.chat_join_request?.from?.id ?? 'other')
   const next = (chatQueues.get(key) ?? Promise.resolve()).then(() => afterResponse('telegram/update', () => handleTelegramUpdate(update)))
   chatQueues.set(key, next)
