@@ -46,7 +46,7 @@ import { createConsultation, listConsultations, getConsultation, setConsultation
 import { createAmbassador, listAmbassadors, getAmbassador, addReferral, deleteAmbassador } from './lib/ambassadors.js'
 import { createExpense, listExpenses, deleteExpense } from './lib/expenses.js'
 import { createEventLead, listEventLeads, getEventLead, setEventLeadStatus } from './lib/eventLeads.js'
-import { touchBotUser, giveConsent, addTag, listBotUsers, getBotUser } from './lib/botUsers.js'
+import { touchBotUser, giveConsent, listBotUsers } from './lib/botUsers.js'
 import { isStartKeyword, welcomeScreen, mainMenuScreen } from './lib/botFlow.js'
 import { buildMonthCsv } from './lib/exportCsv.js'
 import { vacancyOverrides, setVacancyStatus } from './lib/vacancyOverrides.js'
