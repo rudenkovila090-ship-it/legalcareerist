@@ -47,14 +47,14 @@ import { createAmbassador, listAmbassadors, getAmbassador, addReferral, deleteAm
 import { createExpense, listExpenses, deleteExpense } from './lib/expenses.js'
 import { createEventLead, listEventLeads, getEventLead, setEventLeadStatus } from './lib/eventLeads.js'
 import { getMaterialFile, setMaterialFile } from './lib/materialFiles.js'
-import { touchBotUser, giveConsent, setMailingConsent, addTag, getBotUser, listBotUsers } from './lib/botUsers.js'
+import { touchBotUser, giveConsent, setMailingConsent, addTag, getBotUser, listBotUsers, countConversation } from './lib/botUsers.js'
 import { isStartKeyword, welcomeScreen, noConsentScreen, mailingScreen, mainMenuScreen, supportScreen, legalScreen, aboutScreen, consultScreen, consultBookedScreen, marketScreen, materialsListScreen, materialCard, payLinkScreen, PAID_TEXT, PAID_TEXTS, PAID_TAGS, paidKeyboard, paymentNotFoundScreen, reviewScreen, communityScreen, communityResidentScreen, periodsScreen, subLinkScreen, CANCEL_REQUESTED_TEXT, careerScreen, clubsScreen, achievementsScreen } from './lib/botFlow.js'
 import { buildMonthCsv } from './lib/exportCsv.js'
 import { vacancyOverrides, setVacancyStatus } from './lib/vacancyOverrides.js'
 import { residentMenu, subscriptionScreen, linkScreen, offScreen } from './lib/residentCabinet.js'
 import { logAction, recentActions } from './lib/auditLog.js'
 import { healthLines, makeBackup, readBackupState, writeBackupState } from './lib/healthBackup.js'
-import { ambassadorsScreen, ambassadorCard, AMBASSADOR_PROMPT, overdueScreen, retentionScreen, cancelCard, financeSummary, forecastScreen, expensesScreen, EXPENSE_PROMPT, parseExpense, eventRegistrationsScreen, eventScreen, eventLeadCard, eventRequestsScreen, eventsMonthSummary, FIND_PROMPT, searchScreen, digestScreen, systemScreen, auditScreen, monthKeyFor as extraMonthKey } from './lib/extraCabinet.js'
+import { userCard, botUsersScreen, ambassadorsScreen, ambassadorCard, AMBASSADOR_PROMPT, overdueScreen, retentionScreen, cancelCard, financeSummary, forecastScreen, expensesScreen, EXPENSE_PROMPT, parseExpense, eventRegistrationsScreen, eventScreen, eventLeadCard, eventRequestsScreen, eventsMonthSummary, FIND_PROMPT, searchScreen, digestScreen, systemScreen, auditScreen, monthKeyFor as extraMonthKey } from './lib/extraCabinet.js'
 import { createInterest, getInterest, listInterests, markInterestDone, closeInterest, snoozeInterest, interestsDueForReminder, markInterestReminded, REMIND_AFTER_DAYS } from './lib/interests.js'
 import { createReserveCandidate, listReserve, getReserveCandidate, setReserveField, deleteReserveCandidate } from './lib/reserve.js'
 import { reserveListScreen, reserveCard, reserveFieldPrompt, reserveDeleteConfirm, RESERVE_NEW_PROMPT, INTEREST_KIND_KEYBOARD, interestPrompt, interestsScreen, interestCard, SEEKERS_KEYBOARD, buildVacancyViews, vacanciesScreen, vacancyCard, vacancyApplicationsScreen, recentApplicationsScreen, consultationsScreen, consultationCard, seekersMonthSummary } from './lib/seekersCabinet.js'
@@ -863,6 +863,7 @@ function allData() {
     ambassadors: listAmbassadors(),
     expenses: listExpenses(),
     purchases: listPurchases(),
+    botUsers: listBotUsers(),
   }
 }
 
@@ -990,6 +991,14 @@ async function extrasAction(parts, now, chatId) {
     }
     case 'audit':
       return auditScreen(recentActions())
+    case 'bots':
+      return botUsersScreen(listBotUsers())
+    case 'pc': {
+      const u = getBotUser(arg)
+      if (!u) return { text: 'Пользователь не найден.', keyboard: menuBack('⬅️ Пользователи бота', 'a:x:bots') }
+      const join = data.joins.filter((j) => String(j.tgUserId ?? '') === String(u.id)).sort((a, b) => (b.lastPaidAt ?? 0) - (a.lastPaidAt ?? 0))[0]
+      return userCard(u, join, TARIFFS, now)
+    }
     default:
       return { text: 'Раздел не найден.', keyboard: menuBack('⬅️ Меню', 'a:menu') }
   }
@@ -1428,8 +1437,9 @@ function residentByTelegramId(tgId) {
 }
 
 /** Старт воронки: метка «пользователь»; дальше согласие на обработку ПД → согласие на рассылку → главное меню. */
-async function startFlow(chatId, from) {
-  const user = touchBotUser({ ...from, id: from?.id ?? chatId })
+async function startFlow(chatId, from, startParam) {
+  const user = touchBotUser({ ...from, id: from?.id ?? chatId }, startParam)
+  if (startParam !== undefined) countConversation(user.id)
   await sendFlowStep(chatId, user)
 }
 
@@ -1677,7 +1687,7 @@ async function handleTelegramUpdate(update) {
   const token = match?.[1]
 
   if (!token) {
-    await startFlow(chatId, message.from)
+    await startFlow(chatId, message.from, payload || '')
     return
   }
 

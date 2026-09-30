@@ -161,3 +161,23 @@ export function extendSubscription(token, days) {
     ...(join.oneTime && join.nextPaymentAt ? { nextPaymentAt: join.nextPaymentAt + days * 24 * 3600 * 1000 } : {}),
   }))
 }
+
+/**
+ * Резидент, перенесённый из BotHelp (нет истории платежей): карточка с оценочной первой оплатой
+ * (estimated — в выручку отчётов не входит), но с суммой тарифа, если она известна по метке.
+ */
+export function createImportedJoin({ tgUserId, name, amount, oneTime, nextPaymentAt, firstPaidAt, phone, email }) {
+  const token = store.create({ tariffId: null, name: name || '—', phone: phone || '', email: email || '', telegram: '', tgUserId: String(tgUserId), status: 'pending' })
+  store.update(token, (j) => ({
+    ...j,
+    paid: true,
+    status: 'active',
+    importedFromBotHelp: true,
+    ...(oneTime ? { oneTime: true } : {}),
+    payments: [{ kind: 'first', at: firstPaidAt ?? j.createdAt, amount: amount ?? null, tariffId: null, orderKey: null, estimated: true }],
+    firstPaidAt: firstPaidAt ?? null,
+    lastPaidAt: firstPaidAt ?? null,
+    nextPaymentAt: nextPaymentAt ?? null,
+  }))
+  return token
+}

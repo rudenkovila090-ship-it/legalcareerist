@@ -321,6 +321,7 @@ export function searchScreen(query, data, tariffs) {
     if (!q) return false
     const text = [o.name, o.telegram, o.email, o.company].filter(Boolean).join(' ').toLowerCase().replace(/@/g, '')
     if (text.includes(q)) return true
+    if (digits.length >= 5 && String(o.id ?? '') === digits) return true
     const phone = String(o.phone ?? '').replace(/\D/g, '')
     return digits.length >= 4 && phone.includes(digits)
   }
@@ -345,6 +346,7 @@ export function searchScreen(query, data, tariffs) {
   section('📇 Интересовались', data.interests.filter(match), (i) => `№${i.number} · ${i.name} · ${i.kind === 'community' ? 'сообщество' : i.kind === 'vacancy' ? 'вакансия' : 'консультация'} · ${ruDate(i.contactedAt)}`, (i) => ({ text: `Интерес №${i.number} · ${i.name}`.slice(0, 60), callback_data: `a:s:icard:${i.number}` }))
   section('🗃 Кадровый резерв', data.reserve.filter(match), (c) => `№${c.number} · ${c.name} · ${c.city || '—'} · ${c.position || '—'}`, (c) => ({ text: `Резерв №${c.number} · ${c.name}`.slice(0, 60), callback_data: `a:s:rcard:${c.number}` }))
   section('🎟 Мероприятия', data.eventLeads.filter(match), (e) => `№${e.number} · ${e.name} · ${e.eventTitle || e.formType} · ${EVENT_STATUSES[e.status]}`, (e) => ({ text: `Мероприятие №${e.number} · ${e.name}`.slice(0, 60), callback_data: `a:x:evcard:${e.number}` }))
+  section('👤 Пользователи бота', (data.botUsers ?? []).map((u) => ({ ...u, name: [u.firstName, u.lastName].filter(Boolean).join(' ') || u.name, telegram: u.username })).filter(match), (u) => `${u.name || 'без имени'}${u.telegram ? ` ${u.telegram}` : ''} · ID ${u.id} · метки: ${(u.tags ?? []).slice(0, 4).join(', ')}`, (u) => ({ text: `Карточка: ${u.name || u.id}`.slice(0, 60), callback_data: `a:x:pc:${u.id}` }))
   section('🌟 Амбассадоры', data.ambassadors.filter(match), (a) => `№${a.number} · ${a.name}${a.promo ? ` · ${a.promo}` : ''}`, (a) => ({ text: `Амбассадор №${a.number} · ${a.name}`.slice(0, 60), callback_data: `a:x:ambcard:${a.number}` }))
   if (!found) lines.push('Ничего не найдено. Попробуйте ник, часть фамилии или последние цифры телефона.')
   keyboard.push([{ text: '🔍 Искать ещё', callback_data: 'a:x:find' }, ...menuRow])
@@ -385,6 +387,7 @@ export function systemScreen(healthLines) {
   return {
     text: ['🛠 Система', '', ...healthLines].join('\n'),
     keyboard: [
+      [{ text: '👤 Пользователи бота', callback_data: 'a:x:bots' }],
       [{ text: '💾 Резервная копия сейчас', callback_data: 'a:x:backup' }],
       [{ text: '🧾 Журнал действий', callback_data: 'a:x:audit' }, { text: '🌅 Сводка дня', callback_data: 'a:x:digest' }],
       menuRow,
@@ -411,4 +414,65 @@ export function auditScreen(actions) {
     lines.push(`${ruDateTime(a.at)} · ${ACTION_LABELS[key] ?? ACTION_LABELS[rest[0]] ?? a.action}${id && /^\d+$/.test(id) ? ` №${id}` : ''}${a.chatId ? ` · чат ${a.chatId}` : ''}`)
   }
   return { text: lines.join('\n'), keyboard: [back('⬅️ Система', 'a:x:sys')] }
+}
+
+// ---- Карточка человека (как «Подписчик» в BotHelp) ----
+
+/** Полная карточка пользователя бота: контакты, метки, UTM, промокод, дни, активность и связь с подпиской сообщества. */
+export function userCard(u, join, tariffs, now) {
+  const name = [u.firstName, u.lastName].filter(Boolean).join(' ') || u.name || 'без имени'
+  const utm = Object.entries(u.utm ?? {}).map(([k, v]) => `${k.replace('utm_', '')}: ${v}`).join(', ')
+  const daysLeft = join?.status === 'active' && join.nextPaymentAt ? Math.ceil((join.nextPaymentAt - now) / DAY) : u.days
+  const lines = [
+    `👤 ${name}`,
+    '',
+    `Статус: ${u.blockedAt ? '🚫 заблокировал бота' : '🟢 подписан'}`,
+    `Telegram ID: ${u.id}`,
+    u.username ? `Аккаунт: ${u.username}` : null,
+    u.botHelpCUserId ? `CUser ID (BotHelp): ${u.botHelpCUserId}` : null,
+    `Первый контакт: ${u.createdAt ? ruDateTime(u.createdAt) : '—'}`,
+    `Последний контакт: ${u.lastContactAt || u.lastSeenAt ? ruDateTime(u.lastContactAt ?? u.lastSeenAt) : '—'}`,
+    `Диалогов: ${u.conversationsCount ?? 0}`,
+    '',
+    `📞 Телефон: ${u.phone || 'не указан'}`,
+    `✉️ Почта: ${u.email || 'не указана'}`,
+    `Согласие на обработку данных: ${u.consentAt ? ruDate(u.consentAt) : 'нет'}`,
+    `Согласие на рассылку: ${u.mailingConsent === true ? 'да' : u.mailingConsent === false ? 'нет' : 'не отвечал'}`,
+    '',
+    `🏷 Метки: ${(u.tags ?? []).join(', ') || '—'}`,
+    u.ref ? `Ref: ${u.ref}` : null,
+    u.startParam ? `Start: ${u.startParam}` : null,
+    utm ? `UTM: ${utm}` : null,
+    u.promo ? `🎟 Промокод: ${u.promo}` : null,
+    daysLeft != null ? `📆 Дни: ${daysLeft}` : null,
+  ].filter((l) => l !== null)
+  if (join) {
+    lines.push('', `💳 Подписка сообщества: ${join.status === 'active' ? 'активна' : join.status === 'cancelled' ? 'отключена' : 'не оплачена'}${join.paid ? `, ${rub(planAmount(join, tariffs))}` : ''}${join.oneTime ? ' (разовая, 30 дней)' : ''}${join.nextPaymentAt && join.status === 'active' ? `, до ${ruDate(join.nextPaymentAt)}` : ''}${join.bonusDays ? `, бонус +${join.bonusDays} дн.` : ''}`)
+  }
+  const stats = [['Баллов', u.activityScore], ['Мероприятий', u.eventsCount], ['Реакций', u.reactionsCount], ['Комментариев', u.commentsCount]].filter(([, v]) => v != null && v !== '')
+  if (u.levelName || stats.length) {
+    lines.push('', `⚡ Уровень: ${u.levelName || '—'}${u.nextLevelName ? ` → ${u.nextLevelName}` : ''}${u.pointsToNextLevel != null ? ` (до следующего: ${u.pointsToNextLevel})` : ''}`, ...stats.map(([k, v]) => `• ${k}: ${v}`))
+  }
+  const keyboard = [
+    [{ text: '✉️ Написать', url: u.username ? tgUrl(u.username) : `tg://user?id=${u.id}` }],
+    back('⬅️ Пользователи бота', 'a:x:bots'),
+  ]
+  return { text: lines.join('\n'), keyboard }
+}
+
+/** Пользователи бота: сколько всего, по согласиям и меткам; кнопки — поиск по метке. */
+export function botUsersScreen(users) {
+  const tagCount = new Map()
+  for (const u of users) for (const t of u.tags ?? []) tagCount.set(t, (tagCount.get(t) ?? 0) + 1)
+  const lines = [
+    `👤 Пользователи бота: ${users.length}`,
+    `Согласие на обработку данных: ${users.filter((u) => u.consentAt).length}`,
+    `Согласны на рассылку: ${users.filter((u) => u.mailingConsent === true).length}, отказались: ${users.filter((u) => u.mailingConsent === false).length}`,
+    '',
+    'Метки:',
+    ...[...tagCount].sort((a, b) => b[1] - a[1]).map(([t, n]) => `• ${t} — ${n}`),
+    '',
+    'Чтобы открыть карточку человека, воспользуйтесь «🔍 Найти человека»: по нику, имени, телефону или Telegram ID.',
+  ]
+  return { text: lines.join('\n'), keyboard: [[{ text: '🔍 Найти человека', callback_data: 'a:x:find' }], back('⬅️ Система', 'a:x:sys')] }
 }

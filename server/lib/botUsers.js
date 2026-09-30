@@ -29,19 +29,53 @@ export function getBotUser(tgId) {
 }
 
 /** Запись при запуске бота: создаёт пользователя с меткой «пользователь» или обновляет имя. */
-export function touchBotUser(from) {
+export function touchBotUser(from, startParam) {
   const data = load()
   const id = String(from.id)
   const now = Date.now()
-  const user = data[id] ?? { id, tags: [], createdAt: now }
+  const user = data[id] ?? { id, tags: [], createdAt: now, conversationsCount: 0 }
   user.firstName = from.first_name || user.firstName || ''
   user.lastName = from.last_name || user.lastName || ''
   user.username = from.username ? `@${from.username}` : user.username || ''
   user.lastSeenAt = now
+  user.lastContactAt = now
+  // Параметр из ссылки на бота (t.me/бот?start=...): запоминаем первый; «promo_КОД» заполняет промокод.
+  if (startParam) {
+    user.startParam = user.startParam || startParam
+    const promo = String(startParam).match(/^promo_(.+)$/i)?.[1]
+    if (promo && !user.promo) user.promo = promo
+  }
   if (!user.tags.includes('пользователь')) user.tags.push('пользователь')
   data[id] = user
   save(data)
   return user
+}
+
+/** Считает начало диалога (/start): счётчик «диалогов» из карточки BotHelp. */
+export function countConversation(tgId) {
+  const data = load()
+  const user = data[String(tgId)]
+  if (!user) return null
+  user.conversationsCount = (user.conversationsCount ?? 0) + 1
+  save(data)
+  return user
+}
+
+/** Загрузка карточки из выгрузки BotHelp: добавляет нового или дополняет существующего (согласия и метки не теряются). */
+export function upsertImportedUser(record) {
+  const data = load()
+  const id = String(record.id)
+  const existing = data[id]
+  if (!existing) {
+    data[id] = { ...record, id, tags: [...new Set(record.tags ?? [])], importedAt: Date.now() }
+  } else {
+    const merged = { ...record, ...existing }
+    for (const [k, v] of Object.entries(record)) if ((existing[k] === undefined || existing[k] === '' || existing[k] === null) && v !== undefined && v !== '') merged[k] = v
+    merged.tags = [...new Set([...(existing.tags ?? []), ...(record.tags ?? [])])]
+    data[id] = merged
+  }
+  save(data)
+  return { created: !existing }
 }
 
 export function addTag(tgId, tag) {
