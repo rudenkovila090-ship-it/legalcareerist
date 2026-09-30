@@ -999,8 +999,16 @@ async function extrasAction(parts, now, chatId) {
       return { text: FIND_PROMPT, keyboard: [[{ text: '⬅️ Меню', callback_data: 'a:menu' }]] }
     case 'digest':
       return digestScreen(data, TARIFFS, now, currentHealth())
-    case 'sys':
-      return systemScreen(currentHealth())
+    case 'sys': {
+      const lines = currentHealth()
+      try {
+        const w = await telegramWebhookInfo()
+        lines.unshift(`🤖 Бот: @${w.username}${w.url ? ` · ⚠️ вебхук стоит на ${new URL(w.url).host} (сообщения могут уходить не сюда)` : ' · вебхука нет, сообщения приходят на этот сервер ✅'}`)
+      } catch {
+        lines.unshift('🤖 Не удалось проверить вебхук бота')
+      }
+      return systemScreen(lines)
+    }
     case 'backup': {
       const ok = await sendBackup('💾 Резервная копия данных бота (по запросу)').catch(() => false)
       return { text: ok ? '💾 Резервная копия отправлена файлом выше.' : '⚠️ Не удалось отправить резервную копию — подробности в логе сервера.', keyboard: menuBack('⬅️ Система', 'a:x:sys') }
@@ -2163,13 +2171,42 @@ async function sendAutoResidentReminders() {
 // писал «Connection timed out». Telegram не даёт использовать getUpdates
 // при установленном вебхуке, поэтому при старте вебхук снимается; накопившиеся
 // сообщения при этом не теряются. Отключить: TELEGRAM_POLLING=0 в server/.env.
+let lastForeignWebhookAlert = 0
+
+/** Информация о вебхуке бота: getMe + getWebhookInfo. */
+async function telegramWebhookInfo() {
+  const call = async (method) => (await telegramFetch(method, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })).json()
+  const [me, info] = await Promise.all([call('getMe'), call('getWebhookInfo')])
+  return { username: me.result?.username, url: info.result?.url ?? '', lastError: info.result?.last_error_message, pending: info.result?.pending_update_count ?? 0 }
+}
+
+/**
+ * Можно ли принимать сообщения опросом. Свой вебхук (на наш сайт) снимаем; чужой — например BotHelp, если он подключён
+ * к тому же боту, — не трогаем: иначе мы отключили бы рабочую воронку BotHelp, а сообщения всё равно уходили бы ему.
+ */
+async function ensurePollingAllowed() {
+  try {
+    const info = await telegramWebhookInfo()
+    if (!info.url) return true
+    if (info.url.includes(new URL(SITE_URL).host)) {
+      await telegramFetch('deleteWebhook', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ drop_pending_updates: false }) })
+      return true
+    }
+    console.error('[telegram] у бота установлен чужой вебхук — опрос не запускаем:', info.url)
+    if (Date.now() - lastForeignWebhookAlert > 6 * 3600 * 1000 && ADMIN_CHAT_ID) {
+      lastForeignWebhookAlert = Date.now()
+      await sendTelegramMessage(ADMIN_CHAT_ID, `⚠️ Бот @${info.username} подключён к другому сервису (вебхук: ${new URL(info.url).host}), поэтому сообщения приходят ему, а не этому серверу. Один токен нельзя использовать в двух местах. Нужен отдельный бот для этого сервера (создайте в @BotFather и поменяйте TELEGRAM_BOT_TOKEN в server/.env).`).catch(() => false)
+    }
+    return false
+  } catch (err) {
+    console.error('[telegram] не удалось проверить вебхук:', err.message)
+    return true
+  }
+}
+
 async function pollTelegramUpdates() {
   const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
-  try {
-    await telegramFetch('deleteWebhook', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ drop_pending_updates: false }) })
-  } catch (err) {
-    console.error('[telegram] не удалось снять вебхук перед опросом:', err)
-  }
+  while (!(await ensurePollingAllowed())) await sleep(60000)
 
   let offset = 0
   console.log('[telegram] приём сообщений боту: опрос getUpdates')
@@ -2179,7 +2216,9 @@ async function pollTelegramUpdates() {
       const data = await res.json()
       if (!Array.isArray(data.result)) {
         console.error('[telegram] getUpdates ответил неожиданно:', JSON.stringify(data).slice(0, 200))
-        await sleep(5000)
+        // 409 — у бота появился вебхук (например, BotHelp переподключил бота): проверяем, чей он
+        if (data.error_code === 409) while (!(await ensurePollingAllowed())) await sleep(60000)
+        else await sleep(5000)
         continue
       }
       lastPollAt = Date.now()
