@@ -44,6 +44,13 @@ export default function NewsDetail() {
         {item.image && (
           <img src={item.image} alt={item.title} className="mt-8 w-full rounded-xl border border-ink/10" />
         )}
+        {item.images && (
+          <div className="mt-8 grid gap-4 sm:grid-cols-2">
+            {item.images.map((src) => (
+              <img key={src} src={src} alt={item.title} className="w-full rounded-xl border border-ink/10" />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )

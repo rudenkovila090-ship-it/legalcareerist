@@ -417,6 +417,8 @@ export interface NewsItem {
   /** Путь к приложенному изображению (сертификат, скриншот, диплом) —
    *  показывается на детальной странице новости, если задано. */
   image?: string
+  /** Несколько изображений (фото с события) — показываются друг под другом. */
+  images?: string[]
 }
 
 export type EventType = 'conference' | 'webinar' | 'breakfast' | 'intensive' | 'tour' | 'internship'
