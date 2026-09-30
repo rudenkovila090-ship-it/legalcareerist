@@ -417,7 +417,9 @@ async function handleSubscriptionPayment(body, phone) {
   )
 
   if (result.kind === 'first' && rec.tgUserId) {
-    await sendInviteLink(rec.tgUserId, rec)
+    await sendInviteLink(rec.tgUserId)
+  } else if (result.kind === 'renewal' && rec.tgUserId) {
+    await sendTelegramMessage(rec.tgUserId, 'Подписка продлена, продолжай пользоваться всеми возможностями сообщества.', REMINDER_KEYBOARD).catch(() => false)
   }
 }
 
@@ -456,13 +458,50 @@ async function handleSubscriptionState(body) {
   }
 }
 
-async function sendInviteLink(chatId, join) {
-  const tariff = TARIFFS[join.tariffId]
-  const label = tariff?.label ?? 'Сообщество'
+// Закрытый чат сообщества и вступление по заявке: после оплаты бот разблокирует человека, присылает кнопку «Подать заявку»
+// (ссылка-приглашение COMMUNITY_INVITE_LINK должна быть со включённым «Одобрением заявок»), а заявку одобряет сам —
+// см. chat_join_request в handleTelegramUpdate. Бот должен быть администратором чата.
+const COMMUNITY_CHAT_ID = process.env.COMMUNITY_CHAT_ID || '-1002520943910'
+const REMINDER_KEYBOARD = [[{ text: 'Главное меню', callback_data: 'u:menu' }]]
+
+async function sendInviteLink(chatId) {
+  // Если человека раньше исключали из чата, снимаем блокировку — иначе заявка не пройдёт.
+  await telegramFetch('unbanChatMember', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: COMMUNITY_CHAT_ID, user_id: chatId, only_if_banned: true }) }).catch(() => null)
   await sendTelegramMessage(
     chatId,
-    `Оплата получена — добро пожаловать в «${label}»! 🎉\n\nСсылка на вступление в закрытое сообщество:\n${COMMUNITY_INVITE_LINK}`,
+    'Отлично! Оплата получена ✅\n\nНажми кнопку «Подать заявку», и я сразу приму тебя в сообщество.\n\nЖду тебя внутри!',
+    COMMUNITY_INVITE_LINK ? [[{ text: 'Подать заявку', url: COMMUNITY_INVITE_LINK }]] : undefined,
   )
+  if (!COMMUNITY_INVITE_LINK) await sendTelegramMessage(ADMIN_CHAT_ID, `⚠️ Оплата получена, но COMMUNITY_INVITE_LINK не задана: пришлите человеку (chat id ${chatId}) ссылку на сообщество вручную.`)
+}
+
+/** Заявка на вступление в чат сообщества: одобряем оплатившим резидентам и присылаем приветствие с чек-листом. */
+async function handleJoinRequest(request) {
+  if (String(request.chat?.id) !== String(COMMUNITY_CHAT_ID)) return
+  const userId = request.from?.id
+  const resident = residentByTelegramId(userId)
+  const name = [request.from?.first_name, request.from?.last_name].filter(Boolean).join(' ')
+  const dmChat = request.user_chat_id ?? userId
+  if (!resident || resident.status !== 'active') {
+    await sendTelegramMessage(ADMIN_CHAT_ID, `⚠️ Заявка на вступление в сообщество без найденной оплаты: ${name || 'без имени'}${request.from?.username ? ` (@${request.from.username})` : ''}, id ${userId}.\nЗаявка не одобрена — проверьте оплату и, если всё в порядке, одобрите вручную в чате.`)
+    await sendTelegramMessage(dmChat, 'Не вижу подтверждения твоей оплаты 🙂 Если оплата прошла, напиши в поддержку и приложи чек — мы быстро проверим и всё уладим.', [[{ text: 'Поддержка', url: `https://t.me/${SUPPORT_HANDLE.replace(/^@/, '')}` }]]).catch(() => false)
+    return
+  }
+  const res = await telegramFetch('approveChatJoinRequest', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: COMMUNITY_CHAT_ID, user_id: userId }) })
+  if (!res.ok) {
+    console.error('[telegram] approveChatJoinRequest ошибка:', await res.text())
+    await sendTelegramMessage(ADMIN_CHAT_ID, `⚠️ Не удалось одобрить заявку ${name} (id ${userId}). Бот должен быть администратором чата сообщества с правом приглашать пользователей.`)
+    return
+  }
+  const days = resident.nextPaymentAt ? Math.max(1, Math.round((resident.nextPaymentAt - Date.now()) / 86400000)) : (TARIFFS[resident.tariffId]?.months ?? 1) * 30
+  setTimeout(async () => {
+    await sendTelegramMessage(dmChat, `Поздравляю! 🎉\nТеперь ты — полноценная часть нашего сообщества! 💗\n\nУ тебя есть ${days} дней вместе с нами. Наслаждайся общением, пользой и крутыми ребятами ✨\n\nЕсли будут вопросы — всегда пиши мне.`, [[{ text: 'Поддержка', url: `https://t.me/${SUPPORT_HANDLE.replace(/^@/, '')}` }, { text: 'Главное меню', callback_data: 'u:menu' }]]).catch(() => false)
+    setTimeout(async () => {
+      await sendTelegramMessage(dmChat, 'Хотим, чтобы твое включение в сообщество прошло легко и с пользой с самого старта. Прикладываем чек-лист — пройдись по нему в удобное время, это займет пару минут', REMINDER_KEYBOARD).catch(() => false)
+      const file = getMaterialFile('checklist-novichka')
+      if (file) await sendTelegramDocumentById(dmChat, file.fileId).catch(() => false)
+    }, 10000)
+  }, 10000)
 }
 
 // Открытие страницы вакансии → +1 к счётчику просмотров. Считаем реальные
@@ -1316,7 +1355,7 @@ async function adminScreen(data, now, chatId) {
     let sent = 0
     const failed = []
     for (const join of reachable) {
-      const ok = await sendTelegramMessage(join.tgUserId, reminderMessage(join, SUPPORT_HANDLE)).catch(() => false)
+      const ok = await sendTelegramMessage(join.tgUserId, reminderMessage(join, SUPPORT_HANDLE, days), REMINDER_KEYBOARD).catch(() => false)
       if (ok) {
         markReminded(join.token, `${join.nextPaymentAt}:${days}`)
         sent += 1
@@ -1538,6 +1577,10 @@ async function handleResidentCallback(query) {
 }
 
 async function handleTelegramUpdate(update) {
+  if (update?.chat_join_request) {
+    await handleJoinRequest(update.chat_join_request)
+    return
+  }
   if (update?.callback_query?.data?.startsWith('u:')) {
     await handleUserCallback(update.callback_query)
     return
@@ -1567,13 +1610,13 @@ async function handleTelegramUpdate(update) {
   // Админ присылает PDF с подписью «/material <slug>» — бот запоминает файл для выдачи покупателям.
   if (isAdmin && message?.document && /^\/material\b/i.test(message.caption ?? '')) {
     const slug = message.caption.replace(/^\/material\s*/i, '').trim()
-    if (!MATERIALS[slug]) {
-      await sendTelegramMessage(chatId, `Не знаю такой материал. Подпись должна быть вида /material <slug>. Доступные:\n${Object.keys(MATERIALS).map((k) => `/material ${k}`).join('\n')}`)
+    if (!MATERIALS[slug] && slug !== 'checklist-novichka') {
+      await sendTelegramMessage(chatId, `Не знаю такой материал. Подпись должна быть вида /material <slug>. Доступные:\n${[...Object.keys(MATERIALS), 'checklist-novichka'].map((k) => `/material ${k}`).join('\n')}`)
       return
     }
     setMaterialFile(slug, message.document.file_id, message.document.file_name)
     logAction(chatId, `input:material-file:${slug}`)
-    await sendTelegramMessage(chatId, `✅ Файл «${message.document.file_name}» сохранён для «${MATERIALS[slug].title}» — теперь бот выдаёт его после оплаты.`)
+    await sendTelegramMessage(chatId, `✅ Файл «${message.document.file_name}» сохранён для «${MATERIALS[slug]?.title ?? 'чек-листа новичка сообщества'}» — теперь бот выдаёт его ${slug === 'checklist-novichka' ? 'новым резидентам после вступления' : 'после оплаты'}.`)
     return
   }
   if (isAdmin && text === '/cancel') {
@@ -1624,7 +1667,7 @@ async function handleTelegramUpdate(update) {
   }
 
   if (join.paid) {
-    await sendInviteLink(chatId, join)
+    await sendInviteLink(chatId)
   } else {
     await sendTelegramMessage(chatId, 'Ждём подтверждения оплаты от банка — обычно это занимает меньше минуты. Как только оплата пройдёт, здесь появится ссылка на вступление.')
   }
@@ -1757,15 +1800,15 @@ async function runDailyOnce(key, minHour, work) {
   if (ok === false) save(state[key] ?? null) // не вышло — повторим в следующую минуту
 }
 
-/** Автонапоминания резидентам о списании: за 3 дня и за день, только тем, кто общался с ботом. Отключить: AUTO_RESIDENT_REMINDERS=0. */
+/** Автонапоминания резидентам о списании: за 2 дня и за день, только тем, кто общался с ботом. Отключить: AUTO_RESIDENT_REMINDERS=0. */
 async function sendAutoResidentReminders() {
   if (process.env.AUTO_RESIDENT_REMINDERS === '0') return true
   const now = Date.now()
   let sent = 0
   let failed = 0
-  for (const days of [3, 1]) {
+  for (const days of [2, 1]) {
     for (const join of reminderTargets(listJoins(), now, days).reachable) {
-      const ok = await sendTelegramMessage(join.tgUserId, reminderMessage(join, SUPPORT_HANDLE)).catch(() => false)
+      const ok = await sendTelegramMessage(join.tgUserId, reminderMessage(join, SUPPORT_HANDLE, days), REMINDER_KEYBOARD).catch(() => false)
       markReminded(join.token, `${join.nextPaymentAt}:${days}`) // отмечаем и при неудаче, чтобы не пытаться каждую минуту
       if (ok) sent += 1
       else failed += 1
@@ -1793,7 +1836,7 @@ async function pollTelegramUpdates() {
   console.log('[telegram] приём сообщений боту: опрос getUpdates')
   for (;;) {
     try {
-      const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getUpdates?timeout=30&offset=${offset}`, { signal: AbortSignal.timeout(45000) })
+      const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getUpdates?timeout=30&offset=${offset}&allowed_updates=${encodeURIComponent(JSON.stringify(['message', 'callback_query', 'chat_join_request']))}`, { signal: AbortSignal.timeout(45000) })
       const data = await res.json()
       if (!Array.isArray(data.result)) {
         console.error('[telegram] getUpdates ответил неожиданно:', JSON.stringify(data).slice(0, 200))

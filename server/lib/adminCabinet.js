@@ -328,12 +328,8 @@ export function reminderPreviewScreen(joins, now, days) {
 }
 
 /** Текст напоминания подписчику. */
-export function reminderMessage(join, supportHandle) {
-  const name = join.name && join.name !== '—' ? join.name.split(' ')[1] ?? join.name.split(' ')[0] : null
-  const amount = lastAmount(join)
-  return [
-    `${name ? `${name}, здравствуйте` : 'Здравствуйте'}! Напоминаем: ${ruDay(join.nextPaymentAt)} по вашей подписке на сообщество «Карьерный юрист» пройдёт очередное списание${amount ? ` — ${rub(amount)}` : ''}.`,
-    '',
-    `Если планы изменились или есть вопросы — напишите нам: ${supportHandle}`,
-  ].join('\n')
+export function reminderMessage(join, supportHandle, days = 1) {
+  // Тексты — из воронки BotHelp («Списание 2 дня» / «Списание 1 день»)
+  const when = days === 1 ? 'Завтра произойдёт списание за подписку.' : `Через ${days} ${days < 5 ? 'дня' : 'дней'} произойдёт списание за подписку.`
+  return ['Привет! 👋', when, '', 'Спасибо, что остаёшься с нами! 🧡'].join('\n')
 }
