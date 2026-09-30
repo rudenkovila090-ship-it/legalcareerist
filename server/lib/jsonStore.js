@@ -87,7 +87,15 @@ export function createJsonStore(fileName) {
     return { token, ...data[token] }
   }
 
-  return { create, get, all, update, markPaidByPhone, setField }
+  function remove(token) {
+    const data = load()
+    if (!data[token]) return false
+    delete data[token]
+    save(data)
+    return true
+  }
+
+  return { create, get, all, update, remove, markPaidByPhone, setField }
 }
 
 /** Оставляет только цифры и сводит ведущую "8" к "7" — для сравнения номеров. */

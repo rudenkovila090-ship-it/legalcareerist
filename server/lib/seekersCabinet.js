@@ -3,7 +3,8 @@
 // Только тексты и кнопки — данные приходят готовыми.
 import { CONSULTATION_STATUSES } from './consultations.js'
 import { mskDayKey } from './dailyReport.js'
-import { INTEREST_KINDS } from './interests.js'
+import { INTEREST_KINDS, interestGroup } from './interests.js'
+import { RESERVE_FIELDS } from './reserve.js'
 
 const MSK = 'Europe/Moscow'
 const rub = (n) => `${Math.round(n).toLocaleString('ru-RU')} ₽`
@@ -25,9 +26,10 @@ export const SEEKERS_KEYBOARD = [
     { text: '📊 Итоги месяца', callback_data: 'a:s:month:cur' },
   ],
   [
+    { text: '🗃 Кадровый резерв', callback_data: 'a:s:rlist' },
     { text: '➕ Записать интерес', callback_data: 'a:s:inew' },
-    { text: '📇 Интересовались', callback_data: 'a:s:ilist' },
   ],
+  [{ text: '📇 Интересовались', callback_data: 'a:s:ilist' }],
   [{ text: '⬅️ Кадры', callback_data: 'a:sec:kadry' }, { text: '🏠 Меню', callback_data: 'a:menu' }],
 ]
 
@@ -192,7 +194,7 @@ function monthKey(which, now) {
 }
 
 /** Итоги месяца по соискателям: отклики по вакансиям и источникам, консультации и их сумма. */
-export function seekersMonthSummary(applications, orders, which, now = Date.now()) {
+export function seekersMonthSummary(applications, orders, which, now = Date.now(), reserve = []) {
   const key = monthKey(which, now)
   const inMonth = (ts) => Boolean(ts) && mskDayKey(ts).slice(0, 7) === key
   const title = new Intl.DateTimeFormat('ru-RU', { timeZone: 'UTC', month: 'long', year: 'numeric' }).format(new Date(`${key}-15T12:00:00Z`)).replace(/\s*г\.$/, '')
@@ -217,6 +219,7 @@ export function seekersMonthSummary(applications, orders, which, now = Date.now(
     ...[...byVacancy].sort((a, b) => b[1] - a[1]).map(([name, n]) => `   • ${name} — ${n}`),
   ]
   if (bySource.size) lines.push('', '📣 По источникам:', ...[...bySource].sort((a, b) => b[1] - a[1]).map(([name, n]) => `   • ${name} — ${n}`))
+  lines.push('', `🗃 Новых кандидатов в кадровом резерве: ${reserve.filter((c) => inMonth(c.createdAt)).length} (всего в резерве: ${reserve.length})`)
   lines.push(
     '',
     `🎯 Заявок на консультации: ${created.length} (заказов услуг: ${orderKind.length}, вопросов: ${created.length - orderKind.length})`,
@@ -238,8 +241,9 @@ export const INTEREST_KIND_KEYBOARD = [
 ]
 
 export function interestPrompt(kind) {
+  const what = kind === 'community' ? 'вступление в сообщество' : INTEREST_KINDS[kind]
   return [
-    `➕ Записать интерес: ${INTEREST_KINDS[kind]}`,
+    `➕ Записать интерес: ${what}`,
     '',
     'Отправьте одним сообщением, каждая строка — отдельное поле:',
     '1. Имя или ФИО',
@@ -252,17 +256,28 @@ export function interestPrompt(kind) {
   ].join('\n')
 }
 
-export function interestsScreen(list) {
+const GROUP_BACK = {
+  seekers: [{ text: '⬅️ Соискатели', callback_data: 'a:sec:seekers' }, { text: '🏠 Меню', callback_data: 'a:menu' }],
+  community: [{ text: '⬅️ Сообщество', callback_data: 'a:sec:community' }, { text: '🏠 Меню', callback_data: 'a:menu' }],
+}
+const kindLabel = (i) => (i.kind === 'vacancy' ? 'вакансия' : i.kind === 'community' ? 'сообщество' : 'консультация')
+
+/** group: 'seekers' (консультации и вакансии) или 'community' (вступление в сообщество). */
+export function interestsScreen(all, group = 'seekers') {
+  const list = all.filter((i) => interestGroup(i) === group)
   const waiting = list.filter((i) => i.status === 'waiting').sort((a, b) => a.remindAt - b.remindAt)
   const other = list.filter((i) => i.status !== 'waiting').sort((a, b) => (b.doneAt ?? 0) - (a.doneAt ?? 0)).slice(0, 5)
-  const keyboard = [[{ text: '➕ Записать интерес', callback_data: 'a:s:inew' }]]
-  if (!list.length) return { text: '📇 Пока никого не записано.\n\nЕсли кто-то написал в поддержку и спросил про консультацию или вакансию — запишите, бот напомнит через неделю.', keyboard: [...keyboard, BACK_ROW] }
-  const lines = [`📇 Интересовались: ждут напоминания ${waiting.length}, всего ${list.length}`, '']
+  const add = group === 'community' ? 'a:s:ikind:community' : 'a:s:inew'
+  const keyboard = [[{ text: '➕ Записать интерес', callback_data: add }]]
+  const back = GROUP_BACK[group]
+  const topic = group === 'community' ? 'вступлением в сообщество' : 'консультацией или вакансией'
+  if (!list.length) return { text: `📇 Пока никого не записано.\n\nЕсли кто-то написал в поддержку и спросил про ${group === 'community' ? 'вступление в сообщество' : 'консультацию или вакансию'} — запишите, бот напомнит через неделю.`, keyboard: [...keyboard, back] }
+  const lines = [`📇 Интересовались ${topic}: ждут напоминания ${waiting.length}, всего ${list.length}`, '']
   for (const i of [...waiting, ...other]) {
-    lines.push(`${INTEREST_STATUS[i.status].split(' ')[0]} ${intTitle(i)} · ${i.kind === 'vacancy' ? 'вакансия' : 'консультация'} · обращался ${ruDate(i.contactedAt)}${i.status === 'waiting' ? ` · напомню ${ruDate(i.remindAt)}` : ''}`)
+    lines.push(`${INTEREST_STATUS[i.status].split(' ')[0]} ${intTitle(i)} · ${kindLabel(i)} · обращался ${ruDate(i.contactedAt)}${i.status === 'waiting' ? ` · напомню ${ruDate(i.remindAt)}` : ''}`)
     keyboard.push([{ text: `${INTEREST_STATUS[i.status].split(' ')[0]} ${intTitle(i)}`.slice(0, 60), callback_data: `a:s:icard:${i.number}` }])
   }
-  keyboard.push(BACK_ROW)
+  keyboard.push(back)
   return { text: lines.join('\n'), keyboard }
 }
 
@@ -287,6 +302,75 @@ export function interestCard(i, { reminder = false } = {}) {
   } else {
     keyboard.push([{ text: '↩️ Вернуть в ожидание', callback_data: `a:s:isnooze:${i.number}` }])
   }
-  keyboard.push([{ text: '⬅️ К списку', callback_data: 'a:s:ilist' }, { text: '🏠 Меню', callback_data: 'a:menu' }])
+  keyboard.push([{ text: '⬅️ К списку', callback_data: `a:s:ilist:${interestGroup(i)}` }, { text: '🏠 Меню', callback_data: 'a:menu' }])
   return { text: lines.join('\n'), keyboard }
 }
+
+// ---- Кадровый резерв ----
+
+const resTitle = (c) => `№${c.number} · ${c.name || 'без имени'}`
+
+function reserveLine(c) {
+  return `${resTitle(c)} · ${c.city || 'город?'} · ${c.university || 'вуз?'} · ${c.position || 'должность?'}${c.resumeUrl ? ' · 🔗 резюме' : ''}`
+}
+
+/** Список кандидатов резерва: последние сверху; кнопки — карточки. */
+export function reserveListScreen(list) {
+  const keyboard = [[{ text: '➕ Добавить кандидата', callback_data: 'a:s:rnew' }]]
+  if (!list.length) return { text: '🗃 Кадровый резерв пока пуст.\n\nКандидаты появятся здесь сами после заявок на сайте, можно добавить вручную.', keyboard: [...keyboard, BACK_ROW] }
+  const sorted = [...list].sort((a, b) => b.createdAt - a.createdAt)
+  const shown = sorted.slice(0, 40)
+  const lines = [`🗃 Кадровый резерв: ${list.length} чел.`, '', ...shown.map(reserveLine), ...(sorted.length > shown.length ? [`…и ещё ${sorted.length - shown.length}`] : []), '', 'Нажмите на кандидата — откроется карточка:']
+  for (const c of shown.slice(0, 30)) keyboard.push([{ text: `${resTitle(c)} · ${c.position || c.city || ''}`.slice(0, 60), callback_data: `a:s:rcard:${c.number}` }])
+  keyboard.push(BACK_ROW)
+  return { text: lines.join('\n'), keyboard }
+}
+
+export function reserveCard(c) {
+  const lines = [
+    `🗃 Кадровый резерв · ${resTitle(c)}`,
+    '',
+    `🏙 Город: ${c.city || 'не указан'}`,
+    `🎓 Университет: ${c.university || 'не указан'}`,
+    `💼 Должность: ${c.position || 'не указана'}`,
+    c.telegram ? `💬 Telegram: ${c.telegram}` : null,
+    c.phone ? `📞 Телефон: ${c.phone}` : null,
+    c.email ? `✉️ Почта: ${c.email}` : null,
+    `🔗 Резюме: ${c.resumeUrl || 'ссылка не прикреплена'}`,
+    `📅 Заявка: ${ruDate(c.createdAt)}`,
+    `📣 Источник: ${c.utm}`,
+  ].filter((l) => l !== null)
+  const edit = (field, text) => ({ text, callback_data: `a:s:redit:${c.number}:${field}` })
+  const keyboard = [
+    [edit('resumeUrl', c.resumeUrl ? '🔗 Изменить ссылку на резюме' : '🔗 Прикрепить ссылку на резюме')],
+    [edit('city', '✏️ Город'), edit('university', '✏️ Университет')],
+    [edit('position', '✏️ Должность'), edit('name', '✏️ ФИО')],
+    [{ text: '🗑 Удалить', callback_data: `a:s:rdel:${c.number}` }],
+    [{ text: '⬅️ К резерву', callback_data: 'a:s:rlist' }, { text: '🏠 Меню', callback_data: 'a:menu' }],
+  ]
+  return { text: lines.join('\n'), keyboard }
+}
+
+export function reserveFieldPrompt(c, field) {
+  const hint = field === 'resumeUrl' ? 'Отправьте ссылку на резюме (например, с Google Диска), начинающуюся с http.' : `Отправьте новое значение: ${RESERVE_FIELDS[field]}.`
+  return { text: `✏️ ${resTitle(c)}\n\n${hint}\n«-» — очистить поле, /cancel — отмена.`, keyboard: [[{ text: '⬅️ К карточке', callback_data: `a:s:rcard:${c.number}` }]] }
+}
+
+export function reserveDeleteConfirm(c) {
+  return { text: `🗑 Удалить кандидата ${resTitle(c)} из кадрового резерва?`, keyboard: [[{ text: '✅ Да, удалить', callback_data: `a:s:rdelok:${c.number}` }, { text: 'Отмена', callback_data: `a:s:rcard:${c.number}` }]] }
+}
+
+export const RESERVE_NEW_PROMPT = [
+  '➕ Новый кандидат в кадровый резерв',
+  '',
+  'Отправьте одним сообщением, каждая строка — отдельное поле:',
+  '1. ФИО',
+  '2. Город',
+  '3. Университет',
+  '4. Должность',
+  '5. Telegram',
+  '6. Телефон',
+  '7. Ссылка на резюме (Google Диск)',
+  '',
+  'Ненужное поле — «-». Отмена — /cancel.',
+].join('\n')

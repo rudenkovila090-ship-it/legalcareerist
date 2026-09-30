@@ -7,7 +7,10 @@ const store = createJsonStore('interests.json')
 export const REMIND_AFTER_DAYS = 7
 const DAY = 24 * 3600 * 1000
 
-export const INTEREST_KINDS = { consultation: '🎯 Карьерная консультация', vacancy: '💼 Вакансия / отклик' }
+export const INTEREST_KINDS = { consultation: '🎯 Карьерная консультация', vacancy: '💼 Вакансия / отклик', community: '👥 Вступление в сообщество' }
+
+/** Раздел бота, к которому относится запись: сообщество или соискатели (консультации и вакансии). */
+export const interestGroup = (i) => (i.kind === 'community' ? 'community' : 'seekers')
 
 export function listInterests() {
   return store.all().sort((a, b) => a.number - b.number)

@@ -44,7 +44,8 @@ import { utmLabel } from './lib/utm.js'
 import { createApplication, listApplications } from './lib/candidateApplications.js'
 import { createConsultation, listConsultations, getConsultation, setConsultationStatus } from './lib/consultations.js'
 import { createInterest, getInterest, listInterests, markInterestDone, closeInterest, snoozeInterest, interestsDueForReminder, markInterestReminded, REMIND_AFTER_DAYS } from './lib/interests.js'
-import { INTEREST_KIND_KEYBOARD, interestPrompt, interestsScreen, interestCard, SEEKERS_KEYBOARD, buildVacancyViews, vacanciesScreen, vacancyCard, vacancyApplicationsScreen, recentApplicationsScreen, consultationsScreen, consultationCard, seekersMonthSummary } from './lib/seekersCabinet.js'
+import { createReserveCandidate, listReserve, getReserveCandidate, setReserveField, deleteReserveCandidate } from './lib/reserve.js'
+import { reserveListScreen, reserveCard, reserveFieldPrompt, reserveDeleteConfirm, RESERVE_NEW_PROMPT, INTEREST_KIND_KEYBOARD, interestPrompt, interestsScreen, interestCard, SEEKERS_KEYBOARD, buildVacancyViews, vacanciesScreen, vacancyCard, vacancyApplicationsScreen, recentApplicationsScreen, consultationsScreen, consultationCard, seekersMonthSummary } from './lib/seekersCabinet.js'
 import { incrementArticleView, getArticleViews } from './lib/articleStats.js'
 import { incrementNewsView, getNewsViews } from './lib/newsStats.js'
 import { incrementEventView, incrementEventRegistration, getEventStats } from './lib/eventStats.js'
@@ -569,6 +570,24 @@ app.post('/api/notify', async (req, res) => {
       const documents = lines.filter((l) => /приложен/i.test(l)).map((l) => l.split(' — ')[0])
       const app = createApplication({ vacancySlug, vacancyTitle: catalogTitle || String(service ?? '').match(/«(.+)»/)?.[1], name, phone, email, telegram, source: utmSource, documents })
       record = { text: `\n\n🗂 Отклик №${app.number}`, keyboard: [[{ text: '📥 Отклики на вакансию', callback_data: `a:s:vacs` }]] }
+    } else if (formType === 'candidate_application' || formType === 'reserve_join_request') {
+      const pick = (re) => lines.map((l) => l.match(re)?.[1]).find(Boolean)
+      const requested = pick(/^(?:Должность|Запрос):\s*(.+)$/i)
+      const candidate = createReserveCandidate({
+        name,
+        city: pick(/^Город:\s*(.+)$/i),
+        university: pick(/^Университет:\s*(.+)$/i),
+        position: requested && !/^Вступление в кадровый резерв$/i.test(requested) ? requested : pick(/^Должность:\s*(.+)$/i),
+        telegram: normalizeTelegram(telegram),
+        phone,
+        email,
+        source: formType,
+        utm: utmSource,
+      })
+      record = {
+        text: `\n\n🗃 Кадровый резерв: кандидат №${candidate.number} добавлен (всего в резерве: ${listReserve().length})\nПрикрепите ссылку на резюме в карточке.`,
+        keyboard: [[{ text: `📂 Открыть кандидата №${candidate.number}`, callback_data: `a:s:rcard:${candidate.number}` }]],
+      }
     } else if (formType === 'consultation_order' || formType === 'consultation_help_request') {
       const isOrder = formType === 'consultation_order'
       const total = isOrder ? Number((lines.find((l) => /^Итого:/i.test(l)) ?? '').replace(/\D/g, '')) || null : null
@@ -719,6 +738,11 @@ function parseRuDate(text) {
 }
 
 /** Кнопки «Кадры → Соискатели»: parts — callback_data без префикса «a:s:». */
+const reserveScreen = (number) => {
+  const c = getReserveCandidate(number)
+  return c ? reserveCard(c) : { text: `Кандидат №${number} не найден.`, keyboard: SEEKERS_KEYBOARD }
+}
+
 const interestScreen = (number) => {
   const i = getInterest(number)
   return i ? interestCard(i) : { text: `Запись №${number} не найдена.`, keyboard: SEEKERS_KEYBOARD }
@@ -753,13 +777,33 @@ function seekersAction(parts, now, chatId) {
       const c = setConsultationStatus(arg, arg2)
       return c ? consultationCard(c) : { text: `Консультация №${arg} не найдена.`, keyboard: SEEKERS_KEYBOARD }
     }
+    case 'rlist':
+      return reserveListScreen(listReserve())
+    case 'rcard':
+      return reserveScreen(arg)
+    case 'rnew':
+      adminInput.set(String(chatId), { type: 'reserve-new' })
+      return { text: RESERVE_NEW_PROMPT, keyboard: [[{ text: '⬅️ К резерву', callback_data: 'a:s:rlist' }]] }
+    case 'redit': {
+      const c = getReserveCandidate(arg)
+      if (!c) return reserveScreen(arg)
+      adminInput.set(String(chatId), { type: 'reserve-field', number: c.number, field: arg2 })
+      return reserveFieldPrompt(c, arg2)
+    }
+    case 'rdel': {
+      const c = getReserveCandidate(arg)
+      return c ? reserveDeleteConfirm(c) : reserveScreen(arg)
+    }
+    case 'rdelok':
+      deleteReserveCandidate(arg)
+      return reserveListScreen(listReserve())
     case 'inew':
       return { text: '➕ Записать интерес\n\nЧем интересовался человек?', keyboard: INTEREST_KIND_KEYBOARD }
     case 'ikind':
       adminInput.set(String(chatId), { type: 'interest', kind: arg })
-      return { text: interestPrompt(arg), keyboard: [[{ text: '⬅️ Соискатели', callback_data: 'a:sec:seekers' }]] }
+      return { text: interestPrompt(arg), keyboard: [[arg === 'community' ? { text: '⬅️ Сообщество', callback_data: 'a:sec:community' } : { text: '⬅️ Соискатели', callback_data: 'a:sec:seekers' }]] }
     case 'ilist':
-      return interestsScreen(listInterests())
+      return interestsScreen(listInterests(), arg === 'community' ? 'community' : 'seekers')
     case 'icard':
       return interestScreen(arg)
     case 'idone':
@@ -772,7 +816,7 @@ function seekersAction(parts, now, chatId) {
       snoozeInterest(arg)
       return interestScreen(arg)
     case 'month':
-      return seekersMonthSummary(applications, listConsultations(), arg, now)
+      return seekersMonthSummary(applications, listConsultations(), arg, now, listReserve())
     default:
       return { text: '🎓 Соискатели', keyboard: SEEKERS_KEYBOARD }
   }
@@ -842,6 +886,30 @@ async function handlePendingInput(chatId, pending, text) {
     setRevenue(pending.number, amount)
     const screen = dealScreen(pending.number)
     await sendLongMessage(chatId, `✅ Выручка записана: ${formatRub(amount)}\n\n${screen.text}`, screen.keyboard)
+    return
+  }
+  if (pending.type === 'reserve-field') {
+    const value = text.trim() === '-' ? '' : text.trim()
+    if (pending.field === 'resumeUrl' && value && !/^https?:\/\//i.test(value)) {
+      adminInput.set(String(chatId), pending)
+      await sendTelegramMessage(chatId, 'Нужна ссылка, начинающаяся с http. Отправьте ещё раз или /cancel.')
+      return
+    }
+    setReserveField(pending.number, pending.field, value)
+    const screen = reserveScreen(pending.number)
+    await sendLongMessage(chatId, `✅ Сохранено.\n\n${screen.text}`, screen.keyboard)
+    return
+  }
+  if (pending.type === 'reserve-new') {
+    const [name, city, university, position, telegram, phone, resumeUrl] = text.split('\n').map((l) => (l.trim() === '-' ? '' : l.trim()))
+    if (!name) {
+      adminInput.set(String(chatId), pending)
+      await sendTelegramMessage(chatId, 'Нужно хотя бы ФИО (первая строка). Отправьте ещё раз или /cancel.')
+      return
+    }
+    const created = createReserveCandidate({ name, city, university, position, telegram: normalizeTelegram(telegram), phone, resumeUrl: /^https?:\/\//i.test(resumeUrl ?? '') ? resumeUrl : '', source: 'manual' })
+    const screen = reserveCard(created)
+    await sendLongMessage(chatId, `✅ Кандидат №${created.number} добавлен\n\n${screen.text}`, screen.keyboard)
     return
   }
   if (pending.type === 'interest') {

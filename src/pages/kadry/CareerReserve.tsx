@@ -85,7 +85,7 @@ const railItems = [
 
 export default function CareerReserve({ embedded = false }: { embedded?: boolean }) {
   useDocumentTitle('Кадровый резерв')
-  const [form, setForm] = useState({ name: '', email: '', phone: '', telegram: '', position: '' })
+  const [form, setForm] = useState({ name: '', email: '', phone: '', telegram: '', position: '', city: '', university: '' })
   const [resumeFile, setResumeFile] = useState<File | null>(null)
   const [sent, setSent] = useState(false)
 
@@ -102,6 +102,8 @@ export default function CareerReserve({ embedded = false }: { embedded?: boolean
       telegram: form.telegram || undefined,
       interest: [
         form.position ? `Запрос: ${form.position}` : '',
+        form.city.trim() ? `Город: ${form.city.trim()}` : '',
+        form.university.trim() ? `Университет: ${form.university.trim()}` : '',
         resumeFile ? 'Резюме — приложено документом ниже' : '',
       ].filter(Boolean),
     })
@@ -109,7 +111,7 @@ export default function CareerReserve({ embedded = false }: { embedded?: boolean
     setSent(true)
   }
 
-  const [priorityForm, setPriorityForm] = useState({ name: '', phone: '', email: '', telegram: '' })
+  const [priorityForm, setPriorityForm] = useState({ name: '', phone: '', email: '', telegram: '', position: '', city: '', university: '' })
   const [priorityResumeFile, setPriorityResumeFile] = useState<File | null>(null)
   const [prioritySent, setPrioritySent] = useState(false)
 
@@ -126,6 +128,9 @@ export default function CareerReserve({ embedded = false }: { embedded?: boolean
       telegram: priorityForm.telegram || undefined,
       interest: [
         'Запрос: Вступление в кадровый резерв',
+        priorityForm.position.trim() ? `Должность: ${priorityForm.position.trim()}` : '',
+        priorityForm.city.trim() ? `Город: ${priorityForm.city.trim()}` : '',
+        priorityForm.university.trim() ? `Университет: ${priorityForm.university.trim()}` : '',
         priorityResumeFile ? 'Резюме — приложено документом ниже' : '',
       ].filter(Boolean),
     })
@@ -271,6 +276,24 @@ export default function CareerReserve({ embedded = false }: { embedded?: boolean
                   value={priorityForm.telegram}
                   onChange={(e) => setPriorityForm((f) => ({ ...f, telegram: e.target.value }))}
                 />
+                <input
+                  className="rounded-lg border border-white/15 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
+                  placeholder="Город"
+                  value={priorityForm.city}
+                  onChange={(e) => setPriorityForm((f) => ({ ...f, city: e.target.value }))}
+                />
+                <input
+                  className="rounded-lg border border-white/15 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
+                  placeholder="Университет"
+                  value={priorityForm.university}
+                  onChange={(e) => setPriorityForm((f) => ({ ...f, university: e.target.value }))}
+                />
+                <input
+                  className="rounded-lg border border-white/15 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
+                  placeholder="Должность"
+                  value={priorityForm.position}
+                  onChange={(e) => setPriorityForm((f) => ({ ...f, position: e.target.value }))}
+                />
                 <label className="col-span-full flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-dashed border-white/25 bg-white/5 px-4 py-3 text-sm text-white/60 hover:border-white/40">
                   <span>{priorityResumeFile ? priorityResumeFile.name : 'Загрузить резюме (PDF)'}</span>
                   <span className="shrink-0 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white">Выбрать файл</span>
@@ -361,6 +384,18 @@ export default function CareerReserve({ embedded = false }: { embedded?: boolean
                   placeholder="Telegram"
                   value={form.telegram}
                   onChange={(e) => setForm((f) => ({ ...f, telegram: e.target.value }))}
+                />
+                <input
+                  className="rounded-lg border border-white/15 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
+                  placeholder="Город"
+                  value={form.city}
+                  onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))}
+                />
+                <input
+                  className="rounded-lg border border-white/15 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
+                  placeholder="Университет"
+                  value={form.university}
+                  onChange={(e) => setForm((f) => ({ ...f, university: e.target.value }))}
                 />
                 <label className="col-span-full flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-dashed border-white/25 bg-white/5 px-4 py-3 text-sm text-white/60 hover:border-white/40">
                   <span>{resumeFile ? resumeFile.name : 'Загрузить резюме (PDF)'}</span>

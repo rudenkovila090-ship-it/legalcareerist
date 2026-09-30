@@ -56,6 +56,10 @@ export const COMMUNITY_KEYBOARD = [
     { text: '🔕 Отписались', callback_data: 'a:cancelled' },
     { text: '🔔 Напоминания', callback_data: 'a:rem' },
   ],
+  [
+    { text: '➕ Записать интерес', callback_data: 'a:s:ikind:community' },
+    { text: '📇 Интересовались', callback_data: 'a:s:ilist:community' },
+  ],
   [{ text: '🔌 Состояние системы', callback_data: 'a:status' }],
   BACK_ROW,
 ]
