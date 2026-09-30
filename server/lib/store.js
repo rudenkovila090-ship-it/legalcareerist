@@ -183,8 +183,8 @@ export function createImportedJoin({ tgUserId, name, amount, oneTime, nextPaymen
 }
 
 /** Бессрочный резидент (основатель, амбассадор): подписка активна всегда, без оплат и сроков, в финансовые отчёты не входит. */
-export function createLifetimeJoin({ tgUserId, name, telegram }) {
+export function createLifetimeJoin({ tgUserId, name, telegram, startAt, endsAt }) {
   const token = store.create({ tariffId: null, name: name || '—', phone: '', email: '', telegram: telegram || '', tgUserId: String(tgUserId), status: 'pending' })
-  store.update(token, (j) => ({ ...j, paid: true, status: 'active', lifetime: true, payments: [], firstPaidAt: j.createdAt, nextPaymentAt: null }))
+  store.update(token, (j) => ({ ...j, paid: true, status: 'active', lifetime: true, payments: [], firstPaidAt: startAt ?? j.createdAt, startAt: startAt ?? j.createdAt, endsAt: endsAt ?? null, nextPaymentAt: null }))
   return token
 }

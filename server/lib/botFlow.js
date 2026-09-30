@@ -273,15 +273,27 @@ export function communityScreen(hasCabinet = false) {
   }
 }
 
-/** «Сообщество» для резидентов: сверху самое нужное — кабинет, дальше разделы сообщества. */
+/** «Сообщество» для резидентов: сверху самое нужное — личный кабинет, ниже «О сообществе» (карьерные возможности, достижения). */
 export function communityResidentScreen() {
   return {
     text: COMMUNITY_TEXT,
     keyboard: [
       [{ text: '💼 Личный кабинет', callback_data: 'r:menu' }],
-      [{ text: 'Карьерные возможности', callback_data: 'u:career' }, { text: 'Клубы', callback_data: 'u:clubs' }],
-      [{ text: 'Достижения', callback_data: 'u:ach' }],
+      [{ text: 'О сообществе', callback_data: 'u:aboutclub' }],
       [{ text: 'Главное меню', callback_data: 'u:menu' }],
+    ],
+  }
+}
+
+/** «О сообществе» — для всех: что внутри (карьерные возможности, достижения) и ссылка на сайт. */
+export function aboutClubScreen(siteUrl) {
+  return {
+    text: `О сообществе\n\n${COMMUNITY_TEXT}`,
+    keyboard: [
+      [{ text: 'Карьерные возможности', callback_data: 'u:career' }],
+      [{ text: 'Достижения', callback_data: 'u:ach' }],
+      [{ text: 'Читать на сайте', url: `${siteUrl}/community#main` }],
+      [{ text: '⬅️ Сообщество', callback_data: 'u:community' }, { text: 'Главное меню', callback_data: 'u:menu' }],
     ],
   }
 }
@@ -314,7 +326,7 @@ export function subLinkScreen(label, price, url) {
 export const CANCEL_REQUESTED_TEXT = 'Запрос на отмену подписки принят. Мы отключим автопродление и напишем тебе, когда всё будет готово. Подписку можно будет активировать снова в разделе «Сообщество».'
 
 const RESIDENT_NAV = (backTo) => [
-  [{ text: backTo === 'u:about' ? '⬅️ О КЮ' : '⬅️ Сообщество', callback_data: backTo }, { text: 'Главное меню', callback_data: 'u:menu' }],
+  [{ text: backTo === 'u:about' ? '⬅️ О КЮ' : '⬅️ О сообществе', callback_data: backTo }, { text: 'Главное меню', callback_data: 'u:menu' }],
 ]
 
 /** Раздел «Карьерные возможности» (для резидентов). */
@@ -344,34 +356,12 @@ export function careerScreen() {
       '⚖️ Юридические вопросы',
       'взаимопомощь в практике',
     ].join('\n'),
-    keyboard: RESIDENT_NAV('u:community'),
-  }
-}
-
-/** Раздел «Клубы». */
-export function clubsScreen() {
-  return {
-    text: [
-      'Клубы сообщества — это тематические группы внутри Карьерного юриста, где резиденты общаются и развиваются вне рабочих и карьерных тем, находя баланс между профессией и личной жизнью.',
-      '',
-      '📖 Книжный клуб',
-      'нетворкинг и обсуждение книг',
-      '',
-      '🧠 Психологический клуб',
-      'поддержка, работа с состоянием',
-      '',
-      '🏃 Спортивный клуб',
-      'совместные активности, поддержка здорового образа жизни',
-      '',
-      '🇬🇧 Английский клуб',
-      'практика иностранного языка',
-    ].join('\n'),
-    keyboard: RESIDENT_NAV('u:community'),
+    keyboard: RESIDENT_NAV('u:aboutclub'),
   }
 }
 
 /** Раздел «Достижения» (из «Сообщества» для резидентов и из «О КЮ»). */
-export function achievementsScreen(backTo = 'u:community') {
+export function achievementsScreen(backTo = 'u:aboutclub') {
   return {
     text: [
       'Комитет по коммуникациям юридического рынка РАСО объявили консолидированный рейтинг коммуникационного репутационного капитала участников юридического рынка Москвы и Санкт-Петербурга 2026 года.',

@@ -48,7 +48,7 @@ import { createExpense, listExpenses, deleteExpense } from './lib/expenses.js'
 import { createEventLead, listEventLeads, getEventLead, setEventLeadStatus } from './lib/eventLeads.js'
 import { getMaterialFile, setMaterialFile } from './lib/materialFiles.js'
 import { touchBotUser, giveConsent, setMailingConsent, addTag, getBotUser, listBotUsers, countConversation, updateBotUser, setGender } from './lib/botUsers.js'
-import { isStartKeyword, welcomeScreen, noConsentScreen, mailingScreen, mainMenuScreen, supportPrompt, consultPrompt, genderScreen, reviewThanks, legalScreen, aboutScreen, consultScreen, consultBookedScreen, marketScreen, materialsListScreen, materialCard, payLinkScreen, PAID_TEXT, PAID_TEXTS, PAID_TAGS, paidKeyboard, paymentNotFoundScreen, reviewScreen, CONTACT_PROMPTS, contactCancelKeyboard, unsubscribedScreen, communityScreen, communityResidentScreen, periodsScreen, subLinkScreen, careerScreen, clubsScreen, achievementsScreen } from './lib/botFlow.js'
+import { isStartKeyword, welcomeScreen, noConsentScreen, mailingScreen, mainMenuScreen, supportPrompt, consultPrompt, genderScreen, reviewThanks, legalScreen, aboutScreen, consultScreen, consultBookedScreen, marketScreen, materialsListScreen, materialCard, payLinkScreen, PAID_TEXT, PAID_TEXTS, PAID_TAGS, paidKeyboard, paymentNotFoundScreen, reviewScreen, CONTACT_PROMPTS, contactCancelKeyboard, unsubscribedScreen, communityScreen, communityResidentScreen, periodsScreen, subLinkScreen, aboutClubScreen, careerScreen, achievementsScreen } from './lib/botFlow.js'
 import { buildMonthCsv } from './lib/exportCsv.js'
 import { vacancyOverrides, setVacancyStatus } from './lib/vacancyOverrides.js'
 import { residentMenu, subscriptionScreen, linkScreen, settingsScreen, cancelConfirmScreen, cancelReasonPrompt, cancelDoneScreen, hasAccess } from './lib/residentCabinet.js'
@@ -1490,6 +1490,9 @@ function residentByTelegramId(tgId) {
 // Основатель и другие «вечные» резиденты: доступ без оплаты и без срока (env LIFETIME_USERNAMES=ник1,ник2).
 const LIFETIME_USERNAMES = new Set(String(process.env.LIFETIME_USERNAMES ?? 'rudenkovrd').split(',').map((v) => v.trim().replace(/^@/, '').toLowerCase()).filter(Boolean))
 
+// Условные даты бессрочной подписки (для отображения в «Моя подписка»): начало 21.02.2025, конец 31.12.2045.
+const LIFETIME_START = Date.parse('2025-02-21T12:00:00+03:00')
+const LIFETIME_END = Date.parse('2045-12-31T12:00:00+03:00')
 const LIFETIME_IDS = new Set(String(process.env.LIFETIME_IDS ?? '').split(',').map((v) => v.trim()).filter(Boolean))
 
 /** Если ник в списке «вечных» и карточки резидента ещё нет — заводит её (бессрочная подписка). */
@@ -1498,8 +1501,14 @@ function ensureLifetimeResident(user) {
   // Бессрочный доступ: по нику из LIFETIME_USERNAMES, по id из LIFETIME_IDS и всегда для админского аккаунта.
   const isLifetime = (nick && LIFETIME_USERNAMES.has(nick)) || LIFETIME_IDS.has(String(user.id)) || String(user.id) === String(ADMIN_CHAT_ID)
   if (!isLifetime) return
-  const has = listJoins().some((j) => String(j.tgUserId ?? '') === String(user.id) && j.lifetime)
-  if (!has) createLifetimeJoin({ tgUserId: user.id, name: [user.firstName, user.lastName].filter(Boolean).join(' '), telegram: user.username })
+  const existing = listJoins().find((j) => String(j.tgUserId ?? '') === String(user.id) && j.lifetime)
+  if (!existing) createLifetimeJoin({ tgUserId: user.id, name: [user.firstName, user.lastName].filter(Boolean).join(' '), telegram: user.username, startAt: LIFETIME_START, endsAt: LIFETIME_END })
+  else if (!existing.startAt) {
+    // карточки, заведённые раньше без дат
+    setJoinField(existing.token, 'startAt', LIFETIME_START)
+    setJoinField(existing.token, 'firstPaidAt', LIFETIME_START)
+    setJoinField(existing.token, 'endsAt', LIFETIME_END)
+  }
 }
 
 /** Старт воронки: метка «пользователь»; дальше согласие на обработку ПД → пол (если не определён) → согласие на рассылку → главное меню. */
@@ -1745,13 +1754,11 @@ async function handleUserCallback(query) {
       }
     }
     case 'aboutclub':
-      return reply({ text: 'О сообществе — на сайте:', keyboard: [[{ text: 'Читать на сайте', url: `${SITE_URL}/community#main` }], [{ text: 'Назад', callback_data: 'u:community' }, { text: 'Главное меню', callback_data: 'u:menu' }]] })
+      return reply(aboutClubScreen(SITE_URL))
     case 'career':
       return reply(careerScreen())
-    case 'clubs':
-      return reply(clubsScreen())
     case 'ach':
-      return reply(achievementsScreen('u:community'))
+      return reply(achievementsScreen('u:aboutclub'))
     case 'achabout':
       return reply(achievementsScreen('u:about'))
     case 'market':
@@ -1813,8 +1820,11 @@ async function finishCancellation(chatId, flow, reason) {
     await sendTelegramMessage(chatId, 'Подписка уже отключена.', [[{ text: '⬅️ Кабинет', callback_data: 'r:menu' }]])
     return
   }
-  const { confirmed, results } = await cancelSubscription(join, reason)
-  const screen = cancelDoneScreen(join.nextPaymentAt, confirmed)
+  // Основатель проходит путь клиента целиком, но подписка не меняется (иначе он потерял бы доступ).
+  const test = Boolean(join.lifetime)
+  const { confirmed, results } = test ? { confirmed: true, results: [] } : await cancelSubscription(join, reason)
+  const endsAt = test ? join.endsAt : join.nextPaymentAt
+  const screen = cancelDoneScreen(endsAt, confirmed, test)
   await sendTelegramMessage(chatId, screen.text, screen.keyboard)
   const ticket = nextTicketNumber()
   await sendTelegramMessage(ADMIN_CHAT_ID, buildKadryRichNotification({
@@ -1828,9 +1838,9 @@ async function finishCancellation(chatId, flow, reason) {
     telegram: user.username,
     details: [
       `Причина: ${reason}`,
-      join.oneTime ? 'Разовая подписка — доступ закончится в срок, списаний нет' : confirmed ? 'Отключена в Prodamus автоматически' : '⚠️ Автоматически отключить в Prodamus не удалось — отключите вручную, иначе спишут деньги',
+      test ? 'ТЕСТ основателя: ничего не отключено, подписка осталась активной' : join.oneTime ? 'Разовая подписка — доступ закончится в срок, списаний нет' : confirmed ? 'Отключена в Prodamus автоматически' : '⚠️ Автоматически отключить в Prodamus не удалось — отключите вручную, иначе спишут деньги',
       ...results.map((r) => `Prodamus, подписка ${r.id}: ${r.ok ? 'OK' : 'ошибка'} (${r.raw ?? r.status})`),
-      join.nextPaymentAt ? `Доступ до ${new Date(join.nextPaymentAt).toLocaleDateString('ru-RU', { timeZone: 'Europe/Moscow' })}` : 'Дата окончания неизвестна',
+      endsAt ? `Доступ до ${new Date(endsAt).toLocaleDateString('ru-RU', { timeZone: 'Europe/Moscow' })}` : 'Дата окончания неизвестна',
     ],
     ticketNumber: String(ticket),
     origin: 'из бота',
@@ -1858,9 +1868,9 @@ async function handleResidentCallback(query) {
   else if (action === 'mail') {
     const updated = setMailingConsent(chatId, user.mailingConsent !== true) ?? user
     screen = settingsScreen(join, updated)
-  } else if (action === 'cancel') screen = join.status === 'active' && !join.lifetime ? cancelConfirmScreen(user) : settingsScreen(join, user)
+  } else if (action === 'cancel') screen = join.status === 'active' ? cancelConfirmScreen(user) : settingsScreen(join, user)
   else if (action === 'cancelyes') {
-    if (join.status !== 'active' || join.lifetime) screen = settingsScreen(join, user)
+    if (join.status !== 'active') screen = settingsScreen(join, user)
     else {
       userFlows.set(String(chatId), { kind: 'cancel', token: join.token, data: {} })
       screen = cancelReasonPrompt()

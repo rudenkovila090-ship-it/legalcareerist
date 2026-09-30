@@ -32,7 +32,16 @@ export function residentMenu(join, user) {
 /** «Моя подписка»: статус, тариф, когда подключена, последняя оплата, дата следующего списания. */
 export function subscriptionScreen(join, tariffs, now = Date.now()) {
   if (join.lifetime) {
-    return { text: '📋 Моя подписка\n\nСтатус: 🟢 активна\nТариф: Основатель — бессрочно\nСписаний нет, доступ к сообществу сохраняется всегда.', keyboard: [BACK_ROW] }
+    const lines = [
+      '📋 Моя подписка',
+      '',
+      'Статус: 🟢 активна',
+      'Тариф: Основатель — бессрочно',
+      `Начало подписки: ${ruDate(join.startAt ?? join.firstPaidAt ?? join.createdAt)}`,
+      `Действует до: ${join.endsAt ? ruDate(join.endsAt) : 'бессрочно'}`,
+      'Списаний нет — доступ к сообществу сохраняется.',
+    ]
+    return { text: lines.join('\n'), keyboard: [BACK_ROW] }
   }
   const paid = (join.payments ?? []).filter((p) => !p.estimated)
   const last = paid.at(-1) ?? (join.payments ?? []).at(-1)
@@ -41,16 +50,18 @@ export function subscriptionScreen(join, tariffs, now = Date.now()) {
   const active = join.status === 'active'
   const endsAt = join.nextPaymentAt
   const status = active ? '🟢 активна' : join.status === 'cancelled' ? (hasAccess(join, now) ? '🔕 отключена — доступ до конца оплаченного периода' : '⚪ закончилась') : '⏳ ожидает оплаты'
+  // «Действует до» — конец оплаченного периода; у подписки с автопродлением дальше она продлится списанием.
+  let until = null
+  if (endsAt) until = active && !join.oneTime ? `Действует до: ${ruDate(endsAt)} (дальше продлится автоматически — списание${amount ? ` ${rub(amount)}` : ''})` : `Действует до: ${ruDate(endsAt)}`
   const lines = [
     '📋 Моя подписка',
     '',
     `Статус: ${status}`,
     plan ? `Тариф: ${plan}${amount ? ` · ${rub(amount)}` : ''}` : amount ? `Сумма: ${rub(amount)}` : null,
-    `Подключена: ${join.firstPaidAt ? ruDate(join.firstPaidAt) : 'дата неизвестна'}`,
+    `Начало подписки: ${join.firstPaidAt ? ruDate(join.firstPaidAt) : 'дата неизвестна'}`,
+    until,
     join.lastPaidAt ? `Последняя оплата: ${ruDate(join.lastPaidAt)}${amount ? ` · ${rub(amount)}` : ''}` : null,
     paid.length ? `Всего оплат: ${paid.length}` : null,
-    active && endsAt ? `${join.oneTime ? 'Доступ до' : 'Следующее списание'}: ${ruDate(endsAt)}${!join.oneTime && amount ? ` (${rub(amount)})` : ''}` : null,
-    join.status === 'cancelled' && endsAt ? `${endsAt > now ? 'Доступ заканчивается' : 'Доступ закончился'}: ${ruDate(endsAt)}` : null,
     join.bonusDays ? `Бонусные дни: +${join.bonusDays}` : null,
   ].filter((l) => l !== null)
   const keyboard = []
@@ -68,12 +79,13 @@ export function linkScreen(join, inviteLink, now = Date.now()) {
 /** «Настройки»: рассылка и отключение подписки (внизу, чтобы до него доходили только намеренно). */
 export function settingsScreen(join, user, now = Date.now()) {
   const mailing = user?.mailingConsent === true
-  const canCancel = join.status === 'active' && !join.lifetime
+  const canCancel = join.status === 'active' // у основателя кнопка тоже есть — чтобы видеть путь клиента (по факту ничего не отключается)
   const keyboard = [[{ text: mailing ? '🔔 Рассылка: включена (нажми, чтобы выключить)' : '🔕 Рассылка: выключена (нажми, чтобы включить)', callback_data: 'r:mail' }]]
   if (canCancel) keyboard.push([{ text: 'Отменить подписку', callback_data: 'r:cancel' }])
   keyboard.push(BACK_ROW)
   const lines = ['⚙️ Настройки личного кабинета', '', `Рекламная рассылка: ${mailing ? 'включена' : 'выключена'}`]
   if (join.status === 'cancelled') lines.push(`Подписка отключена${join.nextPaymentAt ? `, доступ ${join.nextPaymentAt > now ? 'заканчивается' : 'закончился'} ${ruDate(join.nextPaymentAt)}` : ''}.`)
+  if (join.lifetime) lines.push('Основатель: отмена работает в тестовом режиме — подписка остаётся активной.')
   return { text: lines.join('\n'), keyboard }
 }
 
@@ -92,10 +104,10 @@ export function cancelReasonPrompt() {
 }
 
 /** Итог отключения: дата окончания доступа и напоминание, что вернуться можно всегда. */
-export function cancelDoneScreen(endsAt, confirmed) {
+export function cancelDoneScreen(endsAt, confirmed, testMode = false) {
   const until = endsAt ? `Она заканчивается ${ruDate(endsAt)}.` : 'Она заканчивается в конце оплаченного периода.'
   return {
-    text: `${confirmed ? 'Хорошо, мы отключили подписку.' : 'Хорошо, запрос на отключение принят — мы отключим подписку в ближайшее время.'} ${until}\n\nТы всегда сможешь вернуться в сообщество — просто оформи подписку снова.`,
+    text: `${confirmed ? 'Хорошо, мы отключили подписку.' : 'Хорошо, запрос на отключение принят — мы отключим подписку в ближайшее время.'} ${until}\n\nТы всегда сможешь вернуться в сообщество — просто оформи подписку снова.${testMode ? '\n\n(Тестовый режим основателя: на самом деле подписка осталась активной.)' : ''}`,
     keyboard: [[{ text: '⬅️ Сообщество', callback_data: 'u:community' }, { text: '🏠 Меню', callback_data: 'u:menu' }]],
   }
 }
