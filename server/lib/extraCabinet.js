@@ -379,6 +379,8 @@ export function digestScreen(data, tariffs, now, healthLines = []) {
     `🗃 Кандидатов резерва без ссылки на резюме: ${noResume.length}`,
     `📨 Новых заявок по мероприятиям: ${newRequests.length}`,
   ]
+  const openTodos = (data.todos ?? []).filter((t) => !t.done)
+  if (openTodos.length) lines.push('', `📌 Доработок в работе: ${openTodos.length}`, ...openTodos.slice(0, 4).map((t) => `• ${t.text}`), ...(openTodos.length > 4 ? ['• …остальные — в «Система → Доработки»'] : []))
   if (healthLines.length) lines.push('', '🩺 Система:', ...healthLines)
   return { text: lines.join('\n'), keyboard: [[{ text: '⚠️ Просрочено', callback_data: 'a:x:over' }, { text: '⚖️ Сделки', callback_data: 'a:k:list' }], menuRow] }
 }
@@ -387,6 +389,7 @@ export function systemScreen(healthLines) {
   return {
     text: ['🛠 Система', '', ...healthLines].join('\n'),
     keyboard: [
+      [{ text: '📌 Доработки', callback_data: 'a:x:todo' }, { text: '🔎 Проверить чат', callback_data: 'a:x:chatcheck' }],
       [{ text: '👤 Пользователи бота', callback_data: 'a:x:bots' }],
       [{ text: '💾 Резервная копия сейчас', callback_data: 'a:x:backup' }],
       [{ text: '🧾 Журнал действий', callback_data: 'a:x:audit' }, { text: '🌅 Сводка дня', callback_data: 'a:x:digest' }],
@@ -401,7 +404,7 @@ const ACTION_LABELS = {
   'input:newdeal': 'Сделка создана вручную', 's:cst': 'Консультация: статус', 's:idone': 'Интерес: написали', 's:iclose': 'Интерес: неактуально', 's:isnooze': 'Интерес: отложено',
   'input:interest': 'Интерес записан', 's:rdelok': 'Кандидат резерва удалён', 'input:reserve-field': 'Кандидат резерва изменён', 'input:reserve-new': 'Кандидат резерва добавлен',
   'x:ambplus': 'Амбассадор: счётчик', 'x:ambdelok': 'Амбассадор удалён', 'input:ambassador': 'Амбассадор добавлен', 'x:cr': 'Причина отписки', 'x:fexpdel': 'Расход удалён',
-  'input:expense': 'Расход добавлен', 'x:evst': 'Мероприятие: статус', 'input:event-paid': 'Мероприятие: оплата отмечена', remgo: 'Напоминания резидентам отправлены', 'x:backup': 'Резервная копия по запросу', 'x:kickok': 'Исключён из чата сообщества', 'k:pp': 'Сделка: предоплата получена', 'k:pf': 'Сделка: остаток получен', 's:vst': 'Вакансия: статус в учёте',
+  'input:expense': 'Расход добавлен', 'x:evst': 'Мероприятие: статус', 'input:event-paid': 'Мероприятие: оплата отмечена', remgo: 'Напоминания резидентам отправлены', 'x:backup': 'Резервная копия по запросу', 'x:tdone': 'Доработка отмечена выполненной', 'input:todo': 'Доработка добавлена', 'x:kickok': 'Исключён из чата сообщества', 'k:pp': 'Сделка: предоплата получена', 'k:pf': 'Сделка: остаток получен', 's:vst': 'Вакансия: статус в учёте',
 }
 
 export function auditScreen(actions) {
@@ -475,4 +478,35 @@ export function botUsersScreen(users) {
     'Чтобы открыть карточку человека, воспользуйтесь «🔍 Найти человека»: по нику, имени, телефону или Telegram ID.',
   ]
   return { text: lines.join('\n'), keyboard: [[{ text: '🔍 Найти человека', callback_data: 'a:x:find' }], back('⬅️ Система', 'a:x:sys')] }
+}
+
+// ---- Доработки (список задач) ----
+
+export const TODO_PROMPT = '📌 Новая доработка\n\nОтправьте текст одним сообщением. Отмена — /cancel.'
+
+export function todosScreen(todos) {
+  const open = todos.filter((t) => !t.done)
+  const done = todos.filter((t) => t.done).slice(-3)
+  const lines = [`📌 Доработки: в работе ${open.length}`, '', ...(open.length ? open.map((t) => `${t.number}. ${t.text}`) : ['Всё сделано 🎉'])]
+  if (done.length) lines.push('', 'Недавно выполнено:', ...done.map((t) => `✅ ${t.number}. ${t.text}`))
+  const keyboard = []
+  for (const t of open.slice(0, 20)) keyboard.push([{ text: `✅ Готово: ${t.number}. ${t.text}`.slice(0, 60), callback_data: `a:x:tdone:${t.number}` }])
+  keyboard.push([{ text: '➕ Добавить доработку', callback_data: 'a:x:tnew' }], back('⬅️ Система', 'a:x:sys'))
+  return { text: lines.join('\n'), keyboard }
+}
+
+/** Проверка доступа бота к чату сообщества: администратор ли он и есть ли права приглашать и исключать. */
+export function chatCheckScreen(info) {
+  const ok = (v) => (v ? '✅' : '❌')
+  const lines = ['🔎 Чат сообщества', '']
+  if (info.error) lines.push(`⚠️ ${info.error}`)
+  else {
+    lines.push(`Чат: ${info.title || '—'} (${info.type || '—'}), id ${info.chatId}`, `Бот: @${info.botUsername}`, `Статус бота в чате: ${info.status}`)
+    if (info.status === 'administrator') {
+      lines.push(`${ok(info.canInvite)} приглашать пользователей / одобрять заявки`, `${ok(info.canRestrict)} исключать участников`, `${ok(info.canManage)} управлять чатом`)
+      if (!info.canInvite) lines.push('', 'Включите боту право «Приглашать пользователей», иначе заявки не будут одобряться.')
+      if (!info.canRestrict) lines.push('', 'Право «Блокировать пользователей» нужно для исключения участников по окончании подписки.')
+    } else lines.push('', '❌ Бот не администратор — добавьте его администратором чата.')
+  }
+  return { text: lines.join('\n'), keyboard: [back('⬅️ Система', 'a:x:sys')] }
 }

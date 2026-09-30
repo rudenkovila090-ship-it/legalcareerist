@@ -47,14 +47,15 @@ import { createAmbassador, listAmbassadors, getAmbassador, addReferral, deleteAm
 import { createExpense, listExpenses, deleteExpense } from './lib/expenses.js'
 import { createEventLead, listEventLeads, getEventLead, setEventLeadStatus } from './lib/eventLeads.js'
 import { getMaterialFile, setMaterialFile } from './lib/materialFiles.js'
-import { touchBotUser, giveConsent, setMailingConsent, addTag, getBotUser, listBotUsers, countConversation } from './lib/botUsers.js'
-import { isStartKeyword, welcomeScreen, noConsentScreen, mailingScreen, mainMenuScreen, supportScreen, legalScreen, aboutScreen, consultScreen, consultBookedScreen, marketScreen, materialsListScreen, materialCard, payLinkScreen, PAID_TEXT, PAID_TEXTS, PAID_TAGS, paidKeyboard, paymentNotFoundScreen, reviewScreen, communityScreen, communityResidentScreen, periodsScreen, subLinkScreen, CANCEL_REQUESTED_TEXT, careerScreen, clubsScreen, achievementsScreen } from './lib/botFlow.js'
+import { touchBotUser, giveConsent, setMailingConsent, addTag, getBotUser, listBotUsers, countConversation, updateBotUser } from './lib/botUsers.js'
+import { isStartKeyword, welcomeScreen, noConsentScreen, mailingScreen, mainMenuScreen, supportScreen, legalScreen, aboutScreen, consultScreen, consultBookedScreen, marketScreen, materialsListScreen, materialCard, payLinkScreen, PAID_TEXT, PAID_TEXTS, PAID_TAGS, paidKeyboard, paymentNotFoundScreen, reviewScreen, CONTACT_PROMPTS, contactCancelKeyboard, unsubscribedScreen, communityScreen, communityResidentScreen, periodsScreen, subLinkScreen, CANCEL_REQUESTED_TEXT, careerScreen, clubsScreen, achievementsScreen } from './lib/botFlow.js'
 import { buildMonthCsv } from './lib/exportCsv.js'
 import { vacancyOverrides, setVacancyStatus } from './lib/vacancyOverrides.js'
 import { residentMenu, subscriptionScreen, linkScreen, offScreen } from './lib/residentCabinet.js'
 import { logAction, recentActions } from './lib/auditLog.js'
 import { healthLines, makeBackup, readBackupState, writeBackupState } from './lib/healthBackup.js'
-import { userCard, botUsersScreen, ambassadorsScreen, ambassadorCard, AMBASSADOR_PROMPT, overdueScreen, retentionScreen, cancelCard, financeSummary, forecastScreen, expensesScreen, EXPENSE_PROMPT, parseExpense, eventRegistrationsScreen, eventScreen, eventLeadCard, eventRequestsScreen, eventsMonthSummary, FIND_PROMPT, searchScreen, digestScreen, systemScreen, auditScreen, monthKeyFor as extraMonthKey } from './lib/extraCabinet.js'
+import { listTodos, addTodo, setTodoDone } from './lib/todos.js'
+import { todosScreen, TODO_PROMPT, chatCheckScreen, userCard, botUsersScreen, ambassadorsScreen, ambassadorCard, AMBASSADOR_PROMPT, overdueScreen, retentionScreen, cancelCard, financeSummary, forecastScreen, expensesScreen, EXPENSE_PROMPT, parseExpense, eventRegistrationsScreen, eventScreen, eventLeadCard, eventRequestsScreen, eventsMonthSummary, FIND_PROMPT, searchScreen, digestScreen, systemScreen, auditScreen, monthKeyFor as extraMonthKey } from './lib/extraCabinet.js'
 import { createInterest, getInterest, listInterests, markInterestDone, closeInterest, snoozeInterest, interestsDueForReminder, markInterestReminded, REMIND_AFTER_DAYS } from './lib/interests.js'
 import { createReserveCandidate, listReserve, getReserveCandidate, setReserveField, deleteReserveCandidate } from './lib/reserve.js'
 import { reserveListScreen, reserveCard, reserveFieldPrompt, reserveDeleteConfirm, RESERVE_NEW_PROMPT, INTEREST_KIND_KEYBOARD, interestPrompt, interestsScreen, interestCard, SEEKERS_KEYBOARD, buildVacancyViews, vacanciesScreen, vacancyCard, vacancyApplicationsScreen, recentApplicationsScreen, consultationsScreen, consultationCard, seekersMonthSummary } from './lib/seekersCabinet.js'
@@ -180,7 +181,7 @@ function formatMoscowDateTime(iso) {
 
 function buildLeadNotification({ direction, service, date, name, phone, email, telegram, details, ticketNumber }) {
   const lines = [
-    `🔔 Новая заявка с сайта${ticketNumber ? `. Заявка №${ticketNumber}` : ''}`,
+    `🔔 Новая заявка ${origin}${ticketNumber ? `. Заявка №${ticketNumber}` : ''}`,
     direction ? `Направление: ${direction}` : null,
     service ? `Услуга: ${service}` : null,
     `Дата и время заявки: ${formatMoscowDateTime(date)}`,
@@ -215,7 +216,7 @@ function richDetailIcon(line) {
 // через обычный buildLeadNotification. support — направление и услуга в одну
 // строку через «·» (короче, обращений много); остальные шаблоны — направление
 // и услуга отдельными строками.
-function buildKadryRichNotification({ template, direction, service, date, name, phone, email, telegram, company, details, ticketNumber }) {
+function buildKadryRichNotification({ template, direction, service, date, name, phone, email, telegram, company, details, ticketNumber, origin = 'с сайта' }) {
   const contactLabel = template === 'kadry-employer' ? 'фио' : template === 'support' ? 'фио' : 'контакт'
   const header = template === 'support' ? [direction, service].filter(Boolean).join(' · ') : null
   const lines = [
@@ -864,6 +865,7 @@ function allData() {
     expenses: listExpenses(),
     purchases: listPurchases(),
     botUsers: listBotUsers(),
+    todos: listTodos(),
   }
 }
 
@@ -991,6 +993,16 @@ async function extrasAction(parts, now, chatId) {
     }
     case 'audit':
       return auditScreen(recentActions())
+    case 'todo':
+      return todosScreen(listTodos())
+    case 'tdone':
+      setTodoDone(arg)
+      return todosScreen(listTodos())
+    case 'tnew':
+      adminInput.set(String(chatId), { type: 'todo' })
+      return { text: TODO_PROMPT, keyboard: menuBack('⬅️ Доработки', 'a:x:todo') }
+    case 'chatcheck':
+      return chatCheckScreen(await checkCommunityChat())
     case 'bots':
       return botUsersScreen(listBotUsers())
     case 'pc': {
@@ -1175,6 +1187,12 @@ async function handlePendingInput(chatId, pending, text) {
     setRevenue(pending.number, amount)
     const screen = dealScreen(pending.number)
     await sendLongMessage(chatId, `✅ Выручка записана: ${formatRub(amount)}\n\n${screen.text}`, screen.keyboard)
+    return
+  }
+  if (pending.type === 'todo') {
+    addTodo(text.trim())
+    const screen = todosScreen(listTodos())
+    await sendLongMessage(chatId, `✅ Добавлено.\n\n${screen.text}`, screen.keyboard)
     return
   }
   if (pending.type === 'find') {
@@ -1405,8 +1423,8 @@ async function adminScreen(data, now, chatId) {
 
 // Кнопки, которые что-то меняют или отправляют данные: помощникам (только просмотр) они недоступны, в журнал попадают только они.
 // Кнопки, которые только открывают ввод текста или подтверждение — в журнал не пишем (запишется само действие).
-const PROMPT_ONLY = /^a:(k:(rev|new)|s:(ikind|inew|rnew|redit|rdel)|x:(ambnew|ambdel|fexpnew|evpaid))\b/
-const MUTATING = /^a:(k:(adv|back|q1|q0|lost|reopen|revok|rev|new|pp|pf)|s:(vst|cst|idone|iclose|isnooze|ikind|inew|rnew|redit|rdel|rdelok)|x:(ambnew|ambplus|ambdel|ambdelok|kickok|cr|fexpnew|fexpdel|evst|evpaid|backup)|remgo)\b/
+const PROMPT_ONLY = /^a:(k:(rev|new)|s:(ikind|inew|rnew|redit|rdel)|x:(tnew|ambnew|ambdel|fexpnew|evpaid))\b/
+const MUTATING = /^a:(k:(adv|back|q1|q0|lost|reopen|revok|rev|new|pp|pf)|s:(vst|cst|idone|iclose|isnooze|ikind|inew|rnew|redit|rdel|rdelok)|x:(tnew|tdone|ambnew|ambplus|ambdel|ambdelok|kickok|cr|fexpnew|fexpdel|evst|evpaid|backup)|remgo)\b/
 
 /** Нажатие кнопки кабинета — от админа (все кнопки) или помощника (только просмотр); остальным молча отвечаем. */
 async function handleAdminCallback(query) {
@@ -1438,6 +1456,7 @@ function residentByTelegramId(tgId) {
 
 /** Старт воронки: метка «пользователь»; дальше согласие на обработку ПД → согласие на рассылку → главное меню. */
 async function startFlow(chatId, from, startParam) {
+  userFlows.delete(String(chatId))
   const user = touchBotUser({ ...from, id: from?.id ?? chatId }, startParam)
   if (startParam !== undefined) countConversation(user.id)
   await sendFlowStep(chatId, user)
@@ -1485,6 +1504,88 @@ async function deliverMaterial(chatId, slug) {
   }
 }
 
+/** Проверка доступа бота к чату сообщества (getMe + getChat + getChatMember). */
+async function checkCommunityChat() {
+  try {
+    const call = async (method, body) => (await (await telegramFetch(method, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body ?? {}) })).json())
+    const me = await call('getMe')
+    if (!me.ok) return { error: 'Не удалось получить данные бота (getMe). Проверьте токен.' }
+    const chat = await call('getChat', { chat_id: COMMUNITY_CHAT_ID })
+    if (!chat.ok) return { error: `Бот не видит чат ${COMMUNITY_CHAT_ID}: ${chat.description ?? 'нет доступа'}. Проверьте, что бот добавлен в чат.` }
+    const member = await call('getChatMember', { chat_id: COMMUNITY_CHAT_ID, user_id: me.result.id })
+    const m = member.result ?? {}
+    return { chatId: COMMUNITY_CHAT_ID, title: chat.result.title, type: chat.result.type, botUsername: me.result.username, status: m.status ?? 'не найден', canInvite: Boolean(m.can_invite_users), canRestrict: Boolean(m.can_restrict_members), canManage: Boolean(m.can_manage_chat) }
+  } catch (err) {
+    return { error: `Ошибка запроса к Telegram: ${err.message}` }
+  }
+}
+
+// Диалог «Связаться с поддержкой» в боте: по шагам собираем недостающие контакты и вопрос, админу уходит обращение с номером.
+const userFlows = new Map()
+
+function nextContactStep(user, data) {
+  if (!data.name && !user.contactName) return 'name'
+  if (!data.phone && !data.email && !user.phone && !user.email && !data.phoneAsked) return 'phone'
+  if (!data.email && !user.email && !data.emailAsked) return 'email'
+  if (!data.question) return 'question'
+  return null
+}
+
+async function askNextContactStep(chatId, user, flow) {
+  const step = nextContactStep(user, flow.data)
+  flow.step = step
+  if (!step) return finishContactFlow(chatId, user, flow)
+  userFlows.set(String(chatId), flow)
+  await sendTelegramMessage(chatId, CONTACT_PROMPTS[step], contactCancelKeyboard())
+}
+
+async function handleContactFlowInput(chatId, text) {
+  const flow = userFlows.get(String(chatId))
+  const user = getBotUser(chatId) ?? {}
+  const value = text.trim() === '-' ? '' : text.trim()
+  if (flow.step === 'name') flow.data.name = value
+  else if (flow.step === 'phone') {
+    flow.data.phoneAsked = true
+    flow.data.phone = value
+  } else if (flow.step === 'email') {
+    flow.data.emailAsked = true
+    flow.data.email = value
+  } else if (flow.step === 'question') flow.data.question = text.trim()
+  // Нужен телефон или почта: если человек отказался от обоих — спрашиваем ещё раз почту/телефон один раз
+  if (flow.step === 'email' && !flow.data.email && !flow.data.phone && !user.phone && !user.email && !flow.data.retry) {
+    flow.data.retry = true
+    flow.data.emailAsked = false
+    flow.data.phoneAsked = false
+    await sendTelegramMessage(chatId, 'Чтобы мы могли ответить, нужен хотя бы телефон или почта.', contactCancelKeyboard())
+  }
+  await askNextContactStep(chatId, user, flow)
+}
+
+async function finishContactFlow(chatId, user, flow) {
+  userFlows.delete(String(chatId))
+  const d = flow.data
+  const name = d.name || user.contactName || [user.firstName, user.lastName].filter(Boolean).join(' ')
+  const phone = d.phone || user.phone
+  const email = d.email || user.email
+  updateBotUser(chatId, { contactName: d.name, phone: d.phone, email: d.email })
+  const ticket = nextTicketNumber()
+  const text = buildKadryRichNotification({
+    template: 'support',
+    direction: 'Бот → Поддержка',
+    service: 'Обращение в поддержку',
+    date: new Date().toISOString(),
+    name,
+    phone,
+    email,
+    telegram: user.username,
+    details: [`Вопрос: ${d.question}`],
+    ticketNumber: String(ticket),
+    origin: 'из бота',
+  })
+  await sendTelegramMessage(ADMIN_CHAT_ID, text, [[{ text: '👤 Карточка человека', callback_data: `a:x:pc:${chatId}` }, { text: '✉️ Написать', url: user.username ? `https://t.me/${user.username.replace(/^@/, '')}` : `tg://user?id=${chatId}` }]])
+  await sendTelegramMessage(chatId, `Спасибо! Вопрос принят, номер обращения №${ticket}. Мы свяжемся с тобой в ближайшее время.`, [[{ text: 'Главное меню', callback_data: 'u:menu' }]])
+}
+
 async function handleUserCallback(query) {
   const chatId = query.message?.chat?.id
   await telegramFetch('answerCallbackQuery', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ callback_query_id: query.id }) }).catch(() => null)
@@ -1510,6 +1611,15 @@ async function handleUserCallback(query) {
       return reply(aboutScreen(SITE_URL, SUPPORT_HANDLE))
     case 'consult':
       return reply(consultScreen(SUPPORT_HANDLE))
+    case 'contact':
+      return askNextContactStep(chatId, user, { data: {} })
+    case 'cancelflow':
+      userFlows.delete(String(chatId))
+      return sendFlowStep(chatId, user)
+    case 'unsub': {
+      setMailingConsent(query.from.id, false)
+      return reply(unsubscribedScreen())
+    }
     case 'book': {
       // Заявка на консультацию из бота: запись в кабинет и уведомление админу.
       const c = createConsultation({ kind: 'question', services: ['Заявка из бота: карьерная консультация'], name: [user.firstName, user.lastName].filter(Boolean).join(' '), telegram: user.username, source: 'бот' })
@@ -1538,7 +1648,7 @@ async function handleUserCallback(query) {
       }
     }
     case 'aboutclub':
-      return sendTelegramMessage(chatId, 'О сообществе — на сайте:', [[{ text: 'Читать на сайте', url: `${SITE_URL}/community` }], [{ text: 'Назад', callback_data: 'u:community' }, { text: 'Главное меню', callback_data: 'u:menu' }]])
+      return sendTelegramMessage(chatId, 'О сообществе — на сайте:', [[{ text: 'Читать на сайте', url: `${SITE_URL}/community#main` }], [{ text: 'Назад', callback_data: 'u:community' }, { text: 'Главное меню', callback_data: 'u:menu' }]])
     case 'cancelsub': {
       // Отмену подписки в Prodamus пока делает админ вручную: бот принимает запрос и сообщает вам.
       const resident = residentByTelegramId(chatId)
@@ -1651,6 +1761,15 @@ async function handleTelegramUpdate(update) {
   if (pendingInput) {
     adminInput.delete(String(chatId))
     await handlePendingInput(chatId, pendingInput, text)
+    return
+  }
+  if (chatId && text === '/cancel' && userFlows.has(String(chatId))) {
+    userFlows.delete(String(chatId))
+    await sendTelegramMessage(chatId, 'Отменено.', [[{ text: 'Главное меню', callback_data: 'u:menu' }]])
+    return
+  }
+  if (chatId && text && !text.startsWith('/') && userFlows.has(String(chatId)) && !pendingInput) {
+    await handleContactFlowInput(chatId, text)
     return
   }
   // Админу обычный /start (и /menu) открывает кабинет с кнопками; /start access_… работает как у всех.

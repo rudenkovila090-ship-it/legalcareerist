@@ -112,3 +112,13 @@ export function setMailingConsent(tgId, agreed) {
   save(data)
   return user
 }
+
+/** Дописывает контакты, которые человек оставил в боте (имя, телефон, почта). */
+export function updateBotUser(tgId, fields) {
+  const data = load()
+  const user = data[String(tgId)]
+  if (!user) return null
+  for (const [k, v] of Object.entries(fields)) if (v) user[k] = v
+  save(data)
+  return user
+}

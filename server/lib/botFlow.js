@@ -89,7 +89,7 @@ export function supportScreen(supportHandle) {
       'Здесь вы можете написать свой вопрос, а наша команда свяжется с вами и поможет. Поддержка работает для любых вопросов о сообществе, тарифах, мероприятиях, консультациях или работе с чат-ботом.',
     ].join('\n'),
     keyboard: [
-      [{ text: 'Связаться', url: `https://t.me/${String(supportHandle).replace(/^@/, '')}` }],
+      [{ text: 'Связаться', callback_data: 'u:contact' }],
       [{ text: 'Главное меню', callback_data: 'u:menu' }],
     ],
   }
@@ -124,12 +124,12 @@ export function aboutScreen(siteUrl, supportHandle) {
     keyboard: [
       [
         { text: 'Достижения', callback_data: 'u:achabout' },
-        { text: 'Отзывы', url: `${siteUrl}/about` },
-        { text: 'О CEO 👤', url: `${siteUrl}/about` },
+        { text: 'Отзывы', url: `${siteUrl}/community#reviews` },
+        { text: 'О CEO 👤', url: `${siteUrl}/community#founder` },
       ],
       [
-        { text: 'Контакты', url: `${siteUrl}/kadry/contacts` },
-        { text: 'Связаться', url: `https://t.me/${String(supportHandle).replace(/^@/, '')}` },
+        { text: 'Контакты', url: `${siteUrl}/community/contacts` },
+        { text: 'Связаться', callback_data: 'u:contact' },
         { text: 'Главное меню', callback_data: 'u:menu' },
       ],
     ],
@@ -147,7 +147,7 @@ export function consultScreen(supportHandle) {
     keyboard: [
       [{ text: 'Получить карьерную консультацию', callback_data: 'u:book' }],
       [
-        { text: 'Поддержка', url: `https://t.me/${String(supportHandle).replace(/^@/, '')}` },
+        { text: 'Поддержка', callback_data: 'u:support' },
         { text: 'Главное меню', callback_data: 'u:menu' },
       ],
     ],
@@ -273,7 +273,7 @@ export function paidKeyboard() {
 export function paymentNotFoundScreen(slug, supportHandle) {
   return {
     text: 'Странно, но я не вижу подтверждения твоей оплаты 🙂\n\nЕсли оплата действительно была произведена успешно, пожалуйста, напиши нам в поддержку и приложи чек или скрин платежа, мы оперативно проверим и все уладим 👉',
-    keyboard: [[{ text: 'Поддержка', url: `https://t.me/${String(supportHandle).replace(/^@/, '')}` }], [{ text: 'Назад', callback_data: `u:mat:${slug}` }], [{ text: 'Главное меню', callback_data: 'u:menu' }]],
+    keyboard: [[{ text: 'Поддержка', callback_data: 'u:support' }], [{ text: 'Назад', callback_data: `u:mat:${slug}` }], [{ text: 'Главное меню', callback_data: 'u:menu' }]],
   }
 }
 
@@ -413,3 +413,25 @@ export function achievementsScreen(backTo = 'u:community') {
       : [[{ text: 'Карьерные возможности', callback_data: 'u:career' }], [{ text: 'Клубы', callback_data: 'u:clubs' }], ...RESIDENT_NAV(backTo)],
   }
 }
+
+/** Шаги формы «Связаться с поддержкой»: вопросы задаются только по тем контактам, которых ещё нет в карточке. */
+export const CONTACT_PROMPTS = {
+  name: 'Как к тебе обращаться? Напиши имя и фамилию.',
+  phone: 'Оставь номер телефона (или «-», если не хочешь). Нужен телефон или почта.',
+  email: 'Оставь почту (или «-», если не хочешь).',
+  question: 'Опиши свой вопрос одним сообщением — мы ответим в ближайшее время.',
+}
+
+export function contactCancelKeyboard() {
+  return [[{ text: 'Отмена', callback_data: 'u:cancelflow' }]]
+}
+
+/** Отказ от рекламной рассылки (кнопка в сообщениях о мероприятиях и т. п.). */
+export function unsubscribedScreen() {
+  return {
+    text: 'Готово, больше не будем присылать рекламные сообщения. Важные уведомления (об оплате, регистрации и подписке) продолжат приходить. Если передумаешь — согласие можно вернуть в любой момент.',
+    keyboard: [[{ text: 'Снова согласен получать рассылку', callback_data: 'u:mail1' }], [{ text: 'Главное меню', callback_data: 'u:menu' }]],
+  }
+}
+
+export const UNSUBSCRIBE_KEYBOARD_ROW = [{ text: 'Отказаться от рекламной рассылки', callback_data: 'u:unsub' }]
