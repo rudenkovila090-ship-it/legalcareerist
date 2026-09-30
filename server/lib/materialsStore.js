@@ -17,3 +17,13 @@ export function getPurchase(token) {
 export function markPurchasePaidByPhone(phone) {
   return store.markPaidByPhone(phone)
 }
+
+/** Сумма и время оплаты — чтобы разовые покупки попадали в финансы. */
+export function recordPurchasePayment(token, amount) {
+  store.setField(token, 'amount', amount)
+  store.setField(token, 'paidAt', Date.now())
+}
+
+export function listPurchases() {
+  return store.all()
+}

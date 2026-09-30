@@ -52,7 +52,7 @@ function salaryLabel(v) {
  * вакансии, которых нет в каталоге, но по ним были отклики. key — номер
  * вакансии (если есть) или slug: то, что уходит в callback_data кнопок.
  */
-export function buildVacancyViews(catalog, stats, applications, siteUrl) {
+export function buildVacancyViews(catalog, stats, applications, siteUrl, overrides = {}) {
   const bySlug = new Map()
   for (const v of catalog) bySlug.set(v.slug, { ...v })
   for (const a of applications) {
@@ -63,6 +63,8 @@ export function buildVacancyViews(catalog, stats, applications, siteUrl) {
     return {
       ...v,
       key: String(v.number ?? v.slug),
+      status: overrides[v.slug] ?? v.status,
+      overridden: Boolean(overrides[v.slug]),
       url: `${siteUrl}/vacancies/${v.slug}`,
       views: st.views ?? 0,
       applications: st.applications ?? 0,
@@ -91,6 +93,7 @@ export function vacancyCard(v) {
     `💼 ${vacTitle(v)}`,
     v.status === 'closed' ? '🔒 Вакансия закрыта' : v.status === 'unknown' ? '❔ Нет в каталоге сайта' : '🟢 В работе',
     v.technicalExample ? '⚙️ Технический пример (не реальное предложение)' : null,
+    v.overridden ? 'ℹ️ Статус выставлен вручную в боте — на сайте вакансия остаётся как была' : null,
     '',
     v.company ? `🏢 Компания: ${v.company}` : null,
     v.city ? `📍 ${v.city}${v.format ? `, ${FORMATS[v.format] ?? v.format}` : ''}${v.employment ? `, ${EMPLOYMENTS[v.employment] ?? v.employment}` : ''}` : null,
@@ -108,6 +111,7 @@ export function vacancyCard(v) {
   const keyboard = [
     [{ text: `📥 Отклики (${v.applications})`, callback_data: `a:s:vapps:${v.key}` }],
     [{ text: '🔗 Открыть на сайте', url: v.url }],
+    [v.status === 'closed' ? { text: '🟢 Вернуть в работу', callback_data: `a:s:vst:${v.key}:open` } : { text: '🔒 Закрыть в учёте', callback_data: `a:s:vst:${v.key}:closed` }],
     [{ text: '⬅️ К вакансиям', callback_data: 'a:s:vacs' }, { text: '🏠 Меню', callback_data: 'a:menu' }],
   ]
   return { text: lines.join('\n'), keyboard }

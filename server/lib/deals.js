@@ -105,9 +105,37 @@ export function closeDeal(number, status, reason) {
   return updateDeal(number, (d) => ({ ...d, status, closedAt: Date.now(), nextReminderAt: null, ...(reason ? { lostReason: reason } : {}) }))
 }
 
-/** Выручка по сделке — сколько агентство заработало (₽). */
+// Оплаты по сделке: предоплата (PREPAY_PCT% от ожидаемой суммы) и остаток после испытательного срока.
+// revenue/revenueAt хранят итог и момент последней оплаты — по ним считаются итоги месяца.
+export const PREPAY_PCT = 75
+
+export function prepayAmount(d) {
+  return d.expectedFee ? Math.round((d.expectedFee * PREPAY_PCT) / 100) : null
+}
+
+/** Список оплат сделки; сделки, где выручка была указана одной суммой, дают одну оплату «total». */
+export function dealPayments(d) {
+  if (Array.isArray(d.payments) && d.payments.length) return d.payments
+  return d.revenue != null ? [{ amount: d.revenue, at: d.revenueAt ?? d.createdAt, kind: 'total' }] : []
+}
+
+export const dealReceived = (d) => dealPayments(d).reduce((acc, p) => acc + p.amount, 0)
+
+/** Добавляет оплату (kind: 'prepay' | 'final'). */
+export function addDealPayment(number, amount, kind) {
+  return updateDeal(number, (d) => {
+    const now = Date.now()
+    const payments = [...dealPayments(d), { amount, at: now, kind }]
+    return { ...d, payments, revenue: payments.reduce((acc, p) => acc + p.amount, 0), revenueAt: now }
+  })
+}
+
+/** Выручка по сделке, указанная вручную одной суммой (заменяет отдельные оплаты). */
 export function setRevenue(number, amount) {
-  return updateDeal(number, (d) => ({ ...d, revenue: amount, revenueAt: Date.now() }))
+  return updateDeal(number, (d) => {
+    const now = Date.now()
+    return { ...d, payments: [{ amount, at: now, kind: 'total' }], revenue: amount, revenueAt: now }
+  })
 }
 
 export function scheduleReminder(number, at) {

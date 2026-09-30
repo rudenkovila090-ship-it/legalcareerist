@@ -38,7 +38,7 @@ import { createPaymentLink, TARIFFS, tariffIdBySubscriptionId, createProductPaym
 import { HmacHelper } from './lib/hmac.js'
 import { createPendingJoin, createOrphanJoin, listJoins, setTgUserId, findJoinForPayment, recordPayment, setSubscriptionActive, markReminded, getJoin, setCancelReason } from './lib/store.js'
 import { normalizePhone } from './lib/jsonStore.js'
-import { createPendingPurchase, getPurchase, markPurchasePaidByPhone } from './lib/materialsStore.js'
+import { createPendingPurchase, getPurchase, markPurchasePaidByPhone, recordPurchasePayment, listPurchases } from './lib/materialsStore.js'
 import { incrementView, incrementApplication, allVacancyStats } from './lib/vacancyStats.js'
 import { utmLabel } from './lib/utm.js'
 import { createApplication, listApplications } from './lib/candidateApplications.js'
@@ -46,6 +46,9 @@ import { createConsultation, listConsultations, getConsultation, setConsultation
 import { createAmbassador, listAmbassadors, getAmbassador, addReferral, deleteAmbassador } from './lib/ambassadors.js'
 import { createExpense, listExpenses, deleteExpense } from './lib/expenses.js'
 import { createEventLead, listEventLeads, getEventLead, setEventLeadStatus } from './lib/eventLeads.js'
+import { buildMonthCsv } from './lib/exportCsv.js'
+import { vacancyOverrides, setVacancyStatus } from './lib/vacancyOverrides.js'
+import { residentMenu, subscriptionScreen, linkScreen, offScreen } from './lib/residentCabinet.js'
 import { logAction, recentActions } from './lib/auditLog.js'
 import { healthLines, makeBackup, readBackupState, writeBackupState } from './lib/healthBackup.js'
 import { ambassadorsScreen, ambassadorCard, AMBASSADOR_PROMPT, overdueScreen, retentionScreen, cancelCard, financeSummary, forecastScreen, expensesScreen, EXPENSE_PROMPT, parseExpense, eventRegistrationsScreen, eventScreen, eventLeadCard, eventRequestsScreen, eventsMonthSummary, FIND_PROMPT, searchScreen, digestScreen, systemScreen, auditScreen, monthKeyFor as extraMonthKey } from './lib/extraCabinet.js'
@@ -62,8 +65,8 @@ import { logWebhook, lastWebhook } from './lib/webhookLog.js'
 import { FINANCE_KEYBOARD, COMMUNITY_KEYBOARD, sectionScreen, menuScreen, subscribersScreen, planScreen, dueScreen, cancelledScreen, reminderMenuScreen, reminderPreviewScreen, reminderTargets, reminderMessage } from './lib/adminCabinet.js'
 import fs from 'node:fs'
 import path from 'node:path'
-import { createDeal, listDeals as listAllDeals, getDeal, moveDeal, setQualified, closeDeal, setRevenue, scheduleReminder, reopenDeal, dealsDueForReminder, stageOf, LAST_STAGE } from './lib/deals.js'
-import { dealCard, activeDealsScreen, funnelScreen, stageScreen, closedScreen, monthSummary, monthKeyFor, dealReminder, NEW_DEAL_PROMPT, KADRY_KEYBOARD } from './lib/kadryCabinet.js'
+import { createDeal, listDeals as listAllDeals, getDeal, moveDeal, setQualified, closeDeal, setRevenue, addDealPayment, prepayAmount, dealReceived, scheduleReminder, reopenDeal, dealsDueForReminder, stageOf, LAST_STAGE } from './lib/deals.js'
+import { dealCard, activeDealsScreen, funnelScreen, stageScreen, closedScreen, monthSummary, monthKeyFor, dealReminder, dealTemplate, TEMPLATE_INTRO, NEW_DEAL_PROMPT, KADRY_KEYBOARD } from './lib/kadryCabinet.js'
 
 const app = express()
 app.use(cors())
@@ -802,6 +805,7 @@ function allData() {
     eventLeads: listEventLeads(),
     ambassadors: listAmbassadors(),
     expenses: listExpenses(),
+    purchases: listPurchases(),
   }
 }
 
@@ -873,6 +877,12 @@ async function extrasAction(parts, now, chatId) {
     }
     case 'fsum':
       return financeSummary(data, extraMonthKey(arg, now))
+    case 'csv': {
+      const key = extraMonthKey(arg, now)
+      const csv = buildMonthCsv(data, key)
+      const ok = await sendTelegramDocument(chatId, Buffer.from(csv, 'utf8'), `finance-${key}.csv`, `📎 Доходы и расходы за ${key}`).catch(() => false)
+      return { text: ok ? `📎 Выгрузка за ${key} отправлена файлом выше. Откроется в Excel и Google Таблицах.` : '⚠️ Не удалось отправить файл.', keyboard: menuBack('⬅️ Финансы', 'a:sec:finance') }
+    }
     case 'fcast':
       return forecastScreen(data.joins, data.deals, TARIFFS, now)
     case 'fexp':
@@ -931,7 +941,7 @@ const interestScreen = (number) => {
 function seekersAction(parts, now, chatId) {
   const [action, arg, arg2] = parts
   const applications = listApplications()
-  const vacancies = buildVacancyViews(readVacancyCatalog(), allVacancyStats(), applications, SITE_URL)
+  const vacancies = buildVacancyViews(readVacancyCatalog(), allVacancyStats(), applications, SITE_URL, vacancyOverrides())
   const findVacancy = (key) => vacancies.find((v) => v.key === key)
   const missing = { text: 'Не нашёл такую вакансию — возможно, она снята с сайта.', keyboard: SEEKERS_KEYBOARD }
   switch (action) {
@@ -940,6 +950,11 @@ function seekersAction(parts, now, chatId) {
     case 'vac': {
       const v = findVacancy(arg)
       return v ? vacancyCard(v) : missing
+    }
+    case 'vst': {
+      setVacancyStatus(findVacancy(arg)?.slug ?? arg, arg2 === 'closed' ? 'closed' : 'open')
+      const fresh = buildVacancyViews(readVacancyCatalog(), allVacancyStats(), applications, SITE_URL, vacancyOverrides()).find((v) => v.key === arg)
+      return fresh ? vacancyCard(fresh) : missing
     }
     case 'vapps': {
       const v = findVacancy(arg)
@@ -1038,6 +1053,22 @@ function kadryAction(parts, now, chatId) {
     case 'reopen':
       reopenDeal(number)
       return dealScreen(number, now)
+    case 'pp': {
+      const deal = getDeal(number)
+      if (deal && prepayAmount(deal)) addDealPayment(number, prepayAmount(deal), 'prepay')
+      return dealScreen(number, now)
+    }
+    case 'pf': {
+      const deal = getDeal(number)
+      const left = deal?.expectedFee ? deal.expectedFee - dealReceived(deal) : 0
+      if (left > 0) addDealPayment(number, left, 'final')
+      return dealScreen(number, now)
+    }
+    case 'tpl': {
+      const deal = getDeal(number)
+      if (!deal) return dealScreen(number, now)
+      return { text: `${TEMPLATE_INTRO(deal)}\n\n———\n${dealTemplate(deal)}\n———`, keyboard: [[{ text: '⬅️ К сделке', callback_data: `a:k:deal:${number}` }]] }
+    }
     case 'revok': {
       const deal = getDeal(number)
       if (deal?.expectedFee) setRevenue(number, deal.expectedFee)
@@ -1298,7 +1329,7 @@ async function adminScreen(data, now, chatId) {
 // Кнопки, которые что-то меняют или отправляют данные: помощникам (только просмотр) они недоступны, в журнал попадают только они.
 // Кнопки, которые только открывают ввод текста или подтверждение — в журнал не пишем (запишется само действие).
 const PROMPT_ONLY = /^a:(k:(rev|new)|s:(ikind|inew|rnew|redit|rdel)|x:(ambnew|ambdel|fexpnew|evpaid))\b/
-const MUTATING = /^a:(k:(adv|back|q1|q0|lost|reopen|revok|rev|new)|s:(cst|idone|iclose|isnooze|ikind|inew|rnew|redit|rdel|rdelok)|x:(ambnew|ambplus|ambdel|ambdelok|cr|fexpnew|fexpdel|evst|evpaid|backup)|remgo)\b/
+const MUTATING = /^a:(k:(adv|back|q1|q0|lost|reopen|revok|rev|new|pp|pf)|s:(vst|cst|idone|iclose|isnooze|ikind|inew|rnew|redit|rdel|rdelok)|x:(ambnew|ambplus|ambdel|ambdelok|cr|fexpnew|fexpdel|evst|evpaid|backup)|remgo)\b/
 
 /** Нажатие кнопки кабинета — от админа (все кнопки) или помощника (только просмотр); остальным молча отвечаем. */
 async function handleAdminCallback(query) {
@@ -1323,7 +1354,33 @@ async function handleAdminCallback(query) {
 }
 
 /** Один апдейт от Telegram — общий для вебхука и для опроса (getUpdates). */
+/** Подписчик, чей Telegram уже привязан к оплаченной подписке (иначе кабинет не открывается). */
+function residentByTelegramId(tgId) {
+  return listJoins().filter((j) => j.paid && String(j.tgUserId ?? '') === String(tgId)).sort((a, b) => (b.lastPaidAt ?? 0) - (a.lastPaidAt ?? 0))[0] ?? null
+}
+
+async function handleResidentCallback(query) {
+  const chatId = query.message?.chat?.id
+  await telegramFetch('answerCallbackQuery', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ callback_query_id: query.id }) }).catch(() => null)
+  const join = chatId && String(query.from?.id) === String(chatId) ? residentByTelegramId(chatId) : null
+  if (!join) {
+    await sendTelegramMessage(chatId, `Не нашли вашу подписку. Если вы оплатили, откройте бота по ссылке со страницы «Оплата прошла успешно» или напишите в поддержку: ${SUPPORT_HANDLE}`)
+    return
+  }
+  const action = String(query.data).split(':')[1]
+  const screen =
+    action === 'sub' ? subscriptionScreen(join, TARIFFS)
+    : action === 'link' ? linkScreen(join, COMMUNITY_INVITE_LINK)
+    : action === 'off' ? offScreen(SUPPORT_HANDLE)
+    : residentMenu(join, SUPPORT_HANDLE)
+  await sendTelegramMessage(chatId, screen.text, screen.keyboard)
+}
+
 async function handleTelegramUpdate(update) {
+  if (update?.callback_query?.data?.startsWith('r:')) {
+    await handleResidentCallback(update.callback_query)
+    return
+  }
   if (update?.callback_query) {
     await handleAdminCallback(update.callback_query)
     return
@@ -1360,6 +1417,14 @@ async function handleTelegramUpdate(update) {
     await sendTelegramMessage(chatId, screen.text, screen.keyboard)
     return
   }
+  if (chatId && (text === '/menu' || text === '/cabinet') && !isAdmin) {
+    const resident = residentByTelegramId(chatId)
+    if (resident) {
+      const screen = residentMenu(resident, SUPPORT_HANDLE)
+      await sendTelegramMessage(chatId, screen.text, screen.keyboard)
+    }
+    return
+  }
   if (!chatId || !text || !text.startsWith('/start')) return
 
   const payload = text.slice('/start'.length).trim()
@@ -1367,6 +1432,12 @@ async function handleTelegramUpdate(update) {
   const token = match?.[1]
 
   if (!token) {
+    const resident = residentByTelegramId(chatId)
+    if (resident) {
+      const screen = residentMenu(resident, SUPPORT_HANDLE)
+      await sendTelegramMessage(chatId, screen.text, screen.keyboard)
+      return
+    }
     await sendTelegramMessage(chatId, 'Привет! Это бот «Карьерного юриста». Чтобы вступить в сообщество, начните с сайта — раздел «Сообщество».')
     return
   }
@@ -1435,6 +1506,7 @@ app.post('/api/prodamus/webhook', async (req, res) => {
     const purchase = markPurchasePaidByPhone(phone)
     console.log('[prodamus] результат поиска покупки:', purchase ? `найдена ${purchase.token}` : 'не найдена')
     if (purchase) {
+      recordPurchasePayment(purchase.token, Number(body.sum) || MATERIALS[purchase.materialSlug]?.price || 0)
       const material = MATERIALS[purchase.materialSlug]
       const cabinetUrl = `${SITE_URL}/materials/cabinet?token=${purchase.token}`
       const text = buildLeadNotification({

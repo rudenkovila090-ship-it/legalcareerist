@@ -4,7 +4,7 @@
 import { rub, who, planAmount, ruDay, CANCEL_REASONS } from './adminCabinet.js'
 import { mskDayKey } from './dailyReport.js'
 import { EVENT_STATUSES } from './eventLeads.js'
-import { dealsDueForReminder } from './deals.js'
+import { dealsDueForReminder, dealPayments } from './deals.js'
 import { interestsDueForReminder } from './interests.js'
 
 const MSK = 'Europe/Moscow'
@@ -136,10 +136,11 @@ export function cancelCard(j) {
 export function financeSummary(data, monthKey) {
   const inMonth = (ts) => Boolean(ts) && monthOf(ts) === monthKey
   const community = data.joins.flatMap((j) => j.payments ?? []).filter((p) => !p.estimated && inMonth(p.at)).reduce((acc, p) => acc + (Number(p.amount) || 0), 0)
-  const kadry = data.deals.filter((d) => d.revenue != null && inMonth(d.revenueAt)).reduce((acc, d) => acc + d.revenue, 0)
+  const kadry = data.deals.flatMap((d) => dealPayments(d)).filter((p) => inMonth(p.at)).reduce((acc, p) => acc + p.amount, 0)
+  const materials = (data.purchases ?? []).filter((p) => p.amount != null && inMonth(p.paidAt)).reduce((acc, p) => acc + p.amount, 0)
   const consult = data.consultations.filter((c) => c.status === 'done' && inMonth(c.statusAt)).reduce((acc, c) => acc + (Number(c.total) || 0), 0)
   const events = data.eventLeads.filter((e) => e.kind === 'registration' && e.amount != null && inMonth(e.statusAt)).reduce((acc, e) => acc + e.amount, 0)
-  const income = community + kadry + consult + events
+  const income = community + kadry + consult + events + materials
   const monthExpenses = data.expenses.filter((e) => inMonth(e.at))
   const spent = monthExpenses.reduce((acc, e) => acc + e.amount, 0)
   const lines = [
@@ -149,14 +150,15 @@ export function financeSummary(data, monthKey) {
     `⚖️ Кадровое агентство: ${rub(kadry)}`,
     `🎯 Карьерные консультации: ${rub(consult)}`,
     `🎟 Мероприятия: ${rub(events)}`,
+    `📚 Материалы (маркетплейс): ${rub(materials)}`,
     `Выручка всего: ${rub(income)}`,
     '',
     `💸 Расходы: ${rub(spent)}`,
     `💰 Прибыль: ${rub(income - spent)}`,
     '',
-    'Разовые покупки материалов пока не учитываются: суммы по ним не сохраняются.',
+    'Покупки материалов считаются с момента обновления — прежние суммы не сохранялись.',
   ]
-  return { text: lines.join('\n'), keyboard: [[{ text: 'Прошлый месяц', callback_data: 'a:x:fsum:prev' }, { text: 'Текущий', callback_data: 'a:x:fsum:cur' }], [{ text: '💸 Расходы', callback_data: 'a:x:fexp' }], back('⬅️ Финансы', 'a:sec:finance')] }
+  return { text: lines.join('\n'), keyboard: [[{ text: 'Прошлый месяц', callback_data: 'a:x:fsum:prev' }, { text: 'Текущий', callback_data: 'a:x:fsum:cur' }], [{ text: '📎 Выгрузить месяц (CSV)', callback_data: `a:x:csv:${monthKey === monthOf(Date.now()) ? 'cur' : 'prev'}` }], [{ text: '💸 Расходы', callback_data: 'a:x:fexp' }], back('⬅️ Финансы', 'a:sec:finance')] }
 }
 
 /** Прогноз на 30 дней: списания подписчиков и ожидаемая выручка по сделкам. */
@@ -392,7 +394,7 @@ const ACTION_LABELS = {
   'input:newdeal': 'Сделка создана вручную', 's:cst': 'Консультация: статус', 's:idone': 'Интерес: написали', 's:iclose': 'Интерес: неактуально', 's:isnooze': 'Интерес: отложено',
   'input:interest': 'Интерес записан', 's:rdelok': 'Кандидат резерва удалён', 'input:reserve-field': 'Кандидат резерва изменён', 'input:reserve-new': 'Кандидат резерва добавлен',
   'x:ambplus': 'Амбассадор: счётчик', 'x:ambdelok': 'Амбассадор удалён', 'input:ambassador': 'Амбассадор добавлен', 'x:cr': 'Причина отписки', 'x:fexpdel': 'Расход удалён',
-  'input:expense': 'Расход добавлен', 'x:evst': 'Мероприятие: статус', 'input:event-paid': 'Мероприятие: оплата отмечена', remgo: 'Напоминания резидентам отправлены', 'x:backup': 'Резервная копия по запросу',
+  'input:expense': 'Расход добавлен', 'x:evst': 'Мероприятие: статус', 'input:event-paid': 'Мероприятие: оплата отмечена', remgo: 'Напоминания резидентам отправлены', 'x:backup': 'Резервная копия по запросу', 'k:pp': 'Сделка: предоплата получена', 'k:pf': 'Сделка: остаток получен', 's:vst': 'Вакансия: статус в учёте',
 }
 
 export function auditScreen(actions) {
