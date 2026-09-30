@@ -63,3 +63,18 @@ export function giveConsent(tgId) {
   save(data)
   return user
 }
+
+/** Согласие/отказ от рассылки: ставит метку из BotHelp («согласен_на_рассылку_сообщений» / «не_согласен_на_рассылку_сообщений»). */
+export function setMailingConsent(tgId, agreed) {
+  const data = load()
+  const user = data[String(tgId)]
+  if (!user) return null
+  user.mailingConsent = agreed
+  user.mailingAnsweredAt = Date.now()
+  const on = 'согласен_на_рассылку_сообщений'
+  const off = 'не_согласен_на_рассылку_сообщений'
+  user.tags = user.tags.filter((t) => t !== on && t !== off)
+  user.tags.push(agreed ? on : off)
+  save(data)
+  return user
+}

@@ -46,8 +46,8 @@ import { createConsultation, listConsultations, getConsultation, setConsultation
 import { createAmbassador, listAmbassadors, getAmbassador, addReferral, deleteAmbassador } from './lib/ambassadors.js'
 import { createExpense, listExpenses, deleteExpense } from './lib/expenses.js'
 import { createEventLead, listEventLeads, getEventLead, setEventLeadStatus } from './lib/eventLeads.js'
-import { touchBotUser, giveConsent, listBotUsers } from './lib/botUsers.js'
-import { isStartKeyword, welcomeScreen, mainMenuScreen } from './lib/botFlow.js'
+import { touchBotUser, giveConsent, setMailingConsent, listBotUsers } from './lib/botUsers.js'
+import { isStartKeyword, welcomeScreen, noConsentScreen, mailingScreen, mainMenuScreen, supportScreen, legalScreen, aboutScreen } from './lib/botFlow.js'
 import { buildMonthCsv } from './lib/exportCsv.js'
 import { vacancyOverrides, setVacancyStatus } from './lib/vacancyOverrides.js'
 import { residentMenu, subscriptionScreen, linkScreen, offScreen } from './lib/residentCabinet.js'
@@ -815,7 +815,7 @@ function allData() {
 
 function currentHealth() {
   const users = listBotUsers()
-  return [`👤 Пользователей бота: ${users.length}, дали согласие: ${users.filter((u) => u.consentAt).length}`, ...healthLines({
+  return [`👤 Пользователей бота: ${users.length}, согласие на ПД: ${users.filter((u) => u.consentAt).length}, согласны на рассылку: ${users.filter((u) => u.mailingConsent === true).length}`, ...healthLines({
     lastWebhook: lastWebhook(),
     lastPollAt,
     pollingEnabled: Boolean(BOT_TOKEN && process.env.TELEGRAM_POLLING !== '0'),
@@ -1364,20 +1364,18 @@ function residentByTelegramId(tgId) {
   return listJoins().filter((j) => j.paid && String(j.tgUserId ?? '') === String(tgId)).sort((a, b) => (b.lastPaidAt ?? 0) - (a.lastPaidAt ?? 0))[0] ?? null
 }
 
-/** Старт воронки: метка «пользователь»; без согласия — приветствие, иначе меню резидента / главное меню. */
+/** Старт воронки: метка «пользователь»; дальше согласие на обработку ПД → согласие на рассылку → главное меню. */
 async function startFlow(chatId, from) {
   const user = touchBotUser({ ...from, id: from?.id ?? chatId })
-  if (!user.consentAt) {
-    const screen = welcomeScreen(user.firstName, SITE_URL)
-    await sendTelegramMessage(chatId, screen.text, screen.keyboard)
-    return
-  }
-  await sendPostConsent(chatId)
+  await sendFlowStep(chatId, user)
 }
 
-async function sendPostConsent(chatId) {
-  const resident = residentByTelegramId(chatId)
-  const screen = resident ? residentMenu(resident, SUPPORT_HANDLE) : mainMenuScreen(SITE_URL)
+/** Следующий незавершённый шаг воронки для пользователя. */
+async function sendFlowStep(chatId, user) {
+  let screen
+  if (!user.consentAt) screen = welcomeScreen(user.firstName, SITE_URL)
+  else if (user.mailingConsent === undefined) screen = mailingScreen(SITE_URL)
+  else screen = mainMenuScreen(SITE_URL, user.firstName, Boolean(residentByTelegramId(chatId)))
   await sendTelegramMessage(chatId, screen.text, screen.keyboard)
 }
 
@@ -1385,10 +1383,32 @@ async function handleUserCallback(query) {
   const chatId = query.message?.chat?.id
   await telegramFetch('answerCallbackQuery', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ callback_query_id: query.id }) }).catch(() => null)
   if (!chatId || String(query.from?.id) !== String(chatId)) return
-  if (String(query.data) === 'u:consent') {
-    touchBotUser(query.from)
-    giveConsent(query.from.id)
-    await sendPostConsent(chatId)
+  const action = String(query.data).split(':')[1]
+  let user = touchBotUser(query.from)
+  if (action === 'nc') {
+    const screen = noConsentScreen()
+    await sendTelegramMessage(chatId, screen.text, screen.keyboard)
+    return
+  }
+  if (action === 'consent') user = giveConsent(query.from.id) ?? user
+  if (action === 'mail1') user = setMailingConsent(query.from.id, true) ?? user
+  if (action === 'mail0') user = setMailingConsent(query.from.id, false) ?? user
+  // Без согласия на обработку ПД остальные кнопки воронки недоступны — показываем нужный шаг.
+  if (!user.consentAt) {
+    await sendFlowStep(chatId, user)
+    return
+  }
+  if (action === 'support') {
+    const screen = supportScreen(SUPPORT_HANDLE)
+    await sendTelegramMessage(chatId, screen.text, screen.keyboard)
+  } else if (action === 'legal') {
+    const screen = legalScreen(SITE_URL)
+    await sendTelegramMessage(chatId, screen.text, screen.keyboard)
+  } else if (action === 'about') {
+    const screen = aboutScreen(SITE_URL)
+    await sendTelegramMessage(chatId, screen.text, screen.keyboard)
+  } else {
+    await sendFlowStep(chatId, user)
   }
 }
 

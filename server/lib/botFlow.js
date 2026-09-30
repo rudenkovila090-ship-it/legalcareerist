@@ -9,7 +9,7 @@ export function isStartKeyword(text) {
   return START_KEYWORDS.some((k) => t.includes(k))
 }
 
-/** Сообщение 2 из BotHelp: приветствие и просьба подтвердить согласие. */
+/** Сообщение 2: приветствие и просьба подтвердить согласие на обработку персональных данных. */
 export function welcomeScreen(firstName, siteUrl) {
   return {
     text: [
@@ -27,20 +27,90 @@ export function welcomeScreen(firstName, siteUrl) {
     keyboard: [
       [{ text: 'Политика обработки персональных данных', url: `${siteUrl}/legal/privacy` }],
       [{ text: 'Согласие на обработку персональных данных', url: `${siteUrl}/legal/consent` }],
-      [{ text: '✅ Ознакомлен и согласен', callback_data: 'u:consent' }],
+      [{ text: 'Не согласен ❌', callback_data: 'u:nc' }, { text: 'Ознакомился ✅', callback_data: 'u:consent' }],
     ],
   }
 }
 
-/** Временное меню после согласия — кнопки-ссылки на разделы сайта, пока следующие блоки воронки не перенесены. */
-export function mainMenuScreen(siteUrl) {
+/** Сообщение 5: ответ на «Не согласен» — без согласия работа невозможна. */
+export function noConsentScreen() {
   return {
-    text: 'Спасибо! Выбери, что тебя интересует:',
+    text: 'Без этого шага мы, к сожалению, не сможем продолжить работу и предоставить все возможности Карьерного юриста.',
+    keyboard: [[{ text: 'Согласен', callback_data: 'u:consent' }]],
+  }
+}
+
+/** Блок «Рассылка»: согласие на получение сообщений о новостях, мероприятиях и материалах. */
+export function mailingScreen(siteUrl) {
+  return {
+    text: 'Я хотел бы присылать тебе сообщения о новых активностях, мероприятиях и полезных материалах. Для этого мне нужно твое согласие на получение таких сообщений. Ты можешь в любой момент отказаться от рассылки.',
     keyboard: [
-      [{ text: '👥 Вступить в сообщество', url: `${siteUrl}/community` }],
-      [{ text: '🎟 Мероприятия', url: `${siteUrl}/events` }],
-      [{ text: '🎯 Консультации', url: `${siteUrl}/kadry/candidates/consultation` }],
-      [{ text: '📚 Полезные материалы', url: `${siteUrl}/marketplace` }],
+      [{ text: 'Согласие на рассылку', url: `${siteUrl}/legal/consent` }],
+      [{ text: 'Не согласен ❌', callback_data: 'u:mail0' }, { text: 'Согласен ✅', callback_data: 'u:mail1' }],
     ],
+  }
+}
+
+/** Главное меню. Строка «Мой кабинет» добавляется только резидентам сообщества. */
+export function mainMenuScreen(siteUrl, firstName, isResident = false) {
+  return {
+    text: [
+      `Привет, ${firstName || 'друг'}! 👋`,
+      'Добро пожаловать в главное меню!',
+      'Здесь ты можешь:',
+      '- Вступить в сообщество',
+      '- Зарегистрироваться на мероприятие',
+      '- Найти работу или сотрудника',
+      '- Приобрести полезные материалы',
+      '- Записаться на консультации',
+      '',
+      'Если у тебя возник любой вопрос по боту или сообществу — смело жми кнопку «Поддержка», я всегда на связи и с радостью помогу 💙',
+    ].join('\n'),
+    keyboard: [
+      [{ text: 'Сообщество', url: `${siteUrl}/community` }],
+      [{ text: 'Маркет', url: `${siteUrl}/marketplace` }],
+      [{ text: 'Консультации', url: `${siteUrl}/kadry/candidates/consultation` }],
+      ...(isResident ? [[{ text: '💼 Мой кабинет резидента', callback_data: 'r:menu' }]] : []),
+      [
+        { text: 'Поддержка', callback_data: 'u:support' },
+        { text: 'Правовая информация', callback_data: 'u:legal' },
+        { text: 'О КЮ', callback_data: 'u:about' },
+      ],
+    ],
+  }
+}
+
+/** Блок «Поддержка». */
+export function supportScreen(supportHandle) {
+  return {
+    text: [
+      'Поддержка 🛠',
+      '',
+      'Здесь вы можете написать свой вопрос, а наша команда свяжется с вами и поможет. Поддержка работает для любых вопросов о сообществе, тарифах, мероприятиях, консультациях или работе с чат-ботом.',
+    ].join('\n'),
+    keyboard: [
+      [{ text: 'Связаться', url: `https://t.me/${String(supportHandle).replace(/^@/, '')}` }],
+      [{ text: 'Главное меню', callback_data: 'u:menu' }],
+    ],
+  }
+}
+
+/** Временный блок: тексты «Правовой информации» и «О КЮ» ещё не переданы — даём ссылки на страницы сайта. */
+export function legalScreen(siteUrl) {
+  return {
+    text: 'Правовая информация',
+    keyboard: [
+      [{ text: 'Политика обработки персональных данных', url: `${siteUrl}/legal/privacy` }],
+      [{ text: 'Согласие на обработку персональных данных', url: `${siteUrl}/legal/consent` }],
+      [{ text: 'Публичная оферта', url: `${siteUrl}/legal/offer` }],
+      [{ text: 'Главное меню', callback_data: 'u:menu' }],
+    ],
+  }
+}
+
+export function aboutScreen(siteUrl) {
+  return {
+    text: 'О «Карьерном юристе»',
+    keyboard: [[{ text: 'Читать на сайте', url: `${siteUrl}/about` }], [{ text: 'Главное меню', callback_data: 'u:menu' }]],
   }
 }
