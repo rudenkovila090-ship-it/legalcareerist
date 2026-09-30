@@ -2106,7 +2106,7 @@ async function processExpiry() {
     if (j.status !== 'active' || !j.oneTime || !j.nextPaymentAt) continue
     const daysLeft = Math.ceil((j.nextPaymentAt - now) / 86400000)
     const key = `${j.nextPaymentAt}:${daysLeft}`
-    if (EXPIRY_TEXTS[daysLeft] && j.tgUserId && j.expiryRemindedFor !== key) {
+    if (EXPIRY_TEXTS[daysLeft] && j.tgUserId && j.expiryRemindedFor !== key && process.env.EXPIRY_NOTICES !== '0') {
       setJoinField(j.token, 'expiryRemindedFor', key)
       await sendTelegramMessage(j.tgUserId, EXPIRY_TEXTS[daysLeft], [[{ text: 'Продлить', callback_data: 'u:join' }], [{ text: 'Главное меню', callback_data: 'u:menu' }]]).catch(() => false)
     } else if (daysLeft <= 0 && j.expiryAlertedFor !== j.nextPaymentAt) {
@@ -2125,7 +2125,7 @@ async function processExpiry() {
 /** Просьба об отзыве через 30 дней после первой оплаты и бонус +4 дня через 5 часов (как в воронке BotHelp). */
 let reviewFlowRunning = false
 async function processReviewFlow() {
-  if (!BOT_TOKEN || !ADMIN_CHAT_ID || reviewFlowRunning) return
+  if (!BOT_TOKEN || !ADMIN_CHAT_ID || reviewFlowRunning || process.env.REVIEW_FLOW === '0') return
   const now = Date.now()
   const hour = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Moscow', hour: '2-digit', hour12: false }).format(new Date(now)))
   const DAY = 86400000
