@@ -46,6 +46,8 @@ import { createConsultation, listConsultations, getConsultation, setConsultation
 import { createAmbassador, listAmbassadors, getAmbassador, addReferral, deleteAmbassador } from './lib/ambassadors.js'
 import { createExpense, listExpenses, deleteExpense } from './lib/expenses.js'
 import { createEventLead, listEventLeads, getEventLead, setEventLeadStatus } from './lib/eventLeads.js'
+import { touchBotUser, giveConsent, addTag, listBotUsers, getBotUser } from './lib/botUsers.js'
+import { isStartKeyword, welcomeScreen, mainMenuScreen } from './lib/botFlow.js'
 import { buildMonthCsv } from './lib/exportCsv.js'
 import { vacancyOverrides, setVacancyStatus } from './lib/vacancyOverrides.js'
 import { residentMenu, subscriptionScreen, linkScreen, offScreen } from './lib/residentCabinet.js'
@@ -812,14 +814,15 @@ function allData() {
 }
 
 function currentHealth() {
-  return healthLines({
+  const users = listBotUsers()
+  return [`👤 Пользователей бота: ${users.length}, дали согласие: ${users.filter((u) => u.consentAt).length}`, ...healthLines({
     lastWebhook: lastWebhook(),
     lastPollAt,
     pollingEnabled: Boolean(BOT_TOKEN && process.env.TELEGRAM_POLLING !== '0'),
     errors: recentErrors,
     lastBackupAt: readBackupState().lastAt,
     activeSubscribers: listJoins().filter((j) => j.status === 'active').length,
-  })
+  })]
 }
 
 /** Резервная копия папки data админу в Telegram файлом. Возвращает true, если ушла. */
@@ -1361,6 +1364,34 @@ function residentByTelegramId(tgId) {
   return listJoins().filter((j) => j.paid && String(j.tgUserId ?? '') === String(tgId)).sort((a, b) => (b.lastPaidAt ?? 0) - (a.lastPaidAt ?? 0))[0] ?? null
 }
 
+/** Старт воронки: метка «пользователь»; без согласия — приветствие, иначе меню резидента / главное меню. */
+async function startFlow(chatId, from) {
+  const user = touchBotUser({ ...from, id: from?.id ?? chatId })
+  if (!user.consentAt) {
+    const screen = welcomeScreen(user.firstName, SITE_URL)
+    await sendTelegramMessage(chatId, screen.text, screen.keyboard)
+    return
+  }
+  await sendPostConsent(chatId)
+}
+
+async function sendPostConsent(chatId) {
+  const resident = residentByTelegramId(chatId)
+  const screen = resident ? residentMenu(resident, SUPPORT_HANDLE) : mainMenuScreen(SITE_URL)
+  await sendTelegramMessage(chatId, screen.text, screen.keyboard)
+}
+
+async function handleUserCallback(query) {
+  const chatId = query.message?.chat?.id
+  await telegramFetch('answerCallbackQuery', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ callback_query_id: query.id }) }).catch(() => null)
+  if (!chatId || String(query.from?.id) !== String(chatId)) return
+  if (String(query.data) === 'u:consent') {
+    touchBotUser(query.from)
+    giveConsent(query.from.id)
+    await sendPostConsent(chatId)
+  }
+}
+
 async function handleResidentCallback(query) {
   const chatId = query.message?.chat?.id
   await telegramFetch('answerCallbackQuery', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ callback_query_id: query.id }) }).catch(() => null)
@@ -1379,6 +1410,10 @@ async function handleResidentCallback(query) {
 }
 
 async function handleTelegramUpdate(update) {
+  if (update?.callback_query?.data?.startsWith('u:')) {
+    await handleUserCallback(update.callback_query)
+    return
+  }
   if (update?.callback_query?.data?.startsWith('r:')) {
     await handleResidentCallback(update.callback_query)
     return
@@ -1422,11 +1457,12 @@ async function handleTelegramUpdate(update) {
     return
   }
   if (chatId && (text === '/menu' || text === '/cabinet')) {
-    const resident = residentByTelegramId(chatId)
-    if (resident) {
-      const screen = residentMenu(resident, SUPPORT_HANDLE)
-      await sendTelegramMessage(chatId, screen.text, screen.keyboard)
-    }
+    await startFlow(chatId, message.from)
+    return
+  }
+  // Ключевые слова запуска из BotHelp («привет», «начать», «вступить в сообщество» и т. д.) работают как /start.
+  if (chatId && text && !text.startsWith('/') && isStartKeyword(text)) {
+    await startFlow(chatId, message.from)
     return
   }
   if (!chatId || !text || !text.startsWith('/start')) return
@@ -1436,16 +1472,11 @@ async function handleTelegramUpdate(update) {
   const token = match?.[1]
 
   if (!token) {
-    const resident = residentByTelegramId(chatId)
-    if (resident) {
-      const screen = residentMenu(resident, SUPPORT_HANDLE)
-      await sendTelegramMessage(chatId, screen.text, screen.keyboard)
-      return
-    }
-    await sendTelegramMessage(chatId, 'Привет! Это бот «Карьерного юриста». Чтобы вступить в сообщество, начните с сайта — раздел «Сообщество».')
+    await startFlow(chatId, message.from)
     return
   }
 
+  if (message.from) touchBotUser({ ...message.from, id: message.from.id ?? chatId })
   const join = setTgUserId(token, chatId)
   if (!join) {
     await sendTelegramMessage(chatId, 'Не нашли вашу заявку — попробуйте оформить подписку заново на сайте.')
