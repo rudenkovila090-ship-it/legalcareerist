@@ -81,7 +81,7 @@ export function findJoinForPayment({ phone, email, telegram, tgUserId, profileId
  * платежа по счёту. Повторный вебхук с тем же orderKey (Prodamus может
  * прислать уведомление дважды) второй раз не учитывается.
  */
-export function recordPayment(token, { tariffId, amount, paidAt, orderKey, nextPaymentAt, profileId, tgUserId, paymentNum, subscriptionId, subscriptionName }) {
+export function recordPayment(token, { tariffId, amount, paidAt, orderKey, nextPaymentAt, profileId, tgUserId, paymentNum, subscriptionId, subscriptionName, oneTime }) {
   let result = null
   store.update(token, (join) => {
     const payments = Array.isArray(join.payments) ? [...join.payments] : []
@@ -103,6 +103,7 @@ export function recordPayment(token, { tariffId, amount, paidAt, orderKey, nextP
       ...join,
       ...(profileId ? { prodamusProfileId: String(profileId) } : {}),
       ...(tgUserId && !join.tgUserId ? { tgUserId } : {}),
+      ...(oneTime ? { oneTime: true } : {}),
       paid: true,
       status: 'active',
       payments,
@@ -145,4 +146,18 @@ export function markReminded(token, nextPaymentAt) {
 /** Причина отписки (код из CANCEL_REASONS в adminCabinet.js) — указывается вручную в карточке отписавшегося. */
 export function setCancelReason(token, reason) {
   return store.setField(token, 'cancelReason', reason)
+}
+
+/** Произвольное поле карточки (служебные отметки: напоминания, отзыв и т. п.). */
+export function setJoinField(token, field, value) {
+  return store.setField(token, field, value)
+}
+
+/** Продлевает срок разовой подписки на days дней (бонус) и копит бонусные дни. */
+export function extendSubscription(token, days) {
+  return store.update(token, (join) => ({
+    ...join,
+    bonusDays: (join.bonusDays ?? 0) + days,
+    ...(join.oneTime && join.nextPaymentAt ? { nextPaymentAt: join.nextPaymentAt + days * 24 * 3600 * 1000 } : {}),
+  }))
 }

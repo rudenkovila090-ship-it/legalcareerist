@@ -85,7 +85,10 @@ export function overdueScreen(joins, tariffs, now) {
     lines.push(`• ${who(j)} — ${rub(planAmount(j, tariffs)) } · ждали ${ruDate(j.nextPaymentAt)}${days ? ` (${days} дн. назад)` : ''}`)
   }
   lines.push('', 'Стоит написать человеку и проверить платёж в Prodamus.')
-  const keyboard = list.filter((j) => j.telegram).slice(0, 20).map((j) => [{ text: `✉️ ${(j.name && j.name !== '—' ? j.name : j.telegram)}`.slice(0, 60), url: tgUrl(j.telegram) }])
+  const keyboard = list.slice(0, 10).map((j) => {
+    const label = (j.name && j.name !== '—' ? j.name : j.telegram || j.phone || 'без имени').slice(0, 24)
+    return [...(j.telegram ? [{ text: `✉️ ${label}`, url: tgUrl(j.telegram) }] : []), { text: `🚪 Исключить: ${label}`, callback_data: `a:x:kick:${j.token}` }]
+  })
   return { text: lines.join('\n'), keyboard: [...keyboard, backRow] }
 }
 
@@ -125,6 +128,7 @@ export function cancelCard(j) {
     [{ text: CANCEL_REASONS.price, callback_data: `a:x:cr:${j.token}:price` }, { text: CANCEL_REASONS.time, callback_data: `a:x:cr:${j.token}:time` }],
     [{ text: CANCEL_REASONS.content, callback_data: `a:x:cr:${j.token}:content` }, { text: CANCEL_REASONS.other, callback_data: `a:x:cr:${j.token}:other` }],
     ...(j.telegram ? [[{ text: '✉️ Написать', url: tgUrl(j.telegram) }]] : []),
+    ...(j.tgUserId ? [[{ text: '🚪 Исключить из чата сообщества', callback_data: `a:x:kick:${j.token}` }]] : []),
     back('⬅️ К отпискам', 'a:cancelled'),
   ]
   return { text: lines.join('\n'), keyboard }
@@ -394,7 +398,7 @@ const ACTION_LABELS = {
   'input:newdeal': 'Сделка создана вручную', 's:cst': 'Консультация: статус', 's:idone': 'Интерес: написали', 's:iclose': 'Интерес: неактуально', 's:isnooze': 'Интерес: отложено',
   'input:interest': 'Интерес записан', 's:rdelok': 'Кандидат резерва удалён', 'input:reserve-field': 'Кандидат резерва изменён', 'input:reserve-new': 'Кандидат резерва добавлен',
   'x:ambplus': 'Амбассадор: счётчик', 'x:ambdelok': 'Амбассадор удалён', 'input:ambassador': 'Амбассадор добавлен', 'x:cr': 'Причина отписки', 'x:fexpdel': 'Расход удалён',
-  'input:expense': 'Расход добавлен', 'x:evst': 'Мероприятие: статус', 'input:event-paid': 'Мероприятие: оплата отмечена', remgo: 'Напоминания резидентам отправлены', 'x:backup': 'Резервная копия по запросу', 'k:pp': 'Сделка: предоплата получена', 'k:pf': 'Сделка: остаток получен', 's:vst': 'Вакансия: статус в учёте',
+  'input:expense': 'Расход добавлен', 'x:evst': 'Мероприятие: статус', 'input:event-paid': 'Мероприятие: оплата отмечена', remgo: 'Напоминания резидентам отправлены', 'x:backup': 'Резервная копия по запросу', 'x:kickok': 'Исключён из чата сообщества', 'k:pp': 'Сделка: предоплата получена', 'k:pf': 'Сделка: остаток получен', 's:vst': 'Вакансия: статус в учёте',
 }
 
 export function auditScreen(actions) {

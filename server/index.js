@@ -36,7 +36,7 @@ import cors from 'cors'
 import multer from 'multer'
 import { createPaymentLink, TARIFFS, tariffIdBySubscriptionId, createProductPaymentLink, MATERIALS } from './lib/prodamus.js'
 import { HmacHelper } from './lib/hmac.js'
-import { createPendingJoin, createOrphanJoin, listJoins, setTgUserId, findJoinForPayment, recordPayment, setSubscriptionActive, markReminded, getJoin, setCancelReason } from './lib/store.js'
+import { createPendingJoin, createOrphanJoin, listJoins, setTgUserId, findJoinForPayment, recordPayment, setSubscriptionActive, markReminded, getJoin, setCancelReason, setJoinField, extendSubscription } from './lib/store.js'
 import { normalizePhone } from './lib/jsonStore.js'
 import { createPendingPurchase, getPurchase, markPurchasePaidByPhone, markPurchasePaidByTg, findPaidPurchase, recordPurchasePayment, listPurchases } from './lib/materialsStore.js'
 import { incrementView, incrementApplication, allVacancyStats } from './lib/vacancyStats.js'
@@ -384,8 +384,10 @@ async function handleSubscriptionPayment(body, phone) {
     match = { join: { token }, isFirst: true }
   }
 
-  const nextPaymentAt = pickNextPaymentDate(subscription, paidAt) ?? (tariff ? addMonths(paidAt, tariff.months) : null)
-  const result = recordPayment(match.join.token, { tariffId, amount, paidAt, orderKey, nextPaymentAt, profileId, tgUserId, paymentNum, subscriptionId: subscription.id, subscriptionName })
+  // Разовые скидочные подписки (350 и 500 ₽) — доступ на 30 дней без автопродления: по окончании бот напоминает и исключает из чата.
+  const oneTime = !tariff && [350, 500].includes(Math.round(amount))
+  const nextPaymentAt = pickNextPaymentDate(subscription, paidAt) ?? (tariff ? addMonths(paidAt, tariff.months) : oneTime ? paidAt + 30 * 24 * 3600 * 1000 : null)
+  const result = recordPayment(match.join.token, { tariffId, amount, paidAt, orderKey, nextPaymentAt, profileId, tgUserId, paymentNum, subscriptionId: subscription.id, subscriptionName, oneTime })
   if (!result) {
     console.error('[prodamus] не удалось записать платёж — карточка не найдена:', match.join.token)
     return
@@ -918,6 +920,16 @@ async function extrasAction(parts, now, chatId) {
     case 'ambdelok':
       deleteAmbassador(arg)
       return ambassadorsScreen(listAmbassadors())
+    case 'kick': {
+      const j = getJoin(arg)
+      if (!j) return { text: 'Подписчик не найден.', keyboard: menuBack('⬅️ Сообщество', 'a:sec:community') }
+      return { text: `🚪 Исключить ${[j.name, j.telegram].filter(Boolean).join(' ')} из чата сообщества и написать ему, что подписка истекла?\n\nЧеловек сможет вернуться сам, оплатив подписку.`, keyboard: [[{ text: '✅ Да, исключить', callback_data: `a:x:kickok:${arg}` }, { text: 'Отмена', callback_data: 'a:x:over' }]] }
+    }
+    case 'kickok': {
+      const j = getJoin(arg)
+      const ok = j ? await kickAndNotify(j) : false
+      return { text: ok ? '🚪 Готово: человек исключён из чата, ему отправлено сообщение.' : '⚠️ Не удалось исключить: нет Telegram id или бот не администратор чата. Подробности в логе.', keyboard: menuBack('⬅️ Сообщество', 'a:sec:community') }
+    }
     case 'over':
       return overdueScreen(data.joins, TARIFFS, now)
     case 'ret':
@@ -1385,7 +1397,7 @@ async function adminScreen(data, now, chatId) {
 // Кнопки, которые что-то меняют или отправляют данные: помощникам (только просмотр) они недоступны, в журнал попадают только они.
 // Кнопки, которые только открывают ввод текста или подтверждение — в журнал не пишем (запишется само действие).
 const PROMPT_ONLY = /^a:(k:(rev|new)|s:(ikind|inew|rnew|redit|rdel)|x:(ambnew|ambdel|fexpnew|evpaid))\b/
-const MUTATING = /^a:(k:(adv|back|q1|q0|lost|reopen|revok|rev|new|pp|pf)|s:(vst|cst|idone|iclose|isnooze|ikind|inew|rnew|redit|rdel|rdelok)|x:(ambnew|ambplus|ambdel|ambdelok|cr|fexpnew|fexpdel|evst|evpaid|backup)|remgo)\b/
+const MUTATING = /^a:(k:(adv|back|q1|q0|lost|reopen|revok|rev|new|pp|pf)|s:(vst|cst|idone|iclose|isnooze|ikind|inew|rnew|redit|rdel|rdelok)|x:(ambnew|ambplus|ambdel|ambdelok|kickok|cr|fexpnew|fexpdel|evst|evpaid|backup)|remgo)\b/
 
 /** Нажатие кнопки кабинета — от админа (все кнопки) или помощника (только просмотр); остальным молча отвечаем. */
 async function handleAdminCallback(query) {
@@ -1643,6 +1655,16 @@ async function handleTelegramUpdate(update) {
     await startFlow(chatId, message.from)
     return
   }
+  if (chatId && text && !text.startsWith('/') && text.toLowerCase().includes('личный кабинет')) {
+    const resident = residentByTelegramId(chatId)
+    if (resident) {
+      const screen = residentMenu(resident, SUPPORT_HANDLE)
+      await sendTelegramMessage(chatId, screen.text, screen.keyboard)
+    } else {
+      await startFlow(chatId, message.from)
+    }
+    return
+  }
   // Ключевые слова запуска из BotHelp («привет», «начать», «вступить в сообщество» и т. д.) работают как /start.
   if (chatId && text && !text.startsWith('/') && isStartKeyword(text)) {
     await startFlow(chatId, message.from)
@@ -1800,6 +1822,82 @@ async function runDailyOnce(key, minHour, work) {
   if (ok === false) save(state[key] ?? null) // не вышло — повторим в следующую минуту
 }
 
+/** Исключение из чата сообщества: сообщение подписчику, «кик» (блокировка и сразу разблокировка) и отметка в учёте. */
+async function kickAndNotify(join) {
+  if (!join.tgUserId) return false
+  await sendTelegramMessage(join.tgUserId, 'Привет!\nК сожалению, твоя подписка истекла, а оплата не прошла вовремя, поэтому мне пришлось временно исключить тебя из сообщества 😔\n\nНо это легко исправить!\nТы в любой момент можешь продлить подписку и сразу вернуться назад. С радостью приму тебя обратно 💗\n\nЖдем тебя снова!', [[{ text: 'Продлить подписку', callback_data: 'u:join' }], [{ text: 'Главное меню', callback_data: 'u:menu' }]]).catch(() => false)
+  const call = (method, extra = {}) => telegramFetch(method, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: COMMUNITY_CHAT_ID, user_id: Number(join.tgUserId), ...extra }) })
+  const banned = await call('banChatMember')
+  await call('unbanChatMember', { only_if_banned: true }).catch(() => null)
+  if (!banned.ok) {
+    console.error('[telegram] banChatMember ошибка:', await banned.text())
+    return false
+  }
+  setSubscriptionActive(join.token, false, Date.now())
+  setCancelReason(join.token, 'expired')
+  return true
+}
+
+const EXPIRY_TEXTS = {
+  5: 'Привет! 👋\nТвоя подписка закончится через 5 дней.\n\nЧтобы не потерять доступ к материалам, встречам и общению в «Карьерном юристе» — продли подписку заранее, нажав кнопку «Продлить».\n\nСпасибо, что ты с нами 💗',
+  3: 'Привет! 👋\nТвоя подписка закончится через 3 дня.\n\nЧтобы сохранить доступ ко всем материалам, встречам и общению в «Карьерном юристе» — продли подписку заранее, нажав кнопку «Продлить».\n\nСпасибо, что ты с нами 💗',
+  2: 'Привет! 👋\nТвоя подписка закончится через 2 дня.\n\nЧтобы сохранить доступ ко всем материалам, встречам и общению в «Карьерном юристе» — продли подписку заранее, нажав кнопку «Продлить».\n\nСпасибо, что ты с нами 💗',
+  1: 'Привет! 👋\nТвоя подписка закончится уже завтра (через 1 день).\n\nЧтобы сохранить доступ ко всем материалам, встречам и общению в «Карьерном юристе» — продли подписку заранее, нажав кнопку «Продлить».\n\nСпасибо, что ты с нами 💗',
+}
+
+/**
+ * Разовые подписки (350/500 ₽, 30 дней): напоминания за 5, 3, 2 и 1 день до конца, а по окончании срока — исключение из чата.
+ * По умолчанию исключение подтверждаете вы кнопкой (вам приходит уведомление); автоматически — если в server/.env AUTO_EXCLUDE=1.
+ */
+async function processExpiry() {
+  const now = Date.now()
+  for (const j of listJoins()) {
+    if (j.status !== 'active' || !j.oneTime || !j.nextPaymentAt) continue
+    const daysLeft = Math.ceil((j.nextPaymentAt - now) / 86400000)
+    const key = `${j.nextPaymentAt}:${daysLeft}`
+    if (EXPIRY_TEXTS[daysLeft] && j.tgUserId && j.expiryRemindedFor !== key) {
+      setJoinField(j.token, 'expiryRemindedFor', key)
+      await sendTelegramMessage(j.tgUserId, EXPIRY_TEXTS[daysLeft], [[{ text: 'Продлить', callback_data: 'u:join' }], [{ text: 'Главное меню', callback_data: 'u:menu' }]]).catch(() => false)
+    } else if (daysLeft <= 0 && j.expiryAlertedFor !== j.nextPaymentAt) {
+      setJoinField(j.token, 'expiryAlertedFor', j.nextPaymentAt)
+      if (process.env.AUTO_EXCLUDE === '1') {
+        const ok = await kickAndNotify(j)
+        await sendTelegramMessage(ADMIN_CHAT_ID, `${ok ? '🚪 Исключён из чата (срок разовой подписки истёк)' : '⚠️ Срок подписки истёк, но исключить не удалось'}: ${[j.name, j.telegram, j.phone].filter(Boolean).join(', ')}`)
+      } else {
+        await sendTelegramMessage(ADMIN_CHAT_ID, `⏰ Срок разовой подписки истёк: ${[j.name, j.telegram, j.phone].filter(Boolean).join(', ')}\nОплаты продления нет.`, [[{ text: '🚪 Исключить из чата', callback_data: `a:x:kick:${j.token}` }]])
+      }
+    }
+  }
+  return true
+}
+
+/** Просьба об отзыве через 30 дней после первой оплаты и бонус +4 дня через 5 часов (как в воронке BotHelp). */
+let reviewFlowRunning = false
+async function processReviewFlow() {
+  if (!BOT_TOKEN || !ADMIN_CHAT_ID || reviewFlowRunning) return
+  const now = Date.now()
+  const hour = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Moscow', hour: '2-digit', hour12: false }).format(new Date(now)))
+  const DAY = 86400000
+  reviewFlowRunning = true
+  try {
+    for (const j of listJoins()) {
+      if (!j.paid || !j.tgUserId || j.status !== 'active' || !j.firstPaidAt) continue
+      const age = now - j.firstPaidAt
+      if (!j.reviewAskedAt && age >= 30 * DAY && age <= 60 * DAY && hour >= 10 && hour < 21) {
+        setJoinField(j.token, 'reviewAskedAt', now)
+        await sendTelegramMessage(j.tgUserId, 'Нам важно твое мнение о сообществе, оно помогает нам делать сервис лучше для тебя\n\nПожалуйста оставь отзыв о своем опыте 👇\n\nВ благодарность за обратную связь подарим тебе +4 дня подписки бесплатно', [[{ text: 'Оставить обратную связь', url: process.env.FEEDBACK_URL || `${SITE_URL}/community` }], [{ text: 'Главное меню', callback_data: 'u:menu' }]]).catch(() => false)
+      } else if (j.reviewAskedAt && !j.reviewThankedAt && now - j.reviewAskedAt >= 5 * 3600 * 1000) {
+        setJoinField(j.token, 'reviewThankedAt', now)
+        extendSubscription(j.token, 4)
+        await sendTelegramMessage(j.tgUserId, 'Вижу ты оставил отзыв, спасибо тебе большое 🙌 это правда важно для нас\n\nКак и обещали, уже добавили тебе +4 дня подписки 🎁', [[{ text: 'Главное меню', callback_data: 'u:menu' }]]).catch(() => false)
+        await sendTelegramMessage(ADMIN_CHAT_ID, `🎁 ${[j.name, j.telegram].filter(Boolean).join(' ')}: начислено +4 дня подписки за отзыв (автоматически через 5 часов после просьбы, как в BotHelp). Проверьте, что отзыв действительно оставлен.`).catch(() => false)
+      }
+    }
+  } finally {
+    reviewFlowRunning = false
+  }
+}
+
 /** Автонапоминания резидентам о списании: за 2 дня и за день, только тем, кто общался с ботом. Отключить: AUTO_RESIDENT_REMINDERS=0. */
 async function sendAutoResidentReminders() {
   if (process.env.AUTO_RESIDENT_REMINDERS === '0') return true
@@ -1864,6 +1962,8 @@ if (process.env.DISABLE_DAILY_REPORT !== '1') {
   setInterval(() => afterResponse('kadry-monthly', sendKadryMonthlyIfDue), 60 * 1000)
   setInterval(() => afterResponse('interest-reminders', sendInterestRemindersIfDue), 60 * 1000)
   setInterval(() => afterResponse('resident-reminders', () => runDailyOnce('residentReminders', 10, sendAutoResidentReminders)), 60 * 1000)
+  setInterval(() => afterResponse('expiry', () => runDailyOnce('expiry', 10, processExpiry)), 60 * 1000)
+  setInterval(() => afterResponse('review-flow', processReviewFlow), 60 * 1000)
   setInterval(() => afterResponse('morning-digest', () => runDailyOnce('digest', 9, async () => {
     const screen = digestScreen(allData(), TARIFFS, Date.now(), currentHealth())
     return sendTelegramMessage(ADMIN_CHAT_ID, screen.text, screen.keyboard)
@@ -1878,6 +1978,9 @@ if (process.env.DISABLE_DAILY_REPORT !== '1') {
 // логируем и продолжаем работу вместо того, чтобы уронить сервер целиком.
 process.on('unhandledRejection', (err) => console.error('[unhandledRejection]', err))
 process.on('uncaughtException', (err) => console.error('[uncaughtException]', err))
+
+// Для автотестов: доступ к фоновым задачам без ожидания расписания.
+if (process.env.TEST_HOOKS === '1') globalThis.__hooks = { processExpiry, processReviewFlow, sendAutoResidentReminders }
 
 const PORT = process.env.PORT || 3001
 app.listen(PORT, () => console.log(`legalcareerist-server слушает порт ${PORT}`))
