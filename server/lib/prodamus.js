@@ -96,14 +96,29 @@ export async function createPaymentLink(params) {
 export async function createProductPaymentLink({ materialSlug, phone, email, urlSuccess, tgUserId }) {
   const material = MATERIALS[materialSlug]
   if (!material) throw new Error(`unknown material: ${materialSlug}`)
+  return createOneTimeLink({ title: material.title, price: material.price, phone, email, urlSuccess, tgUserId })
+}
+
+/**
+ * Ссылка на разовую оплату билета на мероприятие. Название и цену задаёт сервер (по каталогу сайта), а не клиент.
+ * orderId (наш номер регистрации, например «ev-12») уходит в order_id и customer_extra — Prodamus вернёт его в вебхуке,
+ * по нему оплата привязывается к регистрации даже если человек изменил контакты на странице оплаты.
+ */
+export async function createEventPaymentLink({ title, price, orderId, phone, email, urlSuccess, name }) {
+  return createOneTimeLink({ title, price, phone, email, urlSuccess, orderId, customerExtra: [`Мероприятие: ${title}`, name, orderId].filter(Boolean).join(' | ') })
+}
+
+async function createOneTimeLink({ title, price, phone, email, urlSuccess, tgUserId, orderId, customerExtra }) {
   if (!SECRET_KEY) throw new Error('PRODAMUS_SECRET_KEY not set')
   if (!phone && !email && !tgUserId) throw new Error('need phone, email or tg_user_id to identify customer')
 
   const data = {
     do: 'link',
-    products: [{ name: material.title, price: material.price, quantity: 1 }],
+    products: [{ name: title, price, quantity: 1 }],
     urlNotification: `${SITE_URL}/api/prodamus/webhook`,
   }
+  if (orderId) data.order_id = orderId
+  if (customerExtra) data.customer_extra = customerExtra
   if (tgUserId) data.tg_user_id = tgUserId
   if (phone) data.customer_phone = phone
   if (email) data.customer_email = email
@@ -117,7 +132,7 @@ export async function createProductPaymentLink({ materialSlug, phone, email, url
   const res = await fetch(linkRequestUrl)
   const text = (await res.text()).trim()
   if (!res.ok || !text.startsWith('http')) {
-    throw new Error(`prodamus do=link (товар) ответил неожиданно: ${res.status} ${text.slice(0, 200)}`)
+    throw new Error(`prodamus do=link (разовая оплата) ответил неожиданно: ${res.status} ${text.slice(0, 200)}`)
   }
   return text
 }

@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { events } from '../../data/events'
 import RelatedContentBlock from '../../components/RelatedContentBlock'
 import { getRelatedContent } from '../../lib/related'
@@ -13,6 +13,7 @@ import { SPECIALIZATIONS, INDUSTRIES, type EventTariff } from '../../types'
 import { registerForEvent } from '../../lib/eventRegistrations'
 import { isFavoriteEvent, toggleFavoriteEvent } from '../../lib/eventFavorites'
 import { useEventViews } from '../../lib/useEventViews'
+import { getUtm } from '../../lib/utm'
 
 const specLabel = new Map(SPECIALIZATIONS.map((s) => [s.id, s.label]))
 const industryLabel = new Map(INDUSTRIES.map((i) => [i.id, i.label]))
@@ -158,6 +159,11 @@ export default function EventDetail() {
   const [tariffId, setTariffId] = useState<EventTariff['id']>(event?.tariffs[0]?.id ?? 'light')
   const [form, setForm] = useState({ fio: '', phone: '', email: '', telegram: '' })
   const [registered, setRegistered] = useState(false)
+  const [paying, setPaying] = useState(false)
+  const [payError, setPayError] = useState(false)
+  // Prodamus возвращает сюда после оплаты (urlSuccess ?paid=1) — показываем подтверждение.
+  const [searchParams] = useSearchParams()
+  const justPaid = searchParams.get('paid') === '1'
   const [favorite, setFavorite] = useState(() => (event ? isFavoriteEvent(event.id) : false))
 
   function handleToggleFavorite() {
@@ -190,10 +196,31 @@ export default function EventDetail() {
     document.getElementById('register')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
-  function handleRegister(e: FormEvent) {
+  async function handleRegister(e: FormEvent) {
     e.preventDefault()
-    if (!event) return
+    if (!event || paying) return
     if (!form.fio.trim() || (!form.phone.trim() && !form.email.trim())) return
+    // Платный билет: сервер заводит регистрацию «ждёт оплаты» и отдаёт ссылку Prodamus;
+    // оплату фиксирует вебхук (статус «Оплатил», письмо участнику, уведомление админу).
+    if (tariff.price > 0 && !event.registrationLink) {
+      setPaying(true)
+      setPayError(false)
+      try {
+        const res = await fetch(`/api/event/${event.slug}/checkout`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tariffId: tariff.id, name: form.fio, phone: form.phone, email: form.email, telegram: form.telegram, utm: getUtm() }),
+        })
+        const data = await res.json()
+        if (!res.ok || !data.url) throw new Error('checkout_failed')
+        registerForEvent(event.id, event.title)
+        window.location.assign(data.url)
+      } catch {
+        setPaying(false)
+        setPayError(true)
+      }
+      return
+    }
     submitLead({
       sourceBlock: 'events',
       formType: 'event_registration',
@@ -206,12 +233,6 @@ export default function EventDetail() {
       eventSlug: event.slug,
     })
     registerForEvent(event.id, event.title)
-    // Тариф с готовой ссылкой на оплату (Prodamus) — уводим сразу платить,
-    // а не показываем демо-подтверждение локальной регистрации.
-    if (tariff.paymentLink) {
-      window.location.assign(tariff.paymentLink)
-      return
-    }
     setRegistered(true)
   }
 
@@ -529,6 +550,9 @@ export default function EventDetail() {
                   <div className="mt-3 text-center text-xs text-ink/40">или зарегистрируйтесь через тарифы ниже</div>
                 )}
 
+                {justPaid && (
+                  <div className="mt-4 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">Оплата получена — вы зарегистрированы. Подтверждение придёт на почту, напоминание — заранее.</div>
+                )}
                 {registered ? (
                   <div className="mt-4 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">Вы зарегистрированы. Напоминание придет заранее.</div>
                 ) : (
@@ -558,8 +582,9 @@ export default function EventDetail() {
                       placeholder="Telegram"
                       className="rounded-lg border border-ink/15 px-3.5 py-2.5 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40"
                     />
-                    <button type="submit" className="mt-1 rounded-lg bg-ink py-2.5 text-sm font-semibold text-white hover:bg-ink/90">
-                      {tariff.price === 0 ? 'Приобрести билет' : `Приобрести билет — ${tariff.price.toLocaleString('ru-RU')} ₽`}
+                    {payError && <div className="text-xs text-red-600">Не получилось перейти к оплате. Попробуйте ещё раз или напишите нам.</div>}
+                    <button type="submit" disabled={paying} className="mt-1 rounded-lg bg-ink py-2.5 text-sm font-semibold text-white hover:bg-ink/90 disabled:opacity-60">
+                      {paying ? 'Переходим к оплате…' : tariff.price === 0 ? 'Приобрести билет' : `Приобрести билет — ${tariff.price.toLocaleString('ru-RU')} ₽`}
                     </button>
                   </form>
                 )}

@@ -38,6 +38,13 @@ try {
   const { materials } = await import(`data:text/javascript;base64,${Buffer.from(matJs).toString('base64')}`)
   fs.writeFileSync(path.join(dir, 'material-catalog.json'), JSON.stringify(materials.map((m) => ({ slug: m.slug, title: m.title, description: m.description, forWhom: m.forWhom, price: m.price })), null, 2))
   console.log(`material catalog: ${materials.length}`)
+
+  // Каталог мероприятий: сервер сам берёт название и цену билета (клиенту цену доверять нельзя)
+  const evSource = fs.readFileSync(path.join(ROOT, 'src/data/events.ts'), 'utf8')
+  const evJs = ts.transpileModule(evSource, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } }).outputText
+  const { events } = await import(`data:text/javascript;base64,${Buffer.from(evJs).toString('base64')}`)
+  fs.writeFileSync(path.join(dir, 'event-catalog.json'), JSON.stringify(events.map((e) => ({ slug: e.slug, title: e.title, dateTime: e.dateTime, status: e.status, city: e.city, format: e.format, location: e.location ?? '', registrationLink: e.registrationLink ?? '', tariffs: (e.tariffs ?? []).map((t) => ({ id: t.id, name: t.name, price: t.price })) })), null, 2))
+  console.log(`event catalog: ${events.length}`)
 } catch (err) {
   console.warn('vacancy catalog: не удалось выгрузить —', err.message)
 }

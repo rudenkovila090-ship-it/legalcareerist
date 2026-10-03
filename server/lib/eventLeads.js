@@ -27,3 +27,16 @@ export function setEventLeadStatus(number, status, amount) {
   const e = getEventLead(number)
   return e ? store.update(e.token, (x) => ({ ...x, status, statusAt: Date.now(), ...(amount != null ? { amount } : {}) })) : null
 }
+
+/** Оплата билета: статус «Оплатил», сумма и номер платежа Prodamus. Повторный вебхук ничего не меняет (duplicate). */
+export function markEventLeadPaid(number, amount, paymentRef) {
+  const e = getEventLead(number)
+  if (!e) return null
+  if (e.status === 'paid' || e.status === 'attended') return { ...e, duplicate: true }
+  return store.update(e.token, (x) => ({ ...x, status: 'paid', statusAt: Date.now(), paidAt: Date.now(), amount: amount ?? x.amount, paymentRef: paymentRef || x.paymentRef || '' }))
+}
+
+export function setEventLeadField(number, key, value) {
+  const e = getEventLead(number)
+  return e ? store.update(e.token, (x) => ({ ...x, [key]: value })) : null
+}

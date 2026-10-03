@@ -8,6 +8,7 @@ interface PurchaseData {
   materialTitle: string
   paid: boolean
   accessUrl: string | null
+  fileUrl: string | null
 }
 
 // Личный кабинет покупки материала маркетплейса — Prodamus возвращает сюда
@@ -63,6 +64,14 @@ export default function PurchaseCabinet() {
               </div>
               <div className="font-semibold">Оплата получена{data.name ? `, ${data.name}` : ''}!</div>
               <p className="mt-2 text-sm text-ink/60">«{data.materialTitle}» — ваш материал готов.</p>
+              {data.fileUrl && (
+                <a
+                  href={data.fileUrl}
+                  className="mt-6 inline-block rounded-full bg-ink px-8 py-3 text-sm font-semibold text-white hover:bg-ink/90"
+                >
+                  Скачать PDF
+                </a>
+              )}
               {data.accessUrl ? (
                 <a
                   href={data.accessUrl}
@@ -72,7 +81,7 @@ export default function PurchaseCabinet() {
                 >
                   Открыть материал
                 </a>
-              ) : (
+              ) : !data.fileUrl && (
                 <p className="mt-4 text-sm text-ink/50">Ссылку на материал пришлем отдельно — свяжемся с вами в ближайшее время.</p>
               )}
             </div>

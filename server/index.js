@@ -34,7 +34,7 @@
 import express from 'express'
 import cors from 'cors'
 import multer from 'multer'
-import { createPaymentLink, TARIFFS, tariffIdBySubscriptionId, createProductPaymentLink, MATERIALS, setSubscriptionActivity } from './lib/prodamus.js'
+import { createPaymentLink, TARIFFS, tariffIdBySubscriptionId, createProductPaymentLink, MATERIALS, setSubscriptionActivity, createEventPaymentLink } from './lib/prodamus.js'
 import { HmacHelper } from './lib/hmac.js'
 import { createPendingJoin, createOrphanJoin, listJoins, setTgUserId, findJoinForPayment, recordPayment, setSubscriptionActive, markReminded, getJoin, setCancelReason, setJoinField, extendSubscription, createLifetimeJoin } from './lib/store.js'
 import { normalizePhone } from './lib/jsonStore.js'
@@ -45,7 +45,8 @@ import { createApplication, listApplications } from './lib/candidateApplications
 import { createConsultation, listConsultations, getConsultation, setConsultationStatus } from './lib/consultations.js'
 import { createAmbassador, listAmbassadors, getAmbassador, addReferral, deleteAmbassador } from './lib/ambassadors.js'
 import { createExpense, listExpenses, deleteExpense } from './lib/expenses.js'
-import { createEventLead, listEventLeads, getEventLead, setEventLeadStatus } from './lib/eventLeads.js'
+import { createEventLead, listEventLeads, getEventLead, setEventLeadStatus, markEventLeadPaid, setEventLeadField } from './lib/eventLeads.js'
+import { sendMail, mailConfigured } from './lib/mailer.js'
 import { getMaterialFile, setMaterialFile } from './lib/materialFiles.js'
 import { touchBotUser, giveConsent, setMailingConsent, addTag, getBotUser, listBotUsers, countConversation, updateBotUser, setGender } from './lib/botUsers.js'
 import { isStartKeyword, welcomeScreen, noConsentScreen, mailingScreen, mainMenuScreen, supportPrompt, consultPrompt, genderScreen, reviewThanks, legalScreen, aboutScreen, consultScreen, consultBookedScreen, marketScreen, materialsListScreen, materialCard, payLinkScreen, PAID_TEXT, PAID_TEXTS, PAID_TAGS, paidKeyboard, paymentNotFoundScreen, reviewScreen, CONTACT_PROMPTS, contactCancelKeyboard, unsubscribedScreen, communityScreen, communityResidentScreen, periodsScreen, subLinkScreen, aboutClubScreen, careerScreen, achievementsScreen } from './lib/botFlow.js'
@@ -165,6 +166,46 @@ async function sendTelegramDocumentById(chatId, fileId, caption) {
   if (!res.ok) console.error('[telegram] sendDocument по file_id ошибка:', await res.text())
   return res.ok
 }
+
+// Скачивает файл, который админ загрузил боту (по Telegram file_id), — чтобы приложить его к письму или отдать на сайте.
+async function downloadTelegramFile(fileId) {
+  const info = await (await telegramFetch('getFile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ file_id: fileId }) })).json()
+  if (!info.ok) throw new Error(`getFile: ${info.description ?? 'ошибка'}`)
+  const res = await fetch(`https://api.telegram.org/file/bot${BOT_TOKEN}/${info.result.file_path}`, { signal: AbortSignal.timeout(60000) })
+  if (!res.ok) throw new Error(`скачивание файла: ${res.status}`)
+  return Buffer.from(await res.arrayBuffer())
+}
+
+/** Письмо покупателю с материалом: файл во вложении (если загружен), ссылка и личный кабинет. Возвращает { ok, error? }. */
+async function emailMaterial({ to, name, materialSlug, cabinetUrl }) {
+  const material = materialList().find((m) => m.slug === materialSlug)
+  const file = getMaterialFile(materialSlug)
+  let attachments
+  if (file) {
+    try {
+      attachments = [{ filename: file.fileName || `${materialSlug}.pdf`, content: await downloadTelegramFile(file.fileId) }]
+    } catch (err) {
+      console.error('[mail] не удалось получить файл материала из Telegram:', err.message)
+    }
+  }
+  const lines = [`${name ? `Здравствуйте, ${name}!` : 'Здравствуйте!'}`, '', `Спасибо за покупку! Материал «${material?.title ?? materialSlug}» — во вложении к этому письму.`]
+  if (!attachments) lines.splice(3, 1, `Спасибо за покупку! Материал «${material?.title ?? materialSlug}» уже в вашем личном кабинете.`)
+  if (material?.accessUrl) lines.push('', `Ссылка на материал: ${material.accessUrl}`)
+  if (cabinetUrl) lines.push('', `Личный кабинет с покупкой: ${cabinetUrl}`)
+  lines.push('', `Если что-то пошло не так — напишите в поддержку: ${SUPPORT_HANDLE}`, '', 'Карьерный юрист')
+  return sendMail({ to, subject: `Ваш материал: ${material?.title ?? materialSlug}`, text: lines.join('\n'), attachments })
+}
+
+/** Каталог мероприятий сайта (выгружается при сборке): по нему сервер берёт название и цену билета. */
+function readEventCatalog() {
+  try {
+    return JSON.parse(fs.readFileSync(path.join(import.meta.dirname, 'data', 'event-catalog.json'), 'utf8'))
+  } catch {
+    return []
+  }
+}
+
+const EVENT_ORDER_RE = /\bev-(\d+)\b/i
 
 /**
  * Оборачивает работу, которая идёт уже после того, как клиенту отправлен
@@ -827,7 +868,59 @@ app.get('/api/marketplace/purchase/:token', (req, res) => {
     materialTitle: material?.title ?? purchase.materialSlug,
     paid: purchase.paid,
     accessUrl: purchase.paid ? material?.accessUrl ?? '' : null,
+    fileUrl: purchase.paid && getMaterialFile(purchase.materialSlug) ? `/api/marketplace/purchase/${purchase.token}/file` : null,
   })
+})
+
+// Скачивание файла материала из личного кабинета — только для оплаченной покупки.
+app.get('/api/marketplace/purchase/:token/file', async (req, res) => {
+  const purchase = getPurchase(req.params.token)
+  if (!purchase?.paid) return res.status(403).json({ ok: false, error: 'not_paid' })
+  const file = getMaterialFile(purchase.materialSlug)
+  if (!file) return res.status(404).json({ ok: false, error: 'no_file' })
+  try {
+    const buffer = await downloadTelegramFile(file.fileId)
+    res.setHeader('Content-Type', 'application/pdf')
+    res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(file.fileName || `${purchase.materialSlug}.pdf`)}`)
+    res.send(buffer)
+  } catch (err) {
+    console.error('[marketplace] не удалось отдать файл:', err.message)
+    res.status(502).json({ ok: false, error: 'file_unavailable' })
+  }
+})
+
+// Покупка билета на мероприятие → регистрация (ожидает оплаты) + ссылка на оплату Prodamus.
+// Название и цену берём из каталога на сервере; оплата привязывается к регистрации по order_id «ev-N».
+app.post('/api/event/:slug/checkout', async (req, res) => {
+  const event = readEventCatalog().find((e) => e.slug === req.params.slug)
+  if (!event) return res.status(404).json({ ok: false, error: 'unknown_event' })
+  if (event.status !== 'open' || event.registrationLink) return res.status(400).json({ ok: false, error: 'not_for_sale' })
+  const tariff = event.tariffs.find((t) => t.id === req.body?.tariffId)
+  if (!tariff || !(tariff.price > 0)) return res.status(400).json({ ok: false, error: 'unknown_tariff' })
+
+  const name = String(req.body.name ?? '').trim()
+  const phone = String(req.body.phone ?? '').trim()
+  const email = String(req.body.email ?? '').trim()
+  const telegram = normalizeTelegram(req.body.telegram)
+  if (!name) return res.status(400).json({ ok: false, error: 'name_required' })
+  if (normalizePhone(phone).length < 11 && !EMAIL_RE.test(email)) return res.status(400).json({ ok: false, error: 'contact_required' })
+
+  try {
+    incrementEventRegistration(event.slug)
+    const lead = createEventLead({ kind: 'registration', formType: 'event_registration', eventSlug: event.slug, eventTitle: event.title, tariff: tariff.name, name, phone, email, telegram, source: utmLabel(req.body.utm) })
+    setEventLeadField(lead.number, 'price', tariff.price)
+    const orderId = `ev-${lead.number}`
+    const urlSuccess = `${SITE_URL}/events/${event.slug}?paid=1`
+    const url = await createEventPaymentLink({ title: `${event.title} — ${tariff.name}`, price: tariff.price, orderId, phone, email: EMAIL_RE.test(email) ? email : '', urlSuccess, name })
+    if (BOT_TOKEN && ADMIN_CHAT_ID) {
+      const text = buildLeadNotification({ direction: 'Мероприятия', service: 'Покупка билета на мероприятие', date: new Date().toISOString(), name, phone, email, telegram, details: [`Мероприятие: ${event.title}`, `Билет: ${tariff.name} — ${tariff.price} ₽`, 'Статус: ждём оплату'], ticketNumber: String(lead.number) })
+      await sendTelegramMessage(ADMIN_CHAT_ID, `${text}\n\n🗂 Регистрация №${lead.number}`, [[{ text: `📂 Открыть №${lead.number}`, callback_data: `a:x:evcard:${lead.number}` }]]).catch(() => false)
+    }
+    res.json({ ok: true, url })
+  } catch (err) {
+    console.error('[event-checkout] ошибка генерации ссылки на оплату:', err)
+    res.status(500).json({ ok: false, error: 'link_generation_failed' })
+  }
 })
 
 // Апдейты от Telegram-бота @LegalcareeristBot. Настраивается один раз
@@ -2022,6 +2115,43 @@ app.post('/api/telegram/webhook', async (req, res) => {
   dispatchUpdate(req.body)
 })
 
+/** Успешная оплата билета: статус «Оплатил» и сумма в регистрации, письмо участнику, уведомление админу. */
+async function handleEventPayment(number, body) {
+  const amount = Number(body.sum) || null
+  const lead = markEventLeadPaid(number, amount, String(body.order_id ?? ''))
+  if (!lead) {
+    console.error('[prodamus] оплата билета: регистрация не найдена №', number)
+    await sendTelegramMessage(ADMIN_CHAT_ID, `⚠️ Пришла оплата билета (${body.sum} ₽, order_num ${body.order_num ?? '—'}), но регистрация №${number} не найдена. Проверьте в Prodamus.`).catch(() => false)
+    return
+  }
+  if (lead.duplicate) {
+    console.log('[prodamus] повторный вебхук по оплате билета — пропускаю:', number)
+    return
+  }
+  const event = readEventCatalog().find((e) => e.slug === lead.eventSlug)
+  let mail = { ok: false, error: 'no_email' }
+  if (lead.email) {
+    const when = event ? new Date(event.dateTime).toLocaleString('ru-RU', { dateStyle: 'long', timeStyle: 'short', timeZone: 'Europe/Moscow' }) : ''
+    const lines = [`${lead.name ? `Здравствуйте, ${lead.name}!` : 'Здравствуйте!'}`, '', `Оплата получена — вы зарегистрированы на мероприятие «${lead.eventTitle}».`, `Билет: ${lead.tariff}${amount ? ` · ${amount} ₽` : ''}`]
+    if (when) lines.push(`Когда: ${when} (по Москве)`)
+    if (event?.location) lines.push(`Где: ${event.location}`)
+    lines.push(`Номер регистрации: ${lead.number}`, '', `Мы напомним о мероприятии заранее. Вопросы — ${SUPPORT_HANDLE}`, '', 'Карьерный юрист')
+    mail = await sendMail({ to: lead.email, subject: `Вы зарегистрированы: ${lead.eventTitle}`, text: lines.join('\n') })
+  }
+  const text = buildLeadNotification({
+    direction: 'Мероприятия',
+    service: 'Оплата билета на мероприятие',
+    date: new Date().toISOString(),
+    name: lead.name || '—',
+    phone: lead.phone,
+    email: lead.email,
+    telegram: lead.telegram,
+    details: [`Мероприятие: ${lead.eventTitle}`, `Билет: ${lead.tariff}`, `Сумма: ${body.sum} ₽`, `Письмо участнику: ${mail.ok ? 'отправлено ✅' : mail.error === 'no_email' ? 'почта не указана' : mail.error === 'smtp_not_configured' ? 'почта на сервере не настроена (SMTP)' : `не ушло (${mail.error})`}`],
+    ticketNumber: String(lead.number),
+  })
+  await sendTelegramMessage(ADMIN_CHAT_ID, `💳 Билет оплачен\n\n${text}\n\n🗂 Регистрация №${lead.number} → «Оплатил»`, [[{ text: `📂 Открыть №${lead.number}`, callback_data: `a:x:evcard:${lead.number}` }]])
+}
+
 // Уведомления Prodamus об оплате подписки.
 app.post('/api/prodamus/webhook', async (req, res) => {
   const body = req.body ?? {}
@@ -2062,6 +2192,13 @@ app.post('/api/prodamus/webhook', async (req, res) => {
       return
     }
 
+    // Билет на мероприятие: в order_num (наш order_id) или customer_extra лежит «ev-N».
+    const eventMatch = String(body.order_num ?? '').match(EVENT_ORDER_RE) || String(body.customer_extra ?? '').match(EVENT_ORDER_RE)
+    if (eventMatch) {
+      await handleEventPayment(Number(eventMatch[1]), body)
+      return
+    }
+
     console.log('[prodamus] покупка материала — телефон:', phone)
     const purchase = (body.tg_user_id && markPurchasePaidByTg(body.tg_user_id)) || markPurchasePaidByPhone(phone)
     console.log('[prodamus] результат поиска покупки:', purchase ? `найдена ${purchase.token}` : 'не найдена')
@@ -2073,6 +2210,8 @@ app.post('/api/prodamus/webhook', async (req, res) => {
       }
       const material = MATERIALS[purchase.materialSlug]
       const cabinetUrl = `${SITE_URL}/materials/cabinet?token=${purchase.token}`
+      const mail = purchase.email ? await emailMaterial({ to: purchase.email, name: purchase.name, materialSlug: purchase.materialSlug, cabinetUrl }) : { ok: false, error: 'no_email' }
+      console.log('[prodamus] письмо с материалом:', mail.ok ? 'отправлено' : mail.error)
       const text = buildLeadNotification({
         direction: 'Маркетплейс',
         service: 'Покупка полезного материала',
@@ -2080,12 +2219,14 @@ app.post('/api/prodamus/webhook', async (req, res) => {
         name: purchase.name || '—',
         phone,
         email: purchase.email,
-        details: [`Материал: ${material?.title ?? purchase.materialSlug}`, `Сумма: ${body.sum} ₽`, `Личный кабинет: ${cabinetUrl}`],
+        details: [`Материал: ${material?.title ?? purchase.materialSlug}`, `Сумма: ${body.sum} ₽`, `Личный кабинет: ${cabinetUrl}`, `Письмо с материалом: ${mail.ok ? 'отправлено ✅' : mail.error === 'no_email' ? 'почта не указана' : mail.error === 'smtp_not_configured' ? 'почта на сервере не настроена (SMTP)' : `не ушло (${mail.error})`}`],
       })
       await sendTelegramMessage(ADMIN_CHAT_ID, text)
     }
   })
 })
+
+console.log(`[mail] почта для писем клиентам: ${mailConfigured() ? 'настроена' : 'не настроена (SMTP_HOST/SMTP_USER/SMTP_PASS в server/.env)'}`)
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }))
 
