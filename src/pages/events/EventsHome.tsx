@@ -10,6 +10,7 @@ import { INDUSTRIES, type EventItem, type Industry, type AudienceLevel } from '.
 import { SHOW_CREATE_EVENT, SHOW_EVENTS_ACCOUNT } from '../../lib/featureFlags'
 import HowHeardField from '../../components/HowHeardField'
 import { eventTimeRange } from '../../lib/eventTime'
+import { eventStories } from '../../data/eventStories'
 import { pluralRu } from '../../lib/plural'
 
 const money = new Intl.NumberFormat('ru-RU')
@@ -178,10 +179,18 @@ function EventCard({ e }: { e: EventItem }) {
   const Icon = posterIcon[e.type]
   const date = new Date(e.dateTime)
   const past = e.status === 'completed'
+  // Для мероприятий с авторским оформлением обложка — сцена из его страницы.
+  const cover = eventStories[e.slug]?.heroImage
   return (
     <Link to={`/events/${e.slug}`} className="glass block overflow-hidden rounded-2xl">
       <div className={`relative flex h-40 flex-col justify-between bg-gradient-to-br p-5 text-white ${posterTone[e.type]} ${past ? 'grayscale' : ''}`}>
-        <div className="flex items-start justify-between gap-2">
+        {cover && (
+          <>
+            <img src={cover} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover object-[50%_40%]" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-black/30" aria-hidden="true" />
+          </>
+        )}
+        <div className="relative flex items-start justify-between gap-2">
           <Icon />
           <div className="flex flex-wrap justify-end gap-1.5">
             {e.international && (

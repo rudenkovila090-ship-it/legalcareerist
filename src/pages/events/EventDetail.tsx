@@ -17,6 +17,9 @@ import { getUtm } from '../../lib/utm'
 import { eventTimeRange } from '../../lib/eventTime'
 import HowHeardField from '../../components/HowHeardField'
 import { pluralRu } from '../../lib/plural'
+import { eventStories } from '../../data/eventStories'
+import { NoirHero, NoirIntro, NoirFacts, NoirStory, NoirCharacters } from './NoirSections'
+import { useNoirFont } from '../../lib/useNoirFont'
 
 const specLabel = new Map(SPECIALIZATIONS.map((s) => [s.id, s.label]))
 const industryLabel = new Map(INDUSTRIES.map((i) => [i.id, i.label]))
@@ -158,6 +161,9 @@ export default function EventDetail() {
   useDocumentTitle(event?.title ?? 'Мероприятие не найдено')
   useSocialMeta({ title: event?.title, description: event?.description, path: slug ? `/events/${slug}` : undefined })
   const views = useEventViews(slug ?? '')
+  // Авторское оформление мероприятия (тёмная тема и блоки сюжета) — если для него есть запись в eventStories.
+  const story = slug ? eventStories[slug] : undefined
+  useNoirFont(Boolean(story))
 
   const [tariffId, setTariffId] = useState<EventTariff['id']>(event?.tariffs[0]?.id ?? 'light')
   const [form, setForm] = useState({ fio: '', phone: '', email: '', telegram: '', howHeard: '' })
@@ -293,6 +299,7 @@ export default function EventDetail() {
 
   return (
     <div className="pb-12">
+      <div className={story ? 'theme-noir pb-16' : ''}>
       <div className="container-page pt-8">
         <Link to="/events" className="text-sm text-ink/50 hover:text-ink">← Все мероприятия</Link>
       </div>
@@ -300,6 +307,18 @@ export default function EventDetail() {
       {/* Большой фон-афиша: дата, время по Москве, название, описание в два
           предложения, «Сфера» с тегами специализации/отрасли и кнопка
           «Записаться» — скроллит к блоку регистрации ниже. */}
+      {story ? (
+        <NoirHero
+          event={event}
+          story={story}
+          onBuy={scrollToRegister}
+          favorite={favorite}
+          onToggleFavorite={handleToggleFavorite}
+          share={<ShareButtons title={event.title} />}
+          views={views !== null ? `${views} ${pluralRu(views, ['просмотр', 'просмотра', 'просмотров'])}` : null}
+          heart={<IconHeart filled={favorite} />}
+        />
+      ) : (
       <div className={`mt-4 bg-gradient-to-br p-10 text-white sm:p-14 ${posterTone[event.type] ?? posterTone.webinar}`}>
         <div className="container-page">
           <div className="flex flex-wrap items-center gap-2">
@@ -380,9 +399,18 @@ export default function EventDetail() {
           </div>
         </div>
       </div>
+      )}
 
-      <div className="container-page mt-10 grid gap-10 lg:grid-cols-[2fr_1fr]">
+      <div className="container-page mt-10 grid grid-cols-1 gap-10 lg:grid-cols-[2fr_1fr]">
         <div>
+          {story && (
+            <div className="mb-10 space-y-12">
+              <NoirIntro story={story} />
+              <NoirFacts story={story} />
+              <NoirStory story={story} />
+              <NoirCharacters story={story} />
+            </div>
+          )}
           {event.program.length > 0 && (
             <div>
               <h2 className="text-xl font-semibold">Программа</h2>
@@ -519,7 +547,7 @@ export default function EventDetail() {
           <RelatedContentBlock items={related} title="Может быть полезно" />
         </div>
 
-        <aside id="register" className="scroll-mt-24">
+        <aside id="register" className={`scroll-mt-24 ${story ? 'lg:sticky lg:top-24 lg:self-start' : ''}`}>
           <div className="glass rounded-2xl p-6">
             {event.status === 'completed' ? (
               event.sale ? (
@@ -691,6 +719,8 @@ export default function EventDetail() {
             </div>
           )}
         </aside>
+      </div>
+
       </div>
 
       <EventsFooter />

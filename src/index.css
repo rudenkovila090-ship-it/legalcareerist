@@ -234,3 +234,71 @@ h4 {
     display: none !important;
   }
 }
+
+/* Тёмная «нуарная» тема страницы мероприятия (Legal Night Jazz 2) — по референсам заказчика.
+   Вместо правки каждого компонента подменяем токены внутри обёртки: text-ink/border-ink/bg-ink/[…]
+   становятся «слоновой костью» афиши на почти чёрном фоне, gold — янтарём настольных ламп.
+   Правила здесь без @layer, поэтому перебивают утилиты Tailwind (в т.ч. hover) — кнопки bg-ink
+   перекрашиваются в красный отдельно. Шапка и подвал сайта обёрткой не затрагиваются. */
+.theme-noir {
+  --color-ink: #eadfc8;
+  --color-gold: #d9a85c;
+  --color-gold-light: #e8bd7a;
+  --noir-ground: #0b0506;
+  --noir-crimson: #a3202a;
+  --noir-crimson-bright: #d3303b;
+  background-color: var(--noir-ground);
+  /* Свет рампы сверху справа — на всей обёртке, чтобы у шапки страницы не было шва. */
+  background-image: radial-gradient(60% 720px at 92% 0%, rgba(163, 32, 42, 0.42), transparent 70%);
+  background-repeat: no-repeat;
+  color: var(--color-ink);
+}
+.font-noir {
+  font-family: "Playfair Display", "Times New Roman", Georgia, serif;
+}
+.theme-noir .bg-ink {
+  background-color: var(--noir-crimson);
+  color: #fff;
+}
+.theme-noir .bg-ink:hover {
+  background-color: var(--noir-crimson-bright);
+}
+.theme-noir input,
+.theme-noir textarea,
+.theme-noir select {
+  background-color: rgba(234, 223, 200, 0.05);
+  color: var(--color-ink);
+}
+.theme-noir input:focus {
+  border-color: rgba(217, 168, 92, 0.6);
+}
+.theme-noir .glass {
+  background: rgba(234, 223, 200, 0.04);
+  border-color: rgba(234, 223, 200, 0.14);
+}
+.theme-noir .glass::before {
+  background: radial-gradient(220px circle at var(--mx, 50%) var(--my, 50%), rgba(217, 168, 92, 0.16), transparent 60%);
+}
+.theme-noir .glass:hover {
+  border-color: rgba(217, 168, 92, 0.4);
+  box-shadow: 0 20px 40px -20px rgba(0, 0, 0, 0.8);
+}
+.theme-noir .bg-emerald-50 {
+  background-color: rgba(52, 211, 153, 0.12);
+}
+.theme-noir .text-emerald-800 {
+  color: #86efac;
+}
+.theme-noir .text-red-600 {
+  color: #f87171;
+}
+.noir-hero {
+  border-bottom: 1px solid rgba(234, 223, 200, 0.1);
+}
+/* «Засекреченная» строка: чёрная плашка вместо спойлера. */
+.noir-sealed {
+  display: inline-block;
+  background: #000;
+  color: rgba(234, 223, 200, 0.45);
+  border: 1px solid rgba(234, 223, 200, 0.12);
+}
