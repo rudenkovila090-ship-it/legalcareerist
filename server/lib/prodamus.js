@@ -4,8 +4,33 @@
 // hmac.js (проверено на реальных ссылках клубной системы, все совпали).
 import { HmacHelper, flattenForm } from './hmac.js'
 
-const PAYFORM_DOMAIN = process.env.PRODAMUS_DOMAIN || 'legalcareerist.payform.ru'
+// У каждой платёжной страницы Prodamus свой домен и свой секретный ключ. Основная страница — подписки сообщества;
+// для материалов и мероприятий можно подключить отдельные страницы (другая ветка доходов): PRODAMUS_MATERIALS_DOMAIN /
+// PRODAMUS_MATERIALS_SECRET_KEY и PRODAMUS_EVENTS_DOMAIN / PRODAMUS_EVENTS_SECRET_KEY. Не заданы — берётся основная.
+const cleanDomain = (v) => String(v ?? '').trim().replace(/^https?:\/\//i, '').replace(/\/.*$/, '')
+const PAYFORM_DOMAIN = cleanDomain(process.env.PRODAMUS_DOMAIN) || 'legalcareerist.payform.ru'
 const SECRET_KEY = process.env.PRODAMUS_SECRET_KEY
+const PAYFORMS = {
+  default: { domain: PAYFORM_DOMAIN, key: SECRET_KEY },
+  materials: {
+    domain: cleanDomain(process.env.PRODAMUS_MATERIALS_DOMAIN) || PAYFORM_DOMAIN,
+    key: process.env.PRODAMUS_MATERIALS_SECRET_KEY || SECRET_KEY,
+  },
+  events: {
+    domain: cleanDomain(process.env.PRODAMUS_EVENTS_DOMAIN) || PAYFORM_DOMAIN,
+    key: process.env.PRODAMUS_EVENTS_SECRET_KEY || SECRET_KEY,
+  },
+}
+
+/** Все секретные ключи платёжных страниц — уведомление подписано ключом той страницы, с которой пришла оплата. */
+export function allSecretKeys() {
+  return [...new Set(Object.values(PAYFORMS).map((p) => p.key).filter(Boolean))]
+}
+
+/** Домены платёжных страниц — для диагностики в журнале при старте. */
+export function payformSummary() {
+  return Object.entries(PAYFORMS).map(([name, p]) => `${name}: ${p.domain}${p.key ? '' : ' (ключ не задан!)'}`).join(' · ')
+}
 const SITE_URL = process.env.SITE_URL || 'https://legalcareerist.ru'
 
 // Материалы маркетплейса с настоящей оплатой (не подпиской — разовая
@@ -96,7 +121,7 @@ export async function createPaymentLink(params) {
 export async function createProductPaymentLink({ materialSlug, phone, email, urlSuccess, tgUserId }) {
   const material = MATERIALS[materialSlug]
   if (!material) throw new Error(`unknown material: ${materialSlug}`)
-  return createOneTimeLink({ title: material.title, price: material.price, phone, email, urlSuccess, tgUserId })
+  return createOneTimeLink({ payform: 'materials', title: material.title, price: material.price, phone, email, urlSuccess, tgUserId })
 }
 
 /**
@@ -105,11 +130,12 @@ export async function createProductPaymentLink({ materialSlug, phone, email, url
  * по нему оплата привязывается к регистрации даже если человек изменил контакты на странице оплаты.
  */
 export async function createEventPaymentLink({ title, price, orderId, phone, email, urlSuccess, name }) {
-  return createOneTimeLink({ title, price, phone, email, urlSuccess, orderId, customerExtra: [`Мероприятие: ${title}`, name, orderId].filter(Boolean).join(' | ') })
+  return createOneTimeLink({ payform: 'events', title, price, phone, email, urlSuccess, orderId, customerExtra: [`Мероприятие: ${title}`, name, orderId].filter(Boolean).join(' | ') })
 }
 
-async function createOneTimeLink({ title, price, phone, email, urlSuccess, tgUserId, orderId, customerExtra }) {
-  if (!SECRET_KEY) throw new Error('PRODAMUS_SECRET_KEY not set')
+async function createOneTimeLink({ payform = 'default', title, price, phone, email, urlSuccess, tgUserId, orderId, customerExtra }) {
+  const { domain, key } = PAYFORMS[payform]
+  if (!key) throw new Error(`секретный ключ платёжной страницы «${payform}» не задан (PRODAMUS_SECRET_KEY)`)
   if (!phone && !email && !tgUserId) throw new Error('need phone, email or tg_user_id to identify customer')
 
   const data = {
@@ -124,10 +150,10 @@ async function createOneTimeLink({ title, price, phone, email, urlSuccess, tgUse
   if (email) data.customer_email = email
   if (urlSuccess) data.urlSuccess = urlSuccess
 
-  data.signature = HmacHelper.create(data, SECRET_KEY)
+  data.signature = HmacHelper.create(data, key)
 
   const flat = flattenForm(data)
-  const linkRequestUrl = `https://${PAYFORM_DOMAIN}/?${new URLSearchParams(flat).toString()}`
+  const linkRequestUrl = `https://${domain}/?${new URLSearchParams(flat).toString()}`
 
   const res = await fetch(linkRequestUrl)
   const text = (await res.text()).trim()

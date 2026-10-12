@@ -34,7 +34,7 @@
 import express from 'express'
 import cors from 'cors'
 import multer from 'multer'
-import { createPaymentLink, TARIFFS, tariffIdBySubscriptionId, createProductPaymentLink, MATERIALS, setSubscriptionActivity, createEventPaymentLink } from './lib/prodamus.js'
+import { createPaymentLink, TARIFFS, tariffIdBySubscriptionId, createProductPaymentLink, MATERIALS, setSubscriptionActivity, createEventPaymentLink, allSecretKeys, payformSummary } from './lib/prodamus.js'
 import { HmacHelper } from './lib/hmac.js'
 import { createPendingJoin, createOrphanJoin, listJoins, setTgUserId, findJoinForPayment, recordPayment, setSubscriptionActive, markReminded, getJoin, setCancelReason, setJoinField, extendSubscription, createLifetimeJoin } from './lib/store.js'
 import { normalizePhone } from './lib/jsonStore.js'
@@ -83,7 +83,7 @@ app.use(express.urlencoded({ extended: true }))
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN
 const ADMIN_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID
-const PRODAMUS_SECRET_KEY = process.env.PRODAMUS_SECRET_KEY
+const PRODAMUS_SECRET_KEYS = allSecretKeys()
 const SITE_URL = process.env.SITE_URL || 'https://legalcareerist.ru'
 const COMMUNITY_INVITE_LINK = process.env.COMMUNITY_INVITE_LINK
 // Секретная команда открытия кабинета разработчика (можно поменять в server/.env: ADMIN_COMMAND=...).
@@ -2276,8 +2276,9 @@ app.post('/api/prodamus/webhook', async (req, res) => {
   const body = req.body ?? {}
   const sign = req.headers['sign'] || body.signature
 
-  if (PRODAMUS_SECRET_KEY && sign) {
-    const valid = HmacHelper.verify(body, PRODAMUS_SECRET_KEY, sign)
+  if (PRODAMUS_SECRET_KEYS.length && sign) {
+    // Уведомление подписано ключом той платёжной страницы, с которой пришла оплата (подписки, материалы, билеты — могут быть разными).
+    const valid = PRODAMUS_SECRET_KEYS.some((key) => HmacHelper.verify(body, key, sign))
     if (!valid) {
       console.error('[prodamus] неверная подпись вебхука')
       return res.sendStatus(400)
@@ -2340,6 +2341,7 @@ app.post('/api/prodamus/webhook', async (req, res) => {
   })
 })
 
+console.log(`[prodamus] платёжные страницы — ${payformSummary()}`)
 console.log(`[mail] почта для писем клиентам: ${mailConfigured() ? 'настроена' : 'не настроена (SMTP_HOST/SMTP_USER/SMTP_PASS в server/.env)'}`)
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }))
