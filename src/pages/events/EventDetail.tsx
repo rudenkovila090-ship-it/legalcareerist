@@ -14,7 +14,9 @@ import { registerForEvent } from '../../lib/eventRegistrations'
 import { isFavoriteEvent, toggleFavoriteEvent } from '../../lib/eventFavorites'
 import { useEventViews } from '../../lib/useEventViews'
 import { getUtm } from '../../lib/utm'
+import { eventTimeRange } from '../../lib/eventTime'
 import HowHeardField from '../../components/HowHeardField'
+import { pluralRu } from '../../lib/plural'
 
 const specLabel = new Map(SPECIALIZATIONS.map((s) => [s.id, s.label]))
 const industryLabel = new Map(INDUSTRIES.map((i) => [i.id, i.label]))
@@ -161,11 +163,40 @@ export default function EventDetail() {
   const [form, setForm] = useState({ fio: '', phone: '', email: '', telegram: '', howHeard: '' })
   const [registered, setRegistered] = useState(false)
   const [paying, setPaying] = useState(false)
+  // Промокод: цену со скидкой считает сервер (/api/event/:slug/promo), здесь только показываем итог.
+  const [promoInput, setPromoInput] = useState('')
+  const [promo, setPromo] = useState<{ code: string; label: string; price: number; discount: number } | null>(null)
+  const [promoError, setPromoError] = useState('')
+  const [promoChecking, setPromoChecking] = useState(false)
   const [payError, setPayError] = useState(false)
   // Prodamus возвращает сюда после оплаты (urlSuccess ?paid=1) — показываем подтверждение.
   const [searchParams] = useSearchParams()
   const justPaid = searchParams.get('paid') === '1'
   const [favorite, setFavorite] = useState(() => (event ? isFavoriteEvent(event.id) : false))
+
+  async function applyPromoCode(tariffForPromo: EventTariff['id']): Promise<boolean> {
+    if (!event) return false
+    const code = promoInput.trim()
+    if (!code) return true
+    setPromoChecking(true)
+    setPromoError('')
+    try {
+      const res = await fetch(`/api/event/${event.slug}/promo`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code, tariffId: tariffForPromo }) })
+      const data = await res.json()
+      if (!res.ok || !data.ok) {
+        setPromo(null)
+        setPromoError(res.status === 429 ? 'Слишком много попыток. Попробуйте через несколько минут.' : 'Такого промокода нет или он больше не действует.')
+        return false
+      }
+      setPromo({ code: data.code, label: data.label, price: data.price, discount: data.discount })
+      return true
+    } catch {
+      setPromoError('Не получилось проверить промокод. Попробуйте ещё раз.')
+      return false
+    } finally {
+      setPromoChecking(false)
+    }
+  }
 
   function handleToggleFavorite() {
     if (!event) return
@@ -206,11 +237,16 @@ export default function EventDetail() {
     if (tariff.price > 0 && !event.registrationLink) {
       setPaying(true)
       setPayError(false)
+      // Ввели промокод, но не нажали «Применить» — проверяем сами; неверный код не даём «молча» проигнорировать.
+      if (promoInput.trim() && !promo && !(await applyPromoCode(tariff.id))) {
+        setPaying(false)
+        return
+      }
       try {
         const res = await fetch(`/api/event/${event.slug}/checkout`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ tariffId: tariff.id, name: form.fio, phone: form.phone, email: form.email, telegram: form.telegram, howHeard: form.howHeard, utm: getUtm() }),
+          body: JSON.stringify({ tariffId: tariff.id, name: form.fio, phone: form.phone, email: form.email, telegram: form.telegram, howHeard: form.howHeard, promoCode: promo?.code, utm: getUtm() }),
         })
         const data = await res.json()
         if (!res.ok || !data.url) throw new Error('checkout_failed')
@@ -284,7 +320,7 @@ export default function EventDetail() {
           <div className="mt-5 flex flex-wrap items-center gap-3 text-xl font-bold text-white sm:text-2xl">
             <span>{new Date(event.dateTime).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
             <span className="h-6 w-px shrink-0 bg-white/40" aria-hidden="true" />
-            <span>{new Date(event.dateTime).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Moscow' })} по Москве</span>
+            <span>{eventTimeRange(event)} по Москве</span>
             <span className="h-6 w-px shrink-0 bg-white/40" aria-hidden="true" />
             <span>{event.format === 'online' ? 'Онлайн' : event.city}</span>
           </div>
@@ -292,21 +328,23 @@ export default function EventDetail() {
               иначе строка обрывается посреди слова («…Карьера в M&A» уходило
               переносом на новую строку некрасиво). */}
           <h1 className="mt-3 text-3xl font-semibold sm:text-4xl">{event.title}</h1>
-          <p className="mt-4 text-white/80">{event.description}</p>
+          {event.description && <p className="mt-4 text-white/80">{event.description}</p>}
 
           {/* Свои пилюли, не общий TagRow — тот рассчитан на светлый фон
               (bg-ink/5 text-ink/70), на темной афише был бы нечитаем. */}
-          <div className="mt-6">
-            <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-white/50">Сфера</div>
-            <div className="flex flex-wrap gap-1.5">
-              {event.specialization.map((s) => (
-                <span key={s} className="rounded-full bg-white/20 px-2.5 py-1 text-xs font-medium text-white">{specLabel.get(s)}</span>
-              ))}
-              {event.industry.map((i) => (
-                <span key={i} className="rounded-full bg-white/10 px-2.5 py-1 text-xs font-medium text-white/80">{industryLabel.get(i)}</span>
-              ))}
+          {(event.specialization.length > 0 || event.industry.length > 0) && (
+            <div className="mt-6">
+              <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-white/50">Сфера</div>
+              <div className="flex flex-wrap gap-1.5">
+                {event.specialization.map((s) => (
+                  <span key={s} className="rounded-full bg-white/20 px-2.5 py-1 text-xs font-medium text-white">{specLabel.get(s)}</span>
+                ))}
+                {event.industry.map((i) => (
+                  <span key={i} className="rounded-full bg-white/10 px-2.5 py-1 text-xs font-medium text-white/80">{industryLabel.get(i)}</span>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="mt-8 flex flex-wrap items-center gap-3">
             {event.registrationLink ? (
@@ -338,24 +376,26 @@ export default function EventDetail() {
               {favorite ? 'В избранном' : 'В избранное'}
             </button>
             <ShareButtons title={event.title} />
-            {views !== null && <span className="text-sm text-white/60">{views} просмотров</span>}
+            {views !== null && <span className="text-sm text-white/60">{views} {pluralRu(views, ['просмотр', 'просмотра', 'просмотров'])}</span>}
           </div>
         </div>
       </div>
 
       <div className="container-page mt-10 grid gap-10 lg:grid-cols-[2fr_1fr]">
         <div>
-          <div>
-            <h2 className="text-xl font-semibold">Программа</h2>
-            <ul className="mt-3 space-y-2 text-ink/70">
-              {event.program.map((p) => (
-                <li key={p} className="flex gap-2">
-                  <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-ink/40" />
-                  {p}
-                </li>
-              ))}
-            </ul>
-          </div>
+          {event.program.length > 0 && (
+            <div>
+              <h2 className="text-xl font-semibold">Программа</h2>
+              <ul className="mt-3 space-y-2 text-ink/70">
+                {event.program.map((p) => (
+                  <li key={p} className="flex gap-2">
+                    <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-ink/40" />
+                    {p}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {event.audienceFit.length > 0 && (
             <div className="mt-8">
@@ -385,22 +425,24 @@ export default function EventDetail() {
             </div>
           )}
 
-          <div className="mt-8">
-            <h2 className="text-xl font-semibold">Что вы получите после мероприятия</h2>
-            <div className="mt-4 grid gap-4 sm:grid-cols-3">
-              {event.takeaways.map((t, i) => {
-                const Icon = takeawayIcons[i % takeawayIcons.length]
-                return (
-                  <div key={t} className="rounded-2xl border border-ink/10 bg-ink/[0.02] p-5">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-ink text-white">
-                      <Icon />
+          {event.takeaways.length > 0 && (
+            <div className="mt-8">
+              <h2 className="text-xl font-semibold">Что вы получите после мероприятия</h2>
+              <div className="mt-4 grid gap-4 sm:grid-cols-3">
+                {event.takeaways.map((t, i) => {
+                  const Icon = takeawayIcons[i % takeawayIcons.length]
+                  return (
+                    <div key={t} className="rounded-2xl border border-ink/10 bg-ink/[0.02] p-5">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-ink text-white">
+                        <Icon />
+                      </div>
+                      <p className="mt-3 text-sm text-ink/70">{t}</p>
                     </div>
-                    <p className="mt-3 text-sm text-ink/70">{t}</p>
-                  </div>
-                )
-              })}
+                  )
+                })}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Спикеры — кружок (фото или плейсхолдер), под ним имя и регалии,
               текст выровнен по левому краю колонки. */}
@@ -519,7 +561,11 @@ export default function EventDetail() {
                       <button
                         key={t.id}
                         type="button"
-                        onClick={() => setTariffId(t.id)}
+                        onClick={() => {
+                          setTariffId(t.id)
+                          setPromo(null)
+                          setPromoError('')
+                        }}
                         className={`rounded-xl border p-3.5 text-left transition-colors ${selected ? 'border-ink bg-ink/[0.03]' : 'border-ink/15 hover:border-ink/30'}`}
                       >
                         <div className="flex items-center justify-between gap-2">
@@ -588,10 +634,41 @@ export default function EventDetail() {
                       placeholder="Telegram"
                       className="rounded-lg border border-ink/15 px-3.5 py-2.5 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40"
                     />
+                    {tariff.price > 0 && !event.registrationLink && (
+                      <div>
+                        <div className="flex gap-2">
+                          <input
+                            value={promoInput}
+                            onChange={(e) => {
+                              setPromoInput(e.target.value)
+                              setPromo(null)
+                              setPromoError('')
+                            }}
+                            placeholder="Промокод (если есть)"
+                            autoCapitalize="characters"
+                            className="min-w-0 flex-1 rounded-lg border border-ink/15 px-3.5 py-2.5 text-sm uppercase outline-none placeholder:normal-case placeholder:text-ink/40 focus:border-ink/40"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => applyPromoCode(tariff.id)}
+                            disabled={!promoInput.trim() || promoChecking}
+                            className="shrink-0 rounded-lg border border-ink/20 px-4 py-2.5 text-sm font-semibold text-ink hover:bg-ink/5 disabled:opacity-50"
+                          >
+                            {promoChecking ? 'Проверяем…' : 'Применить'}
+                          </button>
+                        </div>
+                        {promo && (
+                          <div className="mt-2 rounded-lg bg-emerald-50 p-2.5 text-xs text-emerald-800">
+                            Промокод {promo.code} применён ({promo.label}): скидка {promo.discount.toLocaleString('ru-RU')} ₽, к оплате {promo.price.toLocaleString('ru-RU')} ₽.
+                          </div>
+                        )}
+                        {promoError && <div className="mt-2 text-xs text-red-600">{promoError}</div>}
+                      </div>
+                    )}
                     <HowHeardField value={form.howHeard} onChange={(v) => setForm((f) => ({ ...f, howHeard: v }))} className="rounded-lg border border-ink/15 px-3.5 py-2.5 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40" />
                     {payError && <div className="text-xs text-red-600">Не получилось перейти к оплате. Попробуйте ещё раз или напишите нам.</div>}
                     <button type="submit" disabled={paying} className="mt-1 rounded-lg bg-ink py-2.5 text-sm font-semibold text-white hover:bg-ink/90 disabled:opacity-60">
-                      {paying ? 'Переходим к оплате…' : tariff.price === 0 ? 'Приобрести билет' : `Приобрести билет — ${tariff.price.toLocaleString('ru-RU')} ₽`}
+                      {paying ? 'Переходим к оплате…' : tariff.price === 0 ? 'Приобрести билет' : `Приобрести билет — ${(promo?.price ?? tariff.price).toLocaleString('ru-RU')} ₽`}
                     </button>
                   </form>
                 )}
@@ -599,7 +676,7 @@ export default function EventDetail() {
             )}
           </div>
 
-          {event.format === 'offline' && (event.city || event.location) && (
+          {event.format === 'offline' && event.location && (
             <div className="glass mt-4 overflow-hidden rounded-2xl">
               <div className="p-6 pb-3">
                 <div className="text-xs font-semibold uppercase tracking-wide text-ink/40">Место проведения</div>

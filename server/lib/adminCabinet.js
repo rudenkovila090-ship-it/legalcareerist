@@ -93,7 +93,7 @@ const SECTIONS = {
         { text: '🎟 Регистрации', callback_data: 'a:x:evreg' },
         { text: '📨 Заявки', callback_data: 'a:x:evreq' },
       ],
-      [{ text: '📊 Итоги месяца', callback_data: 'a:x:evmonth' }],
+      [{ text: '📊 Итоги месяца', callback_data: 'a:x:evmonth' }, { text: '🎟 Промокоды', callback_data: 'a:x:promo' }],
       BACK_ROW,
     ],
   },

@@ -268,6 +268,7 @@ export function eventLeadCard(e) {
     e.eventTitle ? `📌 ${e.eventTitle}` : null,
     e.tariff ? `🎫 Тариф: ${e.tariff}` : null,
     e.company ? `🏢 Компания: ${e.company}` : null,
+    e.promo ? `🎟 Промокод: ${e.promo} (скидка ${rub(e.discount ?? 0)} от ${rub(e.basePrice ?? 0)})` : null,
     e.amount != null ? `💰 Оплачено: ${rub(e.amount)}` : null,
     e.name ? `👤 ${e.name}` : null,
     e.telegram ? `💬 Telegram: ${e.telegram}` : null,
@@ -442,6 +443,27 @@ export function reviewCard(r, materialTitle) {
     r.hidden ? 'Сейчас не показывается на сайте.' : 'Сейчас показывается на сайте.',
   ].filter((l) => l !== null)
   return { text: lines.join('\n'), keyboard: [[{ text: r.hidden ? '👁 Показать на сайте' : '🙈 Скрыть с сайта', callback_data: `a:x:rvh:${r.number}` }], back('⬅️ К отзывам', 'a:x:rv')] }
+}
+
+export const PROMO_PROMPT = [
+  '🎟 Новый промокод на билеты',
+  '',
+  'Отправьте одной строкой: КОД и скидка.',
+  'Скидка в процентах: RESIDENT 20%',
+  'Скидка в рублях: FRIEND 500',
+  '',
+  'Код — 3–32 букв или цифр, регистр не важен. Процент — от 1 до 95. Отменить — /cancel.',
+].join('\n')
+
+/** Экран промокодов на билеты: активные коды с числом оплат, кнопка удаления у каждого. */
+export function promosScreen(promos, label) {
+  const active = promos.filter((p) => p.active)
+  const lines = ['🎟 Промокоды на билеты', '', active.length ? 'Действующие коды (скидка считается на сервере от цены билета):' : 'Промокодов пока нет. Без кода билет продаётся по полной цене.']
+  for (const p of active) lines.push(`• ${p.code} — ${label(p)} · оплат с кодом: ${p.used ?? 0}`)
+  const keyboard = [[{ text: '➕ Добавить промокод', callback_data: 'a:x:promonew' }]]
+  for (const p of active) keyboard.push([{ text: `🗑 Удалить ${p.code}`.slice(0, 60), callback_data: `a:x:promodel:${p.number}` }])
+  keyboard.push([{ text: '⬅️ Мероприятия', callback_data: 'a:sec:events' }, ...menuRow])
+  return { text: lines.join('\n'), keyboard }
 }
 
 export function systemScreen(healthLines) {

@@ -4,6 +4,7 @@ import { TagRow } from './Tag'
 import { useArticleViewCount } from '../lib/useArticleViews'
 import { useNewsViewCount } from '../lib/useNewsViews'
 import { materialKindLabel } from '../lib/materialLabels'
+import { pluralRu } from '../lib/plural'
 
 const money = new Intl.NumberFormat('ru-RU')
 
@@ -39,7 +40,7 @@ export function ArticleCard({ a, onSelect }: { a: Article; onSelect?: (slug: str
       <span className="text-xs font-medium uppercase tracking-wide text-gold">{kindLabel(a.kind)}</span>
       <h3 className="mt-1 font-semibold leading-snug">{a.title}</h3>
       <p className="mt-2 text-sm text-ink/60">{a.excerpt}</p>
-      <div className="mt-2 text-xs text-ink/40">{views ?? 0} просмотров</div>
+      <div className="mt-2 text-xs text-ink/40">{views ?? 0} {pluralRu(views ?? 0, ['просмотр', 'просмотра', 'просмотров'])}</div>
     </>
   )
   if (onSelect) {
@@ -72,7 +73,7 @@ export function NewsCard({ n }: { n: NewsItem }) {
         <span className="text-xs text-ink/40">{n.date}</span>
       </div>
       <h3 className="mt-3 font-semibold leading-snug">{n.title}</h3>
-      <div className="mt-2 text-xs text-ink/40">{views ?? 0} просмотров</div>
+      <div className="mt-2 text-xs text-ink/40">{views ?? 0} {pluralRu(views ?? 0, ['просмотр', 'просмотра', 'просмотров'])}</div>
     </Link>
   )
 }

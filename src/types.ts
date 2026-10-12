@@ -471,6 +471,8 @@ export interface EventItem extends Tagged {
   type: EventType
   format: EventFormat
   dateTime: string
+  /** Окончание (ISO): если задано, время показывается диапазоном «18:00–22:00». */
+  endDateTime?: string
   city?: string
   price: number
   promoCode?: string

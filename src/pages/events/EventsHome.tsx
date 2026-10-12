@@ -9,6 +9,8 @@ import EventsFooter from './EventsFooter'
 import { INDUSTRIES, type EventItem, type Industry, type AudienceLevel } from '../../types'
 import { SHOW_CREATE_EVENT, SHOW_EVENTS_ACCOUNT } from '../../lib/featureFlags'
 import HowHeardField from '../../components/HowHeardField'
+import { eventTimeRange } from '../../lib/eventTime'
+import { pluralRu } from '../../lib/plural'
 
 const money = new Intl.NumberFormat('ru-RU')
 
@@ -202,8 +204,8 @@ function EventCard({ e }: { e: EventItem }) {
 
         <div className="mt-3 space-y-1 text-sm text-ink/60">
           <div>{e.format === 'online' ? 'Онлайн' : e.city}</div>
-          <div>{date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })} · {date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Moscow' })}</div>
-          <div>{e.location}</div>
+          <div>{date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })} · {eventTimeRange(e)}</div>
+          {e.location && <div>{e.location}</div>}
         </div>
 
         {past && e.sale ? (
@@ -548,7 +550,7 @@ export default function EventsHome() {
                   Сбросить
                 </button>
               )}
-              <div className="ml-auto text-sm text-ink/50">{filtered.length} мероприятий</div>
+              <div className="ml-auto text-sm text-ink/50">{filtered.length} {pluralRu(filtered.length, ['мероприятие', 'мероприятия', 'мероприятий'])}</div>
             </div>
           </section>
 

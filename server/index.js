@@ -47,6 +47,7 @@ import { createAmbassador, listAmbassadors, getAmbassador, addReferral, deleteAm
 import { createExpense, listExpenses, deleteExpense } from './lib/expenses.js'
 import { createEventLead, listEventLeads, getEventLead, setEventLeadStatus, markEventLeadPaid, setEventLeadField } from './lib/eventLeads.js'
 import { sendMail, mailConfigured } from './lib/mailer.js'
+import { listPromos, addPromo, removePromo, findPromo, applyPromo, markPromoUsed, parsePromoInput, promoLabel } from './lib/promoCodes.js'
 import { cleanHowHeard, howHeardLine, howHeardScreen, logLeadSource } from './lib/howHeard.js'
 import { getAdminSettings, toggleAdminSetting } from './lib/adminSettings.js'
 import { queuePending, cancelPending, takeDuePending, PENDING_MINUTES } from './lib/pendingNotices.js'
@@ -60,7 +61,7 @@ import { residentMenu, subscriptionScreen, linkScreen, settingsScreen, cancelCon
 import { logAction, recentActions } from './lib/auditLog.js'
 import { healthLines, makeBackup, readBackupState, writeBackupState } from './lib/healthBackup.js'
 import { listTodos, addTodo, setTodoDone, ensureTodo } from './lib/todos.js'
-import { todosScreen, TODO_PROMPT, chatCheckScreen, userCard, botUsersScreen, notificationsScreen, reviewsScreen, reviewCard, ambassadorsScreen, ambassadorCard, AMBASSADOR_PROMPT, overdueScreen, retentionScreen, cancelCard, financeSummary, forecastScreen, expensesScreen, EXPENSE_PROMPT, parseExpense, eventRegistrationsScreen, eventScreen, eventLeadCard, eventRequestsScreen, eventsMonthSummary, FIND_PROMPT, searchScreen, digestScreen, systemScreen, auditScreen, monthKeyFor as extraMonthKey } from './lib/extraCabinet.js'
+import { todosScreen, TODO_PROMPT, chatCheckScreen, userCard, botUsersScreen, notificationsScreen, reviewsScreen, reviewCard, promosScreen, PROMO_PROMPT, ambassadorsScreen, ambassadorCard, AMBASSADOR_PROMPT, overdueScreen, retentionScreen, cancelCard, financeSummary, forecastScreen, expensesScreen, EXPENSE_PROMPT, parseExpense, eventRegistrationsScreen, eventScreen, eventLeadCard, eventRequestsScreen, eventsMonthSummary, FIND_PROMPT, searchScreen, digestScreen, systemScreen, auditScreen, monthKeyFor as extraMonthKey } from './lib/extraCabinet.js'
 import { createInterest, getInterest, listInterests, markInterestDone, closeInterest, snoozeInterest, interestsDueForReminder, markInterestReminded, REMIND_AFTER_DAYS } from './lib/interests.js'
 import { createReserveCandidate, listReserve, getReserveCandidate, setReserveField, deleteReserveCandidate } from './lib/reserve.js'
 import { reserveListScreen, reserveCard, reserveFieldPrompt, reserveDeleteConfirm, RESERVE_NEW_PROMPT, INTEREST_KIND_KEYBOARD, interestPrompt, interestsScreen, interestCard, SEEKERS_KEYBOARD, buildVacancyViews, vacanciesScreen, vacancyCard, vacancyApplicationsScreen, recentApplicationsScreen, consultationsScreen, consultationCard, seekersMonthSummary } from './lib/seekersCabinet.js'
@@ -449,6 +450,7 @@ function buildTicketPaidNotification({ lead, amount, paidAt, mail }) {
     '',
     `Мероприятия → ${lead.eventTitle || 'мероприятие'}`,
     `Билет: ${lead.tariff || 'не указан'}`,
+    lead.promo ? `🎟 Промокод: ${lead.promo} (скидка ${formatRub(lead.discount ?? 0)} от ${formatRub(lead.basePrice ?? 0)})` : null,
     '',
     `📅 ${formatMoscowDateTime(new Date(paidAt).toISOString())}`,
     '',
@@ -1024,14 +1026,48 @@ app.post('/api/materials/:slug/review', async (req, res) => {
   }
 })
 
+// Проверка промокода на билет: сервер возвращает цену со скидкой (в форме показываем её до оплаты).
+// От подбора кодов перебором защищает ограничение попыток с одного адреса.
+const promoAttempts = new Map()
+function promoRateLimited(ip) {
+  const now = Date.now()
+  const e = promoAttempts.get(ip)
+  if (!e || e.resetAt < now) {
+    promoAttempts.set(ip, { count: 1, resetAt: now + 10 * 60 * 1000 })
+    return false
+  }
+  e.count += 1
+  return e.count > 20
+}
+
+/** Билет мероприятия из каталога сайта с применённым промокодом (если передан). Возвращает { event, tariff, price, discount, promo } или { error }. */
+function priceTicket(slug, tariffId, promoCode) {
+  const event = readEventCatalog().find((e) => e.slug === slug)
+  if (!event) return { error: 'unknown_event', status: 404 }
+  if (event.status !== 'open' || event.registrationLink) return { error: 'not_for_sale', status: 400 }
+  const tariff = event.tariffs.find((t) => t.id === tariffId)
+  if (!tariff || !(tariff.price > 0)) return { error: 'unknown_tariff', status: 400 }
+  if (!promoCode) return { event, tariff, price: tariff.price, discount: 0, promo: null }
+  const promo = findPromo(promoCode)
+  if (!promo) return { error: 'invalid_promo', status: 400 }
+  const { price, discount } = applyPromo(tariff.price, promo)
+  return { event, tariff, price, discount, promo }
+}
+
+app.post('/api/event/:slug/promo', (req, res) => {
+  if (promoRateLimited(req.ip)) return res.status(429).json({ ok: false, error: 'too_many_attempts' })
+  const r = priceTicket(req.params.slug, req.body?.tariffId, String(req.body?.code ?? '').trim() || 'пусто')
+  if (r.error) return res.status(r.status).json({ ok: false, error: r.error })
+  res.json({ ok: true, code: r.promo.code, label: promoLabel(r.promo), price: r.price, discount: r.discount, basePrice: r.tariff.price })
+})
+
 // Покупка билета на мероприятие → регистрация (ожидает оплаты) + ссылка на оплату Prodamus.
 // Название и цену берём из каталога на сервере; оплата привязывается к регистрации по order_id «ev-N».
 app.post('/api/event/:slug/checkout', async (req, res) => {
-  const event = readEventCatalog().find((e) => e.slug === req.params.slug)
-  if (!event) return res.status(404).json({ ok: false, error: 'unknown_event' })
-  if (event.status !== 'open' || event.registrationLink) return res.status(400).json({ ok: false, error: 'not_for_sale' })
-  const tariff = event.tariffs.find((t) => t.id === req.body?.tariffId)
-  if (!tariff || !(tariff.price > 0)) return res.status(400).json({ ok: false, error: 'unknown_tariff' })
+  const promoCode = String(req.body?.promoCode ?? '').trim()
+  const ticket = priceTicket(req.params.slug, req.body?.tariffId, promoCode)
+  if (ticket.error) return res.status(ticket.status).json({ ok: false, error: ticket.error })
+  const { event, tariff } = ticket
 
   const name = String(req.body.name ?? '').trim()
   const phone = String(req.body.phone ?? '').trim()
@@ -1044,13 +1080,18 @@ app.post('/api/event/:slug/checkout', async (req, res) => {
     incrementEventRegistration(event.slug)
     logLeadSource({ kind: `Билет: ${event.title}`, name, answer: req.body.howHeard, utm: utmLabel(req.body.utm) })
     const lead = createEventLead({ kind: 'registration', formType: 'event_registration', eventSlug: event.slug, eventTitle: event.title, tariff: tariff.name, name, phone, email, telegram, source: utmLabel(req.body.utm), howHeard: cleanHowHeard(req.body.howHeard) })
-    setEventLeadField(lead.number, 'price', tariff.price)
+    setEventLeadField(lead.number, 'price', ticket.price)
+    if (ticket.promo) {
+      setEventLeadField(lead.number, 'basePrice', tariff.price)
+      setEventLeadField(lead.number, 'promo', ticket.promo.code)
+      setEventLeadField(lead.number, 'discount', ticket.discount)
+    }
     const orderId = `ev-${lead.number}`
     const urlSuccess = `${SITE_URL}/events/${event.slug}?paid=1`
-    const url = await createEventPaymentLink({ title: `${event.title} — ${tariff.name}`, price: tariff.price, orderId, phone, email: EMAIL_RE.test(email) ? email : '', urlSuccess, name })
+    const url = await createEventPaymentLink({ title: `${event.title} — ${tariff.name}`, price: ticket.price, orderId, phone, email: EMAIL_RE.test(email) ? email : '', urlSuccess, name })
     if (BOT_TOKEN && ADMIN_CHAT_ID && getAdminSettings().unpaidNotices) {
       // Не шлём сразу: если человек оплатит в ближайшие минуты, придёт одно сообщение «Билет оплачен», а это — только если не оплатил.
-      const text = buildLeadNotification({ direction: 'Мероприятия', service: 'Билет на мероприятие', date: new Date().toISOString(), name, phone, email, telegram, details: [`Мероприятие: ${event.title}`, `Билет: ${tariff.name} — ${formatRub(tariff.price)}`, ...(lead.howHeard ? [`Откуда узнали: ${lead.howHeard}`] : [])], ticketNumber: String(lead.number) })
+      const text = buildLeadNotification({ direction: 'Мероприятия', service: 'Билет на мероприятие', date: new Date().toISOString(), name, phone, email, telegram, details: [`Мероприятие: ${event.title}`, `Билет: ${tariff.name} — ${formatRub(ticket.price)}${ticket.promo ? ` (промокод ${ticket.promo.code}: −${formatRub(ticket.discount)} от ${formatRub(tariff.price)})` : ''}`, ...(lead.howHeard ? [`Откуда узнали: ${lead.howHeard}`] : [])], ticketNumber: String(lead.number) })
       queuePending({ kind: 'ticket', eventNumber: lead.number, phone, email, telegram, text: `${retitle(text, `⏳ Не завершили оплату билета через ${PENDING_MINUTES} мин`)}\n\n🗂 Регистрация №${lead.number}`, keyboard: [[{ text: `📂 Открыть №${lead.number}`, callback_data: `a:x:evcard:${lead.number}` }]] })
     }
     res.json({ ok: true, url })
@@ -1262,6 +1303,14 @@ async function extrasAction(parts, now, chatId) {
       return chatCheckScreen(await checkCommunityChat())
     case 'bots':
       return botUsersScreen(listBotUsers())
+    case 'promo':
+      return promosScreen(listPromos(), promoLabel)
+    case 'promonew':
+      adminInput.set(String(chatId), { type: 'promo' })
+      return { text: PROMO_PROMPT, keyboard: menuBack('⬅️ Промокоды', 'a:x:promo') }
+    case 'promodel':
+      removePromo(arg)
+      return promosScreen(listPromos(), promoLabel)
     case 'rv':
       return reviewsScreen(listReviews(), (slug) => MATERIALS[slug]?.title ?? slug)
     case 'rvc': {
@@ -1485,6 +1534,23 @@ async function handlePendingInput(chatId, pending, text) {
     await sendLongMessage(chatId, `✅ Амбассадор добавлен\n\n${card.text}`, card.keyboard)
     return
   }
+  if (pending.type === 'promo') {
+    const parsed = parsePromoInput(text)
+    if (!parsed) {
+      adminInput.set(String(chatId), pending)
+      await sendTelegramMessage(chatId, 'Не разобрал. Формат: КОД и скидка, например RESIDENT 20% или FRIEND 500. Код — 3–32 букв/цифр, процент от 1 до 95. Или /cancel.')
+      return
+    }
+    const added = addPromo(parsed)
+    if (added.error) {
+      adminInput.set(String(chatId), pending)
+      await sendTelegramMessage(chatId, `Код ${parsed.code} уже есть. Придумайте другой или /cancel.`)
+      return
+    }
+    const screen = promosScreen(listPromos(), promoLabel)
+    await sendLongMessage(chatId, `✅ Промокод добавлен: ${parsed.code} (${promoLabel(parsed)})\n\n${screen.text}`, screen.keyboard)
+    return
+  }
   if (pending.type === 'expense') {
     const parsed = parseExpense(text)
     if (!parsed) {
@@ -1683,8 +1749,8 @@ async function adminScreen(data, now, chatId) {
 
 // Кнопки, которые что-то меняют или отправляют данные: помощникам (только просмотр) они недоступны, в журнал попадают только они.
 // Кнопки, которые только открывают ввод текста или подтверждение — в журнал не пишем (запишется само действие).
-const PROMPT_ONLY = /^a:(k:(rev|new)|s:(ikind|inew|rnew|redit|rdel)|x:(tnew|ambnew|ambdel|fexpnew|evpaid))\b/
-const MUTATING = /^a:(k:(adv|back|q1|q0|lost|reopen|revok|rev|new|pp|pf)|s:(vst|cst|idone|iclose|isnooze|ikind|inew|rnew|redit|rdel|rdelok)|x:(grant|tnew|tdone|ambnew|ambplus|ambdel|ambdelok|kickok|cr|fexpnew|fexpdel|evst|evpaid|backup)|remgo)\b/
+const PROMPT_ONLY = /^a:(k:(rev|new)|s:(ikind|inew|rnew|redit|rdel)|x:(tnew|ambnew|ambdel|fexpnew|evpaid|promonew))\b/
+const MUTATING = /^a:(k:(adv|back|q1|q0|lost|reopen|revok|rev|new|pp|pf)|s:(vst|cst|idone|iclose|isnooze|ikind|inew|rnew|redit|rdel|rdelok)|x:(grant|promonew|promodel|tnew|tdone|ambnew|ambplus|ambdel|ambdelok|kickok|cr|fexpnew|fexpdel|evst|evpaid|backup)|remgo)\b/
 
 /** Нажатие кнопки кабинета — от админа (все кнопки) или помощника (только просмотр); остальным молча отвечаем. */
 async function handleAdminCallback(query) {
@@ -2321,7 +2387,8 @@ async function handleEventPayment(number, body) {
   const event = readEventCatalog().find((e) => e.slug === lead.eventSlug)
   let mail = { ok: false, error: 'no_email' }
   if (lead.email) {
-    const when = event ? new Date(event.dateTime).toLocaleString('ru-RU', { dateStyle: 'long', timeStyle: 'short', timeZone: 'Europe/Moscow' }) : ''
+    const clock = (iso) => new Date(iso).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Moscow' })
+    const when = event ? `${new Date(event.dateTime).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Moscow' })}, ${clock(event.dateTime)}${event.endDateTime ? `–${clock(event.endDateTime)}` : ''}` : ''
     const lines = [`${lead.name ? `Здравствуйте, ${lead.name}!` : 'Здравствуйте!'}`, '', `Оплата получена — вы зарегистрированы на мероприятие «${lead.eventTitle}».`, `Билет: ${lead.tariff}${amount ? ` · ${amount} ₽` : ''}`]
     if (when) lines.push(`Когда: ${when} (по Москве)`)
     if (event?.location) lines.push(`Где: ${event.location}`)
@@ -2329,6 +2396,7 @@ async function handleEventPayment(number, body) {
     mail = await sendMail({ to: lead.email, subject: `Вы зарегистрированы: ${lead.eventTitle}`, text: lines.join('\n') })
   }
   cancelPending({ kind: 'ticket', eventNumber: lead.number })
+  if (lead.promo) markPromoUsed(lead.promo)
   const text = buildTicketPaidNotification({ lead, amount: amount ?? lead.price ?? 0, paidAt: Date.now(), mail })
   await sendTelegramMessage(ADMIN_CHAT_ID, text, [[{ text: `📂 Открыть №${lead.number}`, callback_data: `a:x:evcard:${lead.number}` }]])
 }
