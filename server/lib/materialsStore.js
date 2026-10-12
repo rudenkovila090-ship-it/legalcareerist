@@ -18,6 +18,11 @@ export function markPurchasePaidByPhone(phone) {
   return store.markPaidByPhone(phone)
 }
 
+/** Привязка покупки к Telegram-аккаунту покупателя (когда он открыл бота по кнопке «Получить в Telegram»). */
+export function setPurchaseTg(token, tgUserId) {
+  store.setField(token, 'tgUserId', String(tgUserId))
+}
+
 /** Сумма и время оплаты — чтобы разовые покупки попадали в финансы. */
 export function recordPurchasePayment(token, amount) {
   store.setField(token, 'amount', amount)

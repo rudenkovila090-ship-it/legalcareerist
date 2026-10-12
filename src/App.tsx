@@ -21,7 +21,7 @@ const EventsHome = lazy(() => import('./pages/events/EventsHome'))
 const EventDetail = lazy(() => import('./pages/events/EventDetail'))
 const Materials = lazy(() => import('./pages/events/Materials'))
 const MaterialDetail = lazy(() => import('./pages/events/MaterialDetail'))
-const PurchaseCabinet = lazy(() => import('./pages/materials/PurchaseCabinet'))
+const MaterialThanks = lazy(() => import('./pages/materials/MaterialThanks'))
 const AccountGate = lazy(() => import('./pages/account/AccountGate'))
 const CandidateAccount = lazy(() => import('./pages/account/CandidateAccount'))
 const EmployerAccount = lazy(() => import('./pages/account/EmployerAccount'))
@@ -92,7 +92,8 @@ export default function App() {
             }
           />
           <Route path="/events/materials" element={<Materials />} />
-          <Route path="/materials/cabinet" element={<PurchaseCabinet />} />
+          <Route path="/materials/thanks" element={<MaterialThanks />} />
+          <Route path="/materials/cabinet" element={<MaterialThanks />} />
           <Route path="/materials/:slug" element={<MaterialDetail />} />
           <Route path="/events/contacts" element={<Contacts eyebrow="Мероприятия" sourceBlock="events" />} />
           <Route path="/events/documents" element={<Documents />} />

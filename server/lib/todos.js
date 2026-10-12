@@ -52,6 +52,14 @@ export function addTodo(text) {
   return number
 }
 
+/** Добавляет задачу, если такой ещё нет (по тексту) — чтобы отложенные решения не терялись. */
+export function ensureTodo(text) {
+  const list = load()
+  if (list.some((t) => t.text === text)) return false
+  addTodo(text)
+  return true
+}
+
 export function setTodoDone(number, done = true) {
   const list = load()
   const t = list.find((x) => x.number === Number(number))

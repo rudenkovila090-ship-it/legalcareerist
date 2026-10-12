@@ -134,7 +134,7 @@ export default function MaterialDetail() {
           <div className="glass rounded-xl p-6">
             {purchased ? (
               <div className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">
-                Доступ открыт — ссылка отправлена на email, также появится в личном кабинете.
+                Доступ открыт — ссылка отправлена на email.
               </div>
             ) : material.kind === 'webinar' && material.sale ? (
               <div className="space-y-2">
@@ -208,7 +208,8 @@ export default function MaterialDetail() {
               />
               <input
                 type="email"
-                placeholder="Почта (необязательно)"
+                required
+                placeholder="Почта — сюда пришлём файл"
                 value={purchaseForm.email}
                 onChange={(e) => setPurchaseForm((f) => ({ ...f, email: e.target.value }))}
                 className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"

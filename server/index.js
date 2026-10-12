@@ -38,7 +38,7 @@ import { createPaymentLink, TARIFFS, tariffIdBySubscriptionId, createProductPaym
 import { HmacHelper } from './lib/hmac.js'
 import { createPendingJoin, createOrphanJoin, listJoins, setTgUserId, findJoinForPayment, recordPayment, setSubscriptionActive, markReminded, getJoin, setCancelReason, setJoinField, extendSubscription, createLifetimeJoin } from './lib/store.js'
 import { normalizePhone } from './lib/jsonStore.js'
-import { createPendingPurchase, getPurchase, markPurchasePaidByPhone, markPurchasePaidByTg, findPaidPurchase, recordPurchasePayment, listPurchases } from './lib/materialsStore.js'
+import { createPendingPurchase, getPurchase, markPurchasePaidByPhone, markPurchasePaidByTg, findPaidPurchase, recordPurchasePayment, listPurchases, setPurchaseTg } from './lib/materialsStore.js'
 import { incrementView, incrementApplication, allVacancyStats } from './lib/vacancyStats.js'
 import { utmLabel } from './lib/utm.js'
 import { createApplication, listApplications } from './lib/candidateApplications.js'
@@ -58,7 +58,7 @@ import { vacancyOverrides, setVacancyStatus } from './lib/vacancyOverrides.js'
 import { residentMenu, subscriptionScreen, linkScreen, settingsScreen, cancelConfirmScreen, cancelReasonPrompt, cancelDoneScreen, hasAccess } from './lib/residentCabinet.js'
 import { logAction, recentActions } from './lib/auditLog.js'
 import { healthLines, makeBackup, readBackupState, writeBackupState } from './lib/healthBackup.js'
-import { listTodos, addTodo, setTodoDone } from './lib/todos.js'
+import { listTodos, addTodo, setTodoDone, ensureTodo } from './lib/todos.js'
 import { todosScreen, TODO_PROMPT, chatCheckScreen, userCard, botUsersScreen, notificationsScreen, ambassadorsScreen, ambassadorCard, AMBASSADOR_PROMPT, overdueScreen, retentionScreen, cancelCard, financeSummary, forecastScreen, expensesScreen, EXPENSE_PROMPT, parseExpense, eventRegistrationsScreen, eventScreen, eventLeadCard, eventRequestsScreen, eventsMonthSummary, FIND_PROMPT, searchScreen, digestScreen, systemScreen, auditScreen, monthKeyFor as extraMonthKey } from './lib/extraCabinet.js'
 import { createInterest, getInterest, listInterests, markInterestDone, closeInterest, snoozeInterest, interestsDueForReminder, markInterestReminded, REMIND_AFTER_DAYS } from './lib/interests.js'
 import { createReserveCandidate, listReserve, getReserveCandidate, setReserveField, deleteReserveCandidate } from './lib/reserve.js'
@@ -223,8 +223,10 @@ async function downloadTelegramFile(fileId) {
   return Buffer.from(await res.arrayBuffer())
 }
 
-/** Письмо покупателю с материалом: файл во вложении (если загружен), ссылка и личный кабинет. Возвращает { ok, error? }. */
-async function emailMaterial({ to, name, materialSlug, cabinetUrl }) {
+const BOT_USERNAME = (process.env.BOT_USERNAME || 'LegalcareeristBot').replace(/^@/, '')
+
+/** Письмо покупателю с материалом: PDF во вложении (если загружен), ссылка (если задана) и кнопка «получить в Telegram». Возвращает { ok, error? }. */
+async function emailMaterial({ to, name, materialSlug, token }) {
   const material = materialList().find((m) => m.slug === materialSlug)
   const file = getMaterialFile(materialSlug)
   let attachments
@@ -235,12 +237,12 @@ async function emailMaterial({ to, name, materialSlug, cabinetUrl }) {
       console.error('[mail] не удалось получить файл материала из Telegram:', err.message)
     }
   }
-  const lines = [`${name ? `Здравствуйте, ${name}!` : 'Здравствуйте!'}`, '', `Спасибо за покупку! Материал «${material?.title ?? materialSlug}» — во вложении к этому письму.`]
-  if (!attachments) lines.splice(3, 1, `Спасибо за покупку! Материал «${material?.title ?? materialSlug}» уже в вашем личном кабинете.`)
+  const title = material?.title ?? materialSlug
+  const lines = [`${name ? `Здравствуйте, ${name}!` : 'Здравствуйте!'}`, '', attachments ? `Спасибо за покупку! Материал «${title}» — во вложении к этому письму.` : `Спасибо за покупку! Материал «${title}» пришлёт поддержка в ближайшее время.`]
   if (material?.accessUrl) lines.push('', `Ссылка на материал: ${material.accessUrl}`)
-  if (cabinetUrl) lines.push('', `Личный кабинет с покупкой: ${cabinetUrl}`)
+  if (token) lines.push('', `Если удобнее получить файл в Telegram, нажмите: https://t.me/${BOT_USERNAME}?start=mat_${token}`)
   lines.push('', `Если что-то пошло не так — напишите в поддержку: ${SUPPORT_HANDLE}`, '', 'Карьерный юрист')
-  return sendMail({ to, subject: `Ваш материал: ${material?.title ?? materialSlug}`, text: lines.join('\n'), attachments })
+  return sendMail({ to, subject: `Ваш материал: ${title}`, text: lines.join('\n'), attachments })
 }
 
 /** Каталог мероприятий сайта (выгружается при сборке): по нему сервер берёт название и цену билета. */
@@ -458,7 +460,7 @@ function buildTicketPaidNotification({ lead, amount, paidAt, mail }) {
 }
 
 /** Оплата материала маркетплейса. */
-function buildMaterialPaidNotification({ purchase, material, phone, amount, paidAt, mail, cabinetUrl, test }) {
+function buildMaterialPaidNotification({ purchase, material, phone, amount, paidAt, mail, telegramStatus, test }) {
   return [
     test ? '🧪 ТЕСТ: имитация оплаты материала (в финансы не идёт)' : '💳 Материал оплачен',
     '',
@@ -471,7 +473,7 @@ function buildMaterialPaidNotification({ purchase, material, phone, amount, paid
     '',
     `💰 Сумма: ${formatRub(amount)}`,
     mailStatusLine(mail),
-    `🔗 Личный кабинет покупки: ${cabinetUrl}`,
+    `📲 Telegram: ${telegramStatus}`,
   ].filter((l) => l !== null).join('\n')
 }
 
@@ -950,50 +952,18 @@ app.post('/api/marketplace/purchase', async (req, res) => {
   const { materialSlug, name, phone, email } = req.body ?? {}
   if (!MATERIALS[materialSlug]) return res.status(400).json({ ok: false, error: 'unknown_material' })
   if (!phone) return res.status(400).json({ ok: false, error: 'phone_required' })
+  // Покупатель с сайта получает файл по почте (в Telegram — по кнопке из письма), поэтому почта обязательна.
+  if (!EMAIL_RE.test(String(email ?? '').trim())) return res.status(400).json({ ok: false, error: 'email_required' })
 
   try {
     logLeadSource({ kind: `Материал: ${MATERIALS[materialSlug].title}`, name, answer: req.body.howHeard })
     const token = createPendingPurchase({ materialSlug, name, phone, email, howHeard: cleanHowHeard(req.body.howHeard) })
-    const urlSuccess = `${SITE_URL}/materials/cabinet?token=${token}`
+    const urlSuccess = `${SITE_URL}/materials/thanks?token=${token}`
     const url = await createProductPaymentLink({ materialSlug, phone, email, urlSuccess })
     res.json({ ok: true, url })
   } catch (err) {
     console.error('[marketplace] ошибка генерации ссылки на оплату:', err)
     res.status(500).json({ ok: false, error: 'link_generation_failed' })
-  }
-})
-
-// Данные для личного кабинета покупки — отдаём только безопасный минимум,
-// ссылку на материал — только если заявка реально оплачена.
-app.get('/api/marketplace/purchase/:token', (req, res) => {
-  const purchase = getPurchase(req.params.token)
-  if (!purchase) return res.status(404).json({ ok: false, error: 'not_found' })
-
-  const material = MATERIALS[purchase.materialSlug]
-  res.json({
-    ok: true,
-    name: purchase.name,
-    materialTitle: material?.title ?? purchase.materialSlug,
-    paid: purchase.paid,
-    accessUrl: purchase.paid ? material?.accessUrl ?? '' : null,
-    fileUrl: purchase.paid && getMaterialFile(purchase.materialSlug) ? `/api/marketplace/purchase/${purchase.token}/file` : null,
-  })
-})
-
-// Скачивание файла материала из личного кабинета — только для оплаченной покупки.
-app.get('/api/marketplace/purchase/:token/file', async (req, res) => {
-  const purchase = getPurchase(req.params.token)
-  if (!purchase?.paid) return res.status(403).json({ ok: false, error: 'not_paid' })
-  const file = getMaterialFile(purchase.materialSlug)
-  if (!file) return res.status(404).json({ ok: false, error: 'no_file' })
-  try {
-    const buffer = await downloadTelegramFile(file.fileId)
-    res.setHeader('Content-Type', 'application/pdf')
-    res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(file.fileName || `${purchase.materialSlug}.pdf`)}`)
-    res.send(buffer)
-  } catch (err) {
-    console.error('[marketplace] не удалось отдать файл:', err.message)
-    res.status(502).json({ ok: false, error: 'file_unavailable' })
   }
 })
 
@@ -1966,7 +1936,7 @@ async function handleUserCallback(query) {
       typing(chatId)
       try {
         const token = createPendingPurchase({ materialSlug: material.slug, name: user.firstName, tgUserId: chatId })
-        const url = await createProductPaymentLink({ materialSlug: material.slug, tgUserId: String(chatId), urlSuccess: `${SITE_URL}/materials/cabinet?token=${token}` })
+        const url = await createProductPaymentLink({ materialSlug: material.slug, tgUserId: String(chatId), urlSuccess: `${SITE_URL}/materials/thanks?token=${token}` })
         return reply(payLinkScreen(material, url, user))
       } catch (err) {
         console.error('[bot] ошибка ссылки на оплату материала:', err)
@@ -2214,6 +2184,11 @@ async function handleTelegramUpdate(update) {
   if (!chatId || !text || !text.startsWith('/start')) return
 
   const payload = text.slice('/start'.length).trim()
+  const matBuy = payload.match(/^mat_([0-9a-f]+)$/i)
+  if (matBuy) {
+    await handleMaterialStart(chatId, message.from, matBuy[1])
+    return
+  }
   const match = payload.match(/^access_(\w+)$/)
   const token = match?.[1]
 
@@ -2234,6 +2209,23 @@ async function handleTelegramUpdate(update) {
   } else {
     await sendTelegramMessage(chatId, 'Ждём подтверждения оплаты от банка — обычно это занимает меньше минуты. Как только оплата пройдёт, здесь появится ссылка на вступление.')
   }
+}
+
+/** Покупатель с сайта нажал «Получить в Telegram» (ссылка t.me/бот?start=mat_<токен> со страницы после оплаты или из письма). */
+async function handleMaterialStart(chatId, from, token) {
+  if (from) touchBotUser({ ...from, id: from.id ?? chatId })
+  const purchase = getPurchase(token)
+  if (!purchase) {
+    await sendTelegramMessage(chatId, `Не нашли покупку по этой ссылке. Напишите в поддержку — ${SUPPORT_HANDLE}, поможем.`)
+    return
+  }
+  if (!purchase.paid) {
+    await sendTelegramMessage(chatId, 'Ждём подтверждения оплаты от банка — обычно это занимает меньше минуты. Нажмите на ссылку из письма ещё раз чуть позже.')
+    return
+  }
+  setPurchaseTg(token, chatId)
+  addTag(chatId, PAID_TAGS[purchase.materialSlug] ?? `оплатил_${purchase.materialSlug}`)
+  await deliverMaterial(chatId, purchase.materialSlug)
 }
 
 // Вебхук оставлен на случай, если Telegram сможет достучаться до сервера, но
@@ -2326,22 +2318,28 @@ app.post('/api/prodamus/webhook', async (req, res) => {
       // Имитация оплаты (scripts/simulate-payment.sh): order_id начинается с TEST- — в финансы не попадает.
       const isTest = String(body.order_id ?? '').startsWith('TEST-')
       if (!isTest) recordPurchasePayment(purchase.token, Number(body.sum) || MATERIALS[purchase.materialSlug]?.price || 0)
+      let telegramStatus = 'покупка с сайта — файл придёт в Telegram, если покупатель нажмёт кнопку на странице после оплаты или в письме'
       if (purchase.tgUserId) {
         addTag(purchase.tgUserId, PAID_TAGS[purchase.materialSlug] ?? `оплатил_${purchase.materialSlug}`)
-        await deliverMaterial(purchase.tgUserId, purchase.materialSlug).catch((err) => console.error('[bot] не удалось выдать материал:', err))
+        telegramStatus = await deliverMaterial(purchase.tgUserId, purchase.materialSlug).then(() => 'файл выдан в чат ✅').catch((err) => {
+          console.error('[bot] не удалось выдать материал:', err)
+          return '⚠️ не удалось выдать файл в чат'
+        })
       }
       const material = MATERIALS[purchase.materialSlug]
-      const cabinetUrl = `${SITE_URL}/materials/cabinet?token=${purchase.token}`
       // Покупатель из бота почту нам не называл, но Prodamus спрашивает её на странице оплаты и присылает в вебхуке.
       const buyerEmail = purchase.email || String(body.customer_email ?? '').trim()
       if (buyerEmail && !purchase.email) purchase.email = buyerEmail
-      const mail = buyerEmail ? await emailMaterial({ to: buyerEmail, name: purchase.name, materialSlug: purchase.materialSlug, cabinetUrl }) : { ok: false, error: 'no_email' }
+      const mail = buyerEmail ? await emailMaterial({ to: buyerEmail, name: purchase.name, materialSlug: purchase.materialSlug, token: purchase.token }) : { ok: false, error: 'no_email' }
       console.log('[prodamus] письмо с материалом:', mail.ok ? 'отправлено' : mail.error)
-      const text = buildMaterialPaidNotification({ purchase, material, phone, amount: Number(body.sum) || material?.price || 0, paidAt: Date.now(), mail, cabinetUrl, test: isTest })
+      const text = buildMaterialPaidNotification({ purchase, material, phone, amount: Number(body.sum) || material?.price || 0, paidAt: Date.now(), mail, telegramStatus, test: isTest })
       await sendTelegramMessage(ADMIN_CHAT_ID, text)
     }
   })
 })
+
+// Отложенные решения — в список «Система → Доработки», чтобы не потерялись.
+ensureTodo('Личный кабинет покупателя материалов (история покупок, повторная загрузка файла): вернуть после юридической проработки. Сейчас файл — только на почту и в Telegram, кабинета нет')
 
 console.log(`[prodamus] платёжные страницы — ${payformSummary()}`)
 console.log(`[mail] почта для писем клиентам: ${mailConfigured() ? 'настроена' : 'не настроена (SMTP_HOST/SMTP_USER/SMTP_PASS в server/.env)'}`)
