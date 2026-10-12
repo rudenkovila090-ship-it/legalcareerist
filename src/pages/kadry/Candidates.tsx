@@ -24,6 +24,7 @@ import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import { pluralRu } from '../../lib/plural'
 import { SHOW_PERSONAL_ACCOUNTS } from '../../lib/featureFlags'
 import KadryFooter from './KadryFooter'
+import HowHeardField from '../../components/HowHeardField'
 
 const money = new Intl.NumberFormat('ru-RU')
 
@@ -148,13 +149,13 @@ export default function Candidates() {
   // обычную лид-форму (formType 'support_request', как и в разделе Мероприятий),
   // чтобы заявка уходила в CRM/уведомление админу, а не терялась вне сайта.
   const [supportOpen, setSupportOpen] = useState(false)
-  const [supportForm, setSupportForm] = useState({ fio: '', phone: '', email: '', telegram: '', question: '' })
+  const [supportForm, setSupportForm] = useState({ fio: '', phone: '', email: '', telegram: '', question: '', howHeard: '' })
   const [supportTicket, setSupportTicket] = useState<string | null>(null)
   const [supportMissing, setSupportMissing] = useState(false)
 
   function closeSupportModal() {
     setSupportOpen(false)
-    setSupportForm({ fio: '', phone: '', email: '', telegram: '', question: '' })
+    setSupportForm({ fio: '', phone: '', email: '', telegram: '', question: '', howHeard: '' })
     setSupportTicket(null)
     setSupportMissing(false)
   }
@@ -177,6 +178,7 @@ export default function Candidates() {
       telegram: supportForm.telegram || undefined,
       serviceOverride: 'вопрос',
       ticketNumber,
+      howHeard: supportForm.howHeard,
       interest: supportForm.question.trim() ? [`Вопрос: ${supportForm.question.trim()}`] : [],
     })
     setSupportTicket(ticketNumber)
@@ -346,6 +348,7 @@ export default function Candidates() {
                       rows={3}
                       className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
                     />
+                    <HowHeardField value={supportForm.howHeard} onChange={(v) => setSupportForm((f) => ({ ...f, howHeard: v }))} className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none" />
                     {supportMissing && (
                       <p className="text-sm text-red-600">Заполните все поля — ФИО, телефон, почту и Telegram.</p>
                     )}

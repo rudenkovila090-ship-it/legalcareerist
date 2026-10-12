@@ -47,6 +47,7 @@ import { createAmbassador, listAmbassadors, getAmbassador, addReferral, deleteAm
 import { createExpense, listExpenses, deleteExpense } from './lib/expenses.js'
 import { createEventLead, listEventLeads, getEventLead, setEventLeadStatus, markEventLeadPaid, setEventLeadField } from './lib/eventLeads.js'
 import { sendMail, mailConfigured } from './lib/mailer.js'
+import { cleanHowHeard, howHeardLine, howHeardScreen, logLeadSource } from './lib/howHeard.js'
 import { getMaterialFile, setMaterialFile } from './lib/materialFiles.js'
 import { touchBotUser, giveConsent, setMailingConsent, addTag, getBotUser, listBotUsers, countConversation, updateBotUser, setGender } from './lib/botUsers.js'
 import { isStartKeyword, welcomeScreen, noConsentScreen, mailingScreen, mainMenuScreen, supportPrompt, consultPrompt, genderScreen, reviewThanks, legalScreen, aboutScreen, consultScreen, consultBookedScreen, marketScreen, materialsListScreen, materialCard, payLinkScreen, PAID_TEXT, PAID_TEXTS, PAID_TAGS, paidKeyboard, paymentNotFoundScreen, reviewScreen, CONTACT_PROMPTS, contactCancelKeyboard, unsubscribedScreen, communityScreen, communityResidentScreen, periodsScreen, subLinkScreen, aboutClubScreen, careerScreen, achievementsScreen } from './lib/botFlow.js'
@@ -661,9 +662,13 @@ const DEAL_FORM_TYPES = new Set(['service_order', 'employer_request'])
 // Формы раздела «Мероприятия», которые записываются в кабинет: регистрация на билет и заявки.
 const EVENT_LEAD_TYPES = new Set(['event_registration', 'event_partner_application', 'event_order', 'partner_application', 'event_submission'])
 
+const SERVICE_FALLBACK = { contact: 'Контакты', support_request: 'Поддержка', ambassador_application: 'Амбассадор', community_join: 'Вступление в сообщество' }
+
 app.post('/api/notify', async (req, res) => {
   const { direction, service, source, formType, name, contact, phone, email, telegram, company, template, interest, date, vacancySlug, eventSlug, ticketNumber, utm } = req.body ?? {}
   const utmSource = utmLabel(utm)
+  const howHeard = cleanHowHeard(req.body?.howHeard)
+  logLeadSource({ kind: service || SERVICE_FALLBACK[formType] || formType || 'Заявка', name, answer: howHeard, utm: utmSource })
 
   // Отклик на вакансию — считаем реальный счётчик независимо от того,
   // настроен ли Telegram-бот ниже: заявка не должна "теряться" из
@@ -700,7 +705,7 @@ app.post('/api/notify', async (req, res) => {
       const request = lines.map((l) => String(l).match(/^(?:Кого ищем|Ищем):\s*(.+)$/i)?.[1]).find(Boolean)
       const feeLine = lines.map((l) => String(l).match(/^Итого:\s*(.+)$/i)?.[1]).find(Boolean)
       const expectedFee = feeLine ? Number(feeLine.replace(/\D/g, '')) || null : null
-      const created = createDeal({ company, name, phone, email, telegram, request: request === 'не указано' ? '' : request, details: lines, source: formType, expectedFee })
+      const created = createDeal({ company, name, phone, email, telegram, request: request === 'не указано' ? '' : request, details: lines, source: formType, expectedFee, howHeard })
       if (created.duplicate) return res.json({ ok: true })
       deal = created.deal
     } catch (err) {
@@ -716,7 +721,7 @@ app.post('/api/notify', async (req, res) => {
     if (vacancySlug) {
       const catalogTitle = readVacancyCatalog().find((v) => v.slug === vacancySlug)?.title
       const documents = lines.filter((l) => /приложен/i.test(l)).map((l) => l.split(' — ')[0])
-      const app = createApplication({ vacancySlug, vacancyTitle: catalogTitle || String(service ?? '').match(/«(.+)»/)?.[1], name, phone, email, telegram, source: utmSource, documents })
+      const app = createApplication({ vacancySlug, vacancyTitle: catalogTitle || String(service ?? '').match(/«(.+)»/)?.[1], name, phone, email, telegram, source: utmSource, documents, howHeard })
       record = { text: `\n\n🗂 Отклик №${app.number}`, keyboard: [[{ text: '📥 Отклики на вакансию', callback_data: `a:s:vacs` }]] }
     } else if (formType === 'candidate_application' || formType === 'reserve_join_request') {
       const pick = (re) => lines.map((l) => l.match(re)?.[1]).find(Boolean)
@@ -731,6 +736,7 @@ app.post('/api/notify', async (req, res) => {
         email,
         source: formType,
         utm: utmSource,
+        howHeard,
       })
       record = {
         text: `\n\n🗃 Кадровый резерв: кандидат №${candidate.number} добавлен (всего в резерве: ${listReserve().length})\nПрикрепите ссылку на резюме в карточке.`,
@@ -751,6 +757,7 @@ app.post('/api/notify', async (req, res) => {
         company: company || (formType === 'event_partner_application' ? lines[1] : formType === 'partner_application' ? lines[0] : ''),
         note: isRegistration ? '' : lines.join(' · '),
         source: utmSource,
+        howHeard,
       })
       record = {
         text: `\n\n🗂 ${isRegistration ? 'Регистрация' : 'Заявка по мероприятиям'} №${e.number}`,
@@ -761,7 +768,7 @@ app.post('/api/notify', async (req, res) => {
       const total = isOrder ? Number((lines.find((l) => /^Итого:/i.test(l)) ?? '').replace(/\D/g, '')) || null : null
       const promo = lines.find((l) => /^Промокод:/i.test(l))?.replace(/^Промокод:\s*/i, '')
       const services = isOrder ? lines.filter((l) => !/^(Итого|Промокод):/i.test(l)) : lines
-      const c = createConsultation({ kind: isOrder ? 'order' : 'question', services, promo, total, name, phone, email, telegram, source: utmSource })
+      const c = createConsultation({ kind: isOrder ? 'order' : 'question', services, promo, total, name, phone, email, telegram, source: utmSource, howHeard })
       record = { text: `\n\n🗂 Консультация №${c.number} · ${isOrder ? 'заказ услуг' : 'вопрос'}`, keyboard: [[{ text: `📂 Открыть консультацию №${c.number}`, callback_data: `a:s:con:${c.number}` }]] }
     }
   } catch (err) {
@@ -800,7 +807,7 @@ app.post('/api/notify', async (req, res) => {
 
   const dealNote = deal ? `\n\n🗂 Сделка №${deal.number} создана · этап 1: ${stageOf(1).name}` : ''
   const dealKeyboard = deal ? [[{ text: `📂 Открыть сделку №${deal.number}`, callback_data: `a:k:deal:${deal.number}` }]] : record?.keyboard
-  const sourceNote = utm && utmSource !== 'без метки' ? `\n📣 Источник: ${utmSource}` : ''
+  const sourceNote = (utm && utmSource !== 'без метки' ? `\n📣 Источник: ${utmSource}` : '') + (howHeard ? `\n${howHeardLine(howHeard)}` : '')
   const ok = await sendTelegramMessage(ADMIN_CHAT_ID, text + (record?.text ?? '') + sourceNote + dealNote, dealKeyboard).catch((err) => {
     console.error('[notify] ошибка запроса к Telegram:', err)
     return false
@@ -828,7 +835,7 @@ app.post('/api/community/subscribe', async (req, res) => {
   if (!telegram) return res.status(400).json({ ok: false, error: 'telegram_required' })
 
   try {
-    const token = createPendingJoin({ tariffId, name, phone, email, telegram })
+    const token = createPendingJoin({ tariffId, name, phone, email, telegram, howHeard: cleanHowHeard(req.body.howHeard) })
     const urlSuccess = `${SITE_URL}/community/success?token=${token}`
     const url = await createPaymentLink({ tariffId, phone, email, urlSuccess, name, telegram })
     res.json({ ok: true, url })
@@ -845,7 +852,8 @@ app.post('/api/marketplace/purchase', async (req, res) => {
   if (!phone) return res.status(400).json({ ok: false, error: 'phone_required' })
 
   try {
-    const token = createPendingPurchase({ materialSlug, name, phone, email })
+    logLeadSource({ kind: `Материал: ${MATERIALS[materialSlug].title}`, name, answer: req.body.howHeard })
+    const token = createPendingPurchase({ materialSlug, name, phone, email, howHeard: cleanHowHeard(req.body.howHeard) })
     const urlSuccess = `${SITE_URL}/materials/cabinet?token=${token}`
     const url = await createProductPaymentLink({ materialSlug, phone, email, urlSuccess })
     res.json({ ok: true, url })
@@ -907,13 +915,14 @@ app.post('/api/event/:slug/checkout', async (req, res) => {
 
   try {
     incrementEventRegistration(event.slug)
-    const lead = createEventLead({ kind: 'registration', formType: 'event_registration', eventSlug: event.slug, eventTitle: event.title, tariff: tariff.name, name, phone, email, telegram, source: utmLabel(req.body.utm) })
+    logLeadSource({ kind: `Билет: ${event.title}`, name, answer: req.body.howHeard, utm: utmLabel(req.body.utm) })
+    const lead = createEventLead({ kind: 'registration', formType: 'event_registration', eventSlug: event.slug, eventTitle: event.title, tariff: tariff.name, name, phone, email, telegram, source: utmLabel(req.body.utm), howHeard: cleanHowHeard(req.body.howHeard) })
     setEventLeadField(lead.number, 'price', tariff.price)
     const orderId = `ev-${lead.number}`
     const urlSuccess = `${SITE_URL}/events/${event.slug}?paid=1`
     const url = await createEventPaymentLink({ title: `${event.title} — ${tariff.name}`, price: tariff.price, orderId, phone, email: EMAIL_RE.test(email) ? email : '', urlSuccess, name })
     if (BOT_TOKEN && ADMIN_CHAT_ID) {
-      const text = buildLeadNotification({ direction: 'Мероприятия', service: 'Покупка билета на мероприятие', date: new Date().toISOString(), name, phone, email, telegram, details: [`Мероприятие: ${event.title}`, `Билет: ${tariff.name} — ${tariff.price} ₽`, 'Статус: ждём оплату'], ticketNumber: String(lead.number) })
+      const text = buildLeadNotification({ direction: 'Мероприятия', service: 'Покупка билета на мероприятие', date: new Date().toISOString(), name, phone, email, telegram, details: [`Мероприятие: ${event.title}`, `Билет: ${tariff.name} — ${tariff.price} ₽`, 'Статус: ждём оплату', ...(lead.howHeard ? [`Откуда узнали: ${lead.howHeard}`] : [])], ticketNumber: String(lead.number) })
       await sendTelegramMessage(ADMIN_CHAT_ID, `${text}\n\n🗂 Регистрация №${lead.number}`, [[{ text: `📂 Открыть №${lead.number}`, callback_data: `a:x:evcard:${lead.number}` }]]).catch(() => false)
     }
     res.json({ ok: true, url })
@@ -1125,6 +1134,8 @@ async function extrasAction(parts, now, chatId) {
       return chatCheckScreen(await checkCommunityChat())
     case 'bots':
       return botUsersScreen(listBotUsers())
+    case 'src':
+      return howHeardScreen(arg === 'all' ? 'all' : '30', now)
     case 'pc': {
       const u = getBotUser(arg)
       if (!u) return { text: 'Пользователь не найден.', keyboard: menuBack('⬅️ Пользователи бота', 'a:x:bots') }
@@ -2146,7 +2157,7 @@ async function handleEventPayment(number, body) {
     phone: lead.phone,
     email: lead.email,
     telegram: lead.telegram,
-    details: [`Мероприятие: ${lead.eventTitle}`, `Билет: ${lead.tariff}`, `Сумма: ${body.sum} ₽`, `Письмо участнику: ${mail.ok ? 'отправлено ✅' : mail.error === 'no_email' ? 'почта не указана' : mail.error === 'smtp_not_configured' ? 'почта на сервере не настроена (SMTP)' : `не ушло (${mail.error})`}`],
+    details: [`Мероприятие: ${lead.eventTitle}`, `Билет: ${lead.tariff}`, `Сумма: ${body.sum} ₽`, ...(lead.howHeard ? [`Откуда узнали: ${lead.howHeard}`] : []), `Письмо участнику: ${mail.ok ? 'отправлено ✅' : mail.error === 'no_email' ? 'почта не указана' : mail.error === 'smtp_not_configured' ? 'почта на сервере не настроена (SMTP)' : `не ушло (${mail.error})`}`],
     ticketNumber: String(lead.number),
   })
   await sendTelegramMessage(ADMIN_CHAT_ID, `💳 Билет оплачен\n\n${text}\n\n🗂 Регистрация №${lead.number} → «Оплатил»`, [[{ text: `📂 Открыть №${lead.number}`, callback_data: `a:x:evcard:${lead.number}` }]])
@@ -2219,7 +2230,7 @@ app.post('/api/prodamus/webhook', async (req, res) => {
         name: purchase.name || '—',
         phone,
         email: purchase.email,
-        details: [`Материал: ${material?.title ?? purchase.materialSlug}`, `Сумма: ${body.sum} ₽`, `Личный кабинет: ${cabinetUrl}`, `Письмо с материалом: ${mail.ok ? 'отправлено ✅' : mail.error === 'no_email' ? 'почта не указана' : mail.error === 'smtp_not_configured' ? 'почта на сервере не настроена (SMTP)' : `не ушло (${mail.error})`}`],
+        details: [`Материал: ${material?.title ?? purchase.materialSlug}`, `Сумма: ${body.sum} ₽`, `Личный кабинет: ${cabinetUrl}`, ...(purchase.howHeard ? [`Откуда узнали: ${purchase.howHeard}`] : []), `Письмо с материалом: ${mail.ok ? 'отправлено ✅' : mail.error === 'no_email' ? 'почта не указана' : mail.error === 'smtp_not_configured' ? 'почта на сервере не настроена (SMTP)' : `не ушло (${mail.error})`}`],
       })
       await sendTelegramMessage(ADMIN_CHAT_ID, text)
     }

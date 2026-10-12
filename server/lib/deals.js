@@ -48,7 +48,7 @@ function updateDeal(number, fn) {
  * тот же запрос) пришла в последние 10 минут — вернёт существующую сделку
  * с duplicate: true, чтобы двойная отправка формы не плодила сделки.
  */
-export function createDeal({ company, name, phone, email, telegram, request, details, source, expectedFee }) {
+export function createDeal({ company, name, phone, email, telegram, request, details, source, expectedFee, howHeard }) {
   const now = Date.now()
   const all = listDeals()
   const same = all.find(
@@ -67,6 +67,7 @@ export function createDeal({ company, name, phone, email, telegram, request, det
     request: request || '',
     details: details ?? [],
     source: source || 'manual',
+    howHeard: howHeard || '',
     expectedFee: expectedFee || null,
     status: 'active',
     stage: 1,

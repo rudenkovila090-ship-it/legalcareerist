@@ -7,6 +7,7 @@ import { getRelatedContent } from '../../lib/related'
 import { materialKindLabel as kindLabel } from '../../lib/materialLabels'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import PhoneInput from '../../components/PhoneInput'
+import HowHeardField from '../../components/HowHeardField'
 
 const money = new Intl.NumberFormat('ru-RU')
 
@@ -37,7 +38,7 @@ export default function MaterialDetail() {
   const [account, setAccount] = useState({ email: '', password: '' })
   const [accountCreated, setAccountCreated] = useState(false)
 
-  const [purchaseForm, setPurchaseForm] = useState({ name: '', phone: '', email: '' })
+  const [purchaseForm, setPurchaseForm] = useState({ name: '', phone: '', email: '', howHeard: '' })
   const [purchasing, setPurchasing] = useState(false)
   const [purchaseError, setPurchaseError] = useState(false)
 
@@ -212,6 +213,7 @@ export default function MaterialDetail() {
                 onChange={(e) => setPurchaseForm((f) => ({ ...f, email: e.target.value }))}
                 className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
               />
+              <HowHeardField value={purchaseForm.howHeard} onChange={(v) => setPurchaseForm((f) => ({ ...f, howHeard: v }))} className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none" />
               {purchaseError && (
                 <p className="text-sm text-red-600">Не получилось перейти к оплате — попробуйте еще раз через минуту.</p>
               )}

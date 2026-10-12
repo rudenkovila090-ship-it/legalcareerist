@@ -21,9 +21,9 @@ export function getConsultation(number) {
 }
 
 /** kind: 'order' (выбраны услуги) или 'question' (вопрос без выбора услуг). */
-export function createConsultation({ kind, services, promo, total, name, phone, email, telegram, source }) {
+export function createConsultation({ kind, services, promo, total, name, phone, email, telegram, source, howHeard }) {
   const number = listConsultations().reduce((max, c) => Math.max(max, c.number), 0) + 1
-  const token = store.create({ number, kind, services: services ?? [], promo: promo || '', total: total ?? null, name: name || '', phone: phone || '', email: email || '', telegram: telegram || '', source: source || 'без метки', status: 'new', statusAt: Date.now() })
+  const token = store.create({ number, kind, services: services ?? [], promo: promo || '', total: total ?? null, name: name || '', phone: phone || '', email: email || '', telegram: telegram || '', source: source || 'без метки', howHeard: howHeard || '', status: 'new', statusAt: Date.now() })
   return { token, ...store.get(token) }
 }
 

@@ -11,6 +11,7 @@ import { consultationCategories, allConsultationServices, tierDiscountPct } from
 import { consultationTestimonials } from '../../data/testimonials'
 import ilyaPhoto from '../../assets/ilya-rudenkov.jpg'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
+import HowHeardField from '../../components/HowHeardField'
 
 // Минималистичные иконки — своя на каждую услугу конструктора, без внешних
 // библиотек, без повторов.
@@ -226,7 +227,7 @@ export default function CareerConsultation({ embedded = false }: { embedded?: bo
   const [promo, setPromo] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
   const [cartOpen, setCartOpen] = useState(false)
-  const [form, setForm] = useState({ name: '', email: '', telegram: '', phone: '' })
+  const [form, setForm] = useState({ name: '', email: '', telegram: '', phone: '', howHeard: '' })
   const [sent, setSent] = useState(false)
 
   const [activeStep, setActiveStep] = useState(0)
@@ -235,7 +236,7 @@ export default function CareerConsultation({ embedded = false }: { embedded?: bo
     return () => clearInterval(id)
   }, [])
 
-  const [helpForm, setHelpForm] = useState({ name: '', email: '', phone: '', telegram: '', question: '' })
+  const [helpForm, setHelpForm] = useState({ name: '', email: '', phone: '', telegram: '', question: '', howHeard: '' })
   const [helpSent, setHelpSent] = useState(false)
 
   function handleHelpSubmit(e: FormEvent) {
@@ -249,6 +250,7 @@ export default function CareerConsultation({ embedded = false }: { embedded?: bo
       phone: helpForm.phone || undefined,
       email: helpForm.email || undefined,
       telegram: helpForm.telegram || undefined,
+      howHeard: helpForm.howHeard,
       interest: [helpForm.question],
     })
     setHelpSent(true)
@@ -279,6 +281,7 @@ export default function CareerConsultation({ embedded = false }: { embedded?: bo
       phone: form.phone || undefined,
       email: form.email || undefined,
       telegram: form.telegram || undefined,
+      howHeard: form.howHeard,
       interest: [
         ...selectedServices.map((s) => s.title),
         promo.trim() ? `Промокод: ${promo.trim()}` : '',
@@ -593,6 +596,7 @@ export default function CareerConsultation({ embedded = false }: { embedded?: bo
                 value={helpForm.question}
                 onChange={(e) => setHelpForm((f) => ({ ...f, question: e.target.value }))}
               />
+              <HowHeardField value={helpForm.howHeard} onChange={(v) => setHelpForm((f) => ({ ...f, howHeard: v }))} className="rounded-lg border border-white/15 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none" />
               <button
                 type="submit"
                 className="rounded-full bg-gold-light py-3 text-sm font-semibold text-ink transition-colors hover:bg-white"
@@ -743,6 +747,7 @@ export default function CareerConsultation({ embedded = false }: { embedded?: bo
                       onChange={(value) => setForm((f) => ({ ...f, phone: value }))}
                     />
                   </div>
+                  <HowHeardField value={form.howHeard} onChange={(v) => setForm((f) => ({ ...f, howHeard: v }))} className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none" />
                   <button type="submit" className="rounded-full bg-ink py-3 text-sm font-semibold text-white transition-colors hover:bg-ink/90">
                     Заказать
                   </button>

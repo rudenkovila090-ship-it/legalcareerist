@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { submitLead, uploadDocument } from '../lib/leads'
 import PhoneInput from './PhoneInput'
 import LeadSuccessCard from './LeadSuccessCard'
+import HowHeardField from './HowHeardField'
 import type { LeadSourceBlock } from '../types'
 
 interface LeadFormProps {
@@ -57,6 +58,7 @@ export default function LeadForm({
   const [contact, setContact] = useState('')
   const [phone, setPhone] = useState('')
   const [telegram, setTelegram] = useState('')
+  const [howHeard, setHowHeard] = useState('')
   const [resumeFile, setResumeFile] = useState<File | null>(null)
   const [motivationFile, setMotivationFile] = useState<File | null>(null)
   const [coverLetterFile, setCoverLetterFile] = useState<File | null>(null)
@@ -99,6 +101,7 @@ export default function LeadForm({
       email: contact.includes('@') && !contact.startsWith('@') ? contact : undefined,
       telegram: telegram || undefined,
       serviceOverride: vacancyLabel,
+      howHeard,
       interest: [
         ...interest,
         resumeFile ? 'Резюме — приложено документом ниже' : '',
@@ -199,6 +202,10 @@ export default function LeadForm({
           ))}
         </div>
       )}
+
+      <div className="mt-3">
+        <HowHeardField value={howHeard} onChange={setHowHeard} />
+      </div>
 
       {missingFields && (
         <p className="mt-3 text-sm text-red-600">Заполните все обязательные поля — все, кроме рекомендации.</p>

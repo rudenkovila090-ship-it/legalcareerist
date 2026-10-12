@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import PageHero from '../components/PageHero'
+import HowHeardField from '../components/HowHeardField'
 import PhoneInput from '../components/PhoneInput'
 import LeadSuccessCard from '../components/LeadSuccessCard'
 import { submitLead, nextTicketNumber } from '../lib/leads'
@@ -14,6 +15,7 @@ export default function Contacts({ eyebrow, sourceBlock }: { eyebrow: string; so
   const [email, setEmail] = useState('')
   const [telegram, setTelegram] = useState('')
   const [question, setQuestion] = useState('')
+  const [howHeard, setHowHeard] = useState('')
   const [missingFields, setMissingFields] = useState(false)
   const [ticket, setTicket] = useState<string | null>(null)
 
@@ -36,6 +38,7 @@ export default function Contacts({ eyebrow, sourceBlock }: { eyebrow: string; so
       email: email || undefined,
       telegram: telegram || undefined,
       ticketNumber,
+      howHeard,
       interest: [`Вопрос: ${question}`],
     })
     setTicket(ticketNumber)
@@ -101,6 +104,10 @@ export default function Contacts({ eyebrow, sourceBlock }: { eyebrow: string; so
               rows={4}
               className="mt-3 w-full rounded-lg border border-ink/15 px-3 py-2 text-sm outline-none focus:border-ink/40"
             />
+
+            <div className="mt-3">
+              <HowHeardField value={howHeard} onChange={setHowHeard} />
+            </div>
 
             {missingFields && (
               <p className="mt-3 text-sm text-red-600">Заполните ФИО, телефон и вопрос.</p>

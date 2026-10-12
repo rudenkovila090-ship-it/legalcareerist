@@ -621,6 +621,8 @@ export interface Lead {
   serviceOverride?: string
   /** Номер заявки — см. LeadInput в lib/leads.ts. */
   ticketNumber?: string
+  /** Ответ человека своими словами на «Откуда вы о нас узнали?» — см. HowHeardField. */
+  howHeard?: string
   interest: string[]
   utm?: Record<string, string>
   status: 'new' | 'processing' | 'done'

@@ -15,9 +15,9 @@ export function getReserveCandidate(number) {
   return listReserve().find((c) => c.number === Number(number)) ?? null
 }
 
-export function createReserveCandidate({ name, city, university, position, telegram, phone, email, resumeUrl, source, utm }) {
+export function createReserveCandidate({ name, city, university, position, telegram, phone, email, resumeUrl, source, utm, howHeard }) {
   const number = listReserve().reduce((max, c) => Math.max(max, c.number), 0) + 1
-  const token = store.create({ number, name: name || '', city: city || '', university: university || '', position: position || '', telegram: telegram || '', phone: phone || '', email: email || '', resumeUrl: resumeUrl || '', source: source || 'manual', utm: utm || 'без метки' })
+  const token = store.create({ number, name: name || '', city: city || '', university: university || '', position: position || '', telegram: telegram || '', phone: phone || '', email: email || '', resumeUrl: resumeUrl || '', source: source || 'manual', utm: utm || 'без метки', howHeard: howHeard || '' })
   return { token, ...store.get(token) }
 }
 

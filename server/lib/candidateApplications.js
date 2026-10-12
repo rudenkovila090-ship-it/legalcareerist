@@ -9,8 +9,8 @@ export function listApplications() {
   return store.all().sort((a, b) => a.number - b.number)
 }
 
-export function createApplication({ vacancySlug, vacancyTitle, name, phone, email, telegram, source, documents }) {
+export function createApplication({ vacancySlug, vacancyTitle, name, phone, email, telegram, source, documents, howHeard }) {
   const number = listApplications().reduce((max, a) => Math.max(max, a.number), 0) + 1
-  const token = store.create({ number, vacancySlug, vacancyTitle: vacancyTitle || '', name: name || '', phone: phone || '', email: email || '', telegram: telegram || '', source: source || 'без метки', documents: documents ?? [] })
+  const token = store.create({ number, vacancySlug, vacancyTitle: vacancyTitle || '', name: name || '', phone: phone || '', email: email || '', telegram: telegram || '', source: source || 'без метки', howHeard: howHeard || '', documents: documents ?? [] })
   return { token, ...store.get(token) }
 }

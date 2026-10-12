@@ -77,6 +77,7 @@ export function dealCard(d, now = Date.now()) {
     d.phone ? `📞 Телефон: ${d.phone}` : null,
     d.email ? `✉️ Почта: ${d.email}` : null,
     d.telegram ? `💬 Telegram: ${d.telegram}` : null,
+    d.howHeard ? `🗣 Откуда узнали: ${d.howHeard}` : null,
     `📅 Заявка: ${ruDate(d.createdAt)}`,
     d.expectedFee ? `💵 Ожидаемая выручка: ${rub(d.expectedFee)} (предоплата ${PREPAY_PCT}% — ${rub(prepayAmount(d))}, остаток — ${rub(d.expectedFee - prepayAmount(d))})` : null,
     d.revenue != null ? `💰 Получено: ${rub(dealReceived(d))}${d.expectedFee && dealReceived(d) < d.expectedFee ? `, осталось ${rub(d.expectedFee - dealReceived(d))}` : ''}` : null,

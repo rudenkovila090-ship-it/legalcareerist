@@ -8,6 +8,7 @@ import { submitLead, uploadDocument } from '../../lib/leads'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import PhoneInput from '../../components/PhoneInput'
 import LeadSuccessCard from '../../components/LeadSuccessCard'
+import HowHeardField from '../../components/HowHeardField'
 
 const proof = [
   { value: '8 000+', label: 'кандидатов в кадровом резерве' },
@@ -85,7 +86,7 @@ const railItems = [
 
 export default function CareerReserve({ embedded = false }: { embedded?: boolean }) {
   useDocumentTitle('Кадровый резерв')
-  const [form, setForm] = useState({ name: '', email: '', phone: '', telegram: '', position: '', city: '', university: '' })
+  const [form, setForm] = useState({ name: '', email: '', phone: '', telegram: '', position: '', city: '', university: '', howHeard: '' })
   const [resumeFile, setResumeFile] = useState<File | null>(null)
   const [sent, setSent] = useState(false)
 
@@ -100,6 +101,7 @@ export default function CareerReserve({ embedded = false }: { embedded?: boolean
       phone: form.phone || undefined,
       email: form.email || undefined,
       telegram: form.telegram || undefined,
+      howHeard: form.howHeard,
       interest: [
         form.position ? `Запрос: ${form.position}` : '',
         form.city.trim() ? `Город: ${form.city.trim()}` : '',
@@ -111,7 +113,7 @@ export default function CareerReserve({ embedded = false }: { embedded?: boolean
     setSent(true)
   }
 
-  const [priorityForm, setPriorityForm] = useState({ name: '', phone: '', email: '', telegram: '', position: '', city: '', university: '' })
+  const [priorityForm, setPriorityForm] = useState({ name: '', phone: '', email: '', telegram: '', position: '', city: '', university: '', howHeard: '' })
   const [priorityResumeFile, setPriorityResumeFile] = useState<File | null>(null)
   const [prioritySent, setPrioritySent] = useState(false)
 
@@ -126,6 +128,7 @@ export default function CareerReserve({ embedded = false }: { embedded?: boolean
       phone: priorityForm.phone || undefined,
       email: priorityForm.email || undefined,
       telegram: priorityForm.telegram || undefined,
+      howHeard: priorityForm.howHeard,
       interest: [
         'Запрос: Вступление в кадровый резерв',
         priorityForm.position.trim() ? `Должность: ${priorityForm.position.trim()}` : '',
@@ -304,6 +307,9 @@ export default function CareerReserve({ embedded = false }: { embedded?: boolean
                     onChange={(e) => setPriorityResumeFile(e.target.files?.[0] ?? null)}
                   />
                 </label>
+                <div className="col-span-full">
+                  <HowHeardField value={priorityForm.howHeard} onChange={(v) => setPriorityForm((f) => ({ ...f, howHeard: v }))} className="rounded-lg border border-white/15 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none" />
+                </div>
                 <button
                   type="submit"
                   className="col-span-full rounded-full bg-gold-light py-3 text-sm font-semibold text-ink transition-colors hover:bg-white"
@@ -407,6 +413,9 @@ export default function CareerReserve({ embedded = false }: { embedded?: boolean
                     onChange={(e) => setResumeFile(e.target.files?.[0] ?? null)}
                   />
                 </label>
+                <div className="col-span-full">
+                  <HowHeardField value={form.howHeard} onChange={(v) => setForm((f) => ({ ...f, howHeard: v }))} className="rounded-lg border border-white/15 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none" />
+                </div>
                 <button
                   type="submit"
                   className="col-span-full rounded-lg bg-gold-light py-3 text-sm font-semibold text-ink transition-colors hover:bg-white"

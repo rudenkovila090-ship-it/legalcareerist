@@ -8,6 +8,7 @@ import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import EventsFooter from './EventsFooter'
 import { INDUSTRIES, type EventItem, type Industry, type AudienceLevel } from '../../types'
 import { SHOW_CREATE_EVENT, SHOW_EVENTS_ACCOUNT } from '../../lib/featureFlags'
+import HowHeardField from '../../components/HowHeardField'
 
 const money = new Intl.NumberFormat('ru-RU')
 
@@ -331,7 +332,7 @@ export default function EventsHome() {
   }
 
   // «Создать свое событие» — лид-заявка организатора.
-  const [eventForm, setEventForm] = useState({ fio: '', phone: '', email: '', telegram: '', about: '' })
+  const [eventForm, setEventForm] = useState({ fio: '', phone: '', email: '', telegram: '', about: '', howHeard: '' })
   const [eventSent, setEventSent] = useState(false)
 
   function handleEventSubmit(e: FormEvent) {
@@ -345,13 +346,14 @@ export default function EventsHome() {
       phone: eventForm.phone || undefined,
       email: eventForm.email || undefined,
       telegram: eventForm.telegram || undefined,
+      howHeard: eventForm.howHeard,
       interest: eventForm.about ? [eventForm.about] : [],
     })
     setEventSent(true)
   }
 
   // «Заказать мероприятие» — лид-заявка на подбор/организацию мероприятия под запрос.
-  const [orderForm, setOrderForm] = useState({ fio: '', phone: '', email: '', telegram: '', about: '' })
+  const [orderForm, setOrderForm] = useState({ fio: '', phone: '', email: '', telegram: '', about: '', howHeard: '' })
   const [orderSent, setOrderSent] = useState(false)
 
   function handleOrderSubmit(e: FormEvent) {
@@ -365,6 +367,7 @@ export default function EventsHome() {
       phone: orderForm.phone || undefined,
       email: orderForm.email || undefined,
       telegram: orderForm.telegram || undefined,
+      howHeard: orderForm.howHeard,
       interest: orderForm.about ? [orderForm.about] : [],
     })
     setOrderSent(true)
@@ -372,7 +375,7 @@ export default function EventsHome() {
 
   // «Стать партнером» — лид-заявка на партнерство (общая, не по конкретному
   // мероприятию — для этого есть отдельная форма на странице мероприятия).
-  const [partnerForm, setPartnerForm] = useState({ company: '', fio: '', phone: '', email: '', telegram: '' })
+  const [partnerForm, setPartnerForm] = useState({ company: '', fio: '', phone: '', email: '', telegram: '', howHeard: '' })
   const [partnerSent, setPartnerSent] = useState(false)
 
   function handlePartnerSubmit(e: FormEvent) {
@@ -386,6 +389,7 @@ export default function EventsHome() {
       phone: partnerForm.phone || undefined,
       email: partnerForm.email || undefined,
       telegram: partnerForm.telegram || undefined,
+      howHeard: partnerForm.howHeard,
       interest: [partnerForm.company],
     })
     setPartnerSent(true)
@@ -393,7 +397,7 @@ export default function EventsHome() {
 
   // «Написать нам» (Помощь → Поддержка) — та же форма лида, что и везде
   // (ФИО, телефон, почта, Telegram), плюс отдельное поле с вопросом.
-  const [supportForm, setSupportForm] = useState({ fio: '', phone: '', email: '', telegram: '', question: '' })
+  const [supportForm, setSupportForm] = useState({ fio: '', phone: '', email: '', telegram: '', question: '', howHeard: '' })
   const [supportTicket, setSupportTicket] = useState<string | null>(null)
   const [supportMissing, setSupportMissing] = useState(false)
 
@@ -414,6 +418,7 @@ export default function EventsHome() {
       email: supportForm.email || undefined,
       telegram: supportForm.telegram || undefined,
       ticketNumber,
+      howHeard: supportForm.howHeard,
       interest: [`Вопрос: ${supportForm.question}`],
     })
     setSupportTicket(ticketNumber)
@@ -623,6 +628,7 @@ export default function EventsHome() {
                   rows={4}
                   className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none focus:border-ink/40"
                 />
+                <HowHeardField value={eventForm.howHeard} onChange={(v) => setEventForm((f) => ({ ...f, howHeard: v }))} className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40" />
                 <button type="submit" className="rounded-lg bg-ink py-2.5 text-sm font-semibold text-white hover:bg-ink/90">
                   Отправить заявку
                 </button>
@@ -677,6 +683,7 @@ export default function EventsHome() {
                   rows={4}
                   className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none focus:border-ink/40"
                 />
+                <HowHeardField value={orderForm.howHeard} onChange={(v) => setOrderForm((f) => ({ ...f, howHeard: v }))} className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40" />
                 <button type="submit" className="rounded-lg bg-ink py-2.5 text-sm font-semibold text-white hover:bg-ink/90">
                   Отправить заявку
                 </button>
@@ -731,6 +738,7 @@ export default function EventsHome() {
                   placeholder="Telegram"
                   className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none focus:border-ink/40"
                 />
+                <HowHeardField value={partnerForm.howHeard} onChange={(v) => setPartnerForm((f) => ({ ...f, howHeard: v }))} className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40" />
                 <button type="submit" className="rounded-lg bg-ink py-2.5 text-sm font-semibold text-white hover:bg-ink/90">
                   Отправить заявку
                 </button>
@@ -808,6 +816,7 @@ export default function EventsHome() {
                   <p className="mt-3 text-sm text-red-600">Заполните ФИО, телефон и вопрос.</p>
                 )}
 
+                <HowHeardField value={supportForm.howHeard} onChange={(v) => setSupportForm((f) => ({ ...f, howHeard: v }))} className="mt-3 rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40" />
                 <button
                   type="submit"
                   className="mt-4 w-full rounded-lg bg-ink py-2.5 text-sm font-semibold text-white hover:bg-ink/90"

@@ -10,6 +10,7 @@ import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import { tariffs } from '../../data/tariffs'
 import CommunityFooter from './CommunityFooter'
 import PhoneInput from '../../components/PhoneInput'
+import HowHeardField from '../../components/HowHeardField'
 import LeadSuccessCard from '../../components/LeadSuccessCard'
 import { validateJoinContacts } from '../../lib/joinValidation'
 import { SHOW_AMBASSADORS } from '../../lib/featureFlags'
@@ -227,6 +228,7 @@ export default function CommunityHome() {
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
   const [telegram, setTelegram] = useState('')
+  const [howHeard, setHowHeard] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState(false)
   const [formError, setFormError] = useState('')
@@ -246,7 +248,7 @@ export default function CommunityHome() {
     return () => window.removeEventListener('pageshow', handlePageShow)
   }, [])
 
-  const [ambassadorForm, setAmbassadorForm] = useState({ name: '', phone: '', email: '', telegram: '', about: '' })
+  const [ambassadorForm, setAmbassadorForm] = useState({ name: '', phone: '', email: '', telegram: '', about: '', howHeard: '' })
   const [ambassadorSent, setAmbassadorSent] = useState(false)
 
   const tariff = tariffs.find((t) => t.id === tariffId)!
@@ -274,6 +276,7 @@ export default function CommunityHome() {
       phone: phone || undefined,
       email: email || undefined,
       telegram: telegram ? (telegram.startsWith('@') ? telegram : `@${telegram}`) : undefined,
+      howHeard,
       interest: [tariff.period],
     })
 
@@ -286,7 +289,7 @@ export default function CommunityHome() {
       const res = await fetch('/api/community/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tariffId, name, phone, email, telegram }),
+        body: JSON.stringify({ tariffId, name, phone, email, telegram, howHeard }),
       })
       const data = await res.json()
       if (!res.ok || !data.url) throw new Error('subscribe_failed')
@@ -308,6 +311,7 @@ export default function CommunityHome() {
       phone: ambassadorForm.phone || undefined,
       email: ambassadorForm.email || undefined,
       telegram: ambassadorForm.telegram || undefined,
+      howHeard: ambassadorForm.howHeard,
       interest: [ambassadorForm.about].filter(Boolean),
     })
     setAmbassadorSent(true)
@@ -499,6 +503,9 @@ export default function CommunityHome() {
                 rows={3}
                 className="rounded-lg border border-ink/15 px-3 py-2 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40 sm:col-span-2"
               />
+              <div className="sm:col-span-2">
+                <HowHeardField value={ambassadorForm.howHeard} onChange={(v) => setAmbassadorForm((f) => ({ ...f, howHeard: v }))} />
+              </div>
               <button
                 type="submit"
                 className="rounded-lg bg-ink py-2.5 text-sm font-semibold text-white hover:bg-ink/90 sm:col-span-2"
@@ -711,6 +718,7 @@ export default function CommunityHome() {
                   required
                   className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
                 />
+                <HowHeardField value={howHeard} onChange={setHowHeard} className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none" />
                 {formError && <p className="text-sm text-red-600">{formError}</p>}
                 {submitError && (
                   <p className="text-sm text-red-600">Не получилось перейти к оплате — попробуйте еще раз через минуту.</p>

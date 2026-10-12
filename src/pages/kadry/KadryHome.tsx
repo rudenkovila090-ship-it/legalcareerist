@@ -13,6 +13,7 @@ import LeadSuccessCard from '../../components/LeadSuccessCard'
 import { demoCandidates, candidateContactPrice } from '../../data/candidateContacts'
 import { SHOW_FIND_EMPLOYEE, SHOW_PERSONAL_ACCOUNTS } from '../../lib/featureFlags'
 import KadryFooter from './KadryFooter'
+import HowHeardField from '../../components/HowHeardField'
 
 const railItems = [
   { id: 'hero', label: 'Обзор' },
@@ -359,7 +360,7 @@ export default function KadryHome() {
 
   // «Оформить услугу» — лид-заявка из калькулятора, центрированная модалка.
   const [serviceModalOpen, setServiceModalOpen] = useState(false)
-  const [serviceForm, setServiceForm] = useState({ company: '', fio: '', phone: '', email: '', telegram: '' })
+  const [serviceForm, setServiceForm] = useState({ company: '', fio: '', phone: '', email: '', telegram: '', howHeard: '' })
   const [serviceSent, setServiceSent] = useState(false)
 
   function handleServiceSubmit(e: FormEvent) {
@@ -374,6 +375,7 @@ export default function KadryHome() {
       email: serviceForm.email || undefined,
       telegram: serviceForm.telegram || undefined,
       company: serviceForm.company,
+      howHeard: serviceForm.howHeard,
       interest: [
         `Кого ищем: ${calcPosition.trim() || 'не указано'}`,
         `Цель поиска: ${goalLabel}`,
@@ -385,7 +387,7 @@ export default function KadryHome() {
     setServiceSent(true)
   }
 
-  const [form, setForm] = useState({ company: '', fio: '', email: '', phone: '', telegram: '', position: '' })
+  const [form, setForm] = useState({ company: '', fio: '', email: '', phone: '', telegram: '', position: '', howHeard: '' })
   const [sent, setSent] = useState(false)
 
   function handleSubmit(e: FormEvent) {
@@ -400,6 +402,7 @@ export default function KadryHome() {
       email: form.email || undefined,
       telegram: form.telegram || undefined,
       company: form.company,
+      howHeard: form.howHeard,
       interest: form.position.trim() ? [`Ищем: ${form.position.trim()}`] : [],
     })
     setSent(true)
@@ -461,7 +464,7 @@ export default function KadryHome() {
   const [selectedIds, setSelectedIds] = useState<Record<number, boolean>>({})
   const [cartOpen, setCartOpen] = useState(false)
   const [requestModalOpen, setRequestModalOpen] = useState(false)
-  const [requestForm, setRequestForm] = useState({ company: '', contact: '', phone: '', email: '', telegram: '' })
+  const [requestForm, setRequestForm] = useState({ company: '', contact: '', phone: '', email: '', telegram: '', howHeard: '' })
   const [requestSent, setRequestSent] = useState(false)
 
   function toggleSelect(id: number) {
@@ -487,6 +490,7 @@ export default function KadryHome() {
       email: requestForm.email || undefined,
       telegram: requestForm.telegram || undefined,
       company: requestForm.company,
+      howHeard: requestForm.howHeard,
       interest: [
         ...selectedCandidates.map((c) => `Кандидат №${c.id} — ${c.position}, ${candidateContactPrice(c).toLocaleString('ru-RU')} ₽`),
         candidatesTierPct > 0 ? `Скидка ${candidatesTierPct}%` : '',
@@ -817,7 +821,7 @@ export default function KadryHome() {
                     setRequestModalOpen(false)
                     setRequestSent(false)
                     setSelectedIds({})
-                    setRequestForm({ company: '', contact: '', phone: '', email: '', telegram: '' })
+                    setRequestForm({ company: '', contact: '', phone: '', email: '', telegram: '', howHeard: '' })
                   }}
                   className="mt-6 rounded-full bg-ink px-6 py-2.5 text-sm font-semibold text-white"
                 >
@@ -868,6 +872,7 @@ export default function KadryHome() {
                     placeholder="Telegram"
                     className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
                   />
+                  <HowHeardField value={requestForm.howHeard} onChange={(v) => setRequestForm((f) => ({ ...f, howHeard: v }))} className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none" />
                   <button type="submit" className="rounded-full bg-ink py-3 text-sm font-semibold text-white transition-colors hover:bg-ink/90">
                     Оставить заявку
                   </button>
@@ -1421,6 +1426,7 @@ export default function KadryHome() {
                     className="rounded-lg border border-white/15 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/40 focus:border-white/40"
                   />
                 </div>
+                <HowHeardField value={form.howHeard} onChange={(v) => setForm((f) => ({ ...f, howHeard: v }))} className="rounded-lg border border-white/15 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/40 focus:border-white/40" />
                 <button
                   type="submit"
                   className="rounded-lg bg-gold-light py-3.5 text-sm font-semibold text-ink hover:opacity-90"
@@ -1451,7 +1457,7 @@ export default function KadryHome() {
                   onClick={() => {
                     setServiceModalOpen(false)
                     setServiceSent(false)
-                    setServiceForm({ company: '', fio: '', phone: '', email: '', telegram: '' })
+                    setServiceForm({ company: '', fio: '', phone: '', email: '', telegram: '', howHeard: '' })
                   }}
                   className="mt-6 rounded-full bg-ink px-6 py-2.5 text-sm font-semibold text-white"
                 >
@@ -1507,6 +1513,7 @@ export default function KadryHome() {
                     placeholder="Telegram"
                     className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
                   />
+                  <HowHeardField value={serviceForm.howHeard} onChange={(v) => setServiceForm((f) => ({ ...f, howHeard: v }))} className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none" />
                   <button type="submit" className="rounded-full bg-ink py-3 text-sm font-semibold text-white transition-colors hover:bg-ink/90">
                     Отправить заявку
                   </button>

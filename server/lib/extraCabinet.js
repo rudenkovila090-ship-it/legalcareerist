@@ -273,6 +273,7 @@ export function eventLeadCard(e) {
     e.email ? `✉️ Почта: ${e.email}` : null,
     e.note ? `📝 ${e.note}` : null,
     `📅 ${ruDateTime(e.createdAt)} · 📣 ${e.source}`,
+    e.howHeard ? `🗣 Откуда узнали: ${e.howHeard}` : null,
   ].filter((l) => l !== null)
   const st = (status, text) => ({ text, callback_data: `a:x:evst:${e.number}:${status}` })
   const keyboard = []
@@ -390,7 +391,7 @@ export function systemScreen(healthLines) {
     text: ['🛠 Система', '', ...healthLines].join('\n'),
     keyboard: [
       [{ text: '📌 Доработки', callback_data: 'a:x:todo' }, { text: '🔎 Проверить чат', callback_data: 'a:x:chatcheck' }],
-      [{ text: '👤 Пользователи бота', callback_data: 'a:x:bots' }],
+      [{ text: '👤 Пользователи бота', callback_data: 'a:x:bots' }, { text: '🗣 Откуда узнали', callback_data: 'a:x:src:30' }],
       [{ text: '💾 Резервная копия сейчас', callback_data: 'a:x:backup' }],
       [{ text: '🧾 Журнал действий', callback_data: 'a:x:audit' }, { text: '🌅 Сводка дня', callback_data: 'a:x:digest' }],
       menuRow,

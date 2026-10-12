@@ -14,6 +14,7 @@ import { registerForEvent } from '../../lib/eventRegistrations'
 import { isFavoriteEvent, toggleFavoriteEvent } from '../../lib/eventFavorites'
 import { useEventViews } from '../../lib/useEventViews'
 import { getUtm } from '../../lib/utm'
+import HowHeardField from '../../components/HowHeardField'
 
 const specLabel = new Map(SPECIALIZATIONS.map((s) => [s.id, s.label]))
 const industryLabel = new Map(INDUSTRIES.map((i) => [i.id, i.label]))
@@ -157,7 +158,7 @@ export default function EventDetail() {
   const views = useEventViews(slug ?? '')
 
   const [tariffId, setTariffId] = useState<EventTariff['id']>(event?.tariffs[0]?.id ?? 'light')
-  const [form, setForm] = useState({ fio: '', phone: '', email: '', telegram: '' })
+  const [form, setForm] = useState({ fio: '', phone: '', email: '', telegram: '', howHeard: '' })
   const [registered, setRegistered] = useState(false)
   const [paying, setPaying] = useState(false)
   const [payError, setPayError] = useState(false)
@@ -174,7 +175,7 @@ export default function EventDetail() {
   // «Стать партнером мероприятия» — лид-заявка: пока просто уведомление,
   // что такой-то человек из такой-то компании хочет стать партнером
   // именно этого мероприятия (без логики согласования/статусов).
-  const [partnerForm, setPartnerForm] = useState({ fio: '', company: '', phone: '', email: '' })
+  const [partnerForm, setPartnerForm] = useState({ fio: '', company: '', phone: '', email: '', howHeard: '' })
   const [partnerSent, setPartnerSent] = useState(false)
 
   if (!event) {
@@ -209,7 +210,7 @@ export default function EventDetail() {
         const res = await fetch(`/api/event/${event.slug}/checkout`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ tariffId: tariff.id, name: form.fio, phone: form.phone, email: form.email, telegram: form.telegram, utm: getUtm() }),
+          body: JSON.stringify({ tariffId: tariff.id, name: form.fio, phone: form.phone, email: form.email, telegram: form.telegram, howHeard: form.howHeard, utm: getUtm() }),
         })
         const data = await res.json()
         if (!res.ok || !data.url) throw new Error('checkout_failed')
@@ -229,6 +230,7 @@ export default function EventDetail() {
       phone: form.phone || undefined,
       email: form.email || undefined,
       telegram: form.telegram || undefined,
+      howHeard: form.howHeard,
       interest: [event.title, tariff.name],
       eventSlug: event.slug,
     })
@@ -247,6 +249,7 @@ export default function EventDetail() {
       contact: [partnerForm.phone, partnerForm.email].filter(Boolean).join(' / '),
       phone: partnerForm.phone || undefined,
       email: partnerForm.email || undefined,
+      howHeard: partnerForm.howHeard,
       interest: [event.title, partnerForm.company],
     })
     setPartnerSent(true)
@@ -458,6 +461,9 @@ export default function EventDetail() {
                   placeholder="Почта"
                   className="rounded-lg border border-ink/15 px-3.5 py-2.5 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40"
                 />
+                <div className="sm:col-span-2">
+                  <HowHeardField value={partnerForm.howHeard} onChange={(v) => setPartnerForm((f) => ({ ...f, howHeard: v }))} className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40" />
+                </div>
                 <button type="submit" className="rounded-lg bg-ink py-2.5 text-sm font-semibold text-white hover:bg-ink/90 sm:col-span-2">
                   Отправить заявку
                 </button>
@@ -582,6 +588,7 @@ export default function EventDetail() {
                       placeholder="Telegram"
                       className="rounded-lg border border-ink/15 px-3.5 py-2.5 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40"
                     />
+                    <HowHeardField value={form.howHeard} onChange={(v) => setForm((f) => ({ ...f, howHeard: v }))} className="rounded-lg border border-ink/15 px-3.5 py-2.5 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40" />
                     {payError && <div className="text-xs text-red-600">Не получилось перейти к оплате. Попробуйте ещё раз или напишите нам.</div>}
                     <button type="submit" disabled={paying} className="mt-1 rounded-lg bg-ink py-2.5 text-sm font-semibold text-white hover:bg-ink/90 disabled:opacity-60">
                       {paying ? 'Переходим к оплате…' : tariff.price === 0 ? 'Приобрести билет' : `Приобрести билет — ${tariff.price.toLocaleString('ru-RU')} ₽`}

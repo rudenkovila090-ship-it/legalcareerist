@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { tariffs, type TariffId } from '../data/tariffs'
 import { submitLead } from '../lib/leads'
+import HowHeardField from './HowHeardField'
 import PhoneInput from './PhoneInput'
 import { validateJoinContacts } from '../lib/joinValidation'
 
@@ -18,6 +19,7 @@ export default function TariffJoinBlock() {
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
   const [telegram, setTelegram] = useState('')
+  const [howHeard, setHowHeard] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState(false)
   const [formError, setFormError] = useState('')
@@ -48,6 +50,7 @@ export default function TariffJoinBlock() {
     setPhone('')
     setEmail('')
     setTelegram('')
+    setHowHeard('')
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -64,6 +67,7 @@ export default function TariffJoinBlock() {
       phone: phone || undefined,
       email: email || undefined,
       telegram: telegram ? (telegram.startsWith('@') ? telegram : `@${telegram}`) : undefined,
+      howHeard,
       interest: [tariff.period],
     })
 
@@ -76,7 +80,7 @@ export default function TariffJoinBlock() {
       const res = await fetch('/api/community/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tariffId, name, phone, email, telegram }),
+        body: JSON.stringify({ tariffId, name, phone, email, telegram, howHeard }),
       })
       const data = await res.json()
       if (!res.ok || !data.url) throw new Error('subscribe_failed')
@@ -184,6 +188,7 @@ export default function TariffJoinBlock() {
                 required
                 className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
               />
+              <HowHeardField value={howHeard} onChange={setHowHeard} className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none" />
               {formError && <p className="text-sm text-red-600">{formError}</p>}
               {submitError && (
                 <p className="text-sm text-red-600">Не получилось перейти к оплате — попробуйте еще раз через минуту.</p>

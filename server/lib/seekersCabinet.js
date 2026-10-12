@@ -124,6 +124,7 @@ function applicationLines(a, withVacancy) {
     withVacancy ? `   Вакансия: ${a.vacancyTitle || a.vacancySlug}` : null,
     `   ${[a.telegram, a.phone, a.email].filter(Boolean).join(' · ') || 'контакты не указаны'}`,
     `   Источник: ${a.source}`,
+    a.howHeard ? `   Откуда узнали: ${a.howHeard}` : null,
     docs ? `   ${docs}` : null,
   ].filter(Boolean)
 }
@@ -180,6 +181,7 @@ export function consultationCard(c) {
     c.phone ? `📞 Телефон: ${c.phone}` : null,
     c.email ? `✉️ Почта: ${c.email}` : null,
     `📣 Источник: ${c.source}`,
+    c.howHeard ? `🗣 Откуда узнали: ${c.howHeard}` : null,
   ].filter((l) => l !== null)
   const set = (status, text) => ({ text, callback_data: `a:s:cst:${c.number}:${status}` })
   const keyboard = []
@@ -343,6 +345,7 @@ export function reserveCard(c) {
     `🔗 Резюме: ${c.resumeUrl || 'ссылка не прикреплена'}`,
     `📅 Заявка: ${ruDate(c.createdAt)}`,
     `📣 Источник: ${c.utm}`,
+    c.howHeard ? `🗣 Откуда узнали: ${c.howHeard}` : null,
   ].filter((l) => l !== null)
   const edit = (field, text) => ({ text, callback_data: `a:s:redit:${c.number}:${field}` })
   const keyboard = [

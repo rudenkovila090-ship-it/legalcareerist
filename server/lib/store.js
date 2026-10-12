@@ -12,8 +12,8 @@ function normalizeTelegramKey(value) {
   return String(value ?? '').trim().replace(/^@/, '').toLowerCase()
 }
 
-export function createPendingJoin({ tariffId, name, phone, email, telegram }) {
-  return store.create({ tariffId, name, phone, email, telegram, tgUserId: null, status: 'pending' })
+export function createPendingJoin({ tariffId, name, phone, email, telegram, howHeard }) {
+  return store.create({ tariffId, name, phone, email, telegram, howHeard: howHeard || '', tgUserId: null, status: 'pending' })
 }
 
 /**

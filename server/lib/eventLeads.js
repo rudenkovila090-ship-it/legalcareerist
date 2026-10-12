@@ -16,9 +16,9 @@ export function getEventLead(number) {
 }
 
 /** kind: 'registration' (билет на мероприятие) или 'request' (партнёр/организатор/заказ). */
-export function createEventLead({ kind, formType, eventSlug, eventTitle, tariff, name, phone, email, telegram, company, note, source }) {
+export function createEventLead({ kind, formType, eventSlug, eventTitle, tariff, name, phone, email, telegram, company, note, source, howHeard }) {
   const number = listEventLeads().reduce((max, e) => Math.max(max, e.number), 0) + 1
-  const token = store.create({ number, kind, formType, eventSlug: eventSlug || '', eventTitle: eventTitle || '', tariff: tariff || '', name: name || '', phone: phone || '', email: email || '', telegram: telegram || '', company: company || '', note: note || '', source: source || 'без метки', status: kind === 'registration' ? 'registered' : 'new', amount: null })
+  const token = store.create({ number, kind, formType, eventSlug: eventSlug || '', eventTitle: eventTitle || '', tariff: tariff || '', name: name || '', phone: phone || '', email: email || '', telegram: telegram || '', company: company || '', note: note || '', source: source || 'без метки', howHeard: howHeard || '', status: kind === 'registration' ? 'registered' : 'new', amount: null })
   return { token, ...store.get(token) }
 }
 

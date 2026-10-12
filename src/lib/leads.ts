@@ -106,6 +106,8 @@ export interface LeadInput {
   /** Номер заявки (см. nextTicketNumber) — если задан, попадает в первую
    *  строку уведомления админу («Заявка №N»), тем же числом, что видит клиент. */
   ticketNumber?: string
+  /** Ответ на «Откуда вы о нас узнали?» (свободный текст, необязательный). */
+  howHeard?: string
   interest?: string[]
   /** Slug вакансии — если задан, бэкенд считает это в реальный счетчик откликов вакансии. */
   vacancySlug?: string
@@ -142,6 +144,7 @@ export function submitLead(input: LeadInput): Lead {
     company: input.company,
     serviceOverride: input.serviceOverride,
     ticketNumber: input.ticketNumber,
+    howHeard: input.howHeard?.trim() || undefined,
     interest: input.interest ?? [],
     status: 'new',
     date: new Date().toISOString(),
@@ -184,6 +187,7 @@ function notifyTelegram(lead: Lead, vacancySlug?: string, eventSlug?: string) {
       telegram: lead.telegram,
       company: lead.company,
       ticketNumber: lead.ticketNumber,
+      howHeard: lead.howHeard,
       interest: lead.interest,
       date: lead.date,
       vacancySlug,
