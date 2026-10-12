@@ -2319,7 +2319,10 @@ app.post('/api/prodamus/webhook', async (req, res) => {
       }
       const material = MATERIALS[purchase.materialSlug]
       const cabinetUrl = `${SITE_URL}/materials/cabinet?token=${purchase.token}`
-      const mail = purchase.email ? await emailMaterial({ to: purchase.email, name: purchase.name, materialSlug: purchase.materialSlug, cabinetUrl }) : { ok: false, error: 'no_email' }
+      // Покупатель из бота почту нам не называл, но Prodamus спрашивает её на странице оплаты и присылает в вебхуке.
+      const buyerEmail = purchase.email || String(body.customer_email ?? '').trim()
+      if (buyerEmail && !purchase.email) purchase.email = buyerEmail
+      const mail = buyerEmail ? await emailMaterial({ to: buyerEmail, name: purchase.name, materialSlug: purchase.materialSlug, cabinetUrl }) : { ok: false, error: 'no_email' }
       console.log('[prodamus] письмо с материалом:', mail.ok ? 'отправлено' : mail.error)
       const text = buildMaterialPaidNotification({ purchase, material, phone, amount: Number(body.sum) || material?.price || 0, paidAt: Date.now(), mail, cabinetUrl })
       await sendTelegramMessage(ADMIN_CHAT_ID, text)
