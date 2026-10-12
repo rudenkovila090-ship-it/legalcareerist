@@ -11,6 +11,7 @@ import { SHOW_CREATE_EVENT, SHOW_EVENTS_ACCOUNT } from '../../lib/featureFlags'
 import HowHeardField from '../../components/HowHeardField'
 import { eventTimeRange } from '../../lib/eventTime'
 import { eventStories } from '../../data/eventStories'
+import { useNoirFont } from '../../lib/useNoirFont'
 import { pluralRu } from '../../lib/plural'
 
 const money = new Intl.NumberFormat('ru-RU')
@@ -179,18 +180,10 @@ function EventCard({ e }: { e: EventItem }) {
   const Icon = posterIcon[e.type]
   const date = new Date(e.dateTime)
   const past = e.status === 'completed'
-  // Для мероприятий с авторским оформлением обложка — сцена из его страницы.
-  const cover = eventStories[e.slug]?.heroImage
   return (
     <Link to={`/events/${e.slug}`} className="glass block overflow-hidden rounded-2xl">
       <div className={`relative flex h-40 flex-col justify-between bg-gradient-to-br p-5 text-white ${posterTone[e.type]} ${past ? 'grayscale' : ''}`}>
-        {cover && (
-          <>
-            <img src={cover} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover object-[50%_40%]" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-black/30" aria-hidden="true" />
-          </>
-        )}
-        <div className="relative flex items-start justify-between gap-2">
+        <div className="flex items-start justify-between gap-2">
           <Icon />
           <div className="flex flex-wrap justify-end gap-1.5">
             {e.international && (
@@ -241,6 +234,38 @@ function EventCard({ e }: { e: EventItem }) {
   )
 }
 
+/** Карточка мероприятия с авторским оформлением: на всю ширину строки, картинка растянута по всей карточке. */
+function FeaturedEventCard({ e, image }: { e: EventItem; image: string }) {
+  const date = new Date(e.dateTime).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })
+  const [ru, en] = e.title.split(' / ')
+  return (
+    <Link to={`/events/${e.slug}`} className="group relative block min-h-[22rem] overflow-hidden rounded-2xl bg-[#0b0506] text-[#eadfc8] sm:col-span-2 lg:col-span-3 sm:min-h-[26rem]">
+      <img src={image} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover object-[50%_58%] transition-transform duration-700 group-hover:scale-[1.03]" />
+      <div className="absolute inset-0 bg-[#0b0506]/35 sm:bg-transparent" aria-hidden="true" />
+      <div className="absolute inset-0 bg-gradient-to-r from-[#0b0506]/90 via-[#0b0506]/45 to-transparent" aria-hidden="true" />
+      <div className="absolute inset-0 bg-gradient-to-t from-[#0b0506]/70 via-transparent to-transparent" aria-hidden="true" />
+      <div className="relative flex min-h-[22rem] flex-col justify-end p-6 sm:min-h-[26rem] sm:p-10">
+        <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[#d9a85c]">{eventTypeLabel[e.type]}</div>
+        <h3 className="font-noir mt-3 max-w-2xl text-3xl font-semibold leading-tight sm:text-5xl">{ru}</h3>
+        {en && <div className="font-noir mt-1 text-xl italic text-[#eadfc8]/70 sm:text-2xl">{en}</div>}
+        <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm font-medium sm:text-base">
+          <span>{date}</span>
+          <span className="hidden h-4 w-px bg-[#eadfc8]/30 sm:block" aria-hidden="true" />
+          <span>{eventTimeRange(e)}</span>
+          <span className="hidden h-4 w-px bg-[#eadfc8]/30 sm:block" aria-hidden="true" />
+          <span>{e.format === 'online' ? 'Онлайн' : e.city}</span>
+        </div>
+        <div className="mt-6 flex flex-wrap items-center gap-3">
+          <span className="rounded-full bg-[#a3202a] px-5 py-2 text-sm font-semibold text-white transition-colors group-hover:bg-[#d3303b]">
+            {e.price === 0 ? 'Бесплатно' : `${money.format(e.price)} ₽`}
+          </span>
+          <span className="text-sm font-semibold text-[#eadfc8]/80">Подробнее →</span>
+        </div>
+      </div>
+    </Link>
+  )
+}
+
 function IconCart() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
@@ -258,6 +283,7 @@ type TabId = (typeof eventTabs)[number]['id'] | 'partner' | 'support'
 
 export default function EventsHome() {
   useDocumentTitle('Мероприятия')
+  useNoirFont(events.some((e) => eventStories[e.slug]))
   // 'partner' и 'support' не выведены отдельными кнопками в подменю сверху
   // (eventTabs) — до них ведут только ссылки в едином подвале (EventsFooter),
   // в том числе с других страниц (например, с детальной страницы
@@ -567,7 +593,10 @@ export default function EventsHome() {
           <section id="all-events" className="container-page pb-16">
             <h2 className="mb-4 text-xl font-semibold">Все события</h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {filtered.map((e) => <EventCard key={e.id} e={e} />)}
+              {filtered.map((e) => {
+                const story = eventStories[e.slug]
+                return story ? <FeaturedEventCard key={e.id} e={e} image={story.cardImage} /> : <EventCard key={e.id} e={e} />
+              })}
               {filtered.length === 0 && events.length === 0 && (
                 <p className="text-ink/50">Ближайшие мероприятия скоро анонсируем — следите за обновлениями в Telegram-боте и сообществе.</p>
               )}

@@ -1,5 +1,6 @@
 import barScene from '../assets/legal-night-jazz-2-bar.webp'
 import loungeScene from '../assets/legal-night-jazz-2-lounge.webp'
+import hallScene from '../assets/legal-night-jazz-2-hall.webp'
 
 // Авторское оформление и тексты отдельных мероприятий. Лежит отдельно от events.ts:
 // тот файл читает скрипт выгрузки каталога для бота (scripts/export-vacancy-catalog.mjs),
@@ -36,6 +37,8 @@ export interface EventStory {
   /** Картинки: сцена для шапки и портрет для блока «О вечере». */
   heroImage: string
   portraitImage: string
+  /** Широкая обложка карточки в афише (растягивается на всю ширину строки). */
+  cardImage: string
   introLead: string
   intro: string[]
   /** Вопрос из текста перед ним — вводная фраза. */
@@ -55,6 +58,7 @@ export const eventStories: Record<string, EventStory> = {
     taglineEn: 'Who killed the career?',
     heroImage: barScene,
     portraitImage: loungeScene,
+    cardImage: hallScene,
     introLead: 'Legal Night Jazz возвращается — и на этот раз гости станут частью тайного расследования.',
     intro: [
       'Это вечер на стыке юридического профессионального события, иммерсивного театра, интеллектуального нетворкинга и эстетики нуара. Мы создаём историю об убийстве карьеры, в которой каждый персонаж что-то скрывает, у каждого есть мотив, а каждая профессиональная ошибка может оказаться уликой.',
