@@ -58,15 +58,7 @@ export const demoMemberships: (CommunityMembership & { clubName: string })[] = [
   },
 ]
 
-export const demoEventRegistrations: (EventRegistration & { eventTitle: string })[] = [
-  {
-    id: 'reg1',
-    eventId: 'ev1',
-    userId: 'u_demo',
-    status: 'registered',
-    eventTitle: 'Как тело и взгляд создают уверенного спикера',
-  },
-]
+export const demoEventRegistrations: (EventRegistration & { eventTitle: string })[] = []
 
 // Демо-аккаунт работодателя (раздел "Личный кабинет работодателя") — вход
 // без пароля, кнопкой "Войти как работодатель" на /account (см. accountRole.ts).

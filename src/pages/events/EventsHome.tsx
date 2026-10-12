@@ -557,7 +557,10 @@ export default function EventsHome() {
             <h2 className="mb-4 text-xl font-semibold">Все события</h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {filtered.map((e) => <EventCard key={e.id} e={e} />)}
-              {filtered.length === 0 && (
+              {filtered.length === 0 && events.length === 0 && (
+                <p className="text-ink/50">Ближайшие мероприятия скоро анонсируем — следите за обновлениями в Telegram-боте и сообществе.</p>
+              )}
+              {filtered.length === 0 && events.length > 0 && (
                 <p className="text-ink/50">
                   Мероприятий по фильтру не найдено.{' '}
                   <button type="button" onClick={resetFilters} className="font-medium text-ink underline hover:no-underline">Сбросить фильтры</button>

@@ -11,17 +11,9 @@ export type StoredEventRegistration = EventRegistration & { eventTitle: string; 
 const KEY = 'ky_candidate_event_registrations'
 const DEMO_USER_ID = 'u_demo'
 
+// Демо-регистраций нет: единственное мероприятие прошло.
 function seed(): StoredEventRegistration[] {
-  return [
-    {
-      id: 'reg1',
-      eventId: 'ev1',
-      userId: DEMO_USER_ID,
-      status: 'registered',
-      eventTitle: 'Как тело и взгляд создают уверенного спикера',
-      registeredAt: '2026-08-20T10:00:00.000Z',
-    },
-  ]
+  return []
 }
 
 export function getRegistrations(): StoredEventRegistration[] {
