@@ -252,6 +252,8 @@ h4 {
   background-image: radial-gradient(60% 720px at 92% 0%, rgba(163, 32, 42, 0.42), transparent 70%);
   background-repeat: no-repeat;
   color: var(--color-ink);
+  /* Блоки выезжают сбоку — не даём им растягивать страницу (clip, а не hidden: липкая колонка билета продолжает работать). */
+  overflow-x: clip;
 }
 .font-noir {
   font-family: "Playfair Display", "Times New Roman", Georgia, serif;
@@ -294,11 +296,4 @@ h4 {
 }
 .noir-hero {
   border-bottom: 1px solid rgba(234, 223, 200, 0.1);
-}
-/* «Засекреченная» строка: чёрная плашка вместо спойлера. */
-.noir-sealed {
-  display: inline-block;
-  background: #000;
-  color: rgba(234, 223, 200, 0.45);
-  border: 1px solid rgba(234, 223, 200, 0.12);
 }

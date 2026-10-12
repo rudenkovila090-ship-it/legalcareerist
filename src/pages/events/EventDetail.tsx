@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useRef, useState, type FormEvent } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { events } from '../../data/events'
 import RelatedContentBlock from '../../components/RelatedContentBlock'
@@ -20,6 +20,9 @@ import { pluralRu } from '../../lib/plural'
 import { eventStories } from '../../data/eventStories'
 import { NoirHero, NoirIntro, NoirFacts, NoirStory, NoirCharacters } from './NoirSections'
 import { useNoirFont } from '../../lib/useNoirFont'
+import { useNoirScroll } from '../../lib/useNoirScroll'
+import ScrollGlass from '../../components/noir/ScrollGlass'
+import { NoirGrain } from '../../components/noir/NoirAmbient'
 
 const specLabel = new Map(SPECIALIZATIONS.map((s) => [s.id, s.label]))
 const industryLabel = new Map(INDUSTRIES.map((i) => [i.id, i.label]))
@@ -164,6 +167,8 @@ export default function EventDetail() {
   // Авторское оформление мероприятия (тёмная тема и блоки сюжета) — если для него есть запись в eventStories.
   const story = slug ? eventStories[slug] : undefined
   useNoirFont(Boolean(story))
+  const noirRef = useRef<HTMLDivElement>(null)
+  useNoirScroll(noirRef, Boolean(story))
 
   const [tariffId, setTariffId] = useState<EventTariff['id']>(event?.tariffs[0]?.id ?? 'light')
   const [form, setForm] = useState({ fio: '', phone: '', email: '', telegram: '', howHeard: '' })
@@ -299,7 +304,13 @@ export default function EventDetail() {
 
   return (
     <div className="pb-12">
-      <div className={story ? 'theme-noir pb-16' : ''}>
+      <div ref={noirRef} className={story ? 'theme-noir pb-16' : ''}>
+        {story && (
+          <>
+            <NoirGrain />
+            <ScrollGlass />
+          </>
+        )}
       <div className="container-page pt-8">
         <Link to="/events" className="text-sm text-ink/50 hover:text-ink">← Все мероприятия</Link>
       </div>

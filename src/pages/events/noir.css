@@ -1,0 +1,561 @@
+/* Анимации «нуарной» страницы мероприятия (Legal Night Jazz 2).
+   Всё, что движется, включено только при prefers-reduced-motion: no-preference — иначе страница статична и сразу видна целиком.
+   Цвета берутся из токенов .theme-noir (index.css). */
+
+/* ===== Статичные части (видны всегда) ===== */
+
+.noir-sealed {
+  position: relative;
+  isolation: isolate;
+  display: inline-block;
+  color: rgba(234, 223, 200, 0.45);
+  border: 1px solid rgba(234, 223, 200, 0.12);
+}
+.noir-sealed::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: #000;
+  border-radius: inherit;
+}
+
+.noir-h::after {
+  content: '';
+  display: block;
+  height: 1px;
+  width: 3.5rem;
+  margin-top: 0.7rem;
+  background: linear-gradient(90deg, var(--color-gold), transparent);
+}
+
+.noir-card .noir-ico {
+  transition: transform 0.5s cubic-bezier(0.3, 1.4, 0.5, 1), box-shadow 0.5s;
+}
+.noir-card:hover .noir-ico {
+  transform: rotate(-10deg) scale(1.1);
+  box-shadow: 0 0 18px rgba(217, 168, 92, 0.35);
+}
+
+/* Выстрел: пробоина и трещины остаются на месте, вспышка и дым — только с анимацией. */
+.shot {
+  position: absolute;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  z-index: 25;
+}
+.shot-svg {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform: translate(-50%, -50%);
+  overflow: visible;
+  filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.7));
+}
+.shot-ray,
+.shot-ring {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+}
+.shot-ring {
+  stroke-opacity: 0.6;
+}
+.shot-burst {
+  display: none;
+}
+.shot-smoke i {
+  display: none;
+}
+
+.noir-curtain,
+.noir-dust,
+.noir-torch,
+.noir-sweep,
+.noir-lamp,
+.noir-grain,
+.noir-glass {
+  display: none;
+}
+
+.noir-marquee {
+  overflow: hidden;
+  border-block: 1px solid rgba(234, 223, 200, 0.1);
+  background: rgba(0, 0, 0, 0.35);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+}
+.noir-marquee-track {
+  display: flex;
+  width: max-content;
+  padding: 0.85rem 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--color-gold);
+  white-space: pre;
+}
+.noir-marquee-track span {
+  flex: none;
+}
+
+/* ===== Анимации ===== */
+
+@media (prefers-reduced-motion: no-preference) {
+  /* --- появление блоков при прокрутке --- */
+  .rv {
+    opacity: 0;
+    transition: opacity 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) var(--d, 0ms), transform 1s cubic-bezier(0.2, 0.7, 0.2, 1) var(--d, 0ms);
+  }
+  .rv[data-v='up'] {
+    transform: translate3d(0, 36px, 0);
+  }
+  .rv[data-v='left'] {
+    transform: translate3d(-48px, 12px, 0) rotate(-1.6deg);
+  }
+  .rv[data-v='right'] {
+    transform: translate3d(48px, 12px, 0) rotate(1.6deg);
+  }
+  .rv[data-v='zoom'] {
+    transform: scale(0.93);
+  }
+  @media (max-width: 767px) {
+    .rv[data-v='left'],
+    .rv[data-v='right'] {
+      transform: translate3d(0, 30px, 0);
+    }
+  }
+  .rv[data-in] {
+    opacity: 1;
+    transform: none;
+  }
+
+  .noir-h::after {
+    width: 0;
+    transition: width 1.2s cubic-bezier(0.2, 0.7, 0.2, 1) 0.35s;
+  }
+  .rv[data-in] .noir-h::after {
+    width: 3.5rem;
+  }
+
+  /* «Засекречено»: чёрная плашка наезжает на текст, как маркер. */
+  .noir-sealed {
+    color: rgba(234, 223, 200, 0.9);
+    transition: color 0.5s ease 1s;
+  }
+  .noir-sealed::before {
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.85s cubic-bezier(0.7, 0, 0.2, 1) 0.55s;
+  }
+  .rv[data-in] .noir-sealed {
+    color: rgba(234, 223, 200, 0.45);
+  }
+  .rv[data-in] .noir-sealed::before {
+    transform: scaleX(1);
+  }
+
+  .noir-q {
+    display: inline-block;
+  }
+  .rv[data-in] .noir-q {
+    animation: q-pop 0.8s cubic-bezier(0.3, 1.6, 0.5, 1) 0.45s both;
+  }
+  .rv[data-in] .noir-roman {
+    animation: roman-glow 4.5s ease-in-out 1.2s infinite;
+  }
+
+  /* --- шапка: занавес, слова заголовка, капля с двойки --- */
+  .noir-curtain {
+    display: block;
+    position: absolute;
+    inset: 0;
+    z-index: 30;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .noir-curtain i {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 50.6%;
+    background:
+      linear-gradient(to bottom, rgba(0, 0, 0, 0.6), transparent 38%, rgba(0, 0, 0, 0.45)),
+      repeating-linear-gradient(90deg, #430a11 0, #6d111b 12px, #8d1b27 24px, #5b0e17 37px, #3a070d 50px);
+    animation-duration: 1.75s;
+    animation-delay: 0.35s;
+    animation-timing-function: cubic-bezier(0.65, 0, 0.25, 1);
+    animation-fill-mode: forwards;
+  }
+  .noir-curtain i:first-child {
+    left: 0;
+    border-right: 2px solid rgba(217, 168, 92, 0.55);
+    animation-name: curtain-l;
+  }
+  .noir-curtain i:last-child {
+    right: 0;
+    border-left: 2px solid rgba(217, 168, 92, 0.55);
+    animation-name: curtain-r;
+  }
+
+  .noir-mask {
+    display: inline-block;
+    overflow: hidden;
+    vertical-align: bottom;
+    padding-bottom: 0.14em;
+    margin-bottom: -0.14em;
+  }
+  .noir-word {
+    display: inline-block;
+    transform: translateY(112%);
+    animation: word-up 0.95s cubic-bezier(0.2, 0.8, 0.2, 1) calc(1.15s + var(--i, 0) * 0.13s) forwards;
+  }
+  .noir-two {
+    position: relative;
+    display: inline-block;
+    opacity: 0;
+    animation: two-drop 1.1s cubic-bezier(0.3, 1.5, 0.5, 1) 1.85s forwards;
+  }
+  .noir-two::after {
+    content: '';
+    position: absolute;
+    left: 46%;
+    bottom: -0.12em;
+    width: 0.07em;
+    height: 0;
+    border-radius: 0 0 50% 50%;
+    background: var(--noir-crimson-bright);
+    opacity: 0;
+    animation: drip 7s ease-in 4.2s infinite;
+  }
+  .noir-rise {
+    opacity: 0;
+    transform: translateY(20px);
+    animation: noir-rise 0.95s cubic-bezier(0.2, 0.8, 0.2, 1) var(--rd, 0s) forwards;
+  }
+  .noir-line {
+    transform: scaleX(0);
+    transform-origin: left;
+    animation: line-draw 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) var(--rd, 0s) forwards;
+  }
+  .noir-cta {
+    animation: cta-pulse 3.4s ease-in-out 3.6s infinite;
+  }
+
+  .noir-lamp {
+    display: block;
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(34% 55% at 6% 92%, rgba(255, 170, 70, 0.2), transparent 70%);
+    animation: lamp 6.5s linear infinite;
+  }
+  .noir-dust {
+    display: block;
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 1;
+  }
+  .noir-dust i {
+    position: absolute;
+    bottom: -6px;
+    border-radius: 50%;
+    background: #f3c987;
+    box-shadow: 0 0 6px 1px rgba(243, 201, 135, 0.55);
+    opacity: 0;
+    animation: dust var(--t, 14s) linear var(--dl, 0s) infinite;
+  }
+  .noir-torch {
+    display: block;
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.4s;
+    background: radial-gradient(260px circle at var(--lx, 50%) var(--ly, 50%), rgba(255, 214, 150, 0.14), transparent 70%);
+    mix-blend-mode: screen;
+  }
+  .noir-hero:hover .noir-torch {
+    opacity: 1;
+  }
+  .noir-sweep {
+    display: block;
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    mix-blend-mode: screen;
+  }
+  .noir-sweep::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -30%;
+    width: 160%;
+    background: linear-gradient(100deg, transparent 38%, rgba(255, 214, 150, 0.22) 50%, transparent 62%);
+    animation: sweep 8s ease-in-out infinite alternate;
+  }
+  .noir-kb {
+    animation: kb 26s ease-in-out infinite alternate;
+  }
+  .noir-arch-ring {
+    animation: ring-glow 5s ease-in-out infinite;
+  }
+
+  .noir-shaking {
+    animation: noir-shake 0.42s linear;
+  }
+  .noir-flash {
+    position: absolute;
+    inset: 0;
+    z-index: 24;
+    pointer-events: none;
+    background: radial-gradient(55% 70% at var(--fx, 88%) var(--fy, 16%), rgba(255, 238, 205, 0.6), rgba(255, 160, 70, 0.2) 40%, transparent 72%);
+    opacity: 0;
+    animation: noir-flash 0.4s ease-out forwards;
+  }
+
+  /* --- выстрел --- */
+  .shot-ray {
+    stroke-dashoffset: 1;
+    animation: shot-draw 0.38s cubic-bezier(0.2, 0.7, 0.2, 1) calc(0.06s + var(--i, 0) * 0.025s) forwards;
+  }
+  .shot-ring {
+    stroke-dashoffset: 1;
+    animation: shot-draw 0.6s ease-out calc(0.32s + var(--i, 0) * 0.12s) forwards;
+  }
+  .shot-hole {
+    transform: scale(0);
+    animation: shot-pop 0.34s cubic-bezier(0.2, 1.6, 0.4, 1) 0.02s forwards;
+  }
+  .shot-burst {
+    display: block;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 130px;
+    height: 130px;
+    margin: -65px 0 0 -65px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #fff 0, rgba(255, 226, 170, 0.9) 18%, rgba(255, 150, 60, 0.35) 45%, transparent 70%);
+    opacity: 0;
+    animation: shot-burst 0.34s ease-out forwards;
+  }
+  .shot-smoke i {
+    display: block;
+    position: absolute;
+    left: 0;
+    top: 0;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(234, 223, 200, 0.5), rgba(234, 223, 200, 0) 70%);
+    filter: blur(5px);
+    opacity: 0;
+    animation: shot-smoke var(--dur, 5s) ease-out var(--delay, 0.4s) both;
+  }
+
+  /* --- бегущая строка, плёночное зерно, бокал --- */
+  .noir-marquee-track {
+    animation: marquee 42s linear infinite;
+  }
+  .noir-marquee:hover .noir-marquee-track {
+    animation-play-state: paused;
+  }
+  .noir-grain {
+    display: block;
+    position: fixed;
+    inset: -100px;
+    z-index: 35;
+    pointer-events: none;
+    opacity: 0.08;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .6 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    background-size: 200px 200px;
+    animation: grain 0.9s steps(1) infinite;
+  }
+  .noir-glass {
+    display: block;
+    position: fixed;
+    top: 0;
+    right: -8px;
+    z-index: 40;
+    width: 26px;
+    pointer-events: none;
+    will-change: transform;
+    filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.6));
+    opacity: 0;
+    animation: glass-in 1.2s ease 2.4s forwards;
+  }
+  .noir-ice {
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+  .noir-ice-a {
+    animation: ice-a 9s ease-in-out infinite;
+  }
+  .noir-ice-b {
+    animation: ice-b 11s ease-in-out -3s infinite;
+  }
+  .noir-ice-c {
+    animation: ice-c 5.2s ease-in-out -2.4s infinite;
+  }
+
+  @media (min-width: 640px) {
+    .noir-glass {
+      right: 4px;
+      width: 34px;
+    }
+  }
+  @media (min-width: 1280px) {
+    .noir-glass {
+      width: clamp(34px, calc((100vw - 76rem) / 2 + 10px), 96px);
+    }
+  }
+  @media (max-width: 640px) {
+    .noir-grain {
+      display: none;
+    }
+  }
+
+  /* ===== keyframes ===== */
+  @keyframes curtain-l {
+    from { transform: translateX(0); }
+    to { transform: translateX(-103%); visibility: hidden; }
+  }
+  @keyframes curtain-r {
+    from { transform: translateX(0); }
+    to { transform: translateX(103%); visibility: hidden; }
+  }
+  @keyframes word-up {
+    to { transform: translateY(0); }
+  }
+  @keyframes two-drop {
+    0% { opacity: 0; transform: translateY(-1.1em) rotate(-8deg); }
+    55% { opacity: 1; }
+    100% { opacity: 1; transform: translateY(0) rotate(0); }
+  }
+  @keyframes drip {
+    0%, 6% { height: 0; opacity: 0; transform: translateY(0); }
+    10% { opacity: 1; }
+    30% { height: 0.34em; opacity: 1; transform: translateY(0); }
+    46% { height: 0.34em; opacity: 1; transform: translateY(0.12em); }
+    60% { height: 0.2em; opacity: 0.9; transform: translateY(0.9em); }
+    70%, 100% { height: 0.1em; opacity: 0; transform: translateY(1.7em); }
+  }
+  @keyframes noir-rise {
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes line-draw {
+    to { transform: scaleX(1); }
+  }
+  @keyframes cta-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(211, 48, 59, 0.5); }
+    55% { box-shadow: 0 0 0 16px rgba(211, 48, 59, 0); }
+  }
+  @keyframes lamp {
+    0%, 100% { opacity: 0.55; }
+    7% { opacity: 0.35; }
+    11% { opacity: 0.65; }
+    38% { opacity: 0.5; }
+    54% { opacity: 0.6; }
+    56% { opacity: 0.3; }
+    60% { opacity: 0.55; }
+  }
+  @keyframes dust {
+    0% { transform: translate(0, 0); opacity: 0; }
+    10% { opacity: 0.75; }
+    85% { opacity: 0.45; }
+    100% { transform: translate(var(--dr, 20px), -820px); opacity: 0; }
+  }
+  @keyframes sweep {
+    from { transform: translateX(-36%); }
+    to { transform: translateX(36%); }
+  }
+  @keyframes kb {
+    from { transform: scale(1.04) translate(0, 0); }
+    to { transform: scale(1.16) translate(-1.5%, 1.2%); }
+  }
+  @keyframes ring-glow {
+    0%, 100% { box-shadow: 0 0 0 rgba(217, 168, 92, 0); border-color: rgba(217, 168, 92, 0.3); }
+    50% { box-shadow: 0 0 30px rgba(217, 168, 92, 0.22); border-color: rgba(217, 168, 92, 0.55); }
+  }
+  @keyframes noir-shake {
+    0% { transform: translate(0, 0); }
+    12% { transform: translate(-7px, 3px); }
+    26% { transform: translate(6px, -4px); }
+    42% { transform: translate(-4px, 3px); }
+    60% { transform: translate(3px, -2px); }
+    80% { transform: translate(-1px, 1px); }
+    100% { transform: translate(0, 0); }
+  }
+  @keyframes noir-flash {
+    0% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+  @keyframes shot-draw {
+    to { stroke-dashoffset: 0; }
+  }
+  @keyframes shot-pop {
+    0% { transform: scale(0); }
+    100% { transform: scale(1); }
+  }
+  @keyframes shot-burst {
+    0% { opacity: 1; transform: scale(0.2); }
+    100% { opacity: 0; transform: scale(1.6); }
+  }
+  @keyframes shot-smoke {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.3); }
+    18% { opacity: 0.75; }
+    100% { opacity: 0; transform: translate(calc(-50% + var(--dx, 0px)), calc(-50% - 130px)) scale(2.6); }
+  }
+  @keyframes marquee {
+    to { transform: translateX(-50%); }
+  }
+  @keyframes grain {
+    0% { transform: translate(0, 0); }
+    20% { transform: translate(-40px, 30px); }
+    40% { transform: translate(35px, -45px); }
+    60% { transform: translate(-25px, -30px); }
+    80% { transform: translate(45px, 25px); }
+    100% { transform: translate(0, 0); }
+  }
+  @keyframes glass-in {
+    to { opacity: 1; }
+  }
+  @keyframes ice-a {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    25% { transform: translateY(-2.5px) rotate(3deg); }
+    50% { transform: translateY(0) rotate(0deg); }
+    75% { transform: translateY(-2px) rotate(-3deg); }
+    88% { transform: translateY(0) rotate(0deg); }
+    91% { transform: translate(-2px, -1px) rotate(-9deg); }
+    94% { transform: translate(1px, 0) rotate(5deg); }
+    97% { transform: translateY(0) rotate(0deg); }
+  }
+  @keyframes ice-b {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    30% { transform: translateY(-2px) rotate(-4deg); }
+    60% { transform: translateY(0) rotate(2deg); }
+    80% { transform: translate(2px, 0) rotate(0deg); }
+    84% { transform: translate(2px, -1px) rotate(8deg); }
+    88% { transform: translate(-1px, 0) rotate(-4deg); }
+    92% { transform: translateY(0) rotate(0deg); }
+  }
+  @keyframes ice-c {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-2px) rotate(3deg); }
+  }
+  @keyframes q-pop {
+    0% { opacity: 0; transform: scale(0.2) rotate(-30deg); }
+    100% { opacity: 1; transform: scale(1) rotate(0); }
+  }
+  @keyframes roman-glow {
+    0%, 100% { text-shadow: 0 0 0 rgba(211, 48, 59, 0); }
+    50% { text-shadow: 0 0 18px rgba(211, 48, 59, 0.55); }
+  }
+}
