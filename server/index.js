@@ -51,7 +51,7 @@ import { cleanHowHeard, howHeardLine, howHeardScreen, logLeadSource } from './li
 import { getAdminSettings, toggleAdminSetting } from './lib/adminSettings.js'
 import { queuePending, cancelPending, takeDuePending, PENDING_MINUTES } from './lib/pendingNotices.js'
 import { getMaterialFile, setMaterialFile } from './lib/materialFiles.js'
-import { saveReview, getReviewByPurchase, ratingsSummary, publicReviews, listReviews, getReview, setReviewHidden } from './lib/materialReviews.js'
+import { saveReview, getReviewByPurchase, ratingsSummary, publicReviews, listReviews, getReview, setReviewHidden, reviewText } from './lib/materialReviews.js'
 import { touchBotUser, giveConsent, setMailingConsent, addTag, getBotUser, listBotUsers, countConversation, updateBotUser, setGender } from './lib/botUsers.js'
 import { isStartKeyword, welcomeScreen, noConsentScreen, mailingScreen, mainMenuScreen, supportPrompt, consultPrompt, genderScreen, reviewThanks, legalScreen, aboutScreen, consultScreen, consultBookedScreen, marketScreen, materialsListScreen, materialCard, payLinkScreen, PAID_TEXT, PAID_TEXTS, PAID_TAGS, paidKeyboard, paymentNotFoundScreen, reviewScreen, CONTACT_PROMPTS, contactCancelKeyboard, unsubscribedScreen, communityScreen, communityResidentScreen, periodsScreen, subLinkScreen, aboutClubScreen, careerScreen, achievementsScreen } from './lib/botFlow.js'
 import { buildMonthCsv } from './lib/exportCsv.js'
@@ -993,7 +993,7 @@ app.get('/api/materials/:slug/review-access', (req, res) => {
   const purchase = purchaseForReview(req.query.token, req.params.slug)
   if (!purchase) return res.status(403).json({ ok: false, error: 'no_access' })
   const mine = getReviewByPurchase(String(req.query.token))
-  res.json({ ok: true, review: mine ? { rating: mine.rating, liked: mine.liked, disliked: mine.disliked } : null })
+  res.json({ ok: true, review: mine ? { rating: mine.rating, text: reviewText(mine) } : null })
 })
 
 app.post('/api/materials/:slug/review', async (req, res) => {
@@ -1005,7 +1005,7 @@ app.post('/api/materials/:slug/review', async (req, res) => {
   if (!Number.isInteger(rating) || rating < 1 || rating > 5) return res.status(400).json({ ok: false, error: 'rating_required' })
   if (req.body?.consent !== true) return res.status(400).json({ ok: false, error: 'consent_required' })
 
-  const { review, updated } = saveReview({ materialSlug: slug, purchaseToken: token, name: purchase.name, rating, liked: req.body.liked, disliked: req.body.disliked })
+  const { review, updated } = saveReview({ materialSlug: slug, purchaseToken: token, name: purchase.name, rating, text: req.body.text })
   res.json({ ok: true })
 
   if (BOT_TOKEN && ADMIN_CHAT_ID) {
@@ -1015,8 +1015,7 @@ app.post('/api/materials/:slug/review', async (req, res) => {
       '',
       `Маркетплейс → ${MATERIALS[slug].title}`,
       `Оценка: ${stars} (${review.rating} из 5)`,
-      review.liked ? `👍 Понравилось: ${review.liked}` : null,
-      review.disliked ? `👎 Не понравилось: ${review.disliked}` : null,
+      review.text ? `💬 Отзыв: ${review.text}` : null,
       '',
       `👤 Имя на сайте: ${review.name}`,
       `🗂 Отзыв №${review.number} — уже опубликован на странице материала`,

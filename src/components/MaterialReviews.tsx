@@ -77,18 +77,7 @@ export default function MaterialReviews({ slug }: { slug: string }) {
               <Stars rating={r.rating} />
               <span className="text-xs text-ink/40">{new Date(r.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
             </div>
-            {r.liked && (
-              <p className="mt-3 text-sm text-ink/80">
-                <span className="font-medium text-ink">Понравилось: </span>
-                {r.liked}
-              </p>
-            )}
-            {r.disliked && (
-              <p className="mt-2 text-sm text-ink/80">
-                <span className="font-medium text-ink">Не понравилось: </span>
-                {r.disliked}
-              </p>
-            )}
+            {r.text && <p className="mt-3 whitespace-pre-line text-sm text-ink/80">{r.text}</p>}
           </article>
         ))}
       </div>
@@ -99,8 +88,7 @@ export default function MaterialReviews({ slug }: { slug: string }) {
 function ReviewForm({ slug, token, initial, onSaved }: { slug: string; token: string; initial: MyReview | null; onSaved: () => void }) {
   const [rating, setRating] = useState(initial?.rating ?? 0)
   const [hover, setHover] = useState(0)
-  const [liked, setLiked] = useState(initial?.liked ?? '')
-  const [disliked, setDisliked] = useState(initial?.disliked ?? '')
+  const [text, setText] = useState(initial?.text ?? '')
   const [consent, setConsent] = useState(false)
   const [state, setState] = useState<'idle' | 'sending' | 'done' | 'error'>('idle')
   const [missing, setMissing] = useState('')
@@ -111,7 +99,7 @@ function ReviewForm({ slug, token, initial, onSaved }: { slug: string; token: st
     if (!consent) return setMissing('Отметьте согласие на публикацию отзыва.')
     setMissing('')
     setState('sending')
-    const ok = await submitReview(slug, { token, rating, liked, disliked, consent })
+    const ok = await submitReview(slug, { token, rating, text, consent })
     setState(ok ? 'done' : 'error')
     if (ok) onSaved()
   }
@@ -151,8 +139,7 @@ function ReviewForm({ slug, token, initial, onSaved }: { slug: string; token: st
         ))}
         {rating > 0 && <span className="ml-2 text-sm text-ink/50">{rating} из 5</span>}
       </div>
-      <textarea value={liked} onChange={(e) => setLiked(e.target.value)} maxLength={1000} rows={3} placeholder="Что понравилось?" className={inputClass} />
-      <textarea value={disliked} onChange={(e) => setDisliked(e.target.value)} maxLength={1000} rows={3} placeholder="Что не понравилось или чего не хватило?" className={inputClass} />
+      <textarea value={text} onChange={(e) => setText(e.target.value)} maxLength={2000} rows={4} placeholder="Ваш отзыв (необязательно): как вам материал, что было полезно" className={inputClass} />
       <label className="flex items-start gap-2 text-xs text-ink/60">
         <input
           type="checkbox"

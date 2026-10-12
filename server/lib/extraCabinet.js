@@ -7,6 +7,7 @@ import { EVENT_STATUSES } from './eventLeads.js'
 import { dealsDueForReminder, dealPayments, stageOf } from './deals.js'
 import { interestsDueForReminder, INTEREST_KINDS } from './interests.js'
 import { NOTIFY_OPTIONS } from './adminSettings.js'
+import { reviewText } from './materialReviews.js'
 
 const MSK = 'Europe/Moscow'
 const DAY = 24 * 3600 * 1000
@@ -434,8 +435,7 @@ export function reviewCard(r, materialTitle) {
     '',
     `Материал: ${materialTitle}`,
     `Оценка: ${starsLine(r.rating)} (${r.rating} из 5)`,
-    r.liked ? `👍 Понравилось: ${r.liked}` : null,
-    r.disliked ? `👎 Не понравилось: ${r.disliked}` : null,
+    reviewText(r) ? `💬 Отзыв: ${reviewText(r)}` : null,
     '',
     `👤 Имя на сайте: ${r.name}`,
     `📅 ${ruDateTime(r.createdAt)}${r.updatedAt ? ` · обновлён ${ruDateTime(r.updatedAt)}` : ''}`,

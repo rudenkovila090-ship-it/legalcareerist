@@ -1,4 +1,4 @@
-// Отзывы покупателей о полезных материалах: оценка 1–5 звёзд + «что понравилось» / «что не понравилось».
+// Отзывы покупателей о полезных материалах: оценка 1–5 звёзд + текст отзыва (текст необязателен).
 // Оставить отзыв может только тот, кто купил материал: ссылка с токеном покупки приходит в письме и в боте.
 // Один отзыв на одну покупку (повторная отправка обновляет его). Админ может скрыть отзыв (в боте).
 import { createJsonStore } from './jsonStore.js'
@@ -17,6 +17,9 @@ const cleanText = (value, max = 1000) =>
 /** Только имя без фамилии — на сайте показываем его (в форме покупатель соглашается на публикацию). */
 export const firstName = (fullName) => cleanText(fullName, 80).split(/\s+/)[0] || 'Покупатель'
 
+/** Текст отзыва. У старых отзывов было два поля («понравилось» / «не понравилось») — склеиваем их в один текст. */
+export const reviewText = (r) => r.text ?? [r.liked, r.disliked].filter(Boolean).join('\n')
+
 export function listReviews() {
   return store
     .all()
@@ -32,8 +35,8 @@ export function getReviewByPurchase(purchaseToken) {
 }
 
 /** Создаёт отзыв или обновляет прежний по этой покупке. Возвращает { review, updated }. */
-export function saveReview({ materialSlug, purchaseToken, name, rating, liked, disliked }) {
-  const fields = { rating: Math.min(5, Math.max(1, Math.round(Number(rating)))), liked: cleanText(liked), disliked: cleanText(disliked) }
+export function saveReview({ materialSlug, purchaseToken, name, rating, text }) {
+  const fields = { rating: Math.min(5, Math.max(1, Math.round(Number(rating)))), text: cleanText(text, 2000), liked: undefined, disliked: undefined }
   const existing = getReviewByPurchase(purchaseToken)
   if (existing) {
     const review = store.update(existing.token, (x) => ({ ...x, ...fields, updatedAt: Date.now() }))
@@ -67,5 +70,5 @@ export function publicReviews(materialSlug) {
   return listReviews()
     .filter((r) => visible(r) && r.materialSlug === materialSlug)
     .sort((a, b) => b.createdAt - a.createdAt)
-    .map((r) => ({ name: r.name, rating: r.rating, liked: r.liked, disliked: r.disliked, date: r.createdAt }))
+    .map((r) => ({ name: r.name, rating: r.rating, text: reviewText(r), date: r.createdAt }))
 }
