@@ -2140,7 +2140,17 @@ async function handleTelegramUpdate(update) {
     return
   }
   // Админ присылает PDF с подписью «/material <slug>» — бот запоминает файл для выдачи покупателям.
-  if (isAdmin && message?.document && /^\/material\b/i.test(message.caption ?? '')) {
+  // Если подпись неверная или её нет, бот отвечает подсказкой (раньше молчал, и было не понять, что не так).
+  if (!isAdmin && chatId && message?.document && /^\/material/i.test(message.caption ?? '')) {
+    await sendTelegramMessage(chatId, `Загружать материалы может только админский аккаунт. Ваш chat id: ${chatId}${isViewer ? ' (это чат помощника, только просмотр)' : ''}. Если это ваш аккаунт, сверьте его с TELEGRAM_ADMIN_CHAT_ID в server/.env.`)
+    return
+  }
+  if (isAdmin && message?.document && !/^\/material\s+\S/i.test(message.caption ?? '')) {
+    const examples = [...Object.keys(MATERIALS), 'checklist-novichka'].map((k) => `/material ${k}`).join('\n')
+    await sendTelegramMessage(chatId, `Файл «${message.document.file_name ?? 'без имени'}» получен, но я не понял подпись${message.caption ? ` «${message.caption.slice(0, 60)}»` : ' (её нет)'}.\n\nПодпись должна быть такой (после /material обязательно пробел, потом код материала):\n${examples}\n\nОтправьте файл ещё раз с нужной подписью.`)
+    return
+  }
+  if (isAdmin && message?.document) {
     const slug = message.caption.replace(/^\/material\s*/i, '').trim()
     if (!MATERIALS[slug] && slug !== 'checklist-novichka') {
       await sendTelegramMessage(chatId, `Не знаю такой материал. Подпись должна быть вида /material <slug>. Доступные:\n${[...Object.keys(MATERIALS), 'checklist-novichka'].map((k) => `/material ${k}`).join('\n')}`)
