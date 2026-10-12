@@ -6,9 +6,15 @@ import { gv } from './gender.js'
 
 export const START_KEYWORDS = ['вступить в сообщество', 'привет', 'запустить', 'старт', 'поехали', 'хай', 'начать', 'здравствуйте', 'карьера']
 
+// Слово-триггер срабатывает, только если это короткое сообщение (до 3 слов) и ключевая фраза в нём — целое слово/фраза:
+// «Привет», «начать», «вступить в сообщество». В длинном вопросе («Здравствуйте, подскажите, как продлить…») воронка не перезапускается.
+const MAX_START_WORDS = 3
+const START_KEYWORD_RES = START_KEYWORDS.map((k) => new RegExp(`(?<![\\p{L}\\p{N}])${k.replace(/\s+/g, '\\s+')}(?![\\p{L}\\p{N}])`, 'iu'))
+
 export function isStartKeyword(text) {
-  const t = String(text ?? '').toLowerCase()
-  return START_KEYWORDS.some((k) => t.includes(k))
+  const t = String(text ?? '').trim()
+  if (!t || t.split(/\s+/).length > MAX_START_WORDS) return false
+  return START_KEYWORD_RES.some((re) => re.test(t))
 }
 
 /** Сообщение 2: приветствие и просьба подтвердить согласие на обработку персональных данных. */

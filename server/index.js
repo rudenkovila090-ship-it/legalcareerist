@@ -48,6 +48,8 @@ import { createExpense, listExpenses, deleteExpense } from './lib/expenses.js'
 import { createEventLead, listEventLeads, getEventLead, setEventLeadStatus, markEventLeadPaid, setEventLeadField } from './lib/eventLeads.js'
 import { sendMail, mailConfigured } from './lib/mailer.js'
 import { cleanHowHeard, howHeardLine, howHeardScreen, logLeadSource } from './lib/howHeard.js'
+import { getAdminSettings, toggleAdminSetting } from './lib/adminSettings.js'
+import { queuePending, cancelPending, takeDuePending, PENDING_MINUTES } from './lib/pendingNotices.js'
 import { getMaterialFile, setMaterialFile } from './lib/materialFiles.js'
 import { touchBotUser, giveConsent, setMailingConsent, addTag, getBotUser, listBotUsers, countConversation, updateBotUser, setGender } from './lib/botUsers.js'
 import { isStartKeyword, welcomeScreen, noConsentScreen, mailingScreen, mainMenuScreen, supportPrompt, consultPrompt, genderScreen, reviewThanks, legalScreen, aboutScreen, consultScreen, consultBookedScreen, marketScreen, materialsListScreen, materialCard, payLinkScreen, PAID_TEXT, PAID_TEXTS, PAID_TAGS, paidKeyboard, paymentNotFoundScreen, reviewScreen, CONTACT_PROMPTS, contactCancelKeyboard, unsubscribedScreen, communityScreen, communityResidentScreen, periodsScreen, subLinkScreen, aboutClubScreen, careerScreen, achievementsScreen } from './lib/botFlow.js'
@@ -57,7 +59,7 @@ import { residentMenu, subscriptionScreen, linkScreen, settingsScreen, cancelCon
 import { logAction, recentActions } from './lib/auditLog.js'
 import { healthLines, makeBackup, readBackupState, writeBackupState } from './lib/healthBackup.js'
 import { listTodos, addTodo, setTodoDone } from './lib/todos.js'
-import { todosScreen, TODO_PROMPT, chatCheckScreen, userCard, botUsersScreen, ambassadorsScreen, ambassadorCard, AMBASSADOR_PROMPT, overdueScreen, retentionScreen, cancelCard, financeSummary, forecastScreen, expensesScreen, EXPENSE_PROMPT, parseExpense, eventRegistrationsScreen, eventScreen, eventLeadCard, eventRequestsScreen, eventsMonthSummary, FIND_PROMPT, searchScreen, digestScreen, systemScreen, auditScreen, monthKeyFor as extraMonthKey } from './lib/extraCabinet.js'
+import { todosScreen, TODO_PROMPT, chatCheckScreen, userCard, botUsersScreen, notificationsScreen, ambassadorsScreen, ambassadorCard, AMBASSADOR_PROMPT, overdueScreen, retentionScreen, cancelCard, financeSummary, forecastScreen, expensesScreen, EXPENSE_PROMPT, parseExpense, eventRegistrationsScreen, eventScreen, eventLeadCard, eventRequestsScreen, eventsMonthSummary, FIND_PROMPT, searchScreen, digestScreen, systemScreen, auditScreen, monthKeyFor as extraMonthKey } from './lib/extraCabinet.js'
 import { createInterest, getInterest, listInterests, markInterestDone, closeInterest, snoozeInterest, interestsDueForReminder, markInterestReminded, REMIND_AFTER_DAYS } from './lib/interests.js'
 import { createReserveCandidate, listReserve, getReserveCandidate, setReserveField, deleteReserveCandidate } from './lib/reserve.js'
 import { reserveListScreen, reserveCard, reserveFieldPrompt, reserveDeleteConfirm, RESERVE_NEW_PROMPT, INTEREST_KIND_KEYBOARD, interestPrompt, interestsScreen, interestCard, SEEKERS_KEYBOARD, buildVacancyViews, vacanciesScreen, vacancyCard, vacancyApplicationsScreen, recentApplicationsScreen, consultationsScreen, consultationCard, seekersMonthSummary } from './lib/seekersCabinet.js'
@@ -72,7 +74,7 @@ import { FINANCE_KEYBOARD, COMMUNITY_KEYBOARD, sectionScreen, menuScreen, subscr
 import fs from 'node:fs'
 import path from 'node:path'
 import { createDeal, listDeals as listAllDeals, getDeal, moveDeal, setQualified, closeDeal, setRevenue, addDealPayment, prepayAmount, dealReceived, scheduleReminder, reopenDeal, dealsDueForReminder, stageOf, LAST_STAGE } from './lib/deals.js'
-import { dealCard, activeDealsScreen, funnelScreen, stageScreen, closedScreen, monthSummary, monthKeyFor, dealReminder, dealTemplate, TEMPLATE_INTRO, NEW_DEAL_PROMPT, KADRY_KEYBOARD } from './lib/kadryCabinet.js'
+import { dealCard, activeDealsScreen, funnelScreen, stageScreen, closedScreen, monthSummary, monthKeyFor, dealTemplate, TEMPLATE_INTRO, NEW_DEAL_PROMPT, KADRY_KEYBOARD } from './lib/kadryCabinet.js'
 
 const app = express()
 app.use(cors())
@@ -135,26 +137,70 @@ async function telegramFetch(method, init) {
   throw lastError
 }
 
-async function sendTelegramMessage(chatId, text, replyMarkup) {
+async function sendTelegramMessage(chatId, text, replyMarkup, opts = {}) {
   const res = await telegramFetch('sendMessage', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: chatId, text, ...(replyMarkup ? { reply_markup: { inline_keyboard: replyMarkup } } : {}) }),
+    body: JSON.stringify({ chat_id: chatId, text, ...(opts.silent ? { disable_notification: true } : {}), ...(replyMarkup ? { reply_markup: { inline_keyboard: replyMarkup } } : {}) }),
   })
   if (!res.ok) console.error('[telegram] sendMessage ошибка:', await res.text())
   return res.ok
 }
 
+/** Некритичное сообщение админу (отчёты, сводки, копии): без звука, если включён «тихий режим» в настройках уведомлений. */
+const quiet = () => ({ silent: getAdminSettings().quiet })
+
 // Пересылка настоящего файла (резюме, мотивационное письмо и т.п.) админу —
 // документом в тот же чат, что и текстовые уведомления, с подписью, откуда он.
-async function sendTelegramDocument(chatId, buffer, filename, caption) {
+async function sendTelegramDocument(chatId, buffer, filename, caption, opts = {}) {
   const form = new FormData()
   form.append('chat_id', chatId)
+  if (opts.silent) form.append('disable_notification', 'true')
   if (caption) form.append('caption', caption)
   form.append('document', new Blob([buffer]), filename)
   const res = await telegramFetch('sendDocument', { method: 'POST', body: form })
   if (!res.ok) console.error('[telegram] sendDocument ошибка:', await res.text())
   return res.ok
+}
+
+// Несколько файлов одной заявки (резюме, мотивационное, сопроводительное, рекомендация) приходят отдельными запросами;
+// собираем их за пару секунд и отправляем одним альбомом — вместо 3–4 отдельных сообщений админу.
+const DOC_ALBUM_WAIT_MS = Number(process.env.DOC_ALBUM_WAIT_MS) || 3000
+const docAlbums = new Map()
+
+function queueAdminDocument(key, { buffer, filename, label, name }) {
+  let album = docAlbums.get(key)
+  if (!album) {
+    album = { docs: [], timer: null }
+    docAlbums.set(key, album)
+  }
+  album.docs.push({ buffer, filename, label })
+  clearTimeout(album.timer)
+  album.timer = setTimeout(() => {
+    docAlbums.delete(key)
+    flushAdminAlbum(album.docs, name).catch((err) => console.error('[upload-document] не удалось отправить документы:', err))
+  }, DOC_ALBUM_WAIT_MS)
+}
+
+async function flushAdminAlbum(docs, name) {
+  if (docs.length === 1) {
+    const [d] = docs
+    await sendTelegramDocument(ADMIN_CHAT_ID, d.buffer, d.filename, [d.label || 'Документ', name].filter(Boolean).join(' — '))
+    return
+  }
+  for (let i = 0; i < docs.length; i += 10) {
+    const chunk = docs.slice(i, i + 10)
+    if (chunk.length === 1) {
+      await sendTelegramDocument(ADMIN_CHAT_ID, chunk[0].buffer, chunk[0].filename, [chunk[0].label || 'Документ', name].filter(Boolean).join(' — '))
+      continue
+    }
+    const form = new FormData()
+    form.append('chat_id', ADMIN_CHAT_ID)
+    form.append('media', JSON.stringify(chunk.map((d, idx) => ({ type: 'document', media: `attach://f${idx}`, ...(idx === 0 ? { caption: `📎 ${name || 'Заявка'}: ${chunk.map((x) => x.label || 'документ').join(', ')}` } : {}) }))))
+    chunk.forEach((d, idx) => form.append(`f${idx}`, new Blob([d.buffer]), d.filename))
+    const res = await telegramFetch('sendMediaGroup', { method: 'POST', body: form })
+    if (!res.ok) console.error('[telegram] sendMediaGroup ошибка:', await res.text())
+  }
 }
 
 // Отправка уже загруженного в Telegram файла по file_id (материалы маркетплейса).
@@ -382,6 +428,56 @@ function buildPaymentNotification({ kind, number, tariff, subscriptionName, amou
   return lines.join('\n')
 }
 
+const mailStatusLine = (mail) => (mail.ok ? '✉️ Письмо клиенту: отправлено ✅' : mail.error === 'no_email' ? '✉️ Письмо клиенту: почта не указана' : mail.error === 'smtp_not_configured' ? '⚠️ Письмо клиенту: почта на сервере не настроена (SMTP)' : `⚠️ Письмо клиенту: не ушло (${mail.error})`)
+
+/** Контактные строки в том же виде, что в уведомлении об оплате подписки. */
+const contactLines = ({ name, phone, email, telegram }) => [
+  name && name !== '—' ? `👤 фио: ${name}` : null,
+  phone ? `📞 телефон: ${phone}` : null,
+  email ? `✉️ почта: ${email}` : null,
+  telegram ? `💬 телеграм: ${telegram}` : null,
+]
+
+/** Оплата билета на мероприятие: тот же формат, что у оплаты подписки (сумма в рублях, дата оплаты, контакты). */
+function buildTicketPaidNotification({ lead, amount, paidAt, mail }) {
+  return [
+    '💳 Билет оплачен',
+    '',
+    `Мероприятия → ${lead.eventTitle || 'мероприятие'}`,
+    `Билет: ${lead.tariff || 'не указан'}`,
+    '',
+    `📅 ${formatMoscowDateTime(new Date(paidAt).toISOString())}`,
+    '',
+    ...contactLines(lead),
+    lead.howHeard ? `🗣 Откуда узнали: ${lead.howHeard}` : null,
+    '',
+    `💰 Сумма: ${formatRub(amount)}`,
+    mailStatusLine(mail),
+    `🗂 Регистрация №${lead.number} → «Оплатил»`,
+  ].filter((l) => l !== null).join('\n')
+}
+
+/** Оплата материала маркетплейса. */
+function buildMaterialPaidNotification({ purchase, material, phone, amount, paidAt, mail, cabinetUrl }) {
+  return [
+    '💳 Материал оплачен',
+    '',
+    `Маркетплейс → ${material?.title ?? purchase.materialSlug}`,
+    '',
+    `📅 ${formatMoscowDateTime(new Date(paidAt).toISOString())}`,
+    '',
+    ...contactLines({ name: purchase.name, phone: phone || purchase.phone, email: purchase.email }),
+    purchase.howHeard ? `🗣 Откуда узнали: ${purchase.howHeard}` : null,
+    '',
+    `💰 Сумма: ${formatRub(amount)}`,
+    mailStatusLine(mail),
+    `🔗 Личный кабинет покупки: ${cabinetUrl}`,
+  ].filter((l) => l !== null).join('\n')
+}
+
+/** Заменяет первую строку лид-уведомления («🔔 Новая заявка с сайта…») — для отложенных сообщений «не завершили оплату». */
+const retitle = (text, title) => text.replace(/^🔔 Новая заявка с сайта/, title)
+
 /** Уведомление админу об отключении подписки — чтобы написать человеку и узнать причину. */
 function buildCancellationNotification({ record, tariff, at }) {
   const lines = [
@@ -448,6 +544,7 @@ async function handleSubscriptionPayment(body, phone) {
     console.error('[prodamus] не удалось записать платёж — карточка не найдена:', match.join.token)
     return
   }
+  cancelPending({ kind: 'join', phone, email, telegram: extra.telegram })
   if (result.duplicate) {
     console.log('[prodamus] повторный вебхук по уже учтённой оплате — пропускаю:', orderKey)
     return
@@ -648,12 +745,9 @@ app.post('/api/upload-document', upload.single('file'), async (req, res) => {
     return res.status(500).json({ ok: false, error: 'not_configured' })
   }
   const { label, name, vacancy } = req.body ?? {}
-  const caption = [label || 'Документ', name, vacancy].filter(Boolean).join(' — ')
-  const ok = await sendTelegramDocument(ADMIN_CHAT_ID, req.file.buffer, req.file.originalname, caption).catch((err) => {
-    console.error('[upload-document] ошибка пересылки в Telegram:', err)
-    return false
-  })
-  if (!ok) return res.status(502).json({ ok: false, error: 'telegram_error' })
+  // Файлы одной заявки (одно и то же «имя — вакансия») склеиваются в один альбом.
+  const who = [name, vacancy].filter(Boolean).join(' — ')
+  queueAdminDocument(who || 'без имени', { buffer: req.file.buffer, filename: req.file.originalname, label, name: who })
   res.json({ ok: true })
 })
 
@@ -808,6 +902,12 @@ app.post('/api/notify', async (req, res) => {
   const dealNote = deal ? `\n\n🗂 Сделка №${deal.number} создана · этап 1: ${stageOf(1).name}` : ''
   const dealKeyboard = deal ? [[{ text: `📂 Открыть сделку №${deal.number}`, callback_data: `a:k:deal:${deal.number}` }]] : record?.keyboard
   const sourceNote = (utm && utmSource !== 'без метки' ? `\n📣 Источник: ${utmSource}` : '') + (howHeard ? `\n${howHeardLine(howHeard)}` : '')
+  // Нажали «Перейти к оплате» — это ещё не клиент: уведомление придёт одно, и только если оплаты нет (см. pendingNotices.js);
+  // при оплате вместо него приходит «Оплата получена».
+  if (formType === 'community_join') {
+    if (getAdminSettings().unpaidNotices) queuePending({ kind: 'join', phone, email, telegram, text: retitle(text, `⏳ Не завершили оплату подписки через ${PENDING_MINUTES} мин`) + sourceNote })
+    return res.json({ ok: true })
+  }
   const ok = await sendTelegramMessage(ADMIN_CHAT_ID, text + (record?.text ?? '') + sourceNote + dealNote, dealKeyboard).catch((err) => {
     console.error('[notify] ошибка запроса к Telegram:', err)
     return false
@@ -921,9 +1021,10 @@ app.post('/api/event/:slug/checkout', async (req, res) => {
     const orderId = `ev-${lead.number}`
     const urlSuccess = `${SITE_URL}/events/${event.slug}?paid=1`
     const url = await createEventPaymentLink({ title: `${event.title} — ${tariff.name}`, price: tariff.price, orderId, phone, email: EMAIL_RE.test(email) ? email : '', urlSuccess, name })
-    if (BOT_TOKEN && ADMIN_CHAT_ID) {
-      const text = buildLeadNotification({ direction: 'Мероприятия', service: 'Покупка билета на мероприятие', date: new Date().toISOString(), name, phone, email, telegram, details: [`Мероприятие: ${event.title}`, `Билет: ${tariff.name} — ${tariff.price} ₽`, 'Статус: ждём оплату', ...(lead.howHeard ? [`Откуда узнали: ${lead.howHeard}`] : [])], ticketNumber: String(lead.number) })
-      await sendTelegramMessage(ADMIN_CHAT_ID, `${text}\n\n🗂 Регистрация №${lead.number}`, [[{ text: `📂 Открыть №${lead.number}`, callback_data: `a:x:evcard:${lead.number}` }]]).catch(() => false)
+    if (BOT_TOKEN && ADMIN_CHAT_ID && getAdminSettings().unpaidNotices) {
+      // Не шлём сразу: если человек оплатит в ближайшие минуты, придёт одно сообщение «Билет оплачен», а это — только если не оплатил.
+      const text = buildLeadNotification({ direction: 'Мероприятия', service: 'Билет на мероприятие', date: new Date().toISOString(), name, phone, email, telegram, details: [`Мероприятие: ${event.title}`, `Билет: ${tariff.name} — ${formatRub(tariff.price)}`, ...(lead.howHeard ? [`Откуда узнали: ${lead.howHeard}`] : [])], ticketNumber: String(lead.number) })
+      queuePending({ kind: 'ticket', eventNumber: lead.number, phone, email, telegram, text: `${retitle(text, `⏳ Не завершили оплату билета через ${PENDING_MINUTES} мин`)}\n\n🗂 Регистрация №${lead.number}`, keyboard: [[{ text: `📂 Открыть №${lead.number}`, callback_data: `a:x:evcard:${lead.number}` }]] })
     }
     res.json({ ok: true, url })
   } catch (err) {
@@ -1004,7 +1105,7 @@ async function sendBackup(caption) {
     await sendTelegramMessage(ADMIN_CHAT_ID, '⚠️ Резервная копия больше 45 МБ — Telegram не принимает такой файл. Снимите копию папки server/data вручную.')
     return false
   }
-  const ok = await sendTelegramDocument(ADMIN_CHAT_ID, buffer, `legalcareerist-data-${mskDayKey(Date.now())}.tar.gz`, caption)
+  const ok = await sendTelegramDocument(ADMIN_CHAT_ID, buffer, `legalcareerist-data-${mskDayKey(Date.now())}.tar.gz`, caption, quiet())
   if (ok) writeBackupState({ ...readBackupState(), lastAt: Date.now() })
   return ok
 }
@@ -1134,6 +1235,8 @@ async function extrasAction(parts, now, chatId) {
       return chatCheckScreen(await checkCommunityChat())
     case 'bots':
       return botUsersScreen(listBotUsers())
+    case 'notif':
+      return notificationsScreen(arg ? toggleAdminSetting(arg) : getAdminSettings())
     case 'src':
       return howHeardScreen(arg === 'all' ? 'all' : '30', now)
     case 'pc': {
@@ -1425,45 +1528,32 @@ async function handlePendingInput(chatId, pending, text) {
   }
 }
 
-/** Напоминания по сделкам: раз в день после 10:00 по Москве, по каждой сделке — когда подошёл срок этапа. */
-let dealRemindersRunning = false
-async function sendDealRemindersIfDue() {
-  if (!BOT_TOKEN || !ADMIN_CHAT_ID || dealRemindersRunning) return
+/** Утренняя сводка дня (одно сообщение): счётчики, дела на сегодня, состояние системы. После отправки сдвигает напоминания. */
+async function sendMorningDigest() {
   const now = Date.now()
-  const hour = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Moscow', hour: '2-digit', hour12: false }).format(new Date(now)))
-  if (hour < 10) return
-  dealRemindersRunning = true
-  try {
-    for (const deal of dealsDueForReminder(now)) {
-      const screen = dealReminder(deal)
-      const ok = await sendTelegramMessage(ADMIN_CHAT_ID, screen.text, screen.keyboard).catch(() => false)
-      if (!ok) continue
-      // На испытательном сроке первое напоминание — на 30-й день, дальше каждые 3 дня, пока сделку не закроют.
-      const everyDays = deal.stage === LAST_STAGE ? 3 : stageOf(deal.stage).remindDays
-      scheduleReminder(deal.number, now + everyDays * 24 * 3600 * 1000)
-    }
-  } finally {
-    dealRemindersRunning = false
-  }
+  const screen = digestScreen(allData(), TARIFFS, now, currentHealth())
+  const ok = await sendTelegramMessage(ADMIN_CHAT_ID, screen.text, screen.keyboard, quiet())
+  if (ok) advanceMorningReminders(now)
+  return ok
 }
 
-/** Напоминания «напишите тем, кто интересовался»: раз в сутки после 10:00 МСК, потом каждую неделю, пока не отметите. */
-let interestRemindersRunning = false
-async function sendInterestRemindersIfDue() {
-  if (!BOT_TOKEN || !ADMIN_CHAT_ID || interestRemindersRunning) return
-  const now = Date.now()
-  const hour = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Moscow', hour: '2-digit', hour12: false }).format(new Date(now)))
-  if (hour < 10) return
-  interestRemindersRunning = true
-  try {
-    for (const item of interestsDueForReminder(now)) {
-      const card = interestCard(item, { reminder: true })
-      const ok = await sendTelegramMessage(ADMIN_CHAT_ID, card.text, card.keyboard).catch(() => false)
-      if (ok) markInterestReminded(item.number, now + REMIND_AFTER_DAYS * 24 * 3600 * 1000)
-    }
-  } finally {
-    interestRemindersRunning = false
+/** Отложенные уведомления «не завершили оплату»: уходят, если за PENDING_MINUTES оплата не пришла. */
+async function sendPendingNoticesIfDue() {
+  if (!BOT_TOKEN || !ADMIN_CHAT_ID) return
+  for (const n of takeDuePending()) await sendTelegramMessage(ADMIN_CHAT_ID, n.text, n.keyboard ?? undefined).catch(() => false)
+}
+
+/**
+ * После утренней сводки сдвигаем напоминания: по сделкам — по сроку этапа, по «интересовавшимся» — через неделю.
+ * Само напоминание — строка в сводке дня (раньше на каждую сделку и каждого человека приходило отдельное сообщение).
+ */
+function advanceMorningReminders(now) {
+  for (const deal of dealsDueForReminder(now)) {
+    // На испытательном сроке первое напоминание — на 30-й день, дальше каждые 3 дня, пока сделку не закроют.
+    const everyDays = deal.stage === LAST_STAGE ? 3 : stageOf(deal.stage).remindDays
+    scheduleReminder(deal.number, now + everyDays * 24 * 3600 * 1000)
   }
+  for (const item of interestsDueForReminder(now)) markInterestReminded(item.number, now + REMIND_AFTER_DAYS * 24 * 3600 * 1000)
 }
 
 // Итоги месяца по кадровому агентству — автоматически в начале следующего месяца (после 10:00 МСК).
@@ -1485,7 +1575,7 @@ async function sendKadryMonthlyIfDue() {
   if (lastSent === prev || hour < 10) return
   fs.writeFileSync(KADRY_MONTHLY_FILE, JSON.stringify({ lastSent: prev }))
   const screen = monthSummary(listAllDeals(), prev, now)
-  const ok = await sendTelegramMessage(ADMIN_CHAT_ID, screen.text, screen.keyboard).catch(() => false)
+  const ok = await sendTelegramMessage(ADMIN_CHAT_ID, screen.text, screen.keyboard, quiet()).catch(() => false)
   if (!ok) fs.writeFileSync(KADRY_MONTHLY_FILE, JSON.stringify({ lastSent }))
 }
 
@@ -1997,11 +2087,22 @@ function dispatchUpdate(update) {
   })
 }
 
+/**
+ * Бот состоит в чате сообщества администратором, поэтому Telegram присылает ему там ВСЕ сообщения. Отвечать на них нельзя:
+ * бот работает только в личных чатах (и в чате админа/помощника). Иначе слово «привет» в групповой переписке запускало воронку
+ * и бот писал в общий чат приветствие с просьбой дать согласие.
+ */
+function isOutsidePrivateChat(chat) {
+  if (!chat?.id || !chat.type || chat.type === 'private') return false
+  return String(chat.id) !== String(ADMIN_CHAT_ID) && !VIEWER_IDS.has(String(chat.id))
+}
+
 async function handleTelegramUpdate(update) {
   if (update?.chat_join_request) {
     await handleJoinRequest(update.chat_join_request)
     return
   }
+  if (isOutsidePrivateChat(update?.message?.chat) || isOutsidePrivateChat(update?.callback_query?.message?.chat)) return
   if (update?.callback_query?.data?.startsWith('u:')) {
     await handleUserCallback(update.callback_query)
     return
@@ -2132,7 +2233,7 @@ async function handleEventPayment(number, body) {
   const lead = markEventLeadPaid(number, amount, String(body.order_id ?? ''))
   if (!lead) {
     console.error('[prodamus] оплата билета: регистрация не найдена №', number)
-    await sendTelegramMessage(ADMIN_CHAT_ID, `⚠️ Пришла оплата билета (${body.sum} ₽, order_num ${body.order_num ?? '—'}), но регистрация №${number} не найдена. Проверьте в Prodamus.`).catch(() => false)
+    await sendTelegramMessage(ADMIN_CHAT_ID, `⚠️ Пришла оплата билета (${formatRub(Number(body.sum) || 0)}, order_num ${body.order_num ?? '—'}), но регистрация №${number} не найдена. Проверьте в Prodamus.`).catch(() => false)
     return
   }
   if (lead.duplicate) {
@@ -2149,18 +2250,9 @@ async function handleEventPayment(number, body) {
     lines.push(`Номер регистрации: ${lead.number}`, '', `Мы напомним о мероприятии заранее. Вопросы — ${SUPPORT_HANDLE}`, '', 'Карьерный юрист')
     mail = await sendMail({ to: lead.email, subject: `Вы зарегистрированы: ${lead.eventTitle}`, text: lines.join('\n') })
   }
-  const text = buildLeadNotification({
-    direction: 'Мероприятия',
-    service: 'Оплата билета на мероприятие',
-    date: new Date().toISOString(),
-    name: lead.name || '—',
-    phone: lead.phone,
-    email: lead.email,
-    telegram: lead.telegram,
-    details: [`Мероприятие: ${lead.eventTitle}`, `Билет: ${lead.tariff}`, `Сумма: ${body.sum} ₽`, ...(lead.howHeard ? [`Откуда узнали: ${lead.howHeard}`] : []), `Письмо участнику: ${mail.ok ? 'отправлено ✅' : mail.error === 'no_email' ? 'почта не указана' : mail.error === 'smtp_not_configured' ? 'почта на сервере не настроена (SMTP)' : `не ушло (${mail.error})`}`],
-    ticketNumber: String(lead.number),
-  })
-  await sendTelegramMessage(ADMIN_CHAT_ID, `💳 Билет оплачен\n\n${text}\n\n🗂 Регистрация №${lead.number} → «Оплатил»`, [[{ text: `📂 Открыть №${lead.number}`, callback_data: `a:x:evcard:${lead.number}` }]])
+  cancelPending({ kind: 'ticket', eventNumber: lead.number })
+  const text = buildTicketPaidNotification({ lead, amount: amount ?? lead.price ?? 0, paidAt: Date.now(), mail })
+  await sendTelegramMessage(ADMIN_CHAT_ID, text, [[{ text: `📂 Открыть №${lead.number}`, callback_data: `a:x:evcard:${lead.number}` }]])
 }
 
 // Уведомления Prodamus об оплате подписки.
@@ -2223,15 +2315,7 @@ app.post('/api/prodamus/webhook', async (req, res) => {
       const cabinetUrl = `${SITE_URL}/materials/cabinet?token=${purchase.token}`
       const mail = purchase.email ? await emailMaterial({ to: purchase.email, name: purchase.name, materialSlug: purchase.materialSlug, cabinetUrl }) : { ok: false, error: 'no_email' }
       console.log('[prodamus] письмо с материалом:', mail.ok ? 'отправлено' : mail.error)
-      const text = buildLeadNotification({
-        direction: 'Маркетплейс',
-        service: 'Покупка полезного материала',
-        date: new Date().toISOString(),
-        name: purchase.name || '—',
-        phone,
-        email: purchase.email,
-        details: [`Материал: ${material?.title ?? purchase.materialSlug}`, `Сумма: ${body.sum} ₽`, `Личный кабинет: ${cabinetUrl}`, ...(purchase.howHeard ? [`Откуда узнали: ${purchase.howHeard}`] : []), `Письмо с материалом: ${mail.ok ? 'отправлено ✅' : mail.error === 'no_email' ? 'почта не указана' : mail.error === 'smtp_not_configured' ? 'почта на сервере не настроена (SMTP)' : `не ушло (${mail.error})`}`],
-      })
+      const text = buildMaterialPaidNotification({ purchase, material, phone, amount: Number(body.sum) || material?.price || 0, paidAt: Date.now(), mail, cabinetUrl })
       await sendTelegramMessage(ADMIN_CHAT_ID, text)
     }
   })
@@ -2260,11 +2344,11 @@ async function sendDailyReportIfDue() {
   const now = Date.now()
   const hour = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Moscow', hour: '2-digit', hour12: false }).format(new Date(now)))
   const today = mskDayKey(now)
-  if (hour < REPORT_HOUR_MSK || readLastReportDay() === today) return
+  if (hour < REPORT_HOUR_MSK || readLastReportDay() === today || !getAdminSettings().eveningReport) return
 
   fs.mkdirSync(path.dirname(REPORT_STATE_FILE), { recursive: true })
   fs.writeFileSync(REPORT_STATE_FILE, JSON.stringify({ lastDay: today }))
-  const ok = await sendTelegramMessage(ADMIN_CHAT_ID, reportText('today', now), FINANCE_KEYBOARD).catch(() => false)
+  const ok = await sendTelegramMessage(ADMIN_CHAT_ID, reportText('today', now), FINANCE_KEYBOARD, quiet()).catch(() => false)
   if (!ok) fs.writeFileSync(REPORT_STATE_FILE, JSON.stringify({ lastDay: null })) // не ушло — попробуем в следующую минуту
 }
 
@@ -2362,7 +2446,7 @@ async function processReviewFlow() {
         setJoinField(j.token, 'reviewThankedAt', now)
         extendSubscription(j.token, 4)
         await sendTelegramMessage(j.tgUserId, reviewThanks(getBotUser(j.tgUserId) ?? {}), [[{ text: 'Главное меню', callback_data: 'u:menu' }]]).catch(() => false)
-        await sendTelegramMessage(ADMIN_CHAT_ID, `🎁 ${[j.name, j.telegram].filter(Boolean).join(' ')}: начислено +4 дня подписки за отзыв (автоматически через 5 часов после просьбы, как в BotHelp). Проверьте, что отзыв действительно оставлен.`).catch(() => false)
+        await sendTelegramMessage(ADMIN_CHAT_ID, `🎁 ${[j.name, j.telegram].filter(Boolean).join(' ')}: начислено +4 дня подписки за отзыв (автоматически через 5 часов после просьбы, как в BotHelp). Проверьте, что отзыв действительно оставлен.`, undefined, quiet()).catch(() => false)
       }
     }
   } finally {
@@ -2384,7 +2468,7 @@ async function sendAutoResidentReminders() {
       else failed += 1
     }
   }
-  if (sent || failed) await sendTelegramMessage(ADMIN_CHAT_ID, `🔔 Автонапоминания резидентам о списании: отправлено ${sent}${failed ? `, не дошло ${failed}` : ''}.`)
+  if (sent || failed) await sendTelegramMessage(ADMIN_CHAT_ID, `🔔 Автонапоминания резидентам о списании: отправлено ${sent}${failed ? `, не дошло ${failed}` : ''}.`, undefined, quiet())
   return true
 }
 
@@ -2461,18 +2545,14 @@ if (BOT_TOKEN && process.env.TELEGRAM_POLLING !== '0') {
 
 if (process.env.DISABLE_DAILY_REPORT !== '1') {
   setInterval(() => afterResponse('daily-report', sendDailyReportIfDue), 60 * 1000)
-  setInterval(() => afterResponse('deal-reminders', sendDealRemindersIfDue), 60 * 1000)
+  setInterval(() => afterResponse('pending-notices', sendPendingNoticesIfDue), 60 * 1000)
   setInterval(() => afterResponse('kadry-monthly', sendKadryMonthlyIfDue), 60 * 1000)
-  setInterval(() => afterResponse('interest-reminders', sendInterestRemindersIfDue), 60 * 1000)
   setInterval(() => afterResponse('resident-reminders', () => runDailyOnce('residentReminders', 10, sendAutoResidentReminders)), 60 * 1000)
   setInterval(() => afterResponse('expiry', () => runDailyOnce('expiry', 10, processExpiry)), 60 * 1000)
   setInterval(() => afterResponse('review-flow', processReviewFlow), 60 * 1000)
-  setInterval(() => afterResponse('morning-digest', () => runDailyOnce('digest', 9, async () => {
-    const screen = digestScreen(allData(), TARIFFS, Date.now(), currentHealth())
-    return sendTelegramMessage(ADMIN_CHAT_ID, screen.text, screen.keyboard)
-  })), 60 * 1000)
+  setInterval(() => afterResponse('morning-digest', () => runDailyOnce('digest', 9, sendMorningDigest)), 60 * 1000)
   if (process.env.DISABLE_BACKUP !== '1') {
-    setInterval(() => afterResponse('backup', () => runDailyOnce('backup', 3, () => sendBackup('💾 Ежедневная резервная копия данных бота'))), 60 * 1000)
+    setInterval(() => afterResponse('backup', () => runDailyOnce('backup', 3, () => (getAdminSettings().nightBackup ? sendBackup('💾 Ежедневная резервная копия данных бота') : true))), 60 * 1000)
   }
 }
 
@@ -2483,7 +2563,7 @@ process.on('unhandledRejection', (err) => console.error('[unhandledRejection]', 
 process.on('uncaughtException', (err) => console.error('[uncaughtException]', err))
 
 // Для автотестов: доступ к фоновым задачам без ожидания расписания.
-if (process.env.TEST_HOOKS === '1') globalThis.__hooks = { processExpiry, processReviewFlow, sendAutoResidentReminders }
+if (process.env.TEST_HOOKS === '1') globalThis.__hooks = { processExpiry, processReviewFlow, sendAutoResidentReminders, sendMorningDigest, sendPendingNoticesIfDue }
 
 const PORT = process.env.PORT || 3001
 app.listen(PORT, () => console.log(`legalcareerist-server слушает порт ${PORT}`))

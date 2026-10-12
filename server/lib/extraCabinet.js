@@ -4,8 +4,9 @@
 import { rub, who, planAmount, ruDay, CANCEL_REASONS } from './adminCabinet.js'
 import { mskDayKey } from './dailyReport.js'
 import { EVENT_STATUSES } from './eventLeads.js'
-import { dealsDueForReminder, dealPayments } from './deals.js'
-import { interestsDueForReminder } from './interests.js'
+import { dealsDueForReminder, dealPayments, stageOf } from './deals.js'
+import { interestsDueForReminder, INTEREST_KINDS } from './interests.js'
+import { NOTIFY_OPTIONS } from './adminSettings.js'
 
 const MSK = 'Europe/Moscow'
 const DAY = 24 * 3600 * 1000
@@ -380,10 +381,38 @@ export function digestScreen(data, tariffs, now, healthLines = []) {
     `🗃 Кандидатов резерва без ссылки на резюме: ${noResume.length}`,
     `📨 Новых заявок по мероприятиям: ${newRequests.length}`,
   ]
+  // Конкретные дела на сегодня — вместо отдельного сообщения на каждую сделку и каждого «интересовавшегося».
+  const MAX_TASKS = 6
+  const taskButtons = []
+  if (dealsDue.length || interestsDue.length) {
+    lines.push('', '📋 Что сделать сегодня:')
+    for (const d of dealsDue.slice(0, MAX_TASKS)) {
+      lines.push(`• Сделка №${d.number} · ${d.company || d.name || 'без названия'} — этап ${d.stage}: ${stageOf(d.stage).todo}`)
+      taskButtons.push([{ text: `📂 Сделка №${d.number} · ${d.company || d.name || ''}`.slice(0, 60), callback_data: `a:k:deal:${d.number}` }])
+    }
+    if (dealsDue.length > MAX_TASKS) lines.push(`• …и ещё сделок: ${dealsDue.length - MAX_TASKS} (раздел «Кадры → Сделки»)`)
+    for (const i of interestsDue.slice(0, MAX_TASKS)) {
+      lines.push(`• Написать: ${i.name || i.telegram || i.phone || `№${i.number}`} — интересовался(лась): ${i.note || INTEREST_KINDS[i.kind] || i.kind}`)
+      taskButtons.push([{ text: `📇 №${i.number} · ${i.name || i.telegram || ''}`.slice(0, 60), callback_data: `a:s:icard:${i.number}` }])
+    }
+    if (interestsDue.length > MAX_TASKS) lines.push(`• …и ещё интересовавшихся: ${interestsDue.length - MAX_TASKS} (раздел «Интересовались»)`)
+  }
   const openTodos = (data.todos ?? []).filter((t) => !t.done)
   if (openTodos.length) lines.push('', `📌 Доработок в работе: ${openTodos.length}`, ...openTodos.slice(0, 4).map((t) => `• ${t.text}`), ...(openTodos.length > 4 ? ['• …остальные — в «Система → Доработки»'] : []))
   if (healthLines.length) lines.push('', '🩺 Система:', ...healthLines)
-  return { text: lines.join('\n'), keyboard: [[{ text: '⚠️ Просрочено', callback_data: 'a:x:over' }, { text: '⚖️ Сделки', callback_data: 'a:k:list' }], menuRow] }
+  return { text: lines.join('\n'), keyboard: [...taskButtons, [{ text: '⚠️ Просрочено', callback_data: 'a:x:over' }, { text: '⚖️ Сделки', callback_data: 'a:k:list' }], menuRow] }
+}
+
+/** Экран «Уведомления»: что и как присылает бот администратору, с тумблерами. */
+export function notificationsScreen(settings) {
+  const lines = ['🔔 Уведомления', '', 'Всегда приходят сразу и со звуком: заявки с сайта, оплаты, отписки, предупреждения ⚠️.', 'Утренняя сводка в 9:00 — одно сообщение: списания, дела на день (сделки и «интересовавшиеся») и состояние системы.', '']
+  const keyboard = []
+  for (const [key, opt] of Object.entries(NOTIFY_OPTIONS)) {
+    lines.push(`${settings[key] ? '✅' : '▫️'} ${opt.title} — ${opt.hint}`)
+    keyboard.push([{ text: `${settings[key] ? '✅' : '▫️'} ${opt.title}`.slice(0, 60), callback_data: `a:x:notif:${key}` }])
+  }
+  keyboard.push(back('⬅️ Система', 'a:x:sys'))
+  return { text: lines.join('\n'), keyboard }
 }
 
 export function systemScreen(healthLines) {
@@ -392,7 +421,7 @@ export function systemScreen(healthLines) {
     keyboard: [
       [{ text: '📌 Доработки', callback_data: 'a:x:todo' }, { text: '🔎 Проверить чат', callback_data: 'a:x:chatcheck' }],
       [{ text: '👤 Пользователи бота', callback_data: 'a:x:bots' }, { text: '🗣 Откуда узнали', callback_data: 'a:x:src:30' }],
-      [{ text: '💾 Резервная копия сейчас', callback_data: 'a:x:backup' }],
+      [{ text: '🔔 Уведомления', callback_data: 'a:x:notif' }, { text: '💾 Резервная копия сейчас', callback_data: 'a:x:backup' }],
       [{ text: '🧾 Журнал действий', callback_data: 'a:x:audit' }, { text: '🌅 Сводка дня', callback_data: 'a:x:digest' }],
       menuRow,
     ],
