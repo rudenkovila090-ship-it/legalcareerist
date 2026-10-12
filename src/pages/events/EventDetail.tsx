@@ -675,6 +675,7 @@ export default function EventDetail() {
                     />
                     {tariff.price > 0 && !event.registrationLink && (
                       <div>
+                        {story?.promoNote && <div className="mb-2 text-xs font-medium text-gold">{story.promoNote}</div>}
                         <div className="flex gap-2">
                           <input
                             value={promoInput}

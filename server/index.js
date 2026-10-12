@@ -47,7 +47,7 @@ import { createAmbassador, listAmbassadors, getAmbassador, addReferral, deleteAm
 import { createExpense, listExpenses, deleteExpense } from './lib/expenses.js'
 import { createEventLead, listEventLeads, getEventLead, setEventLeadStatus, markEventLeadPaid, setEventLeadField } from './lib/eventLeads.js'
 import { sendMail, mailConfigured } from './lib/mailer.js'
-import { listPromos, addPromo, removePromo, findPromo, applyPromo, markPromoUsed, parsePromoInput, promoLabel } from './lib/promoCodes.js'
+import { listPromos, addPromo, removePromo, findPromo, applyPromo, markPromoUsed, parsePromoInput, promoLabel, ensureBuiltInPromos } from './lib/promoCodes.js'
 import { cleanHowHeard, howHeardLine, howHeardScreen, logLeadSource } from './lib/howHeard.js'
 import { getAdminSettings, toggleAdminSetting } from './lib/adminSettings.js'
 import { queuePending, cancelPending, takeDuePending, PENDING_MINUTES } from './lib/pendingNotices.js'
@@ -2734,4 +2734,5 @@ process.on('uncaughtException', (err) => console.error('[uncaughtException]', er
 if (process.env.TEST_HOOKS === '1') globalThis.__hooks = { processExpiry, processReviewFlow, sendAutoResidentReminders, sendMorningDigest, sendPendingNoticesIfDue }
 
 const PORT = process.env.PORT || 3001
+ensureBuiltInPromos()
 app.listen(PORT, () => console.log(`legalcareerist-server слушает порт ${PORT}`))

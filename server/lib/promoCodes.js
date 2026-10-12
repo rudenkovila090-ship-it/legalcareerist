@@ -32,6 +32,16 @@ export function addPromo({ code, kind, value }) {
   return { promo: { token, ...store.get(token) } }
 }
 
+// Коды, которые должны быть всегда (заведены по просьбе владельца). Если код уже есть — в том числе выключенный
+// админом в боте — не трогаем: выключенный не воскресает после перезапуска.
+const BUILT_IN = [{ code: normCode('KillMe50'), kind: 'percent', value: 50 }]
+
+export function ensureBuiltInPromos() {
+  for (const p of BUILT_IN) {
+    if (!store.all().some((x) => x.code === p.code)) addPromo(p)
+  }
+}
+
 export function removePromo(number) {
   const p = listPromos().find((x) => x.number === Number(number))
   if (!p) return false

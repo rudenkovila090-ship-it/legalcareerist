@@ -58,6 +58,8 @@ export interface EventStory {
   /** Для кого — стена с фото и красными нитками. */
   audience: EventAudience[]
   principle: string
+  /** Подсказка в форме билета над полем промокода. */
+  promoNote?: string
   acts: EventAct[]
   charactersIntro: string
   characters: EventCharacter[]
@@ -99,6 +101,7 @@ export const eventStories: Record<string, EventStory> = {
       { who: 'Партнёрам юридических фирм и владельцам юридического бизнеса', photo: portraitDetective },
       { who: 'Всем, кто строит карьеру в юридической профессии', photo: portraitBarWoman },
     ],
+    promoNote: 'Резидентам сообщества — скидка 50% по промокоду.',
     principle:
       'Мы не просто рассказываем о карьерных ошибках — мы предлагаем гостям самим пройти через расследование и увидеть, как одно решение может изменить судьбу профессионала.',
     acts: [
