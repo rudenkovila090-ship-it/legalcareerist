@@ -8,24 +8,16 @@ import { materialKindLabel as kindLabel } from '../../lib/materialLabels'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import PhoneInput from '../../components/PhoneInput'
 import HowHeardField from '../../components/HowHeardField'
+import MaterialReviews from '../../components/MaterialReviews'
+import { Stars } from '../../components/MaterialRating'
+import { combineRating, reviewsWord, useMaterialRatings } from '../../lib/materialReviews'
 
 const money = new Intl.NumberFormat('ru-RU')
-
-function Stars({ rating }: { rating: number }) {
-  return (
-    <span className="inline-flex items-center gap-0.5" aria-label={`Рейтинг ${rating} из 5`}>
-      {Array.from({ length: 5 }).map((_, i) => (
-        <svg key={i} viewBox="0 0 20 20" className={`h-4 w-4 ${i < Math.round(rating) ? 'fill-gold text-gold' : 'fill-ink/10 text-ink/10'}`}>
-          <path d="M10 1.5l2.5 5.6 6.1.6-4.6 4.1 1.3 6-5.3-3.1-5.3 3.1 1.3-6L1.4 7.7l6.1-.6z" />
-        </svg>
-      ))}
-    </span>
-  )
-}
 
 export default function MaterialDetail() {
   const { slug } = useParams()
   const material = materials.find((m) => m.slug === slug)
+  const ratings = useMaterialRatings()
   useDocumentTitle(material?.title ?? 'Материал не найден')
   const [purchased, setPurchased] = useState(false)
 
@@ -114,17 +106,29 @@ export default function MaterialDetail() {
           <h1 className="mt-1 text-3xl font-semibold">{material.title}</h1>
           <div className="mt-3"><TagRow specialization={material.specialization} industry={material.industry} /></div>
 
-          {material.rating !== undefined && (
-            <div className="mt-3 flex items-center gap-2 text-sm text-ink/60">
-              <Stars rating={material.rating} />
-              <span className="font-medium text-ink">{material.rating.toFixed(1)}</span>
-              {material.reviewsCount !== undefined && <span>· {material.reviewsCount} отзывов</span>}
-              {material.purchases !== undefined && <span>· купили {material.purchases}+ раз</span>}
-            </div>
-          )}
+          {(() => {
+            const total = combineRating(material, ratings[material.slug])
+            if (!total && material.purchases === undefined) return null
+            return (
+              <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-ink/60">
+                {total ? (
+                  <>
+                    <Stars rating={total.avg} />
+                    <a href="#reviews" className="font-medium text-ink">{total.avg.toFixed(1).replace('.', ',')}</a>
+                    <span>· {total.count} {reviewsWord(total.count)}</span>
+                  </>
+                ) : (
+                  <span>Пока нет отзывов</span>
+                )}
+                {material.purchases !== undefined && material.purchases > 0 && <span>· купили {material.purchases}+ раз</span>}
+              </div>
+            )
+          })()}
 
           <p className="mt-6 whitespace-pre-line leading-relaxed text-ink/80">{material.description}</p>
           <div className="mt-2 text-sm text-ink/50">Для кого: {material.forWhom}</div>
+
+          <MaterialReviews slug={material.slug} />
 
           <RelatedContentBlock items={related} />
         </div>

@@ -415,13 +415,43 @@ export function notificationsScreen(settings) {
   return { text: lines.join('\n'), keyboard }
 }
 
+const starsLine = (n) => `${'★'.repeat(n)}${'☆'.repeat(5 - n)}`
+
+/** Список отзывов о материалах: последние сверху, скрытые помечены. */
+export function reviewsScreen(reviews, titleOf) {
+  const list = [...reviews].sort((a, b) => b.createdAt - a.createdAt)
+  const shown = list.filter((r) => !r.hidden)
+  const avg = shown.length ? shown.reduce((acc, r) => acc + r.rating, 0) / shown.length : 0
+  const lines = ['⭐ Отзывы о материалах', '', list.length ? `Всего: ${list.length} · показывается: ${shown.length}${shown.length ? ` · средняя оценка ${avg.toFixed(1).replace('.', ',')}` : ''}` : 'Отзывов пока нет. Покупатели оставляют их по ссылке из письма и из бота.']
+  const keyboard = list.slice(0, 12).map((r) => [{ text: `${r.hidden ? '🙈' : starsLine(r.rating)} №${r.number} · ${titleOf(r.materialSlug)} · ${r.name}`.slice(0, 60), callback_data: `a:x:rvc:${r.number}` }])
+  keyboard.push([{ text: '⬅️ Система', callback_data: 'a:x:sys' }, ...menuRow])
+  return { text: lines.join('\n'), keyboard }
+}
+
+export function reviewCard(r, materialTitle) {
+  const lines = [
+    `⭐ Отзыв №${r.number}${r.hidden ? ' · скрыт' : ''}`,
+    '',
+    `Материал: ${materialTitle}`,
+    `Оценка: ${starsLine(r.rating)} (${r.rating} из 5)`,
+    r.liked ? `👍 Понравилось: ${r.liked}` : null,
+    r.disliked ? `👎 Не понравилось: ${r.disliked}` : null,
+    '',
+    `👤 Имя на сайте: ${r.name}`,
+    `📅 ${ruDateTime(r.createdAt)}${r.updatedAt ? ` · обновлён ${ruDateTime(r.updatedAt)}` : ''}`,
+    r.hidden ? 'Сейчас не показывается на сайте.' : 'Сейчас показывается на сайте.',
+  ].filter((l) => l !== null)
+  return { text: lines.join('\n'), keyboard: [[{ text: r.hidden ? '👁 Показать на сайте' : '🙈 Скрыть с сайта', callback_data: `a:x:rvh:${r.number}` }], back('⬅️ К отзывам', 'a:x:rv')] }
+}
+
 export function systemScreen(healthLines) {
   return {
     text: ['🛠 Система', '', ...healthLines].join('\n'),
     keyboard: [
       [{ text: '📌 Доработки', callback_data: 'a:x:todo' }, { text: '🔎 Проверить чат', callback_data: 'a:x:chatcheck' }],
       [{ text: '👤 Пользователи бота', callback_data: 'a:x:bots' }, { text: '🗣 Откуда узнали', callback_data: 'a:x:src:30' }],
-      [{ text: '🔔 Уведомления', callback_data: 'a:x:notif' }, { text: '💾 Резервная копия сейчас', callback_data: 'a:x:backup' }],
+      [{ text: '⭐ Отзывы о материалах', callback_data: 'a:x:rv' }, { text: '🔔 Уведомления', callback_data: 'a:x:notif' }],
+      [{ text: '💾 Резервная копия сейчас', callback_data: 'a:x:backup' }],
       [{ text: '🧾 Журнал действий', callback_data: 'a:x:audit' }, { text: '🌅 Сводка дня', callback_data: 'a:x:digest' }],
       menuRow,
     ],

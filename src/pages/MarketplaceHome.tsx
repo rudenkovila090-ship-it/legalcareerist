@@ -6,6 +6,8 @@ import { materialKindLabel } from '../lib/materialLabels'
 import { useDocumentTitle } from '../lib/useDocumentTitle'
 import { MARKETPLACE_DIRECTIONS, type MaterialItem, type MaterialKind, type MarketplaceDirection } from '../types'
 import MarketplaceFooter from './MarketplaceFooter'
+import { Stars } from '../components/MaterialRating'
+import { combineRating, reviewsWord, useMaterialRatings } from '../lib/materialReviews'
 
 const money = new Intl.NumberFormat('ru-RU')
 
@@ -77,19 +79,8 @@ function CollapsibleCheckboxFilter<T extends string>({
   )
 }
 
-function Stars({ rating }: { rating: number }) {
-  return (
-    <span className="inline-flex items-center gap-0.5" aria-label={`Рейтинг ${rating} из 5`}>
-      {Array.from({ length: 5 }).map((_, i) => (
-        <svg key={i} viewBox="0 0 20 20" className={`h-3.5 w-3.5 ${i < Math.round(rating) ? 'fill-gold text-gold' : 'fill-ink/10 text-ink/10'}`}>
-          <path d="M10 1.5l2.5 5.6 6.1.6-4.6 4.1 1.3 6-5.3-3.1-5.3 3.1 1.3-6L1.4 7.7l6.1-.6z" />
-        </svg>
-      ))}
-    </span>
-  )
-}
-
 function ProductCard({ m }: { m: MaterialItem }) {
+  const total = combineRating(m, useMaterialRatings()[m.slug])
   const free = m.price === 0 && !m.sale
   const fromPrice = m.sale ? Math.min(...Object.values(m.sale).filter((v): v is number => v !== undefined)) : m.price
   return (
@@ -108,11 +99,11 @@ function ProductCard({ m }: { m: MaterialItem }) {
             съезжала с общей линии (см. пункт 6 гайда — flex-1-спейсер решает
             это же для карточек с разной длиной текста). */}
         <div className="mt-2 flex items-center gap-2 text-xs text-ink/50">
-          <Stars rating={m.rating ?? 0} />
-          {m.rating !== undefined ? (
+          <Stars rating={total?.avg ?? 0} size="h-3.5 w-3.5" />
+          {total ? (
             <>
-              <span>{m.rating.toFixed(1)}</span>
-              {m.reviewsCount !== undefined && <span>· {m.reviewsCount} отзывов</span>}
+              <span>{total.avg.toFixed(1).replace('.', ',')}</span>
+              <span>· {total.count} {reviewsWord(total.count)}</span>
             </>
           ) : (
             <span>Пока нет отзывов</span>

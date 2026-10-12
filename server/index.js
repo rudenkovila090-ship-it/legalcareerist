@@ -51,6 +51,7 @@ import { cleanHowHeard, howHeardLine, howHeardScreen, logLeadSource } from './li
 import { getAdminSettings, toggleAdminSetting } from './lib/adminSettings.js'
 import { queuePending, cancelPending, takeDuePending, PENDING_MINUTES } from './lib/pendingNotices.js'
 import { getMaterialFile, setMaterialFile } from './lib/materialFiles.js'
+import { saveReview, getReviewByPurchase, ratingsSummary, publicReviews, listReviews, getReview, setReviewHidden } from './lib/materialReviews.js'
 import { touchBotUser, giveConsent, setMailingConsent, addTag, getBotUser, listBotUsers, countConversation, updateBotUser, setGender } from './lib/botUsers.js'
 import { isStartKeyword, welcomeScreen, noConsentScreen, mailingScreen, mainMenuScreen, supportPrompt, consultPrompt, genderScreen, reviewThanks, legalScreen, aboutScreen, consultScreen, consultBookedScreen, marketScreen, materialsListScreen, materialCard, payLinkScreen, PAID_TEXT, PAID_TEXTS, PAID_TAGS, paidKeyboard, paymentNotFoundScreen, reviewScreen, CONTACT_PROMPTS, contactCancelKeyboard, unsubscribedScreen, communityScreen, communityResidentScreen, periodsScreen, subLinkScreen, aboutClubScreen, careerScreen, achievementsScreen } from './lib/botFlow.js'
 import { buildMonthCsv } from './lib/exportCsv.js'
@@ -59,7 +60,7 @@ import { residentMenu, subscriptionScreen, linkScreen, settingsScreen, cancelCon
 import { logAction, recentActions } from './lib/auditLog.js'
 import { healthLines, makeBackup, readBackupState, writeBackupState } from './lib/healthBackup.js'
 import { listTodos, addTodo, setTodoDone, ensureTodo } from './lib/todos.js'
-import { todosScreen, TODO_PROMPT, chatCheckScreen, userCard, botUsersScreen, notificationsScreen, ambassadorsScreen, ambassadorCard, AMBASSADOR_PROMPT, overdueScreen, retentionScreen, cancelCard, financeSummary, forecastScreen, expensesScreen, EXPENSE_PROMPT, parseExpense, eventRegistrationsScreen, eventScreen, eventLeadCard, eventRequestsScreen, eventsMonthSummary, FIND_PROMPT, searchScreen, digestScreen, systemScreen, auditScreen, monthKeyFor as extraMonthKey } from './lib/extraCabinet.js'
+import { todosScreen, TODO_PROMPT, chatCheckScreen, userCard, botUsersScreen, notificationsScreen, reviewsScreen, reviewCard, ambassadorsScreen, ambassadorCard, AMBASSADOR_PROMPT, overdueScreen, retentionScreen, cancelCard, financeSummary, forecastScreen, expensesScreen, EXPENSE_PROMPT, parseExpense, eventRegistrationsScreen, eventScreen, eventLeadCard, eventRequestsScreen, eventsMonthSummary, FIND_PROMPT, searchScreen, digestScreen, systemScreen, auditScreen, monthKeyFor as extraMonthKey } from './lib/extraCabinet.js'
 import { createInterest, getInterest, listInterests, markInterestDone, closeInterest, snoozeInterest, interestsDueForReminder, markInterestReminded, REMIND_AFTER_DAYS } from './lib/interests.js'
 import { createReserveCandidate, listReserve, getReserveCandidate, setReserveField, deleteReserveCandidate } from './lib/reserve.js'
 import { reserveListScreen, reserveCard, reserveFieldPrompt, reserveDeleteConfirm, RESERVE_NEW_PROMPT, INTEREST_KIND_KEYBOARD, interestPrompt, interestsScreen, interestCard, SEEKERS_KEYBOARD, buildVacancyViews, vacanciesScreen, vacancyCard, vacancyApplicationsScreen, recentApplicationsScreen, consultationsScreen, consultationCard, seekersMonthSummary } from './lib/seekersCabinet.js'
@@ -241,6 +242,7 @@ async function emailMaterial({ to, name, materialSlug, token }) {
   const lines = [`${name ? `Здравствуйте, ${name}!` : 'Здравствуйте!'}`, '', attachments ? `Спасибо за покупку! Материал «${title}» — во вложении к этому письму.` : `Спасибо за покупку! Материал «${title}» пришлёт поддержка в ближайшее время.`]
   if (material?.accessUrl) lines.push('', `Ссылка на материал: ${material.accessUrl}`)
   if (token) lines.push('', `Если удобнее получить файл в Telegram, нажмите: https://t.me/${BOT_USERNAME}?start=mat_${token}`)
+  if (token) lines.push('', `Когда ознакомитесь, оставьте, пожалуйста, отзыв о материале (оценка и пара слов) — это помогает другим студентам: ${SITE_URL}/materials/${materialSlug}?review=${token}#reviews`)
   lines.push('', `Если что-то пошло не так — напишите в поддержку: ${SUPPORT_HANDLE}`, '', 'Карьерный юрист')
   return sendMail({ to, subject: `Ваш материал: ${title}`, text: lines.join('\n'), attachments })
 }
@@ -967,6 +969,62 @@ app.post('/api/marketplace/purchase', async (req, res) => {
   }
 })
 
+// ---- Отзывы о материалах ----
+// Публично: рейтинги и тексты отзывов (без контактов). Оставить отзыв может только покупатель — по токену покупки из письма/бота.
+
+app.get('/api/materials/ratings', (_req, res) => {
+  const summary = ratingsSummary()
+  res.json(Object.fromEntries(Object.entries(summary).map(([slug, v]) => [slug, { sum: v.sum, count: v.count }])))
+})
+
+app.get('/api/materials/:slug/reviews', (req, res) => {
+  if (!MATERIALS[req.params.slug]) return res.status(404).json({ ok: false, error: 'unknown_material' })
+  const reviews = publicReviews(req.params.slug)
+  res.json({ ok: true, reviews, count: reviews.length, sum: reviews.reduce((acc, r) => acc + r.rating, 0) })
+})
+
+/** Покупка, по которой разрешён отзыв: оплачена и относится к этому материалу. */
+const purchaseForReview = (token, slug) => {
+  const purchase = /^[0-9a-f]{8,64}$/i.test(String(token ?? '')) ? getPurchase(String(token)) : null
+  return purchase?.paid && purchase.materialSlug === slug ? purchase : null
+}
+
+app.get('/api/materials/:slug/review-access', (req, res) => {
+  const purchase = purchaseForReview(req.query.token, req.params.slug)
+  if (!purchase) return res.status(403).json({ ok: false, error: 'no_access' })
+  const mine = getReviewByPurchase(String(req.query.token))
+  res.json({ ok: true, review: mine ? { rating: mine.rating, liked: mine.liked, disliked: mine.disliked } : null })
+})
+
+app.post('/api/materials/:slug/review', async (req, res) => {
+  const slug = req.params.slug
+  const token = String(req.body?.token ?? '')
+  const purchase = purchaseForReview(token, slug)
+  if (!purchase) return res.status(403).json({ ok: false, error: 'no_access' })
+  const rating = Number(req.body?.rating)
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5) return res.status(400).json({ ok: false, error: 'rating_required' })
+  if (req.body?.consent !== true) return res.status(400).json({ ok: false, error: 'consent_required' })
+
+  const { review, updated } = saveReview({ materialSlug: slug, purchaseToken: token, name: purchase.name, rating, liked: req.body.liked, disliked: req.body.disliked })
+  res.json({ ok: true })
+
+  if (BOT_TOKEN && ADMIN_CHAT_ID) {
+    const stars = '★'.repeat(review.rating) + '☆'.repeat(5 - review.rating)
+    const text = [
+      updated ? '✏️ Отзыв о материале обновлён' : '⭐ Новый отзыв о материале',
+      '',
+      `Маркетплейс → ${MATERIALS[slug].title}`,
+      `Оценка: ${stars} (${review.rating} из 5)`,
+      review.liked ? `👍 Понравилось: ${review.liked}` : null,
+      review.disliked ? `👎 Не понравилось: ${review.disliked}` : null,
+      '',
+      `👤 Имя на сайте: ${review.name}`,
+      `🗂 Отзыв №${review.number} — уже опубликован на странице материала`,
+    ].filter((l) => l !== null).join('\n')
+    await sendTelegramMessage(ADMIN_CHAT_ID, text, [[{ text: '🙈 Скрыть отзыв', callback_data: `a:x:rvh:${review.number}` }, { text: '⭐ Все отзывы', callback_data: 'a:x:rv' }]]).catch(() => false)
+  }
+})
+
 // Покупка билета на мероприятие → регистрация (ожидает оплаты) + ссылка на оплату Prodamus.
 // Название и цену берём из каталога на сервере; оплата привязывается к регистрации по order_id «ev-N».
 app.post('/api/event/:slug/checkout', async (req, res) => {
@@ -1205,6 +1263,18 @@ async function extrasAction(parts, now, chatId) {
       return chatCheckScreen(await checkCommunityChat())
     case 'bots':
       return botUsersScreen(listBotUsers())
+    case 'rv':
+      return reviewsScreen(listReviews(), (slug) => MATERIALS[slug]?.title ?? slug)
+    case 'rvc': {
+      const r = getReview(arg)
+      return r ? reviewCard(r, MATERIALS[r.materialSlug]?.title ?? r.materialSlug) : reviewsScreen(listReviews(), (slug) => MATERIALS[slug]?.title ?? slug)
+    }
+    case 'rvh': {
+      const current = getReview(arg)
+      const r = current ? setReviewHidden(arg, !current.hidden) : null
+      if (r) logAction(chatId, `review:${r.hidden ? 'hide' : 'show'}:${r.number}`)
+      return r ? reviewCard(r, MATERIALS[r.materialSlug]?.title ?? r.materialSlug) : reviewsScreen(listReviews(), (slug) => MATERIALS[slug]?.title ?? slug)
+    }
     case 'notif':
       return notificationsScreen(arg ? toggleAdminSetting(arg) : getAdminSettings())
     case 'src':
@@ -1763,7 +1833,8 @@ async function deliverMaterial(chatId, slug) {
     await sendTelegramMessage(ADMIN_CHAT_ID, `⚠️ Оплачен материал «${material?.title ?? slug}», но файл не загружен в бота. Отправьте боту PDF с подписью /material ${slug} и перешлите файл покупателю (chat id ${chatId}).`)
   }
   if (getBotUser(chatId)?.mailingConsent === true) {
-    const screen = reviewScreen(`${SITE_URL}/materials/${slug}`)
+    const bought = findPaidPurchase(chatId, slug)
+    const screen = reviewScreen(`${SITE_URL}/materials/${slug}${bought?.token ? `?review=${bought.token}` : ''}#reviews`)
     await sendTelegramMessage(chatId, screen.text, screen.keyboard)
   }
 }
