@@ -2093,7 +2093,10 @@ function dispatchUpdate(update) {
  * и бот писал в общий чат приветствие с просьбой дать согласие.
  */
 function isOutsidePrivateChat(chat) {
-  if (!chat?.id || !chat.type || chat.type === 'private') return false
+  if (!chat?.id) return false
+  // Группы, супергруппы и каналы в Telegram имеют отрицательный id (личные чаты — положительный), даже если тип чата не пришёл.
+  const isGroup = (chat.type && chat.type !== 'private') || Number(chat.id) < 0
+  if (!isGroup) return false
   return String(chat.id) !== String(ADMIN_CHAT_ID) && !VIEWER_IDS.has(String(chat.id))
 }
 
@@ -2102,7 +2105,10 @@ async function handleTelegramUpdate(update) {
     await handleJoinRequest(update.chat_join_request)
     return
   }
-  if (isOutsidePrivateChat(update?.message?.chat) || isOutsidePrivateChat(update?.callback_query?.message?.chat)) return
+  if (isOutsidePrivateChat(update?.message?.chat) || isOutsidePrivateChat(update?.callback_query?.message?.chat)) {
+    console.log('[tg] групповой чат — бот там не отвечает:', update?.message?.chat?.id ?? update?.callback_query?.message?.chat?.id)
+    return
+  }
   if (update?.callback_query?.data?.startsWith('u:')) {
     await handleUserCallback(update.callback_query)
     return
