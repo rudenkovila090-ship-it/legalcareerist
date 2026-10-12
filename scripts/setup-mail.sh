@@ -5,13 +5,18 @@
 set -uo pipefail
 cd "$(dirname "$0")/../server" || exit 1
 
+# Некоторые терминалы при вставке добавляют к тексту служебные символы (видны как «[200~»): отключаем это и дальше чистим ввод.
+printf '\033[?2004l'
+clean() { printf '%s' "$1" | sed $'s/\x1b\\[20[01]~//g' | tr -d '[:cntrl:][:space:]'; }
+
 read -r -p "Адрес почты, с которого отправлять (например info@legalcareerist.ru): " MAILADDR
 read -r -s -p "Пароль приложения (при вводе ничего не видно, после вставки нажмите Enter): " MAILPASS
 echo
 read -r -p "SMTP-сервер (просто нажмите Enter, если почта на Яндексе) [smtp.yandex.ru]: " MAILHOST
 MAILHOST=${MAILHOST:-smtp.yandex.ru}
-MAILADDR=$(printf '%s' "$MAILADDR" | tr -d '[:space:]')
-MAILPASS=$(printf '%s' "$MAILPASS" | tr -d '[:space:]')
+MAILADDR=$(clean "$MAILADDR")
+MAILPASS=$(clean "$MAILPASS")
+echo "Получено: адрес $MAILADDR, пароль из ${#MAILPASS} символов (у Яндекса обычно 16)"
 
 if [[ ! "$MAILADDR" =~ ^[^@]+@[^@]+\.[^@]+$ ]]; then
   echo "❌ Адрес выглядит неправильно: «$MAILADDR». Запустите скрипт заново и введите адрес вида name@domain.ru"
@@ -42,4 +47,8 @@ if [[ "$RESULT" == *'"ok":true'* ]]; then
 else
   echo "❌ Письмо не отправилось. Ответ почтового сервера: $RESULT"
   echo "Пришлите мне эту строку целиком (пароль в ней не показывается)."
+  if [[ "$RESULT" == *535* ]]; then
+    echo "Подсказка: ошибка 535 значит «логин или пароль не приняты». Проверьте, что пароль создан именно для ящика $MAILADDR"
+    echo "и что для организации разрешён доступ почтовых программ по SMTP (в админке Яндекс 360: Почта → доступ по протоколам)."
+  fi
 fi
