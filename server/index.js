@@ -458,9 +458,9 @@ function buildTicketPaidNotification({ lead, amount, paidAt, mail }) {
 }
 
 /** Оплата материала маркетплейса. */
-function buildMaterialPaidNotification({ purchase, material, phone, amount, paidAt, mail, cabinetUrl }) {
+function buildMaterialPaidNotification({ purchase, material, phone, amount, paidAt, mail, cabinetUrl, test }) {
   return [
-    '💳 Материал оплачен',
+    test ? '🧪 ТЕСТ: имитация оплаты материала (в финансы не идёт)' : '💳 Материал оплачен',
     '',
     `Маркетплейс → ${material?.title ?? purchase.materialSlug}`,
     '',
@@ -2323,7 +2323,9 @@ app.post('/api/prodamus/webhook', async (req, res) => {
     const purchase = (body.tg_user_id && markPurchasePaidByTg(body.tg_user_id)) || markPurchasePaidByPhone(phone)
     console.log('[prodamus] результат поиска покупки:', purchase ? `найдена ${purchase.token}` : 'не найдена')
     if (purchase) {
-      recordPurchasePayment(purchase.token, Number(body.sum) || MATERIALS[purchase.materialSlug]?.price || 0)
+      // Имитация оплаты (scripts/simulate-payment.sh): order_id начинается с TEST- — в финансы не попадает.
+      const isTest = String(body.order_id ?? '').startsWith('TEST-')
+      if (!isTest) recordPurchasePayment(purchase.token, Number(body.sum) || MATERIALS[purchase.materialSlug]?.price || 0)
       if (purchase.tgUserId) {
         addTag(purchase.tgUserId, PAID_TAGS[purchase.materialSlug] ?? `оплатил_${purchase.materialSlug}`)
         await deliverMaterial(purchase.tgUserId, purchase.materialSlug).catch((err) => console.error('[bot] не удалось выдать материал:', err))
@@ -2335,7 +2337,7 @@ app.post('/api/prodamus/webhook', async (req, res) => {
       if (buyerEmail && !purchase.email) purchase.email = buyerEmail
       const mail = buyerEmail ? await emailMaterial({ to: buyerEmail, name: purchase.name, materialSlug: purchase.materialSlug, cabinetUrl }) : { ok: false, error: 'no_email' }
       console.log('[prodamus] письмо с материалом:', mail.ok ? 'отправлено' : mail.error)
-      const text = buildMaterialPaidNotification({ purchase, material, phone, amount: Number(body.sum) || material?.price || 0, paidAt: Date.now(), mail, cabinetUrl })
+      const text = buildMaterialPaidNotification({ purchase, material, phone, amount: Number(body.sum) || material?.price || 0, paidAt: Date.now(), mail, cabinetUrl, test: isTest })
       await sendTelegramMessage(ADMIN_CHAT_ID, text)
     }
   })
