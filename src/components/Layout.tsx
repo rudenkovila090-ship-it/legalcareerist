@@ -3,6 +3,7 @@ import { useEffect } from 'react'
 import Header from './Header'
 import Footer from './Footer'
 import ErrorBoundary from './ErrorBoundary'
+import { noirEventSlugs } from '../data/noirEvents'
 
 // Liquid Glass: один делегированный слушатель на весь документ вместо
 // слушателя на каждой карточке — обновляет позицию блика (--mx/--my)
@@ -92,9 +93,12 @@ export default function Layout() {
     kadryPagesWithOwnFooter.includes(pathname) ||
     pathname === '/marketplace'
 
+  // Мероприятия с авторским тёмным оформлением — без верхней плашки сайта (она рвёт образ страницы).
+  const hideHeader = noirEventSlugs.some((slug) => pathname === `/events/${slug}`)
+
   return (
     <div className="flex min-h-screen flex-col">
-      <Header />
+      {!hideHeader && <Header />}
       <main className="flex-1">
         <ErrorBoundary key={pathname}>
           <Outlet />

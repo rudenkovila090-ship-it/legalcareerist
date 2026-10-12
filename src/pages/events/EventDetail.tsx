@@ -558,7 +558,7 @@ export default function EventDetail() {
           <RelatedContentBlock items={related} title="Может быть полезно" />
         </div>
 
-        <aside id="register" className={`scroll-mt-24 ${story ? 'lg:sticky lg:top-24 lg:self-start' : ''}`}>
+        <aside id="register" className={`scroll-mt-24 ${story ? 'lg:sticky lg:top-6 lg:self-start' : ''}`}>
           <div className="glass rounded-2xl p-6">
             {event.status === 'completed' ? (
               event.sale ? (

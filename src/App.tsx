@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes } from 'react-router-dom'
 import Layout from './components/Layout'
 
 // Каждая страница — отдельный чанк, подгружается только при переходе на нее.
@@ -80,6 +80,8 @@ export default function App() {
 
           {/* Мероприятия */}
           <Route path="/events" element={<EventsHome />} />
+          {/* Мероприятие переименовано — прежняя ссылка ведёт на новую. */}
+          <Route path="/events/yuridicheskaya-noch-dzhaza-2" element={<Navigate to="/events/dzhazovyy-vecher-dlya-yuristov-2" replace />} />
           <Route path="/events/:slug" element={<EventDetail />} />
           <Route
             path="/events/knowledge"

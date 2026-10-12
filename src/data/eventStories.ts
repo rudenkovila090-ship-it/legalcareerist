@@ -1,6 +1,7 @@
 import barScene from '../assets/legal-night-jazz-2-bar.webp'
 import loungeScene from '../assets/legal-night-jazz-2-lounge.webp'
 import boardScene from '../assets/legal-night-jazz-2-board.webp'
+import { noirEventSlugs } from './noirEvents'
 
 // Авторское оформление и тексты отдельных мероприятий. Лежит отдельно от events.ts:
 // тот файл читает скрипт выгрузки каталога для бота (scripts/export-vacancy-catalog.mjs),
@@ -51,8 +52,10 @@ export interface EventStory {
   characters: EventCharacter[]
 }
 
+const [jazzSlug] = noirEventSlugs
+
 export const eventStories: Record<string, EventStory> = {
-  'yuridicheskaya-noch-dzhaza-2': {
+  [jazzSlug]: {
     caseLabel: 'Дело № 001 · Смерть Карьеры',
     tagline: 'Кто убил карьеру?',
     taglineEn: 'Who killed the career?',

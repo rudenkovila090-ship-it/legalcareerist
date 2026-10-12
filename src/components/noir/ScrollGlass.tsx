@@ -30,7 +30,7 @@ export default function ScrollGlass() {
       lastY = y
       const max = Math.max(1, document.documentElement.scrollHeight - innerHeight)
       const h = el.offsetHeight
-      const top = 84
+      const top = 24
       const target = top + (y / max) * Math.max(0, innerHeight - top - h - 16)
       pos += (target - pos) * 0.14
       // Жидкость отстаёт от стакана: наклон против направления прокрутки, дальше пружина с затуханием.

@@ -5,9 +5,9 @@ import type { EventItem } from '../types'
 export const events: EventItem[] = [
   {
     id: 'ev2',
-    slug: 'yuridicheskaya-noch-dzhaza-2',
+    slug: 'dzhazovyy-vecher-dlya-yuristov-2',
     // Сначала название по-русски, затем английское — по закону о русском языке.
-    title: 'Юридическая ночь джаза 2 / Legal Night Jazz 2',
+    title: 'Джазовый вечер для юристов 2 / Legal Night Jazz 2',
     type: 'conference',
     format: 'offline',
     city: 'Санкт-Петербург',

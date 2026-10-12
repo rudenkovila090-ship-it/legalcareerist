@@ -249,12 +249,21 @@ async function emailMaterial({ to, name, materialSlug, token }) {
 }
 
 /** Каталог мероприятий сайта (выгружается при сборке): по нему сервер берёт название и цену билета. */
+// Прежние адреса переименованных мероприятий: старые ссылки и регистрации находят мероприятие по новому адресу.
+const EVENT_SLUG_ALIASES = { 'yuridicheskaya-noch-dzhaza-2': 'dzhazovyy-vecher-dlya-yuristov-2' }
+
 function readEventCatalog() {
   try {
     return JSON.parse(fs.readFileSync(path.join(import.meta.dirname, 'data', 'event-catalog.json'), 'utf8'))
   } catch {
     return []
   }
+}
+
+/** Мероприятие из каталога сайта по адресу (в том числе по прежнему, если оно переименовано). */
+function findEvent(slug) {
+  const actual = EVENT_SLUG_ALIASES[slug] ?? slug
+  return readEventCatalog().find((e) => e.slug === actual)
 }
 
 const EVENT_ORDER_RE = /\bev-(\d+)\b/i
@@ -1042,7 +1051,7 @@ function promoRateLimited(ip) {
 
 /** Билет мероприятия из каталога сайта с применённым промокодом (если передан). Возвращает { event, tariff, price, discount, promo } или { error }. */
 function priceTicket(slug, tariffId, promoCode) {
-  const event = readEventCatalog().find((e) => e.slug === slug)
+  const event = findEvent(slug)
   if (!event) return { error: 'unknown_event', status: 404 }
   if (event.status !== 'open' || event.registrationLink) return { error: 'not_for_sale', status: 400 }
   const tariff = event.tariffs.find((t) => t.id === tariffId)
@@ -2384,7 +2393,7 @@ async function handleEventPayment(number, body) {
     console.log('[prodamus] повторный вебхук по оплате билета — пропускаю:', number)
     return
   }
-  const event = readEventCatalog().find((e) => e.slug === lead.eventSlug)
+  const event = findEvent(lead.eventSlug)
   let mail = { ok: false, error: 'no_email' }
   if (lead.email) {
     const clock = (iso) => new Date(iso).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Moscow' })
