@@ -18,10 +18,11 @@ import { eventTimeRange } from '../../lib/eventTime'
 import HowHeardField from '../../components/HowHeardField'
 import { pluralRu } from '../../lib/plural'
 import { eventStories } from '../../data/eventStories'
-import { NoirHero, NoirIntro, NoirFacts, NoirStory, NoirCharacters } from './NoirSections'
+import { NoirHero, NoirIntro, NoirFacts, NoirAudience, NoirStory, NoirCharacters } from './NoirSections'
 import { useNoirFont } from '../../lib/useNoirFont'
 import { useNoirScroll } from '../../lib/useNoirScroll'
-import ScrollGlass from '../../components/noir/ScrollGlass'
+import ScrollCylinder from '../../components/noir/ScrollCylinder'
+import CityMap from '../../components/noir/CityMap'
 import { NoirGrain } from '../../components/noir/NoirAmbient'
 
 const specLabel = new Map(SPECIALIZATIONS.map((s) => [s.id, s.label]))
@@ -303,12 +304,13 @@ export default function EventDetail() {
   }
 
   return (
-    <div className="pb-12">
+    <div className={story ? '' : 'pb-12'}>
       <div ref={noirRef} className={story ? 'theme-noir pb-16' : ''}>
         {story && (
           <>
+            <CityMap />
             <NoirGrain />
-            <ScrollGlass />
+            <ScrollCylinder />
           </>
         )}
       <div className="container-page pt-8">
@@ -323,11 +325,8 @@ export default function EventDetail() {
           event={event}
           story={story}
           onBuy={scrollToRegister}
-          favorite={favorite}
-          onToggleFavorite={handleToggleFavorite}
           share={<ShareButtons title={event.title} />}
           views={views !== null ? `${views} ${pluralRu(views, ['просмотр', 'просмотра', 'просмотров'])}` : null}
-          heart={<IconHeart filled={favorite} />}
         />
       ) : (
       <div className={`mt-4 bg-gradient-to-br p-10 text-white sm:p-14 ${posterTone[event.type] ?? posterTone.webinar}`}>
@@ -418,6 +417,7 @@ export default function EventDetail() {
             <div className="mb-10 space-y-12">
               <NoirIntro story={story} />
               <NoirFacts story={story} />
+              <NoirAudience story={story} />
               <NoirStory story={story} />
               <NoirCharacters story={story} />
             </div>

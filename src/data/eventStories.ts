@@ -1,12 +1,17 @@
 import barScene from '../assets/legal-night-jazz-2-bar.webp'
 import loungeScene from '../assets/legal-night-jazz-2-lounge.webp'
 import boardScene from '../assets/legal-night-jazz-2-board.webp'
+import portraitProfile from '../assets/noir/portrait-profile.webp'
+import portraitLounge from '../assets/noir/portrait-lounge.webp'
+import portraitBartender from '../assets/noir/portrait-bartender.webp'
+import portraitDetective from '../assets/noir/portrait-detective.webp'
+import portraitBarWoman from '../assets/noir/portrait-bar-woman.webp'
 import { noirEventSlugs } from './noirEvents'
 
 // Авторское оформление и тексты отдельных мероприятий. Лежит отдельно от events.ts:
 // тот файл читает скрипт выгрузки каталога для бота (scripts/export-vacancy-catalog.mjs),
 // а он не умеет подключать картинки. Если у мероприятия есть запись здесь (по slug),
-// его страница получает тёмную тему и блоки «О вечере», «Досье», «Сюжет», «Персонажи».
+// его страница получает тёмную тему и блоки «О вечере», «Досье», «Для кого», «Сюжет», «Персонажи».
 
 export type CharacterIcon = 'hat' | 'glass' | 'magnifier' | 'pearl' | 'scales' | 'key'
 
@@ -29,12 +34,15 @@ export interface EventAct {
   sealed?: string
 }
 
+/** Кому подойдёт вечер: «фото» на стене улик, подпись появляется при наведении. */
+export interface EventAudience {
+  who: string
+  photo: string
+}
+
 export interface EventStory {
-  /** Строка над названием: «Дело № 001». */
-  caseLabel: string
-  /** Вопрос вечера: по-русски и по-английски. */
+  /** Вопрос вечера. */
   tagline: string
-  taglineEn: string
   /** Картинки: сцена для шапки и портрет для блока «О вечере». */
   heroImage: string
   portraitImage: string
@@ -45,7 +53,10 @@ export interface EventStory {
   /** Вопрос из текста перед ним — вводная фраза. */
   questionLead: string
   question: string
+  /** Страницы «папки с делом»: формат, жанр, цель. */
   facts: { label: string; text: string }[]
+  /** Для кого — стена с фото и красными нитками. */
+  audience: EventAudience[]
   principle: string
   acts: EventAct[]
   charactersIntro: string
@@ -56,15 +67,13 @@ const [jazzSlug] = noirEventSlugs
 
 export const eventStories: Record<string, EventStory> = {
   [jazzSlug]: {
-    caseLabel: 'Дело № 001 · Смерть Карьеры',
     tagline: 'Кто убил карьеру?',
-    taglineEn: 'Who killed the career?',
     heroImage: barScene,
     portraitImage: loungeScene,
     cardImage: boardScene,
     introLead: 'Legal Night Jazz возвращается — и на этот раз гости станут частью тайного расследования.',
     intro: [
-      'Это вечер на стыке юридического профессионального события, иммерсивного театра, интеллектуального нетворкинга и эстетики нуара. Мы создаём историю об убийстве карьеры, в которой каждый персонаж что-то скрывает, у каждого есть мотив, а каждая профессиональная ошибка может оказаться уликой.',
+      'Это вечер на стыке юридического профессионального события, нетворкинга и эстетики джаза, мафии, детектива и расследования. Мы создаём историю об убийстве карьеры, в которой каждый персонаж что-то скрывает, у каждого есть мотив, а каждая профессиональная ошибка может оказаться уликой.',
       'Нас ждёт закрытый джазовый бар, неожиданная смерть, мафиозные договорённости, подозрительные публикации, профессиональные тайны, зависть, амбиции и расследование, которое постепенно раскрывает настоящую природу карьерных провалов.',
     ],
     questionLead: 'Но за красивой эстетикой скрывается серьёзный вопрос:',
@@ -72,7 +81,7 @@ export const eventStories: Record<string, EventStory> = {
     facts: [
       {
         label: 'Формат',
-        text: 'Иммерсивное расследование с тематическими выступлениями, живым саксофоном, ведущей, баром, фотографом, видеоконтентом и профессиональным нетворкингом.',
+        text: 'Расследование с тематическими выступлениями, живым саксофоном, ведущей, баром, фотографом, видеоконтентом и профессиональным нетворкингом.',
       },
       {
         label: 'Жанр',
@@ -82,10 +91,13 @@ export const eventStories: Record<string, EventStory> = {
         label: 'Главная цель',
         text: 'Через сюжет расследования обсудить профессиональные риски, репутацию, карьерные ошибки, этику, амбиции и роль правильного окружения в юридической профессии.',
       },
-      {
-        label: 'Для кого',
-        text: 'Студенты юридических факультетов, начинающие и практикующие юристы, адвокаты, партнёры юридических фирм, владельцы юридического бизнеса и все, кто строит карьеру в профессиональной среде.',
-      },
+    ],
+    audience: [
+      { who: 'Студентам юридических факультетов', photo: portraitProfile },
+      { who: 'Начинающим и практикующим юристам', photo: portraitLounge },
+      { who: 'Адвокатам', photo: portraitBartender },
+      { who: 'Партнёрам юридических фирм и владельцам юридического бизнеса', photo: portraitDetective },
+      { who: 'Всем, кто строит карьеру в юридической профессии', photo: portraitBarWoman },
     ],
     principle:
       'Мы не просто рассказываем о карьерных ошибках — мы предлагаем гостям самим пройти через расследование и увидеть, как одно решение может изменить судьбу профессионала.',
@@ -113,7 +125,7 @@ export const eventStories: Record<string, EventStory> = {
       },
     ],
     charactersIntro:
-      'Персонажи рядом весь вечер: встречают гостей, появляются между выступлениями, взаимодействуют с аудиторией, создают дополнительные сюжетные линии и раскрывают улики. У каждого — своя история, мотив и секрет.',
+      'Наши спикеры — это и есть персонажи. Каждую роль исполняет отдельный приглашённый гость: он встречает вас, выступает в образе, взаимодействует с аудиторией, добавляет сюжетные линии и раскрывает улики. У каждого — своя история, мотив и секрет. Имена приглашённых гостей объявим позже.',
     characters: [
       {
         name: 'Дон',

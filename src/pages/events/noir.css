@@ -1,4 +1,4 @@
-/* Анимации «нуарной» страницы мероприятия (Legal Night Jazz 2).
+/* Оформление и анимации «нуарной» страницы мероприятия (Джазовый вечер для юристов 2).
    Всё, что движется, включено только при prefers-reduced-motion: no-preference — иначе страница статична и сразу видна целиком.
    Цвета берутся из токенов .theme-noir (index.css). */
 
@@ -37,7 +37,7 @@
   box-shadow: 0 0 18px rgba(217, 168, 92, 0.35);
 }
 
-/* Выстрел: пробоина и трещины остаются на месте, вспышка и дым — только с анимацией. */
+/* Выстрел: пробоина и трещины остаются на месте, вспышка, осколки и дым — только с анимацией. */
 .shot {
   position: absolute;
   width: 0;
@@ -51,20 +51,12 @@
   top: 0;
   transform: translate(-50%, -50%);
   overflow: visible;
-  filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.7));
 }
-.shot-ray,
-.shot-ring {
-  stroke-dasharray: 1;
-  stroke-dashoffset: 0;
-}
-.shot-ring {
-  stroke-opacity: 0.6;
-}
-.shot-burst {
-  display: none;
-}
-.shot-smoke i {
+.shot-burst,
+.shot-debris,
+.shot-smoke,
+.blood,
+.noir-flash {
   display: none;
 }
 
@@ -74,7 +66,7 @@
 .noir-sweep,
 .noir-lamp,
 .noir-grain,
-.noir-glass {
+.noir-cyl {
   display: none;
 }
 
@@ -99,6 +91,416 @@
 }
 .noir-marquee-track span {
   flex: none;
+}
+
+/* --- Карта города за текстом --- */
+.noir-citymap {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  opacity: 0;
+}
+.cm-stage {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: max(100vw, 160vh);
+  aspect-ratio: 8 / 5;
+  will-change: transform;
+}
+.cm-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.cm-street,
+.cm-thread {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+}
+.cm-block {
+  stroke: rgba(234, 223, 200, 0.15);
+  stroke-width: 1.1;
+}
+.cm-avenue {
+  stroke: rgba(217, 168, 92, 0.28);
+  stroke-width: 2.2;
+}
+.cm-ring {
+  stroke: rgba(234, 223, 200, 0.13);
+  stroke-width: 1.4;
+}
+.cm-river {
+  stroke: rgba(150, 170, 190, 0.11);
+  stroke-width: 34;
+}
+.cm-bank {
+  stroke: rgba(180, 195, 210, 0.22);
+  stroke-width: 1.2;
+}
+.cm-thread {
+  stroke: rgba(211, 48, 59, 0.75);
+  stroke-width: 1.5;
+}
+.cm-m {
+  opacity: 0;
+  transition: opacity 0.6s;
+}
+.cm-m.on {
+  opacity: 1;
+}
+.cm-pop {
+  transform: scale(0.4);
+  transition: transform 0.7s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+.cm-m.on .cm-pop {
+  transform: scale(1);
+}
+.cm-disc {
+  fill: rgba(11, 5, 6, 0.9);
+  stroke-width: 1.6;
+}
+.cm-red .cm-disc {
+  stroke: #d3303b;
+}
+.cm-red .cm-icon {
+  stroke: #ec5b66;
+}
+.cm-amber .cm-disc {
+  stroke: #d9a85c;
+}
+.cm-amber .cm-icon {
+  stroke: #ebc27f;
+}
+.cm-cream .cm-disc {
+  stroke: rgba(234, 223, 200, 0.7);
+}
+.cm-cream .cm-icon {
+  stroke: #eadfc8;
+}
+.cm-glow {
+  fill: rgba(217, 168, 92, 0.17);
+}
+.cm-ping {
+  fill: none;
+  stroke: #d3303b;
+  stroke-width: 1.4;
+  opacity: 0;
+}
+.cm-label {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  fill: rgba(234, 223, 200, 0.85);
+  paint-order: stroke;
+  stroke: #0b0506;
+  stroke-width: 5px;
+  stroke-linejoin: round;
+}
+.cm-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 50%, rgba(11, 5, 6, 0.2) 30%, rgba(11, 5, 6, 0.88) 100%);
+}
+
+/* --- Папка с делом («Досье вечера») --- */
+.cf-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-left: 14px;
+}
+.cf-tab {
+  position: relative;
+  top: 1px;
+  padding: 0.6rem 1.05rem;
+  border: 1px solid rgba(234, 223, 200, 0.18);
+  border-bottom: 0;
+  border-radius: 10px 10px 0 0;
+  background: #2b0a10;
+  color: rgba(234, 223, 200, 0.62);
+  font-family: var(--font-sans);
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.3s, color 0.3s, padding 0.3s;
+}
+.cf-tab:hover {
+  color: #eadfc8;
+}
+.cf-tab[data-active] {
+  z-index: 2;
+  padding-top: 0.8rem;
+  padding-bottom: 0.7rem;
+  background: #e7dbbf;
+  border-color: #e7dbbf;
+  color: #2a160d;
+}
+.cf-folder {
+  position: relative;
+  padding: 16px 16px 12px;
+  border: 1px solid rgba(234, 223, 200, 0.18);
+  border-radius: 0 14px 14px 14px;
+  background: linear-gradient(160deg, #3b0d14, #22070b);
+  box-shadow: 0 26px 50px -26px #000, inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+.cf-stage {
+  display: grid;
+  perspective: 1800px;
+}
+.cf-page {
+  grid-area: 1 / 1;
+  position: relative;
+  min-height: 15rem;
+  padding: 26px 28px 46px;
+  border-radius: 6px;
+  background-color: #e8dcc2;
+  background-image: linear-gradient(rgba(60, 40, 20, 0.08) 1px, transparent 1px), radial-gradient(120% 100% at 0% 0%, rgba(255, 255, 255, 0.35), transparent 60%);
+  background-size: 100% 30px, auto;
+  color: #24150d;
+  font-family: 'Courier New', ui-monospace, monospace;
+  box-shadow: 0 10px 24px -12px rgba(0, 0, 0, 0.7);
+  transform-origin: left center;
+  backface-visibility: hidden;
+}
+.cf-page[data-current]:not(:last-child) {
+  cursor: pointer;
+}
+.cf-page::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 0 0 6px 0;
+  background: linear-gradient(135deg, transparent 50%, rgba(0, 0, 0, 0.2) 50%, #d8c8a4 100%);
+}
+.cf-page:last-child::after {
+  display: none;
+}
+.cf-page[data-flipped] {
+  transform: rotateY(-178deg);
+  opacity: 0;
+  pointer-events: none;
+}
+.cf-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.cf-label {
+  padding-bottom: 0.35rem;
+  border-bottom: 2px solid #24150d;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+.cf-stamp {
+  flex: none;
+  padding: 0.2rem 0.55rem;
+  border: 2px solid rgba(163, 32, 42, 0.85);
+  border-radius: 4px;
+  color: rgba(163, 32, 42, 0.85);
+  font-family: var(--font-sans);
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  transform: rotate(-5deg);
+  mix-blend-mode: multiply;
+}
+.cf-text {
+  margin-top: 1.4rem;
+  font-size: 1.02rem;
+  line-height: 30px;
+}
+.cf-foot {
+  position: absolute;
+  left: 28px;
+  bottom: 14px;
+  font-family: var(--font-sans);
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(36, 21, 13, 0.5);
+}
+.cf-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 12px;
+}
+.cf-arrow {
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(234, 223, 200, 0.3);
+  border-radius: 999px;
+  color: #eadfc8;
+  font-size: 1rem;
+  line-height: 1;
+  transition: background 0.25s, opacity 0.25s;
+}
+.cf-arrow:hover:not(:disabled) {
+  background: rgba(234, 223, 200, 0.12);
+}
+.cf-arrow:disabled {
+  opacity: 0.3;
+}
+.cf-dots span {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin: 0 3px;
+  border-radius: 50%;
+  background: rgba(234, 223, 200, 0.3);
+  transition: background 0.3s;
+}
+.cf-dots span[data-active] {
+  background: #d9a85c;
+}
+
+/* --- Стена улик («Для кого») --- */
+.eb {
+  position: relative;
+  aspect-ratio: 1 / 1.45;
+  overflow: hidden;
+  border: 1px solid rgba(234, 223, 200, 0.14);
+  border-radius: 1rem;
+  background:
+    radial-gradient(120% 90% at 50% 0%, rgba(217, 168, 92, 0.1), transparent 60%),
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.18) 0 2px, transparent 2px 5px),
+    linear-gradient(160deg, #3a271b, #241610);
+  box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.65), 0 24px 50px -28px #000;
+}
+.eb-lines {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.eb-lines-wide {
+  display: none;
+}
+.eb-string {
+  fill: none;
+  stroke: #b01e2a;
+  stroke-width: 0.28;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.6));
+  transition: stroke 0.3s, stroke-width 0.3s;
+}
+.eb-string[data-hot] {
+  stroke: #ff4d5a;
+  stroke-width: 0.42;
+}
+.eb-card {
+  position: absolute;
+  z-index: 2;
+  left: calc(var(--mx) * 1%);
+  top: calc(var(--my) * 1%);
+  width: 32%;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  transform: rotate(calc(var(--mr) * 1deg));
+  transition: transform 0.45s cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+.eb-card[data-active] {
+  z-index: 5;
+  transform: rotate(0deg) scale(1.1);
+}
+.eb-pin {
+  position: absolute;
+  left: 50%;
+  top: -5px;
+  z-index: 3;
+  width: 12px;
+  height: 12px;
+  margin-left: -6px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ff8a92, #c4222e 55%, #6a0e16);
+  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.6);
+}
+.eb-frame {
+  position: relative;
+  display: block;
+  padding: 6px 6px 22px;
+  background: #e9dec6;
+  box-shadow: 0 10px 22px -8px rgba(0, 0, 0, 0.8);
+  transform-origin: 50% 0;
+}
+.eb-photo {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  filter: grayscale(0.6) sepia(0.35) contrast(1.05) brightness(0.9);
+  transition: filter 0.4s;
+}
+.eb-card[data-active] .eb-photo {
+  filter: none;
+}
+.eb-tag {
+  position: absolute;
+  left: -12%;
+  right: -12%;
+  bottom: 6px;
+  padding: 0.4rem 0.5rem;
+  background: #f0e6cf;
+  color: #24150d;
+  font-family: 'Courier New', ui-monospace, monospace;
+  font-size: 0.66rem;
+  font-weight: 700;
+  line-height: 1.25;
+  text-align: center;
+  opacity: 0;
+  transform: translateY(10px) rotate(-2deg);
+  transition: opacity 0.3s, transform 0.4s cubic-bezier(0.3, 1.4, 0.5, 1);
+  box-shadow: 0 6px 14px -6px rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+}
+.eb-card[data-active] .eb-tag {
+  opacity: 1;
+  transform: translateY(0) rotate(-2deg);
+}
+
+@media (min-width: 640px) {
+  .eb {
+    aspect-ratio: 8 / 5;
+  }
+  .eb-lines-wide {
+    display: block;
+  }
+  .eb-lines-narrow {
+    display: none;
+  }
+  .eb-card {
+    left: calc(var(--x) * 1%);
+    top: calc(var(--y) * 1%);
+    width: 20%;
+    transform: rotate(calc(var(--r) * 1deg));
+  }
+  .eb-card[data-active] {
+    transform: rotate(0deg) scale(1.1);
+  }
 }
 
 /* ===== Анимации ===== */
@@ -167,7 +569,7 @@
     animation: roman-glow 4.5s ease-in-out 1.2s infinite;
   }
 
-  /* --- шапка: занавес, слова заголовка, капля с двойки --- */
+  /* --- шапка: занавес, слова заголовка, кровь с двойки --- */
   .noir-curtain {
     display: block;
     position: absolute;
@@ -218,17 +620,28 @@
     opacity: 0;
     animation: two-drop 1.1s cubic-bezier(0.3, 1.5, 0.5, 1) 1.85s forwards;
   }
-  .noir-two::after {
-    content: '';
+  .blood {
+    display: block;
     position: absolute;
-    left: 46%;
-    bottom: -0.12em;
-    width: 0.07em;
-    height: 0;
-    border-radius: 0 0 50% 50%;
-    background: var(--noir-crimson-bright);
+    left: 50%;
+    top: 0.8em;
+    width: 0.262em;
+    height: 1.2em;
+    transform: translateX(-50%);
+    overflow: visible;
+    pointer-events: none;
+  }
+  .blood-streak {
+    transform-box: fill-box;
+    transform-origin: top center;
+    transform: scaleY(0);
+    animation: blood-streak 9s ease-in-out 4.3s infinite;
+  }
+  .blood-bulb {
+    transform-box: fill-box;
+    transform-origin: 50% 25%;
     opacity: 0;
-    animation: drip 7s ease-in 4.2s infinite;
+    animation: blood-bulb 9s linear 4.3s infinite;
   }
   .noir-rise {
     opacity: 0;
@@ -309,43 +722,61 @@
   }
 
   .noir-shaking {
-    animation: noir-shake 0.42s linear;
+    animation: noir-shake 0.38s linear;
   }
   .noir-flash {
+    display: block;
     position: absolute;
     inset: 0;
     z-index: 24;
     pointer-events: none;
-    background: radial-gradient(55% 70% at var(--fx, 88%) var(--fy, 16%), rgba(255, 238, 205, 0.6), rgba(255, 160, 70, 0.2) 40%, transparent 72%);
+    background: radial-gradient(50% 65% at 89% 17%, rgba(255, 238, 205, 0.45), rgba(255, 160, 70, 0.14) 40%, transparent 72%);
     opacity: 0;
-    animation: noir-flash 0.4s ease-out forwards;
+    animation: noir-flash 0.3s ease-out forwards;
   }
 
-  /* --- выстрел --- */
-  .shot-ray {
-    stroke-dashoffset: 1;
-    animation: shot-draw 0.38s cubic-bezier(0.2, 0.7, 0.2, 1) calc(0.06s + var(--i, 0) * 0.025s) forwards;
+  /* --- выстрел: трещины вылетают мгновенно, как при ударе --- */
+  .shot-crack {
+    opacity: 0;
+    transform: scale(0.08);
+    animation: crack-in 0.17s cubic-bezier(0.1, 0.8, 0.3, 1) calc(0.012s * var(--i, 0)) forwards;
   }
-  .shot-ring {
-    stroke-dashoffset: 1;
-    animation: shot-draw 0.6s ease-out calc(0.32s + var(--i, 0) * 0.12s) forwards;
+  .shot-soot {
+    opacity: 0;
+    animation: soot-in 0.6s ease-out 0.05s forwards;
   }
   .shot-hole {
-    transform: scale(0);
-    animation: shot-pop 0.34s cubic-bezier(0.2, 1.6, 0.4, 1) 0.02s forwards;
+    opacity: 0;
+    animation: hole-in 0.05s linear forwards;
   }
   .shot-burst {
     display: block;
     position: absolute;
     left: 0;
     top: 0;
-    width: 130px;
-    height: 130px;
-    margin: -65px 0 0 -65px;
+    width: 96px;
+    height: 96px;
+    margin: -48px 0 0 -48px;
     border-radius: 50%;
-    background: radial-gradient(circle, #fff 0, rgba(255, 226, 170, 0.9) 18%, rgba(255, 150, 60, 0.35) 45%, transparent 70%);
+    background: radial-gradient(circle, #fff 0, rgba(255, 226, 170, 0.85) 20%, rgba(255, 150, 60, 0.3) 48%, transparent 70%);
     opacity: 0;
-    animation: shot-burst 0.34s ease-out forwards;
+    animation: shot-burst 0.24s ease-out forwards;
+  }
+  .shot-debris {
+    display: block;
+  }
+  .shot-debris i {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 2px;
+    height: 2px;
+    background: #eadfc8;
+    opacity: 0;
+    animation: debris 0.6s cubic-bezier(0.1, 0.7, 0.3, 1) calc(0.01s * var(--i, 0)) forwards;
+  }
+  .shot-smoke {
+    display: block;
   }
   .shot-smoke i {
     display: block;
@@ -353,18 +784,59 @@
     left: 0;
     top: 0;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(234, 223, 200, 0.5), rgba(234, 223, 200, 0) 70%);
+    background: radial-gradient(circle, rgba(234, 223, 200, 0.42), rgba(234, 223, 200, 0) 70%);
     filter: blur(5px);
     opacity: 0;
-    animation: shot-smoke var(--dur, 5s) ease-out var(--delay, 0.4s) both;
+    animation: shot-smoke var(--dur, 5s) ease-out var(--delay, 0.6s) both;
+  }
+  .shot-wisp {
+    position: absolute;
+    left: 0;
+    top: 0;
+    overflow: visible;
+    filter: blur(2.2px);
+    opacity: 0;
+    transform: translate(-50%, -100%);
+    animation: wisp 5.2s ease-out var(--wd, 0.35s) both;
+  }
+  .shot-wisp path {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    animation: wisp-draw 5.2s ease-out var(--wd, 0.35s) both;
   }
 
-  /* --- бегущая строка, плёночное зерно, бокал --- */
+  /* --- карта города: метки появляются «с пингом», нити дрожат --- */
+  .cm-m.on .cm-ping {
+    animation: cm-ping 2.8s ease-out infinite;
+  }
+
+  /* --- папка с делом: страницы переворачиваются --- */
+  .cf-page {
+    transition: transform 0.95s cubic-bezier(0.65, 0, 0.2, 1), opacity 0.01s linear 0s;
+  }
+  .cf-page[data-flipped] {
+    transition: transform 0.95s cubic-bezier(0.65, 0, 0.2, 1), opacity 0.01s linear 0.47s;
+  }
+
+  /* --- стена улик: нитки протягиваются, фото покачиваются --- */
+  .eb-string {
+    stroke-dashoffset: 1;
+    transition: stroke-dashoffset 1.4s cubic-bezier(0.4, 0, 0.2, 1) var(--d, 0s), stroke 0.3s, stroke-width 0.3s;
+  }
+  .rv[data-in] .eb-string {
+    stroke-dashoffset: 0;
+  }
+  .eb-frame {
+    animation: eb-sway 6s ease-in-out infinite alternate;
+    animation-delay: calc(var(--n, 0) * -1.3s);
+  }
+  .eb-card[data-active] .eb-frame {
+    animation-play-state: paused;
+  }
+
+  /* --- бегущая строка, плёночное зерно, барабан --- */
   .noir-marquee-track {
     animation: marquee 42s linear infinite;
-  }
-  .noir-marquee:hover .noir-marquee-track {
-    animation-play-state: paused;
   }
   .noir-grain {
     display: block;
@@ -378,42 +850,29 @@
     background-size: 200px 200px;
     animation: grain 0.9s steps(1) infinite;
   }
-  .noir-glass {
+  .noir-cyl {
     display: block;
     position: fixed;
-    top: 0;
+    top: 50%;
     right: -8px;
     z-index: 40;
     width: 26px;
     pointer-events: none;
-    will-change: transform;
+    transform: translateY(-50%);
     filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.6));
     opacity: 0;
-    animation: glass-in 1.2s ease 2.4s forwards;
-  }
-  .noir-ice {
-    transform-box: fill-box;
-    transform-origin: center;
-  }
-  .noir-ice-a {
-    animation: ice-a 9s ease-in-out infinite;
-  }
-  .noir-ice-b {
-    animation: ice-b 11s ease-in-out -3s infinite;
-  }
-  .noir-ice-c {
-    animation: ice-c 5.2s ease-in-out -2.4s infinite;
+    animation: fade-in 1.2s ease 2.4s forwards;
   }
 
   @media (min-width: 640px) {
-    .noir-glass {
-      right: 4px;
-      width: 34px;
+    .noir-cyl {
+      right: 6px;
+      width: 40px;
     }
   }
   @media (min-width: 1280px) {
-    .noir-glass {
-      width: clamp(34px, calc((100vw - 76rem) / 2 + 10px), 96px);
+    .noir-cyl {
+      width: clamp(40px, calc((100vw - 76rem) / 2 + 6px), 96px);
     }
   }
   @media (max-width: 640px) {
@@ -439,13 +898,21 @@
     55% { opacity: 1; }
     100% { opacity: 1; transform: translateY(0) rotate(0); }
   }
-  @keyframes drip {
-    0%, 6% { height: 0; opacity: 0; transform: translateY(0); }
-    10% { opacity: 1; }
-    30% { height: 0.34em; opacity: 1; transform: translateY(0); }
-    46% { height: 0.34em; opacity: 1; transform: translateY(0.12em); }
-    60% { height: 0.2em; opacity: 0.9; transform: translateY(0.9em); }
-    70%, 100% { height: 0.1em; opacity: 0; transform: translateY(1.7em); }
+  @keyframes blood-streak {
+    0%, 2% { transform: scaleY(0); opacity: 1; }
+    30% { transform: scaleY(1); opacity: 1; }
+    66% { transform: scaleY(1); opacity: 1; }
+    84% { transform: scaleY(1); opacity: 0; }
+    100% { transform: scaleY(0); opacity: 0; }
+  }
+  @keyframes blood-bulb {
+    0%, 2% { opacity: 0; transform: translateY(0) scale(0.3); }
+    4% { opacity: 1; transform: translateY(0) scale(0.55); }
+    30% { opacity: 1; transform: translateY(34px) scale(0.85); }
+    48% { opacity: 1; transform: translateY(36px) scale(1.2); }
+    56% { opacity: 1; transform: translateY(38px) scale(1.15, 1.45); animation-timing-function: cubic-bezier(0.55, 0, 1, 0.55); }
+    70% { opacity: 1; transform: translateY(98px) scale(0.85, 1.5); }
+    73%, 100% { opacity: 0; transform: translateY(106px) scale(0.8, 1.5); }
   }
   @keyframes noir-rise {
     to { opacity: 1; transform: none; }
@@ -486,32 +953,54 @@
   }
   @keyframes noir-shake {
     0% { transform: translate(0, 0); }
-    12% { transform: translate(-7px, 3px); }
-    26% { transform: translate(6px, -4px); }
-    42% { transform: translate(-4px, 3px); }
-    60% { transform: translate(3px, -2px); }
-    80% { transform: translate(-1px, 1px); }
+    14% { transform: translate(-4px, 2px); }
+    30% { transform: translate(3px, -2px); }
+    48% { transform: translate(-2px, 1px); }
+    70% { transform: translate(1px, -1px); }
     100% { transform: translate(0, 0); }
   }
   @keyframes noir-flash {
     0% { opacity: 1; }
     100% { opacity: 0; }
   }
-  @keyframes shot-draw {
-    to { stroke-dashoffset: 0; }
+  @keyframes crack-in {
+    to { opacity: 1; transform: scale(1); }
   }
-  @keyframes shot-pop {
-    0% { transform: scale(0); }
-    100% { transform: scale(1); }
+  @keyframes soot-in {
+    to { opacity: 1; }
+  }
+  @keyframes hole-in {
+    to { opacity: 1; }
   }
   @keyframes shot-burst {
     0% { opacity: 1; transform: scale(0.2); }
-    100% { opacity: 0; transform: scale(1.6); }
+    100% { opacity: 0; transform: scale(1.5); }
+  }
+  @keyframes debris {
+    0% { opacity: 1; transform: translate(0, 0); }
+    100% { opacity: 0; transform: translate(var(--dx, 20px), calc(var(--dy, 20px) + 14px)); }
   }
   @keyframes shot-smoke {
     0% { opacity: 0; transform: translate(-50%, -50%) scale(0.3); }
-    18% { opacity: 0.75; }
-    100% { opacity: 0; transform: translate(calc(-50% + var(--dx, 0px)), calc(-50% - 130px)) scale(2.6); }
+    18% { opacity: 0.7; }
+    100% { opacity: 0; transform: translate(calc(-50% + var(--dx, 0px)), calc(-50% - 120px)) scale(2.5); }
+  }
+  @keyframes wisp {
+    0% { opacity: 0; transform: translate(-50%, -100%) translateY(10px) scaleX(0.8); }
+    18% { opacity: 0.7; }
+    70% { opacity: 0.35; }
+    100% { opacity: 0; transform: translate(calc(-50% + var(--sx, 0px)), -100%) translateY(-30px) scaleX(1.4); }
+  }
+  @keyframes wisp-draw {
+    to { stroke-dashoffset: 0; }
+  }
+  @keyframes cm-ping {
+    0% { opacity: 0.85; transform: scale(0.8); }
+    100% { opacity: 0; transform: scale(2.3); }
+  }
+  @keyframes eb-sway {
+    from { transform: rotate(-0.9deg); }
+    to { transform: rotate(0.9deg); }
   }
   @keyframes marquee {
     to { transform: translateX(-50%); }
@@ -524,31 +1013,8 @@
     80% { transform: translate(45px, 25px); }
     100% { transform: translate(0, 0); }
   }
-  @keyframes glass-in {
+  @keyframes fade-in {
     to { opacity: 1; }
-  }
-  @keyframes ice-a {
-    0%, 100% { transform: translateY(0) rotate(0deg); }
-    25% { transform: translateY(-2.5px) rotate(3deg); }
-    50% { transform: translateY(0) rotate(0deg); }
-    75% { transform: translateY(-2px) rotate(-3deg); }
-    88% { transform: translateY(0) rotate(0deg); }
-    91% { transform: translate(-2px, -1px) rotate(-9deg); }
-    94% { transform: translate(1px, 0) rotate(5deg); }
-    97% { transform: translateY(0) rotate(0deg); }
-  }
-  @keyframes ice-b {
-    0%, 100% { transform: translateY(0) rotate(0deg); }
-    30% { transform: translateY(-2px) rotate(-4deg); }
-    60% { transform: translateY(0) rotate(2deg); }
-    80% { transform: translate(2px, 0) rotate(0deg); }
-    84% { transform: translate(2px, -1px) rotate(8deg); }
-    88% { transform: translate(-1px, 0) rotate(-4deg); }
-    92% { transform: translateY(0) rotate(0deg); }
-  }
-  @keyframes ice-c {
-    0%, 100% { transform: translateY(0) rotate(0deg); }
-    50% { transform: translateY(-2px) rotate(3deg); }
   }
   @keyframes q-pop {
     0% { opacity: 0; transform: scale(0.2) rotate(-30deg); }

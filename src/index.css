@@ -254,6 +254,13 @@ h4 {
   color: var(--color-ink);
   /* Блоки выезжают сбоку — не даём им растягивать страницу (clip, а не hidden: липкая колонка билета продолжает работать). */
   overflow-x: clip;
+  /* Карта города за текстом — fixed внутри обёртки: изоляция и clip-path не дают ей рисоваться поверх подвала сайта. */
+  isolation: isolate;
+  clip-path: inset(0);
+}
+.theme-noir > :not(.noir-citymap):not(.noir-grain) {
+  position: relative;
+  z-index: 1;
 }
 .font-noir {
   font-family: "Playfair Display", "Times New Roman", Georgia, serif;

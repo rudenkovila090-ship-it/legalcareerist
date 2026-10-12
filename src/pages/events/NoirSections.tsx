@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useRef, useState, type CSSProperties, type MouseEvent, type PointerEvent, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from 'react'
 import type { EventItem } from '../../types'
 import type { CharacterIcon, EventStory } from '../../data/eventStories'
 import { eventTimeRange } from '../../lib/eventTime'
 import { prefersReducedMotion } from '../../lib/motion'
 import Reveal from '../../components/noir/Reveal'
+import CaseFile from '../../components/noir/CaseFile'
+import EvidenceBoard from '../../components/noir/EvidenceBoard'
 import { ShotFx, ShotOnView } from '../../components/noir/ShotFx'
 import { NoirDust, NoirMarquee } from '../../components/noir/NoirAmbient'
 import './noir.css'
@@ -72,54 +74,56 @@ function Rise({ delay, className = '', children }: { delay: number; className?: 
   )
 }
 
-interface Shot {
-  id: number
-  x: string
-  y: string
+/** Кровь капает с двойки: полоска стекает, на конце набухает капля, срывается и падает (петля). */
+function BloodDrip() {
+  return (
+    <svg className="blood" viewBox="0 0 24 110" aria-hidden="true">
+      <defs>
+        <linearGradient id="blood-g" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stopColor="#8f0f1a" />
+          <stop offset="0.5" stopColor="#e0303d" />
+          <stop offset="1" stopColor="#6e0912" />
+        </linearGradient>
+      </defs>
+      <path className="blood-streak" d="M8.6 0 H15.4 Q14.3 12 14 24 Q13.9 36 12.9 38.4 Q12 41 11.1 38.4 Q10.1 36 10 24 Q9.7 12 8.6 0 Z" fill="url(#blood-g)" />
+      <g className="blood-bulb">
+        <path d="M12 0 C12 0 6.4 8 6.4 12.6 A5.6 5.6 0 0 0 17.6 12.6 C17.6 8 12 0 12 0 Z" fill="url(#blood-g)" />
+        <ellipse cx="9.8" cy="12.2" rx="1.3" ry="2.3" fill="#fff" opacity="0.4" />
+      </g>
+    </svg>
+  )
 }
 
 interface NoirHeroProps {
   event: EventItem
   story: EventStory
   onBuy: () => void
-  favorite: boolean
-  onToggleFavorite: () => void
   share: ReactNode
   views: string | null
-  heart: ReactNode
 }
 
-export function NoirHero({ event, story, onBuy, favorite, onToggleFavorite, share, views, heart }: NoirHeroProps) {
+export function NoirHero({ event, story, onBuy, share, views }: NoirHeroProps) {
   const [ru, en] = event.title.split(' / ')
   const [ruText, ruNumber] = splitTrailingNumber(ru)
   const date = new Date(event.dateTime).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })
   const shortDate = new Date(event.dateTime).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })
 
   const heroRef = useRef<HTMLElement>(null)
-  const shotId = useRef(0)
-  const [shots, setShots] = useState<Shot[]>([])
-  const [flash, setFlash] = useState<Shot | null>(null)
+  const [shot, setShot] = useState(0)
   const [shaking, setShaking] = useState(false)
 
-  // Выстрел: вспышка, дрожь шапки, пробоина с трещинами и дым. Хранится не больше шести пробоин.
-  const fire = useCallback((x: string, y: string) => {
-    const shot = { id: ++shotId.current, x, y }
-    setShots((prev) => [...prev.slice(-5), shot])
-    setFlash(shot)
+  // Выстрел: вспышка, короткая дрожь шапки, пробоина с трещинами и дымок.
+  const fire = useCallback(() => {
+    setShot((n) => n + 1)
     setShaking(true)
-    window.setTimeout(() => setShaking(false), 450)
+    window.setTimeout(() => setShaking(false), 380)
   }, [])
 
-  // Первый выстрел — когда открылся занавес и заголовок встал на место; по клику на кадр — следующие.
+  // Один выстрел — когда открылся занавес и заголовок встал на место.
   useEffect(() => {
-    const t = window.setTimeout(() => fire('89%', '17%'), prefersReducedMotion() ? 0 : 2900)
+    const t = window.setTimeout(fire, prefersReducedMotion() ? 0 : 3100)
     return () => window.clearTimeout(t)
   }, [fire])
-
-  function shoot(e: MouseEvent<HTMLElement>) {
-    const r = heroRef.current?.getBoundingClientRect()
-    if (r) fire(`${e.clientX - r.left}px`, `${e.clientY - r.top}px`)
-  }
 
   // «Фонарик»: мягкий свет следует за курсором над шапкой.
   function track(e: PointerEvent<HTMLElement>) {
@@ -142,16 +146,10 @@ export function NoirHero({ event, story, onBuy, favorite, onToggleFavorite, shar
         <div className={`container-page relative z-[3] grid items-center gap-12 py-14 sm:py-20 lg:grid-cols-[1.2fr_0.8fr] ${shaking ? 'noir-shaking' : ''}`}>
           <div data-parallax="-0.035" data-pmax="26">
             <Rise delay={1.0}>
-              <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.22em] text-gold">
-                <span>{story.caseLabel}</span>
-              </div>
-            </Rise>
-
-            <Rise delay={1.15} className="mt-6">
               <div className="flex flex-col gap-x-4 gap-y-1 text-base font-semibold text-ink sm:flex-row sm:flex-wrap sm:items-center sm:gap-y-2 sm:text-lg">
                 <span>{date}</span>
                 <span className="hidden h-5 w-px shrink-0 bg-ink/30 sm:block" aria-hidden="true" />
-                <span>{eventTimeRange(event)} по Москве</span>
+                <span>{eventTimeRange(event)}</span>
                 <span className="hidden h-5 w-px shrink-0 bg-ink/30 sm:block" aria-hidden="true" />
                 <span>{event.city}</span>
               </div>
@@ -166,7 +164,12 @@ export function NoirHero({ event, story, onBuy, favorite, onToggleFavorite, shar
                     </span>{' '}
                   </span>
                 ))}
-                {ruNumber && <span className="noir-two ml-1 text-[var(--noir-crimson-bright)]">{ruNumber}</span>}
+                {ruNumber && (
+                  <span className="noir-two ml-1 text-[var(--noir-crimson-bright)]">
+                    {ruNumber}
+                    <BloodDrip />
+                  </span>
+                )}
               </span>
               {en && (
                 <span className="noir-rise mt-3 block text-2xl font-medium italic text-ink/70 sm:text-3xl" style={{ '--rd': '2.2s' } as CSSProperties}>
@@ -179,7 +182,6 @@ export function NoirHero({ event, story, onBuy, favorite, onToggleFavorite, shar
 
             <Rise delay={2.55} className="mt-6">
               <p className="font-noir text-2xl italic text-ink sm:text-3xl">{story.tagline}</p>
-              <p className="mt-1 text-xs font-semibold uppercase tracking-[0.2em] text-ink/50">{story.taglineEn}</p>
             </Rise>
 
             {event.description && (
@@ -197,15 +199,6 @@ export function NoirHero({ event, story, onBuy, favorite, onToggleFavorite, shar
                 >
                   Приобрести билет
                 </button>
-                <button
-                  type="button"
-                  onClick={onToggleFavorite}
-                  aria-pressed={favorite}
-                  className="flex items-center gap-2 rounded-full border border-ink/30 px-5 py-3 text-sm font-semibold text-ink hover:bg-ink/10"
-                >
-                  {heart}
-                  {favorite ? 'В избранном' : 'В избранное'}
-                </button>
                 {share}
                 {views && <span className="text-sm text-ink/50">{views}</span>}
               </div>
@@ -214,23 +207,20 @@ export function NoirHero({ event, story, onBuy, favorite, onToggleFavorite, shar
 
           <div className="relative mx-auto hidden w-full max-w-sm lg:block" data-parallax="0.04" data-pmax="30">
             <div className="noir-arch-ring absolute -inset-3 rounded-t-[999px] border border-gold/30" aria-hidden="true" />
-            <div className="relative aspect-[3/4] w-full cursor-crosshair overflow-hidden rounded-t-[999px]" onClick={shoot} role="presentation">
+            <div className="relative aspect-[3/4] w-full overflow-hidden rounded-t-[999px]">
               <div data-parallax="0.09" data-pmax="40" className="absolute inset-x-0 -inset-y-12">
                 <img src={story.heroImage} alt="" aria-hidden="true" draggable={false} className="noir-kb h-full w-full object-cover object-[50%_35%]" />
               </div>
               <div className="noir-sweep" aria-hidden="true" />
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#0b0506]/70 via-transparent to-transparent" aria-hidden="true" />
             </div>
-            <Rise delay={3.4} className="mt-4 text-center text-[0.65rem] uppercase tracking-[0.22em] text-ink/35">
-              Нажмите на кадр
-            </Rise>
           </div>
         </div>
 
-        {/* Слой выстрелов поверх шапки: вспышка и пробоины с дымом. */}
-        {flash && <div key={flash.id} className="noir-flash" style={{ '--fx': flash.x, '--fy': flash.y } as CSSProperties} aria-hidden="true" />}
+        {/* Слой выстрела поверх шапки: вспышка и пробоина с дымком. */}
+        {shot > 0 && <div key={shot} className="noir-flash" aria-hidden="true" />}
         <div className="pointer-events-none absolute inset-0 z-[25]" aria-hidden="true">
-          {shots.map((s) => <ShotFx key={s.id} x={s.x} y={s.y} />)}
+          {shot > 0 && <ShotFx key={shot} x="89%" y="17%" size={1.2} />}
         </div>
 
         {/* Занавес открывается при загрузке страницы. */}
@@ -240,7 +230,7 @@ export function NoirHero({ event, story, onBuy, favorite, onToggleFavorite, shar
         </div>
       </section>
 
-      <NoirMarquee items={[story.tagline, story.caseLabel, en ?? ru, shortDate, event.city ?? '', eventTimeRange(event)].filter(Boolean)} />
+      <NoirMarquee items={[story.tagline, en ?? ru, shortDate, story.tagline, event.city ?? '', eventTimeRange(event)].filter(Boolean)} />
     </>
   )
 }
@@ -280,34 +270,42 @@ export function NoirIntro({ story }: { story: EventStory }) {
       </div>
 
       <Reveal variant="zoom" delay={150} className="hidden md:block">
-        <figure>
-          <div className="relative aspect-[2/3] w-full overflow-hidden rounded-2xl">
-            <div data-parallax="0.07" data-pmax="34" className="absolute inset-x-0 -inset-y-9">
-              <img src={story.portraitImage} alt="" aria-hidden="true" className="noir-kb h-full w-full object-cover object-[60%_50%]" />
-            </div>
-            <div className="noir-sweep" aria-hidden="true" />
+        <div className="relative aspect-[2/3] w-full overflow-hidden rounded-2xl">
+          <div data-parallax="0.07" data-pmax="34" className="absolute inset-x-0 -inset-y-9">
+            <img src={story.portraitImage} alt="" aria-hidden="true" className="noir-kb h-full w-full object-cover object-[60%_50%]" />
           </div>
-          <figcaption className="mt-2 text-xs uppercase tracking-[0.16em] text-ink/50">{story.caseLabel}</figcaption>
-        </figure>
+          <div className="noir-sweep" aria-hidden="true" />
+        </div>
       </Reveal>
     </section>
   )
 }
 
+/** «Досье вечера» — папка с делом: формат, жанр и цель на страницах, которые переворачиваются. */
 export function NoirFacts({ story }: { story: EventStory }) {
   return (
     <section>
       <NoirHeading>Досье вечера</NoirHeading>
-      <dl className="mt-5 divide-y divide-ink/10 rounded-2xl border border-ink/15 bg-black/20">
-        {story.facts.map((f, i) => (
-          <Reveal key={f.label} delay={i * 90} className="grid gap-1 p-5 sm:grid-cols-[9rem_1fr] sm:gap-6">
-            <dt className="text-xs font-semibold uppercase tracking-[0.18em] text-gold sm:pt-1">{f.label}</dt>
-            <dd className="leading-relaxed text-ink/80">{f.text}</dd>
-          </Reveal>
-        ))}
-      </dl>
+      <Reveal className="mt-5">
+        <CaseFile pages={story.facts} />
+      </Reveal>
       <Reveal className="mt-6">
         <p className="font-noir text-xl italic leading-snug text-ink/90">{story.principle}</p>
+      </Reveal>
+    </section>
+  )
+}
+
+/** «Для кого» — стена улик: фото, связанные красными нитками; подпись появляется при наведении. */
+export function NoirAudience({ story }: { story: EventStory }) {
+  return (
+    <section>
+      <NoirHeading>Для кого этот вечер</NoirHeading>
+      <Reveal delay={90}>
+        <p className="mt-2 text-sm text-ink/55">Наведите курсор на фото (на телефоне — нажмите).</p>
+      </Reveal>
+      <Reveal variant="zoom" className="mt-5">
+        <EvidenceBoard people={story.audience} />
       </Reveal>
     </section>
   )
