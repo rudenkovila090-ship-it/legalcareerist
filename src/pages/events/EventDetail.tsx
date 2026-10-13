@@ -1,4 +1,4 @@
-import { useRef, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { events } from '../../data/events'
 import RelatedContentBlock from '../../components/RelatedContentBlock'
@@ -184,6 +184,12 @@ export default function EventDetail() {
   // Prodamus возвращает сюда после оплаты (urlSuccess ?paid=1) — показываем подтверждение.
   const [searchParams] = useSearchParams()
   const justPaid = searchParams.get('paid') === '1'
+  // Вернулись с оплаты — показываем блок с подтверждением (на телефоне он внизу страницы, иначе его не заметить).
+  useEffect(() => {
+    if (!justPaid) return
+    const timer = window.setTimeout(() => document.getElementById('register')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 900)
+    return () => window.clearTimeout(timer)
+  }, [justPaid])
   const [favorite, setFavorite] = useState(() => (event ? isFavoriteEvent(event.id) : false))
 
   async function applyPromoCode(tariffForPromo: EventTariff['id']): Promise<boolean> {
@@ -642,7 +648,7 @@ export default function EventDetail() {
                 )}
 
                 {justPaid && (
-                  <div className="mt-4 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">Оплата получена — вы зарегистрированы. Подтверждение придёт на почту, напоминание — заранее.</div>
+                  <div className="mt-4 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">Оплата получена — вы зарегистрированы. Подтверждение придёт на почту, за день до мероприятия — напоминание.</div>
                 )}
                 {registered ? (
                   <div className="mt-4 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">Вы зарегистрированы. Напоминание придет заранее.</div>
@@ -664,7 +670,8 @@ export default function EventDetail() {
                       type="email"
                       value={form.email}
                       onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-                      placeholder="Почта"
+                      placeholder={tariff.price > 0 && !event.registrationLink ? 'Почта (пришлём подтверждение)' : 'Почта'}
+                      required={tariff.price > 0 && !event.registrationLink}
                       className="rounded-lg border border-ink/15 px-3.5 py-2.5 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40"
                     />
                     <input

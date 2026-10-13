@@ -453,9 +453,10 @@ const contactLines = ({ name, phone, email, telegram }) => [
 ]
 
 /** Оплата билета на мероприятие: тот же формат, что у оплаты подписки (сумма в рублях, дата оплаты, контакты). */
-function buildTicketPaidNotification({ lead, amount, paidAt, mail }) {
+function buildTicketPaidNotification({ lead, amount, paidAt, mail, warning }) {
   return [
     '💳 Билет оплачен',
+    warning ? `⚠️ ${warning}` : null,
     '',
     `Мероприятия → ${lead.eventTitle || 'мероприятие'}`,
     `Билет: ${lead.tariff || 'не указан'}`,
@@ -1084,6 +1085,8 @@ app.post('/api/event/:slug/checkout', async (req, res) => {
   const telegram = normalizeTelegram(req.body.telegram)
   if (!name) return res.status(400).json({ ok: false, error: 'name_required' })
   if (normalizePhone(phone).length < 11 && !EMAIL_RE.test(email)) return res.status(400).json({ ok: false, error: 'contact_required' })
+  // Подтверждение и напоминание уходят на почту — без неё участник остался бы без билета на руках.
+  if (!EMAIL_RE.test(email)) return res.status(400).json({ ok: false, error: 'email_required' })
 
   try {
     incrementEventRegistration(event.slug)
@@ -2381,8 +2384,15 @@ app.post('/api/telegram/webhook', async (req, res) => {
 })
 
 /** Успешная оплата билета: статус «Оплатил» и сумма в регистрации, письмо участнику, уведомление админу. */
-async function handleEventPayment(number, body) {
+async function handleEventPayment(number, body, signed) {
   const amount = Number(body.sum) || null
+  // Оплату билета засчитываем только по уведомлению с верной подписью Prodamus: без неё «оплату» мог прислать кто угодно,
+  // зная номер регистрации. Админу — сообщение: если платёж настоящий, его отмечают вручную в карточке регистрации.
+  if (!signed) {
+    console.error('[prodamus] уведомление об оплате билета без подписи — не засчитано, регистрация №', number)
+    await sendTelegramMessage(ADMIN_CHAT_ID, `⚠️ Пришло уведомление об оплате билета (регистрация №${number}, ${formatRub(amount ?? 0)}) без подписи Prodamus — автоматически не засчитано.\n\nПроверьте платёж в кабинете Prodamus: если он настоящий, отметьте оплату в карточке регистрации. Подпись приходит, когда на платёжной странице Prodamus задан секретный ключ.`, [[{ text: `📂 Открыть №${number}`, callback_data: `a:x:evcard:${number}` }]]).catch(() => false)
+    return
+  }
   const lead = markEventLeadPaid(number, amount, String(body.order_id ?? ''))
   if (!lead) {
     console.error('[prodamus] оплата билета: регистрация не найдена №', number)
@@ -2401,13 +2411,53 @@ async function handleEventPayment(number, body) {
     const lines = [`${lead.name ? `Здравствуйте, ${lead.name}!` : 'Здравствуйте!'}`, '', `Оплата получена — вы зарегистрированы на мероприятие «${lead.eventTitle}».`, `Билет: ${lead.tariff}${amount ? ` · ${amount} ₽` : ''}`]
     if (when) lines.push(`Когда: ${when} (по Москве)`)
     if (event?.location) lines.push(`Где: ${event.location}`)
-    lines.push(`Номер регистрации: ${lead.number}`, '', `Мы напомним о мероприятии заранее. Вопросы — ${SUPPORT_HANDLE}`, '', 'Карьерный юрист')
+    lines.push(`Номер регистрации: ${lead.number}`, '', `За день до мероприятия пришлём напоминание на эту почту. Вопросы — ${SUPPORT_HANDLE}`, '', 'Карьерный юрист')
     mail = await sendMail({ to: lead.email, subject: `Вы зарегистрированы: ${lead.eventTitle}`, text: lines.join('\n') })
   }
   cancelPending({ kind: 'ticket', eventNumber: lead.number })
   if (lead.promo) markPromoUsed(lead.promo)
-  const text = buildTicketPaidNotification({ lead, amount: amount ?? lead.price ?? 0, paidAt: Date.now(), mail })
+  // Сумма в оплате не совпала с ценой билета (частичная оплата, другая цена на платёжной странице) — пусть админ посмотрит.
+  const mismatch = amount != null && lead.price != null && Math.abs(amount - lead.price) > 0.5
+  const warning = mismatch ? `Оплачено ${formatRub(amount)}, а цена билета ${formatRub(lead.price)} — проверьте платёж в Prodamus` : null
+  const text = buildTicketPaidNotification({ lead, amount: amount ?? lead.price ?? 0, paidAt: Date.now(), mail, warning })
   await sendTelegramMessage(ADMIN_CHAT_ID, text, [[{ text: `📂 Открыть №${lead.number}`, callback_data: `a:x:evcard:${lead.number}` }]])
+}
+
+/**
+ * Напоминание участникам за день до мероприятия: письмо всем оплатившим, у кого есть почта (один раз на человека).
+ * Админу — короткий итог; если у мероприятия не указано место, предупреждение, пока не поздно.
+ */
+async function sendEventReminders(now = Date.now()) {
+  const tomorrow = mskDayKey(now + 24 * 3600 * 1000)
+  const clock = (iso) => new Date(iso).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Moscow' })
+  for (const event of readEventCatalog()) {
+    if (mskDayKey(new Date(event.dateTime).getTime()) !== tomorrow) continue
+    const people = listEventLeads().filter((l) => l.kind === 'registration' && l.status === 'paid' && !l.reminderSentAt && findEvent(l.eventSlug)?.slug === event.slug)
+    if (!people.length) continue
+    const when = `${new Date(event.dateTime).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Moscow' })}, ${clock(event.dateTime)}${event.endDateTime ? `–${clock(event.endDateTime)}` : ''}`
+    let sent = 0
+    let noEmail = 0
+    let failed = 0
+    for (const lead of people) {
+      if (!lead.email) {
+        noEmail += 1
+        continue
+      }
+      const lines = [`${lead.name ? `Здравствуйте, ${lead.name}!` : 'Здравствуйте!'}`, '', `Напоминаем: завтра — «${lead.eventTitle || event.title}».`, `Когда: ${when}`]
+      if (event.location) lines.push(`Где: ${[event.city, event.location].filter(Boolean).join(', ')}`)
+      lines.push(`Номер регистрации: ${lead.number}`, '', `Вопросы — ${SUPPORT_HANDLE}`, '', 'Карьерный юрист')
+      const mail = await sendMail({ to: lead.email, subject: `Завтра: ${lead.eventTitle || event.title}`, text: lines.join('\n') })
+      if (mail.ok) {
+        setEventLeadField(lead.number, 'reminderSentAt', Date.now())
+        sent += 1
+      } else {
+        failed += 1
+      }
+    }
+    const report = [`🔔 Напоминания о мероприятии «${event.title}» (завтра)`, '', `✉️ Отправлено: ${sent}`, noEmail ? `📭 Без почты (напомнить вручную): ${noEmail}` : null, failed ? `⚠️ Не ушло: ${failed} (проверьте почту на сервере)` : null, !event.location ? '⚠️ В каталоге не указано место проведения — в напоминании его нет. Сообщите участникам вручную.' : null].filter((l) => l !== null)
+    await sendTelegramMessage(ADMIN_CHAT_ID, report.join('\n'))
+  }
+  return true
 }
 
 // Уведомления Prodamus об оплате подписки.
@@ -2415,6 +2465,8 @@ app.post('/api/prodamus/webhook', async (req, res) => {
   const body = req.body ?? {}
   const sign = req.headers['sign'] || body.signature
 
+  // signed — подпись пришла и совпала хотя бы с одним ключом платёжных страниц (неверная подпись отсекается сразу).
+  const signed = Boolean(PRODAMUS_SECRET_KEYS.length && sign)
   if (PRODAMUS_SECRET_KEYS.length && sign) {
     // Уведомление подписано ключом той платёжной страницы, с которой пришла оплата (подписки, материалы, билеты — могут быть разными).
     const valid = PRODAMUS_SECRET_KEYS.some((key) => HmacHelper.verify(body, key, sign))
@@ -2454,7 +2506,7 @@ app.post('/api/prodamus/webhook', async (req, res) => {
     // Билет на мероприятие: в order_num (наш order_id) или customer_extra лежит «ev-N».
     const eventMatch = String(body.order_num ?? '').match(EVENT_ORDER_RE) || String(body.customer_extra ?? '').match(EVENT_ORDER_RE)
     if (eventMatch) {
-      await handleEventPayment(Number(eventMatch[1]), body)
+      await handleEventPayment(Number(eventMatch[1]), body, signed)
       return
     }
 
@@ -2718,6 +2770,7 @@ if (process.env.DISABLE_DAILY_REPORT !== '1') {
   setInterval(() => afterResponse('resident-reminders', () => runDailyOnce('residentReminders', 10, sendAutoResidentReminders)), 60 * 1000)
   setInterval(() => afterResponse('expiry', () => runDailyOnce('expiry', 10, processExpiry)), 60 * 1000)
   setInterval(() => afterResponse('review-flow', processReviewFlow), 60 * 1000)
+  setInterval(() => afterResponse('event-reminders', () => runDailyOnce('eventReminders', 10, sendEventReminders)), 60 * 1000)
   setInterval(() => afterResponse('morning-digest', () => runDailyOnce('digest', 9, sendMorningDigest)), 60 * 1000)
   if (process.env.DISABLE_BACKUP !== '1') {
     setInterval(() => afterResponse('backup', () => runDailyOnce('backup', 3, () => (getAdminSettings().nightBackup ? sendBackup('💾 Ежедневная резервная копия данных бота') : true))), 60 * 1000)
@@ -2731,7 +2784,7 @@ process.on('unhandledRejection', (err) => console.error('[unhandledRejection]', 
 process.on('uncaughtException', (err) => console.error('[uncaughtException]', err))
 
 // Для автотестов: доступ к фоновым задачам без ожидания расписания.
-if (process.env.TEST_HOOKS === '1') globalThis.__hooks = { processExpiry, processReviewFlow, sendAutoResidentReminders, sendMorningDigest, sendPendingNoticesIfDue }
+if (process.env.TEST_HOOKS === '1') globalThis.__hooks = { sendEventReminders, processExpiry, processReviewFlow, sendAutoResidentReminders, sendMorningDigest, sendPendingNoticesIfDue }
 
 const PORT = process.env.PORT || 3001
 ensureBuiltInPromos()
