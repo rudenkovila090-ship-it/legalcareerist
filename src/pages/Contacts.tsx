@@ -117,7 +117,7 @@ export default function Contacts({ eyebrow, sourceBlock }: { eyebrow: string; so
               <p className="mt-3 text-sm text-red-600">Заполните ФИО, телефон и вопрос.</p>
             )}
 
-            <ConsentCheck />
+            <ConsentCheck className="mt-3" />
             <button
               type="submit"
               className="mt-4 w-full rounded-lg bg-ink py-2.5 text-sm font-semibold text-white hover:bg-ink/90"

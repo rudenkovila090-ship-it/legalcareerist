@@ -5,8 +5,8 @@ import { createJsonStore } from './jsonStore.js'
 
 const store = createJsonStore('material-purchases.json')
 
-export function createPendingPurchase({ materialSlug, name, phone, email, tgUserId, howHeard, consentAt }) {
-  return store.create({ materialSlug, name, phone, email, howHeard: howHeard || '', ...(tgUserId ? { tgUserId: String(tgUserId) } : {}), ...(consentAt ? { consentAt } : {}) })
+export function createPendingPurchase({ materialSlug, name, phone, email, tgUserId, howHeard, consentAt, marketingAt }) {
+  return store.create({ materialSlug, name, phone, email, howHeard: howHeard || '', ...(tgUserId ? { tgUserId: String(tgUserId) } : {}), ...(consentAt ? { consentAt } : {}), ...(marketingAt ? { marketingAt } : {}) })
 }
 
 export function getPurchase(token) {

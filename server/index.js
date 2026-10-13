@@ -763,9 +763,25 @@ const EVENT_LEAD_TYPES = new Set(['event_registration', 'event_partner_applicati
 
 const SERVICE_FALLBACK = { contact: 'Контакты', support_request: 'Поддержка', ambassador_application: 'Амбассадор', community_join: 'Вступление в сообщество' }
 
-/** Согласие из формы сайта: засчитывается только явное consent === true (клиент присылает состояние обязательной галочки). */
-const consentGiven = (body) => body?.consent === true
+/**
+ * Что человек отметил под формой сайта: { policy, processing, marketing } — ознакомлен с Политикой, согласен на обработку
+ * персональных данных, хочет рекламные и информационные сообщения. Засчитывается только явное true.
+ * Прежняя версия сайта присылала consent: true — это только «обработка», без Политики.
+ */
+const consentChoice = (body) => {
+  const c = body?.consent
+  if (c === true) return { policy: false, processing: true, marketing: false }
+  return { policy: c?.policy === true, processing: c?.processing === true, marketing: c?.marketing === true }
+}
+/** Обязательные согласия даны: Политика и обработка (реклама — по желанию, на отправку не влияет). */
+const consentGiven = (body) => {
+  const c = consentChoice(body)
+  return c.policy && c.processing
+}
 const consentVersion = (body) => String(body?.consentVersion ?? '').slice(0, 20) || '2025-09-01'
+const marketingVersion = (body) => String(body?.marketingVersion ?? '').slice(0, 20) || '2026-10-14'
+/** Поля для журнала согласий: реклама и её редакция. */
+const marketingFields = (body) => ({ marketing: consentChoice(body).marketing, marketingVersion: marketingVersion(body) })
 
 app.post('/api/notify', async (req, res) => {
   const { direction, service, source, formType, name, contact, phone, email, telegram, company, template, interest, date, vacancySlug, eventSlug, ticketNumber, utm } = req.body ?? {}
@@ -774,7 +790,7 @@ app.post('/api/notify', async (req, res) => {
   logLeadSource({ kind: service || SERVICE_FALLBACK[formType] || formType || 'Заявка', name, answer: howHeard, utm: utmSource })
   // Вступление в сообщество фиксирует согласие в /api/community/subscribe — второй раз не пишем.
   if (formType !== 'community_join') {
-    recordConsent({ form: formType || 'form', version: consentVersion(req.body), given: consentGiven(req.body), name, phone, email, telegram })
+    recordConsent({ form: formType || 'form', version: consentVersion(req.body), given: consentGiven(req.body), ...marketingFields(req.body), name, phone, email, telegram })
   }
 
   // Отклик на вакансию — считаем реальный счётчик независимо от того,
@@ -914,7 +930,7 @@ app.post('/api/notify', async (req, res) => {
 
   const dealNote = deal ? `\n\n🗂 Сделка №${deal.number} создана · этап 1: ${stageOf(1).name}` : ''
   const dealKeyboard = deal ? [[{ text: `📂 Открыть сделку №${deal.number}`, callback_data: `a:k:deal:${deal.number}` }]] : record?.keyboard
-  const consentNote = consentGiven(req.body) ? '' : '\n⚠️ Галочка согласия на обработку ПДн не отмечена (форма старой версии или заявка в обход формы) — запросите согласие'
+  const consentNote = (consentGiven(req.body) ? '' : '\n⚠️ Не отмечены обязательные галочки: ознакомление с Политикой и согласие на обработку ПДн (форма старой версии или заявка в обход формы) — запросите согласие') + `\n✉️ Реклама и рассылки: ${consentChoice(req.body).marketing ? 'согласен(на)' : 'не выбрано'}`
   const sourceNote = (utm && utmSource !== 'без метки' ? `\n📣 Источник: ${utmSource}` : '') + (howHeard ? `\n${howHeardLine(howHeard)}` : '') + consentNote
   // Нажали «Перейти к оплате» — это ещё не клиент: уведомление придёт одно, и только если оплаты нет (см. pendingNotices.js);
   // при оплате вместо него приходит «Оплата получена».
@@ -951,8 +967,8 @@ app.post('/api/community/subscribe', async (req, res) => {
   if (!telegram) return res.status(400).json({ ok: false, error: 'telegram_required' })
 
   try {
-    const token = createPendingJoin({ tariffId, name, phone, email, telegram, howHeard: cleanHowHeard(req.body.howHeard), consentAt: Date.now() })
-    recordConsent({ form: 'community_join', version: consentVersion(req.body), given: true, name, phone, email, telegram })
+    const token = createPendingJoin({ tariffId, name, phone, email, telegram, howHeard: cleanHowHeard(req.body.howHeard), consentAt: Date.now(), marketingAt: consentChoice(req.body).marketing ? Date.now() : null })
+    recordConsent({ form: 'community_join', version: consentVersion(req.body), given: true, ...marketingFields(req.body), name, phone, email, telegram })
     const urlSuccess = `${SITE_URL}/community/success?token=${token}`
     const url = await createPaymentLink({ tariffId, phone, email, urlSuccess, name, telegram })
     res.json({ ok: true, url })
@@ -973,8 +989,8 @@ app.post('/api/marketplace/purchase', async (req, res) => {
 
   try {
     logLeadSource({ kind: `Материал: ${MATERIALS[materialSlug].title}`, name, answer: req.body.howHeard })
-    const token = createPendingPurchase({ materialSlug, name, phone, email, howHeard: cleanHowHeard(req.body.howHeard), consentAt: Date.now() })
-    recordConsent({ form: 'material_purchase', version: consentVersion(req.body), given: true, name, phone, email })
+    const token = createPendingPurchase({ materialSlug, name, phone, email, howHeard: cleanHowHeard(req.body.howHeard), consentAt: Date.now(), marketingAt: consentChoice(req.body).marketing ? Date.now() : null })
+    recordConsent({ form: 'material_purchase', version: consentVersion(req.body), given: true, ...marketingFields(req.body), name, phone, email })
     const urlSuccess = `${SITE_URL}/materials/thanks?token=${token}`
     const url = await createProductPaymentLink({ materialSlug, phone, email, urlSuccess })
     res.json({ ok: true, url })
@@ -1027,7 +1043,7 @@ app.post('/api/materials/:slug/review', async (req, res) => {
   const at = Date.now()
   const publishVersion = String(req.body?.publishConsentVersion ?? '').slice(0, 20) || '2026-10-14'
   const { review, updated } = saveReview({ materialSlug: slug, purchaseToken: token, name: signature, rating, text: req.body.text, consents: { processingAt: at, publishAt: at, publishVersion } })
-  recordConsent({ form: 'review', version: consentVersion(req.body), given: true, name: purchase.name, phone: purchase.phone, email: purchase.email, at })
+  recordConsent({ form: 'review', version: consentVersion(req.body), given: true, ...marketingFields(req.body), name: purchase.name, phone: purchase.phone, email: purchase.email, at })
   recordConsent({ form: 'review_publication', version: publishVersion, given: true, name: purchase.name, phone: purchase.phone, email: purchase.email, at })
   res.json({ ok: true })
 
@@ -1106,7 +1122,8 @@ app.post('/api/event/:slug/checkout', async (req, res) => {
     const lead = createEventLead({ kind: 'registration', formType: 'event_registration', eventSlug: event.slug, eventTitle: event.title, tariff: tariff.name, name, phone, email, telegram, source: utmLabel(req.body.utm), howHeard: cleanHowHeard(req.body.howHeard) })
     setEventLeadField(lead.number, 'price', ticket.price)
     setEventLeadField(lead.number, 'consentAt', Date.now())
-    recordConsent({ form: 'event_ticket', version: consentVersion(req.body), given: true, name, phone, email, telegram })
+    if (consentChoice(req.body).marketing) setEventLeadField(lead.number, 'marketingAt', Date.now())
+    recordConsent({ form: 'event_ticket', version: consentVersion(req.body), given: true, ...marketingFields(req.body), name, phone, email, telegram })
     if (ticket.promo) {
       setEventLeadField(lead.number, 'basePrice', tariff.price)
       setEventLeadField(lead.number, 'promo', ticket.promo.code)

@@ -2,6 +2,7 @@
 // Оставить отзыв может только покупатель — по ссылке с токеном покупки из письма или из бота
 // (/materials/<slug>?review=<токен>). Сервер: server/lib/materialReviews.js.
 import { useEffect, useState } from 'react'
+import type { ConsentChoice } from './consent'
 
 export interface PublicReview {
   name: string
@@ -89,7 +90,7 @@ export async function checkReviewAccess(slug: string, token: string): Promise<{ 
 
 export async function submitReview(
   slug: string,
-  body: { token: string; rating: number; text: string; displayName: string; consent: boolean; consentVersion: string; publishConsent: boolean; publishConsentVersion: string },
+  body: { token: string; rating: number; text: string; displayName: string; consent: ConsentChoice; consentVersion: string; publishConsent: boolean; publishConsentVersion: string },
 ): Promise<boolean> {
   try {
     const res = await fetch(`/api/materials/${slug}/review`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })

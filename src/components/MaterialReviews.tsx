@@ -187,7 +187,7 @@ function ReviewForm({ slug, token, initial, onSaved }: { slug: string; token: st
           </span>
         </label>
       </div>
-      <ConsentCheck />
+      <ConsentCheck marketing={false} />
       {missing && <p className="text-sm text-red-600">{missing}</p>}
       {state === 'error' && <p className="text-sm text-red-600">Не получилось отправить отзыв. Попробуйте ещё раз через минуту или напишите в поддержку.</p>}
       <button type="submit" disabled={state === 'sending'} className="rounded-full bg-ink px-6 py-2.5 text-sm font-semibold text-white hover:bg-ink/90 disabled:opacity-60">

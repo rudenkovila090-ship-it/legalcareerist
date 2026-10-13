@@ -870,7 +870,7 @@ export default function EventsHome() {
                 )}
 
                 <HowHeardField value={supportForm.howHeard} onChange={(v) => setSupportForm((f) => ({ ...f, howHeard: v }))} className="mt-3 rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40" />
-                <ConsentCheck />
+                <ConsentCheck className="mt-3" />
                 <button
                   type="submit"
                   className="mt-4 w-full rounded-lg bg-ink py-2.5 text-sm font-semibold text-white hover:bg-ink/90"

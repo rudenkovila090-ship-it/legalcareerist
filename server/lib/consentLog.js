@@ -1,4 +1,4 @@
-// Журнал согласий на обработку персональных данных, полученных через формы сайта.
+// Журнал согласий, полученных через формы сайта: на обработку персональных данных и (отдельным полем marketing) на рекламу.
 // Каждая отправка формы дописывается в data/consent-log.jsonl: когда, какая форма, какая редакция текста согласия,
 // кто (имя и контакты, которые человек указал). По нему можно доказать, что человек согласился, и когда именно.
 // При удалении данных по запросу (erasure.js) имя и контакты заменяются на отпечатки (sha256) — сам факт согласия остаётся,
@@ -40,10 +40,15 @@ function writeAll(entries) {
 }
 
 /** Записывает согласие (given=true) или отправку формы без отметки (given=false — устаревший клиент/обход формы). */
-export function recordConsent({ form, version, given, name, phone, email, telegram, tgId, at = Date.now() }) {
+export function recordConsent({ form, version, given, marketing, marketingVersion, name, phone, email, telegram, tgId, at = Date.now() }) {
   try {
     fs.mkdirSync(DATA_DIR, { recursive: true })
     const entry = { at, form: String(form ?? '').slice(0, 80), version: String(version ?? '').slice(0, 20), given: given === true }
+    // Согласие на рекламу — отдельный выбор человека: пишем и «да», и «нет», чтобы было видно, что вопрос ему задавали.
+    if (marketing !== undefined) {
+      entry.marketing = marketing === true
+      if (marketingVersion) entry.marketingVersion = String(marketingVersion).slice(0, 20)
+    }
     if (name) entry.name = String(name).slice(0, 120)
     if (phone) entry.phone = String(phone).slice(0, 40)
     if (email) entry.email = String(email).slice(0, 120)
@@ -70,7 +75,7 @@ export function pseudonymizeConsent(keys) {
     const own = entryKeys(e)
     if (![...own].some((k) => keys.has(k))) return e
     changed += 1
-    return { at: e.at, form: e.form, version: e.version, given: e.given, erasedAt: Date.now(), ids: [...own].map(keyHash) }
+    return { at: e.at, form: e.form, version: e.version, given: e.given, ...(e.marketing !== undefined ? { marketing: e.marketing } : {}), erasedAt: Date.now(), ids: [...own].map(keyHash) }
   })
   if (changed) writeAll(next)
   return changed
