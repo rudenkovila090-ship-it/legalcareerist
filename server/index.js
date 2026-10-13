@@ -26,10 +26,8 @@
 //     (+1 при каждом открытии).
 // 11. POST /api/event/:slug/register — реальный счётчик переходов к
 //     регистрации на мероприятие (внешняя ссылка или внутренняя форма).
-// 12. GET /api/store/sync, PUT /api/store/:key — синхронизация демо-данных
-//     кабинетов между localStorage браузера и сервером (см.
-//     src/lib/serverSync.ts) — раньше данные кабинета были видны только в
-//     том браузере, где их создали.
+// 12. /api/store/* — закрыто (410): прежнее зеркало данных кабинетов (localStorage ↔ сервер) отдавало их без
+//     авторизации; теперь данные кабинетов хранятся только в браузере посетителя.
 // Токены и секретные ключи — только в server/.env, в репозиторий не попадают.
 import express from 'express'
 import cors from 'cors'
@@ -68,7 +66,7 @@ import { reserveListScreen, reserveCard, reserveFieldPrompt, reserveDeleteConfir
 import { incrementArticleView, getArticleViews } from './lib/articleStats.js'
 import { incrementNewsView, getNewsViews } from './lib/newsStats.js'
 import { incrementEventView, incrementEventRegistration, getEventStats } from './lib/eventStats.js'
-import { isValidKey, writeCollection, readAllCollections } from './lib/collectionStore.js'
+import { archiveLegacyCollections } from './lib/collectionStore.js'
 import { nextTicketNumber } from './lib/ticketCounter.js'
 import { buildDailyReport, mskDayKey, parseReportPeriod } from './lib/dailyReport.js'
 import { logWebhook, lastWebhook } from './lib/webhookLog.js'
@@ -727,22 +725,9 @@ app.post('/api/event/:slug/register', (req, res) => {
   res.json({ ok: true, ...stats })
 })
 
-// Синхронизация localStorage кабинетов ↔ сервер (см. src/lib/serverSync.ts):
-// GET забирает все ky_*-ключи разом при загрузке приложения, PUT сохраняет
-// один ключ при каждой локальной записи. Без этого демо-данные кабинета
-// (вакансии, отклики, резюме, избранное, мероприятия организатора и т.п.)
-// были видны только в том браузере, где их создали.
-app.get('/api/store/sync', (req, res) => {
-  res.json(readAllCollections())
-})
-
-app.put('/api/store/:key', (req, res) => {
-  if (!isValidKey(req.params.key)) {
-    return res.status(400).json({ ok: false, error: 'bad_key' })
-  }
-  writeCollection(req.params.key, req.body)
-  res.json({ ok: true })
-})
+// Бывшая синхронизация localStorage кабинетов с сервером закрыта (отдавала данные без авторизации).
+// Старые клиенты, у которых ещё открыта прежняя версия сайта, получают 410 и работают только с локальными данными.
+app.all('/api/store/*', (req, res) => res.sendStatus(410))
 
 // Сквозной номер заявки — растёт с 1 (Контакты, Поддержка), а не случайное
 // 6-значное число, чтобы админу было проще ориентироваться в переписке.
@@ -2788,4 +2773,10 @@ if (process.env.TEST_HOOKS === '1') globalThis.__hooks = { sendEventReminders, p
 
 const PORT = process.env.PORT || 3001
 ensureBuiltInPromos()
+try {
+  const archived = archiveLegacyCollections()
+  if (archived) console.log('[privacy] копии данных кабинетов перенесены в архив:', archived)
+} catch (err) {
+  console.error('[privacy] не удалось перенести копии данных кабинетов:', err)
+}
 app.listen(PORT, () => console.log(`legalcareerist-server слушает порт ${PORT}`))
