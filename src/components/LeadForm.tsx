@@ -3,6 +3,8 @@ import { submitLead, uploadDocument } from '../lib/leads'
 import PhoneInput from './PhoneInput'
 import LeadSuccessCard from './LeadSuccessCard'
 import HowHeardField from './HowHeardField'
+import ConsentCheck from './ConsentCheck'
+import { consentOf } from '../lib/consent'
 import type { LeadSourceBlock } from '../types'
 
 interface LeadFormProps {
@@ -74,6 +76,7 @@ export default function LeadForm({
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setMissingFields(false)
+    const consent = consentOf(e)
 
     const requiredOk =
       name.trim() &&
@@ -110,6 +113,7 @@ export default function LeadForm({
         recommendationFile ? 'Рекомендация — приложена документом ниже' : '',
       ].filter(Boolean),
       vacancySlug,
+      consent,
     })
 
     // Настоящая пересылка файлов админу в Telegram — не блокирует отправку
@@ -211,13 +215,14 @@ export default function LeadForm({
         <p className="mt-3 text-sm text-red-600">Заполните все обязательные поля — все, кроме рекомендации.</p>
       )}
 
+      <ConsentCheck className="mt-3" />
+
       <button
         type="submit"
         className="mt-4 w-full rounded-lg bg-ink py-2.5 text-sm font-semibold text-white hover:bg-ink/90"
       >
         Отправить заявку
       </button>
-      <p className="mt-2 text-center text-xs text-ink/40">Нажимая «Отправить», вы соглашаетесь на обработку персональных данных.</p>
     </form>
   )
 }

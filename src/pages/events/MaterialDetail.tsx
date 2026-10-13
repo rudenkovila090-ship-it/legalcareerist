@@ -11,6 +11,8 @@ import HowHeardField from '../../components/HowHeardField'
 import MaterialReviews from '../../components/MaterialReviews'
 import { Stars } from '../../components/MaterialRating'
 import { combineRating, reviewsWord, useMaterialRatings } from '../../lib/materialReviews'
+import ConsentCheck from '../../components/ConsentCheck'
+import { consentOf } from '../../lib/consent'
 
 const money = new Intl.NumberFormat('ru-RU')
 
@@ -78,6 +80,7 @@ export default function MaterialDetail() {
 
   async function handlePurchaseSubmit(e: FormEvent) {
     e.preventDefault()
+    const consent = consentOf(e)
     if (!purchaseForm.name.trim() || !purchaseForm.phone.trim()) return
     setPurchasing(true)
     setPurchaseError(false)
@@ -85,7 +88,7 @@ export default function MaterialDetail() {
       const res = await fetch('/api/marketplace/purchase', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ materialSlug: material!.slug, ...purchaseForm }),
+        body: JSON.stringify({ materialSlug: material!.slug, ...purchaseForm, consent }),
       })
       const data = await res.json()
       if (!res.ok || !data.url) throw new Error('purchase_failed')
@@ -222,6 +225,7 @@ export default function MaterialDetail() {
               {purchaseError && (
                 <p className="text-sm text-red-600">Не получилось перейти к оплате — попробуйте еще раз через минуту.</p>
               )}
+              <ConsentCheck />
               <button
                 type="submit"
                 disabled={purchasing}
@@ -229,7 +233,6 @@ export default function MaterialDetail() {
               >
                 {purchasing ? 'Переходим к оплате…' : 'Перейти к оплате'}
               </button>
-              <p className="text-xs text-ink/50">Нажимая «Перейти к оплате», вы соглашаетесь на обработку персональных данных.</p>
             </form>
           </div>
         </div>

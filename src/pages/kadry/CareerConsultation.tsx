@@ -12,6 +12,8 @@ import { consultationTestimonials } from '../../data/testimonials'
 import ilyaPhoto from '../../assets/ilya-rudenkov.jpg'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import HowHeardField from '../../components/HowHeardField'
+import ConsentCheck from '../../components/ConsentCheck'
+import { consentOf } from '../../lib/consent'
 
 // Минималистичные иконки — своя на каждую услугу конструктора, без внешних
 // библиотек, без повторов.
@@ -241,6 +243,7 @@ export default function CareerConsultation({ embedded = false }: { embedded?: bo
 
   function handleHelpSubmit(e: FormEvent) {
     e.preventDefault()
+    const consent = consentOf(e)
     if (!helpForm.name.trim() || !helpForm.question.trim()) return
     submitLead({
       sourceBlock: 'kadry',
@@ -252,6 +255,7 @@ export default function CareerConsultation({ embedded = false }: { embedded?: bo
       telegram: helpForm.telegram || undefined,
       howHeard: helpForm.howHeard,
       interest: [helpForm.question],
+      consent,
     })
     setHelpSent(true)
   }
@@ -272,6 +276,7 @@ export default function CareerConsultation({ embedded = false }: { embedded?: bo
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
+    const consent = consentOf(e)
     if (!form.name.trim() || !count) return
     submitLead({
       sourceBlock: 'kadry',
@@ -287,6 +292,7 @@ export default function CareerConsultation({ embedded = false }: { embedded?: bo
         promo.trim() ? `Промокод: ${promo.trim()}` : '',
         `Итого: ${total.toLocaleString('ru-RU')} ₽`,
       ].filter(Boolean),
+      consent,
     })
     setSent(true)
   }
@@ -597,15 +603,13 @@ export default function CareerConsultation({ embedded = false }: { embedded?: bo
                 onChange={(e) => setHelpForm((f) => ({ ...f, question: e.target.value }))}
               />
               <HowHeardField value={helpForm.howHeard} onChange={(v) => setHelpForm((f) => ({ ...f, howHeard: v }))} className="rounded-lg border border-white/15 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none" />
+              <ConsentCheck tone="dark" />
               <button
                 type="submit"
                 className="rounded-full bg-gold-light py-3 text-sm font-semibold text-ink transition-colors hover:bg-white"
               >
                 Отправить вопрос
               </button>
-              <p className="text-center text-xs text-white/50">
-                Нажимая «Отправить вопрос», вы соглашаетесь на обработку персональных данных.
-              </p>
             </form>
           )}
         </div>
@@ -748,10 +752,10 @@ export default function CareerConsultation({ embedded = false }: { embedded?: bo
                     />
                   </div>
                   <HowHeardField value={form.howHeard} onChange={(v) => setForm((f) => ({ ...f, howHeard: v }))} className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none" />
+                  <ConsentCheck />
                   <button type="submit" className="rounded-full bg-ink py-3 text-sm font-semibold text-white transition-colors hover:bg-ink/90">
                     Заказать
                   </button>
-                  <p className="text-xs text-ink/50">Нажимая «Заказать», вы соглашаетесь на обработку персональных данных.</p>
                 </form>
               </>
             )}

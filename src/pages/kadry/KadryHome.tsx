@@ -14,6 +14,8 @@ import { demoCandidates, candidateContactPrice } from '../../data/candidateConta
 import { SHOW_FIND_EMPLOYEE, SHOW_PERSONAL_ACCOUNTS } from '../../lib/featureFlags'
 import KadryFooter from './KadryFooter'
 import HowHeardField from '../../components/HowHeardField'
+import ConsentCheck from '../../components/ConsentCheck'
+import { consentOf } from '../../lib/consent'
 
 const railItems = [
   { id: 'hero', label: 'Обзор' },
@@ -365,6 +367,7 @@ export default function KadryHome() {
 
   function handleServiceSubmit(e: FormEvent) {
     e.preventDefault()
+    const consent = consentOf(e)
     if (!serviceForm.company.trim() || !serviceForm.fio.trim() || (!serviceForm.phone.trim() && !serviceForm.email.trim())) return
     submitLead({
       sourceBlock: 'kadry',
@@ -383,6 +386,7 @@ export default function KadryHome() {
         `Ставка агентства: ${rate}%${discountPct > 0 ? ` (скидка ${discountPct}%)` : ''}`,
         `Итого: ${fee.toLocaleString('ru-RU')} ₽`,
       ],
+      consent,
     })
     setServiceSent(true)
   }
@@ -392,6 +396,7 @@ export default function KadryHome() {
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
+    const consent = consentOf(e)
     if (!form.fio.trim() || (!form.email.trim() && !form.phone.trim())) return
     submitLead({
       sourceBlock: 'kadry',
@@ -404,6 +409,7 @@ export default function KadryHome() {
       company: form.company,
       howHeard: form.howHeard,
       interest: form.position.trim() ? [`Ищем: ${form.position.trim()}`] : [],
+      consent,
     })
     setSent(true)
   }
@@ -480,6 +486,7 @@ export default function KadryHome() {
 
   function handleRequestSubmit(e: FormEvent) {
     e.preventDefault()
+    const consent = consentOf(e)
     if (!requestForm.contact.trim() || (!requestForm.phone.trim() && !requestForm.email.trim())) return
     submitLead({
       sourceBlock: 'kadry',
@@ -496,6 +503,7 @@ export default function KadryHome() {
         candidatesTierPct > 0 ? `Скидка ${candidatesTierPct}%` : '',
         `Итого: ${candidatesTotal.toLocaleString('ru-RU')} ₽`,
       ].filter(Boolean),
+      consent,
     })
     setRequestSent(true)
   }
@@ -873,10 +881,10 @@ export default function KadryHome() {
                     className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
                   />
                   <HowHeardField value={requestForm.howHeard} onChange={(v) => setRequestForm((f) => ({ ...f, howHeard: v }))} className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none" />
+                  <ConsentCheck />
                   <button type="submit" className="rounded-full bg-ink py-3 text-sm font-semibold text-white transition-colors hover:bg-ink/90">
                     Оставить заявку
                   </button>
-                  <p className="text-xs text-ink/50">Нажимая «Оставить заявку», вы соглашаетесь на обработку персональных данных.</p>
                 </form>
               </>
             )}
@@ -1427,13 +1435,13 @@ export default function KadryHome() {
                   />
                 </div>
                 <HowHeardField value={form.howHeard} onChange={(v) => setForm((f) => ({ ...f, howHeard: v }))} className="rounded-lg border border-white/15 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/40 focus:border-white/40" />
+                <ConsentCheck tone="dark" />
                 <button
                   type="submit"
                   className="rounded-lg bg-gold-light py-3.5 text-sm font-semibold text-ink hover:opacity-90"
                 >
                   Найти сотрудника
                 </button>
-                <p className="text-xs text-white/40">Нажимая «Найти сотрудника», вы соглашаетесь на обработку персональных данных.</p>
               </form>
             )}
           </div>
@@ -1514,10 +1522,10 @@ export default function KadryHome() {
                     className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
                   />
                   <HowHeardField value={serviceForm.howHeard} onChange={(v) => setServiceForm((f) => ({ ...f, howHeard: v }))} className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none" />
+                  <ConsentCheck />
                   <button type="submit" className="rounded-full bg-ink py-3 text-sm font-semibold text-white transition-colors hover:bg-ink/90">
                     Отправить заявку
                   </button>
-                  <p className="text-xs text-ink/50">Нажимая «Отправить заявку», вы соглашаетесь на обработку персональных данных.</p>
                 </form>
               </>
             )}

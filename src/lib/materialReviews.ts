@@ -71,6 +71,8 @@ export async function fetchReviews(slug: string): Promise<PublicReview[]> {
 export interface MyReview {
   rating: number
   text: string
+  /** Подпись, под которой отзыв уже опубликован. */
+  name?: string
 }
 
 /** Проверка ссылки на отзыв: ok — покупка оплачена и относится к этому материалу; review — прежний отзыв, если есть. */
@@ -85,7 +87,10 @@ export async function checkReviewAccess(slug: string, token: string): Promise<{ 
   }
 }
 
-export async function submitReview(slug: string, body: { token: string; rating: number; text: string; consent: boolean }): Promise<boolean> {
+export async function submitReview(
+  slug: string,
+  body: { token: string; rating: number; text: string; displayName: string; consent: boolean; consentVersion: string; publishConsent: boolean; publishConsentVersion: string },
+): Promise<boolean> {
   try {
     const res = await fetch(`/api/materials/${slug}/review`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
     return res.ok

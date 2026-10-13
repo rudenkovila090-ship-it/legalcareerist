@@ -24,6 +24,8 @@ import { useNoirScroll } from '../../lib/useNoirScroll'
 import ScrollCylinder from '../../components/noir/ScrollCylinder'
 import CityMap from '../../components/noir/CityMap'
 import { NoirGrain } from '../../components/noir/NoirAmbient'
+import ConsentCheck from '../../components/ConsentCheck'
+import { consentOf } from '../../lib/consent'
 
 const specLabel = new Map(SPECIALIZATIONS.map((s) => [s.id, s.label]))
 const industryLabel = new Map(INDUSTRIES.map((i) => [i.id, i.label]))
@@ -248,6 +250,7 @@ export default function EventDetail() {
 
   async function handleRegister(e: FormEvent) {
     e.preventDefault()
+    const consent = consentOf(e)
     if (!event || paying) return
     if (!form.fio.trim() || (!form.phone.trim() && !form.email.trim())) return
     // Платный билет: сервер заводит регистрацию «ждёт оплаты» и отдаёт ссылку Prodamus;
@@ -264,7 +267,7 @@ export default function EventDetail() {
         const res = await fetch(`/api/event/${event.slug}/checkout`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ tariffId: tariff.id, name: form.fio, phone: form.phone, email: form.email, telegram: form.telegram, howHeard: form.howHeard, promoCode: promo?.code, utm: getUtm() }),
+          body: JSON.stringify({ tariffId: tariff.id, name: form.fio, phone: form.phone, email: form.email, telegram: form.telegram, howHeard: form.howHeard, promoCode: promo?.code, utm: getUtm(), consent }),
         })
         const data = await res.json()
         if (!res.ok || !data.url) throw new Error('checkout_failed')
@@ -287,6 +290,7 @@ export default function EventDetail() {
       howHeard: form.howHeard,
       interest: [event.title, tariff.name],
       eventSlug: event.slug,
+      consent,
     })
     registerForEvent(event.id, event.title)
     setRegistered(true)
@@ -294,6 +298,7 @@ export default function EventDetail() {
 
   function handlePartnerSubmit(e: FormEvent) {
     e.preventDefault()
+    const consent = consentOf(e)
     if (!event) return
     if (!partnerForm.fio.trim() || !partnerForm.company.trim() || (!partnerForm.phone.trim() && !partnerForm.email.trim())) return
     submitLead({
@@ -305,6 +310,7 @@ export default function EventDetail() {
       email: partnerForm.email || undefined,
       howHeard: partnerForm.howHeard,
       interest: [event.title, partnerForm.company],
+      consent,
     })
     setPartnerSent(true)
   }
@@ -551,6 +557,7 @@ export default function EventDetail() {
                 <div className="sm:col-span-2">
                   <HowHeardField value={partnerForm.howHeard} onChange={(v) => setPartnerForm((f) => ({ ...f, howHeard: v }))} className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40" />
                 </div>
+                <ConsentCheck className="sm:col-span-2" />
                 <button type="submit" className="rounded-lg bg-ink py-2.5 text-sm font-semibold text-white hover:bg-ink/90 sm:col-span-2">
                   Отправить заявку
                 </button>
@@ -714,6 +721,7 @@ export default function EventDetail() {
                     )}
                     <HowHeardField value={form.howHeard} onChange={(v) => setForm((f) => ({ ...f, howHeard: v }))} className="rounded-lg border border-ink/15 px-3.5 py-2.5 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40" />
                     {payError && <div className="text-xs text-red-600">Не получилось перейти к оплате. Попробуйте ещё раз или напишите нам.</div>}
+                    <ConsentCheck />
                     <button type="submit" disabled={paying} className="mt-1 rounded-lg bg-ink py-2.5 text-sm font-semibold text-white hover:bg-ink/90 disabled:opacity-60">
                       {paying ? 'Переходим к оплате…' : tariff.price === 0 ? 'Приобрести билет' : `Приобрести билет — ${(promo?.price ?? tariff.price).toLocaleString('ru-RU')} ₽`}
                     </button>

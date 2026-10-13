@@ -4,6 +4,8 @@ import { submitLead } from '../lib/leads'
 import HowHeardField from './HowHeardField'
 import PhoneInput from './PhoneInput'
 import { validateJoinContacts } from '../lib/joinValidation'
+import ConsentCheck from './ConsentCheck'
+import { consentOf } from '../lib/consent'
 
 /**
  * Виджет выбора и оплаты тарифа сообщества — та же логика и тот же бэкенд
@@ -55,6 +57,7 @@ export default function TariffJoinBlock() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
+    const consent = consentOf(e)
     const invalid = validateJoinContacts({ name, phone, email, telegram })
     setFormError(invalid ?? '')
     if (invalid) return
@@ -69,6 +72,7 @@ export default function TariffJoinBlock() {
       telegram: telegram ? (telegram.startsWith('@') ? telegram : `@${telegram}`) : undefined,
       howHeard,
       interest: [tariff.period],
+      consent,
     })
 
     // Уходим на настоящую страницу оплаты Prodamus. После оплаты человек
@@ -80,7 +84,7 @@ export default function TariffJoinBlock() {
       const res = await fetch('/api/community/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tariffId, name, phone, email, telegram, howHeard }),
+        body: JSON.stringify({ tariffId, name, phone, email, telegram, howHeard, consent }),
       })
       const data = await res.json()
       if (!res.ok || !data.url) throw new Error('subscribe_failed')
@@ -193,6 +197,7 @@ export default function TariffJoinBlock() {
               {submitError && (
                 <p className="text-sm text-red-600">Не получилось перейти к оплате — попробуйте еще раз через минуту.</p>
               )}
+              <ConsentCheck />
               <button
                 type="submit"
                 disabled={submitting}
@@ -200,7 +205,6 @@ export default function TariffJoinBlock() {
               >
                 {submitting ? 'Переходим к оплате…' : 'Перейти к оплате'}
               </button>
-              <p className="text-xs text-ink/50">Нажимая «Перейти к оплате», вы соглашаетесь на обработку персональных данных.</p>
             </form>
           </div>
         </div>

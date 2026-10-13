@@ -50,7 +50,7 @@ import { cleanHowHeard, howHeardLine, howHeardScreen, logLeadSource } from './li
 import { getAdminSettings, toggleAdminSetting } from './lib/adminSettings.js'
 import { queuePending, cancelPending, takeDuePending, PENDING_MINUTES } from './lib/pendingNotices.js'
 import { getMaterialFile, setMaterialFile } from './lib/materialFiles.js'
-import { saveReview, getReviewByPurchase, ratingsSummary, publicReviews, listReviews, getReview, setReviewHidden, reviewText } from './lib/materialReviews.js'
+import { saveReview, getReviewByPurchase, ratingsSummary, publicReviews, listReviews, getReview, setReviewHidden, reviewText, reviewSignature } from './lib/materialReviews.js'
 import { touchBotUser, giveConsent, setMailingConsent, addTag, getBotUser, listBotUsers, countConversation, updateBotUser, setGender } from './lib/botUsers.js'
 import { isStartKeyword, welcomeScreen, noConsentScreen, mailingScreen, mainMenuScreen, supportPrompt, consultPrompt, genderScreen, reviewThanks, legalScreen, aboutScreen, consultScreen, consultBookedScreen, marketScreen, materialsListScreen, materialCard, payLinkScreen, PAID_TEXT, PAID_TEXTS, PAID_TAGS, paidKeyboard, paymentNotFoundScreen, reviewScreen, CONTACT_PROMPTS, contactCancelKeyboard, unsubscribedScreen, communityScreen, communityResidentScreen, periodsScreen, subLinkScreen, aboutClubScreen, careerScreen, achievementsScreen } from './lib/botFlow.js'
 import { buildMonthCsv } from './lib/exportCsv.js'
@@ -67,10 +67,14 @@ import { incrementArticleView, getArticleViews } from './lib/articleStats.js'
 import { incrementNewsView, getNewsViews } from './lib/newsStats.js'
 import { incrementEventView, incrementEventRegistration, getEventStats } from './lib/eventStats.js'
 import { archiveLegacyCollections } from './lib/collectionStore.js'
+import { recordConsent } from './lib/consentLog.js'
+import { scanRetention, applyRetention, retentionReportText, retentionDoneText } from './lib/retention.js'
+import { findPerson, describeFound, erasePerson, erasedText } from './lib/erasure.js'
 import { nextTicketNumber } from './lib/ticketCounter.js'
 import { buildDailyReport, mskDayKey, parseReportPeriod } from './lib/dailyReport.js'
 import { logWebhook, lastWebhook } from './lib/webhookLog.js'
 import { FINANCE_KEYBOARD, COMMUNITY_KEYBOARD, sectionScreen, menuScreen, subscribersScreen, planScreen, dueScreen, cancelledScreen, reminderMenuScreen, reminderPreviewScreen, reminderTargets, reminderMessage } from './lib/adminCabinet.js'
+import crypto from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
 import { createDeal, listDeals as listAllDeals, getDeal, moveDeal, setQualified, closeDeal, setRevenue, addDealPayment, prepayAmount, dealReceived, scheduleReminder, reopenDeal, dealsDueForReminder, stageOf, LAST_STAGE } from './lib/deals.js'
@@ -759,11 +763,19 @@ const EVENT_LEAD_TYPES = new Set(['event_registration', 'event_partner_applicati
 
 const SERVICE_FALLBACK = { contact: 'Контакты', support_request: 'Поддержка', ambassador_application: 'Амбассадор', community_join: 'Вступление в сообщество' }
 
+/** Согласие из формы сайта: засчитывается только явное consent === true (клиент присылает состояние обязательной галочки). */
+const consentGiven = (body) => body?.consent === true
+const consentVersion = (body) => String(body?.consentVersion ?? '').slice(0, 20) || '2025-09-01'
+
 app.post('/api/notify', async (req, res) => {
   const { direction, service, source, formType, name, contact, phone, email, telegram, company, template, interest, date, vacancySlug, eventSlug, ticketNumber, utm } = req.body ?? {}
   const utmSource = utmLabel(utm)
   const howHeard = cleanHowHeard(req.body?.howHeard)
   logLeadSource({ kind: service || SERVICE_FALLBACK[formType] || formType || 'Заявка', name, answer: howHeard, utm: utmSource })
+  // Вступление в сообщество фиксирует согласие в /api/community/subscribe — второй раз не пишем.
+  if (formType !== 'community_join') {
+    recordConsent({ form: formType || 'form', version: consentVersion(req.body), given: consentGiven(req.body), name, phone, email, telegram })
+  }
 
   // Отклик на вакансию — считаем реальный счётчик независимо от того,
   // настроен ли Telegram-бот ниже: заявка не должна "теряться" из
@@ -902,7 +914,8 @@ app.post('/api/notify', async (req, res) => {
 
   const dealNote = deal ? `\n\n🗂 Сделка №${deal.number} создана · этап 1: ${stageOf(1).name}` : ''
   const dealKeyboard = deal ? [[{ text: `📂 Открыть сделку №${deal.number}`, callback_data: `a:k:deal:${deal.number}` }]] : record?.keyboard
-  const sourceNote = (utm && utmSource !== 'без метки' ? `\n📣 Источник: ${utmSource}` : '') + (howHeard ? `\n${howHeardLine(howHeard)}` : '')
+  const consentNote = consentGiven(req.body) ? '' : '\n⚠️ Галочка согласия на обработку ПДн не отмечена (форма старой версии или заявка в обход формы) — запросите согласие'
+  const sourceNote = (utm && utmSource !== 'без метки' ? `\n📣 Источник: ${utmSource}` : '') + (howHeard ? `\n${howHeardLine(howHeard)}` : '') + consentNote
   // Нажали «Перейти к оплате» — это ещё не клиент: уведомление придёт одно, и только если оплаты нет (см. pendingNotices.js);
   // при оплате вместо него приходит «Оплата получена».
   if (formType === 'community_join') {
@@ -922,6 +935,8 @@ app.post('/api/notify', async (req, res) => {
 app.post('/api/community/subscribe', async (req, res) => {
   const { tariffId } = req.body ?? {}
   if (!TARIFFS[tariffId]) return res.status(400).json({ ok: false, error: 'unknown_tariff' })
+  // Без согласия на обработку персональных данных ссылку на оплату не выдаём.
+  if (!consentGiven(req.body)) return res.status(400).json({ ok: false, error: 'consent_required' })
 
   // Все четыре контакта обязательны и проверяются здесь, а не только на
   // форме: по ним мы потом опознаём плательщика в вебхуке и ведём CRM —
@@ -936,7 +951,8 @@ app.post('/api/community/subscribe', async (req, res) => {
   if (!telegram) return res.status(400).json({ ok: false, error: 'telegram_required' })
 
   try {
-    const token = createPendingJoin({ tariffId, name, phone, email, telegram, howHeard: cleanHowHeard(req.body.howHeard) })
+    const token = createPendingJoin({ tariffId, name, phone, email, telegram, howHeard: cleanHowHeard(req.body.howHeard), consentAt: Date.now() })
+    recordConsent({ form: 'community_join', version: consentVersion(req.body), given: true, name, phone, email, telegram })
     const urlSuccess = `${SITE_URL}/community/success?token=${token}`
     const url = await createPaymentLink({ tariffId, phone, email, urlSuccess, name, telegram })
     res.json({ ok: true, url })
@@ -950,13 +966,15 @@ app.post('/api/community/subscribe', async (req, res) => {
 app.post('/api/marketplace/purchase', async (req, res) => {
   const { materialSlug, name, phone, email } = req.body ?? {}
   if (!MATERIALS[materialSlug]) return res.status(400).json({ ok: false, error: 'unknown_material' })
+  if (!consentGiven(req.body)) return res.status(400).json({ ok: false, error: 'consent_required' })
   if (!phone) return res.status(400).json({ ok: false, error: 'phone_required' })
   // Покупатель с сайта получает файл по почте (в Telegram — по кнопке из письма), поэтому почта обязательна.
   if (!EMAIL_RE.test(String(email ?? '').trim())) return res.status(400).json({ ok: false, error: 'email_required' })
 
   try {
     logLeadSource({ kind: `Материал: ${MATERIALS[materialSlug].title}`, name, answer: req.body.howHeard })
-    const token = createPendingPurchase({ materialSlug, name, phone, email, howHeard: cleanHowHeard(req.body.howHeard) })
+    const token = createPendingPurchase({ materialSlug, name, phone, email, howHeard: cleanHowHeard(req.body.howHeard), consentAt: Date.now() })
+    recordConsent({ form: 'material_purchase', version: consentVersion(req.body), given: true, name, phone, email })
     const urlSuccess = `${SITE_URL}/materials/thanks?token=${token}`
     const url = await createProductPaymentLink({ materialSlug, phone, email, urlSuccess })
     res.json({ ok: true, url })
@@ -990,7 +1008,7 @@ app.get('/api/materials/:slug/review-access', (req, res) => {
   const purchase = purchaseForReview(req.query.token, req.params.slug)
   if (!purchase) return res.status(403).json({ ok: false, error: 'no_access' })
   const mine = getReviewByPurchase(String(req.query.token))
-  res.json({ ok: true, review: mine ? { rating: mine.rating, text: reviewText(mine) } : null })
+  res.json({ ok: true, review: mine ? { rating: mine.rating, text: reviewText(mine), name: mine.name } : null })
 })
 
 app.post('/api/materials/:slug/review', async (req, res) => {
@@ -1000,9 +1018,17 @@ app.post('/api/materials/:slug/review', async (req, res) => {
   if (!purchase) return res.status(403).json({ ok: false, error: 'no_access' })
   const rating = Number(req.body?.rating)
   if (!Number.isInteger(rating) || rating < 1 || rating > 5) return res.status(400).json({ ok: false, error: 'rating_required' })
-  if (req.body?.consent !== true) return res.status(400).json({ ok: false, error: 'consent_required' })
+  // Два отдельных согласия: на обработку персональных данных и — отдельным документом — на публикацию (распространение) имени, оценки и текста.
+  if (!consentGiven(req.body)) return res.status(400).json({ ok: false, error: 'consent_required' })
+  if (req.body?.publishConsent !== true) return res.status(400).json({ ok: false, error: 'publish_consent_required' })
+  const signature = reviewSignature(req.body?.displayName)
+  if (!signature) return res.status(400).json({ ok: false, error: 'name_required' })
 
-  const { review, updated } = saveReview({ materialSlug: slug, purchaseToken: token, name: purchase.name, rating, text: req.body.text })
+  const at = Date.now()
+  const publishVersion = String(req.body?.publishConsentVersion ?? '').slice(0, 20) || '2026-10-14'
+  const { review, updated } = saveReview({ materialSlug: slug, purchaseToken: token, name: signature, rating, text: req.body.text, consents: { processingAt: at, publishAt: at, publishVersion } })
+  recordConsent({ form: 'review', version: consentVersion(req.body), given: true, name: purchase.name, phone: purchase.phone, email: purchase.email, at })
+  recordConsent({ form: 'review_publication', version: publishVersion, given: true, name: purchase.name, phone: purchase.phone, email: purchase.email, at })
   res.json({ ok: true })
 
   if (BOT_TOKEN && ADMIN_CHAT_ID) {
@@ -1063,6 +1089,7 @@ app.post('/api/event/:slug/checkout', async (req, res) => {
   const ticket = priceTicket(req.params.slug, req.body?.tariffId, promoCode)
   if (ticket.error) return res.status(ticket.status).json({ ok: false, error: ticket.error })
   const { event, tariff } = ticket
+  if (!consentGiven(req.body)) return res.status(400).json({ ok: false, error: 'consent_required' })
 
   const name = String(req.body.name ?? '').trim()
   const phone = String(req.body.phone ?? '').trim()
@@ -1078,6 +1105,8 @@ app.post('/api/event/:slug/checkout', async (req, res) => {
     logLeadSource({ kind: `Билет: ${event.title}`, name, answer: req.body.howHeard, utm: utmLabel(req.body.utm) })
     const lead = createEventLead({ kind: 'registration', formType: 'event_registration', eventSlug: event.slug, eventTitle: event.title, tariff: tariff.name, name, phone, email, telegram, source: utmLabel(req.body.utm), howHeard: cleanHowHeard(req.body.howHeard) })
     setEventLeadField(lead.number, 'price', ticket.price)
+    setEventLeadField(lead.number, 'consentAt', Date.now())
+    recordConsent({ form: 'event_ticket', version: consentVersion(req.body), given: true, name, phone, email, telegram })
     if (ticket.promo) {
       setEventLeadField(lead.number, 'basePrice', tariff.price)
       setEventLeadField(lead.number, 'promo', ticket.promo.code)
@@ -1262,6 +1291,18 @@ async function extrasAction(parts, now, chatId) {
       return eventRequestsScreen(data.eventLeads)
     case 'evmonth':
       return eventsMonthSummary(data.eventLeads, arg, now)
+    case 'erase': {
+      const plan = erasePlans.get(arg)
+      if (!plan || Date.now() - plan.at > ERASE_CONFIRM_MS) return { text: 'Подтверждение устарело. Повторите команду /forget с данными человека.', keyboard: [[{ text: '🏠 Меню', callback_data: 'a:menu' }]] }
+      erasePlans.delete(arg)
+      return { text: erasedText(erasePerson(plan.keys)), keyboard: [[{ text: '🏠 Меню', callback_data: 'a:menu' }]] }
+    }
+    case 'pdscan': {
+      const plan = scanRetention(now)
+      return plan.total ? { text: retentionReportText(plan), keyboard: [[{ text: '🗑 Удалить сейчас', callback_data: 'a:x:pdgo' }], [{ text: '⬅️ Меню', callback_data: 'a:menu' }]] } : { text: '🧹 Данных с истёкшим сроком хранения нет.', keyboard: [[{ text: '🏠 Меню', callback_data: 'a:menu' }]] }
+    }
+    case 'pdgo':
+      return { text: retentionDoneText(applyRetention(now)), keyboard: [[{ text: '🏠 Меню', callback_data: 'a:menu' }]] }
     case 'find':
       adminInput.set(String(chatId), { type: 'find' })
       return { text: FIND_PROMPT, keyboard: [[{ text: '⬅️ Меню', callback_data: 'a:menu' }]] }
@@ -1286,7 +1327,7 @@ async function extrasAction(parts, now, chatId) {
     case 'grant': {
       const u = getBotUser(arg)
       if (u && !listJoins().some((j) => String(j.tgUserId ?? '') === String(u.id) && j.lifetime)) createLifetimeJoin({ tgUserId: u.id, name: [u.firstName, u.lastName].filter(Boolean).join(' '), telegram: u.username })
-      return u ? userCard(u, listJoins().find((j) => String(j.tgUserId ?? '') === String(u.id) && j.lifetime), TARIFFS, now) : { text: 'Пользователь не найден.', keyboard: menuBack('⬅️ Меню', 'a:menu') }
+      return u ? userCard(u, listJoins().find((j) => String(j.tgUserId ?? '') === String(u.id) && j.lifetime), TARIFFS, now) : { text: 'Пользователь не найден.', keyboard: [[{ text: '🏠 Меню', callback_data: 'a:menu' }]] }
     }
     case 'todo':
       return todosScreen(listTodos())
@@ -1331,7 +1372,7 @@ async function extrasAction(parts, now, chatId) {
       return userCard(u, join, TARIFFS, now)
     }
     default:
-      return { text: 'Раздел не найден.', keyboard: menuBack('⬅️ Меню', 'a:menu') }
+      return { text: 'Раздел не найден.', keyboard: [[{ text: '🏠 Меню', callback_data: 'a:menu' }]] }
   }
 }
 
@@ -1747,7 +1788,7 @@ async function adminScreen(data, now, chatId) {
 // Кнопки, которые что-то меняют или отправляют данные: помощникам (только просмотр) они недоступны, в журнал попадают только они.
 // Кнопки, которые только открывают ввод текста или подтверждение — в журнал не пишем (запишется само действие).
 const PROMPT_ONLY = /^a:(k:(rev|new)|s:(ikind|inew|rnew|redit|rdel)|x:(tnew|ambnew|ambdel|fexpnew|evpaid|promonew))\b/
-const MUTATING = /^a:(k:(adv|back|q1|q0|lost|reopen|revok|rev|new|pp|pf)|s:(vst|cst|idone|iclose|isnooze|ikind|inew|rnew|redit|rdel|rdelok)|x:(grant|promonew|promodel|tnew|tdone|ambnew|ambplus|ambdel|ambdelok|kickok|cr|fexpnew|fexpdel|evst|evpaid|backup)|remgo)\b/
+const MUTATING = /^a:(k:(adv|back|q1|q0|lost|reopen|revok|rev|new|pp|pf)|s:(vst|cst|idone|iclose|isnooze|ikind|inew|rnew|redit|rdel|rdelok)|x:(grant|promonew|promodel|tnew|tdone|ambnew|ambplus|ambdel|ambdelok|kickok|cr|fexpnew|fexpdel|evst|evpaid|backup|erase|pdgo)|remgo)\b/
 
 /** Нажатие кнопки кабинета — от админа (все кнопки) или помощника (только просмотр); остальным молча отвечаем. */
 async function handleAdminCallback(query) {
@@ -2242,6 +2283,16 @@ async function handleTelegramUpdate(update) {
     await sendTelegramMessage(chatId, reportText(parseReportPeriod(text.slice('/report'.length))), FINANCE_KEYBOARD)
     return
   }
+  // Удаление данных человека по его запросу и сроки хранения — только админу (помощникам-наблюдателям недоступно).
+  if (isAdmin && text && /^\/forget(@\w+)?(\s|$)/i.test(text)) {
+    await handleForgetCommand(chatId, text.replace(/^\/forget(@\w+)?\s*/i, ''))
+    return
+  }
+  if (isAdmin && text && /^\/retention(@\w+)?$/i.test(text)) {
+    const screen = await extrasAction(['pdscan'], Date.now(), chatId)
+    await sendLongMessage(chatId, screen.text, screen.keyboard)
+    return
+  }
   // Админ присылает PDF с подписью «/material <slug>» — бот запоминает файл для выдачи покупателям.
   // Если подпись неверная или её нет, бот отвечает подсказкой (раньше молчал, и было не понять, что не так).
   if (!isAdmin && chatId && message?.document && /^\/material/i.test(message.caption ?? '')) {
@@ -2559,6 +2610,37 @@ async function sendDailyReportIfDue() {
 
 // Раз в сутки после указанного часа (МСК): дата последнего запуска хранится в файле, чтобы перезапуск не повторял и не пропускал задачу.
 const DAILY_JOBS_FILE = path.join(import.meta.dirname, 'data', 'daily-jobs.json')
+// ---- Сроки хранения и удаление данных по запросу (см. lib/retention.js, lib/erasure.js) ----
+/** Подтверждения удаления: id → { keys, at }. Живут в памяти 15 минут: после перезапуска сервера команду /forget нужно повторить. */
+const erasePlans = new Map()
+const ERASE_CONFIRM_MS = 15 * 60 * 1000
+
+async function handleForgetCommand(chatId, query) {
+  const hint = 'Удаление данных человека по его запросу.\n\nОтправьте: /forget и телефон, e-mail, @ник или Telegram id человека.\nНапример: /forget +7 999 123-45-67'
+  if (!query.trim()) return void (await sendTelegramMessage(chatId, hint))
+  const found = findPerson(query)
+  if (found.error) return void (await sendTelegramMessage(chatId, `Не разобрал «${query.trim().slice(0, 60)}». ${hint}`))
+  if (found.empty) return void (await sendTelegramMessage(chatId, 'Ничего не найдено. Данные могут быть записаны с другим телефоном, почтой или ником — попробуйте другой.'))
+  for (const [id, plan] of erasePlans) if (Date.now() - plan.at > ERASE_CONFIRM_MS) erasePlans.delete(id)
+  const id = crypto.randomBytes(4).toString('hex')
+  erasePlans.set(id, { keys: found.keys, at: Date.now() })
+  await sendLongMessage(chatId, describeFound(found), [[{ text: '🗑 Удалить безвозвратно', callback_data: `a:x:erase:${id}` }], [{ text: 'Отмена', callback_data: 'a:menu' }]])
+}
+
+/** Ежедневная проверка сроков хранения. По умолчанию — отчёт админу с кнопкой; с RETENTION_AUTO=1 удаляет сама. */
+async function runRetentionJob() {
+  const plan = scanRetention(Date.now())
+  if (!plan.total) return true
+  if (process.env.RETENTION_AUTO === '1') {
+    const done = applyRetention(Date.now())
+    logAction('system', `retention:auto deleted=${done.deleted} anonymized=${done.anonymized} logs=${done.logs}`)
+    await sendTelegramMessage(ADMIN_CHAT_ID, `${retentionReportText(plan, { auto: true })}\n\n${retentionDoneText(done)}`)
+    return true
+  }
+  await sendLongMessage(ADMIN_CHAT_ID, retentionReportText(plan), [[{ text: '🗑 Удалить сейчас', callback_data: 'a:x:pdgo' }]])
+  return true
+}
+
 async function runDailyOnce(key, minHour, work) {
   if (!BOT_TOKEN || !ADMIN_CHAT_ID) return
   const now = Date.now()
@@ -2757,6 +2839,7 @@ if (process.env.DISABLE_DAILY_REPORT !== '1') {
   setInterval(() => afterResponse('review-flow', processReviewFlow), 60 * 1000)
   setInterval(() => afterResponse('event-reminders', () => runDailyOnce('eventReminders', 10, sendEventReminders)), 60 * 1000)
   setInterval(() => afterResponse('morning-digest', () => runDailyOnce('digest', 9, sendMorningDigest)), 60 * 1000)
+  setInterval(() => afterResponse('retention', () => runDailyOnce('retention', 4, runRetentionJob)), 60 * 1000)
   if (process.env.DISABLE_BACKUP !== '1') {
     setInterval(() => afterResponse('backup', () => runDailyOnce('backup', 3, () => (getAdminSettings().nightBackup ? sendBackup('💾 Ежедневная резервная копия данных бота') : true))), 60 * 1000)
   }
@@ -2769,7 +2852,7 @@ process.on('unhandledRejection', (err) => console.error('[unhandledRejection]', 
 process.on('uncaughtException', (err) => console.error('[uncaughtException]', err))
 
 // Для автотестов: доступ к фоновым задачам без ожидания расписания.
-if (process.env.TEST_HOOKS === '1') globalThis.__hooks = { sendEventReminders, processExpiry, processReviewFlow, sendAutoResidentReminders, sendMorningDigest, sendPendingNoticesIfDue }
+if (process.env.TEST_HOOKS === '1') globalThis.__hooks = { runRetentionJob, sendEventReminders, processExpiry, processReviewFlow, sendAutoResidentReminders, sendMorningDigest, sendPendingNoticesIfDue }
 
 const PORT = process.env.PORT || 3001
 ensureBuiltInPromos()

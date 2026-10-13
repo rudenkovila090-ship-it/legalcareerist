@@ -13,6 +13,8 @@ import { eventTimeRange } from '../../lib/eventTime'
 import { eventStories } from '../../data/eventStories'
 import { useNoirFont } from '../../lib/useNoirFont'
 import { pluralRu } from '../../lib/plural'
+import ConsentCheck from '../../components/ConsentCheck'
+import { consentOf } from '../../lib/consent'
 
 const money = new Intl.NumberFormat('ru-RU')
 
@@ -374,6 +376,7 @@ export default function EventsHome() {
 
   function handleEventSubmit(e: FormEvent) {
     e.preventDefault()
+    const consent = consentOf(e)
     if (!eventForm.fio.trim() || (!eventForm.phone.trim() && !eventForm.email.trim())) return
     submitLead({
       sourceBlock: 'events',
@@ -385,6 +388,7 @@ export default function EventsHome() {
       telegram: eventForm.telegram || undefined,
       howHeard: eventForm.howHeard,
       interest: eventForm.about ? [eventForm.about] : [],
+      consent,
     })
     setEventSent(true)
   }
@@ -395,6 +399,7 @@ export default function EventsHome() {
 
   function handleOrderSubmit(e: FormEvent) {
     e.preventDefault()
+    const consent = consentOf(e)
     if (!orderForm.fio.trim() || (!orderForm.phone.trim() && !orderForm.email.trim())) return
     submitLead({
       sourceBlock: 'events',
@@ -406,6 +411,7 @@ export default function EventsHome() {
       telegram: orderForm.telegram || undefined,
       howHeard: orderForm.howHeard,
       interest: orderForm.about ? [orderForm.about] : [],
+      consent,
     })
     setOrderSent(true)
   }
@@ -417,6 +423,7 @@ export default function EventsHome() {
 
   function handlePartnerSubmit(e: FormEvent) {
     e.preventDefault()
+    const consent = consentOf(e)
     if (!partnerForm.fio.trim() || !partnerForm.company.trim() || (!partnerForm.phone.trim() && !partnerForm.email.trim())) return
     submitLead({
       sourceBlock: 'events',
@@ -428,6 +435,7 @@ export default function EventsHome() {
       telegram: partnerForm.telegram || undefined,
       howHeard: partnerForm.howHeard,
       interest: [partnerForm.company],
+      consent,
     })
     setPartnerSent(true)
   }
@@ -440,6 +448,7 @@ export default function EventsHome() {
 
   async function handleSupportSubmit(e: FormEvent) {
     e.preventDefault()
+    const consent = consentOf(e)
     setSupportMissing(false)
     if (!supportForm.fio.trim() || !supportForm.phone.trim() || !supportForm.question.trim()) {
       setSupportMissing(true)
@@ -457,6 +466,7 @@ export default function EventsHome() {
       ticketNumber,
       howHeard: supportForm.howHeard,
       interest: [`Вопрос: ${supportForm.question}`],
+      consent,
     })
     setSupportTicket(ticketNumber)
   }
@@ -672,10 +682,10 @@ export default function EventsHome() {
                   className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none focus:border-ink/40"
                 />
                 <HowHeardField value={eventForm.howHeard} onChange={(v) => setEventForm((f) => ({ ...f, howHeard: v }))} className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40" />
+                <ConsentCheck />
                 <button type="submit" className="rounded-lg bg-ink py-2.5 text-sm font-semibold text-white hover:bg-ink/90">
                   Отправить заявку
                 </button>
-                <p className="text-xs text-ink/40">Нажимая «Отправить заявку», вы соглашаетесь на обработку персональных данных.</p>
               </form>
             )}
           </div>
@@ -727,10 +737,10 @@ export default function EventsHome() {
                   className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none focus:border-ink/40"
                 />
                 <HowHeardField value={orderForm.howHeard} onChange={(v) => setOrderForm((f) => ({ ...f, howHeard: v }))} className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40" />
+                <ConsentCheck />
                 <button type="submit" className="rounded-lg bg-ink py-2.5 text-sm font-semibold text-white hover:bg-ink/90">
                   Отправить заявку
                 </button>
-                <p className="text-xs text-ink/40">Нажимая «Отправить заявку», вы соглашаетесь на обработку персональных данных.</p>
               </form>
             )}
           </div>
@@ -782,10 +792,10 @@ export default function EventsHome() {
                   className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none focus:border-ink/40"
                 />
                 <HowHeardField value={partnerForm.howHeard} onChange={(v) => setPartnerForm((f) => ({ ...f, howHeard: v }))} className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40" />
+                <ConsentCheck />
                 <button type="submit" className="rounded-lg bg-ink py-2.5 text-sm font-semibold text-white hover:bg-ink/90">
                   Отправить заявку
                 </button>
-                <p className="text-xs text-ink/40">Нажимая «Отправить заявку», вы соглашаетесь на обработку персональных данных.</p>
               </form>
             )}
           </div>
@@ -860,13 +870,13 @@ export default function EventsHome() {
                 )}
 
                 <HowHeardField value={supportForm.howHeard} onChange={(v) => setSupportForm((f) => ({ ...f, howHeard: v }))} className="mt-3 rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40" />
+                <ConsentCheck />
                 <button
                   type="submit"
                   className="mt-4 w-full rounded-lg bg-ink py-2.5 text-sm font-semibold text-white hover:bg-ink/90"
                 >
                   Отправить
                 </button>
-                <p className="mt-2 text-center text-xs text-ink/40">Нажимая «Отправить», вы соглашаетесь на обработку персональных данных.</p>
               </form>
             )}
           </div>

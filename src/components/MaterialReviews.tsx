@@ -2,6 +2,8 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { Stars } from './MaterialRating'
 import { checkReviewAccess, fetchReviews, reviewsWord, submitReview, type MyReview, type PublicReview } from '../lib/materialReviews'
+import ConsentCheck from './ConsentCheck'
+import { CONSENT_VERSION, PUBLICATION_CONSENT_VERSION, consentOf } from '../lib/consent'
 
 const inputClass = 'w-full rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none'
 
@@ -89,17 +91,29 @@ function ReviewForm({ slug, token, initial, onSaved }: { slug: string; token: st
   const [rating, setRating] = useState(initial?.rating ?? 0)
   const [hover, setHover] = useState(0)
   const [text, setText] = useState(initial?.text ?? '')
-  const [consent, setConsent] = useState(false)
+  const [displayName, setDisplayName] = useState(initial?.name ?? '')
+  const [publishConsent, setPublishConsent] = useState(false)
   const [state, setState] = useState<'idle' | 'sending' | 'done' | 'error'>('idle')
   const [missing, setMissing] = useState('')
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
+    const consent = consentOf(e)
     if (!rating) return setMissing('Поставьте оценку звёздами.')
-    if (!consent) return setMissing('Отметьте согласие на публикацию отзыва.')
+    if (!displayName.trim()) return setMissing('Укажите, как подписать отзыв: только имя, без фамилии.')
+    if (!publishConsent) return setMissing('Без отдельного согласия на публикацию отзыв отправить нельзя: отзывы на сайте видны всем.')
     setMissing('')
     setState('sending')
-    const ok = await submitReview(slug, { token, rating, text, consent })
+    const ok = await submitReview(slug, {
+      token,
+      rating,
+      text,
+      displayName: displayName.trim(),
+      consent,
+      consentVersion: CONSENT_VERSION,
+      publishConsent,
+      publishConsentVersion: PUBLICATION_CONSENT_VERSION,
+    })
     setState(ok ? 'done' : 'error')
     if (ok) onSaved()
   }
@@ -109,7 +123,7 @@ function ReviewForm({ slug, token, initial, onSaved }: { slug: string; token: st
       <div className="glass mt-5 rounded-xl p-6 text-center">
         <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-2xl text-emerald-600">✓</span>
         <div className="mt-3 font-semibold">Спасибо за отзыв!</div>
-        <p className="mt-1 text-sm text-ink/60">Он уже опубликован на этой странице. Если захотите что-то изменить, откройте ссылку из письма ещё раз.</p>
+        <p className="mt-1 text-sm text-ink/60">Он уже опубликован на этой странице. Если захотите что-то изменить, откройте ссылку из письма ещё раз. Чтобы снять отзыв с сайта, напишите на <a className="underline" href="mailto:rudenkov.ilia@yandex.ru">rudenkov.ilia@yandex.ru</a>.</p>
       </div>
     )
   }
@@ -140,21 +154,40 @@ function ReviewForm({ slug, token, initial, onSaved }: { slug: string; token: st
         {rating > 0 && <span className="ml-2 text-sm text-ink/50">{rating} из 5</span>}
       </div>
       <textarea value={text} onChange={(e) => setText(e.target.value)} maxLength={2000} rows={4} placeholder="Ваш отзыв (необязательно): как вам материал, что было полезно" className={inputClass} />
-      <label className="flex items-start gap-2 text-xs text-ink/60">
-        <input
-          type="checkbox"
-          checked={consent}
-          onChange={(e) => {
-            setConsent(e.target.checked)
-            setMissing('')
-          }}
-          className="mt-0.5"
-        />
-        <span>
-          Согласен(на) на публикацию отзыва на сайте с моим именем (без фамилии). Подробнее — в{' '}
-          <Link to="/legal/privacy" className="underline" target="_blank">политике обработки персональных данных</Link>.
-        </span>
-      </label>
+      <input
+        value={displayName}
+        onChange={(e) => {
+          setDisplayName(e.target.value)
+          setMissing('')
+        }}
+        maxLength={40}
+        placeholder="Как подписать отзыв — только имя, без фамилии"
+        className={inputClass}
+      />
+      <div className="grid gap-3 rounded-lg border border-ink/10 p-4">
+        <div className="text-xs font-semibold uppercase tracking-wide text-ink/50">Публикация отзыва</div>
+        <p className="text-xs leading-relaxed text-ink/60">
+          Отзыв появится на странице материала и будет виден всем посетителям сайта. Мы публикуем только подпись выше, оценку, текст и дату — без фамилии, телефона и почты.
+        </p>
+        <label className="flex cursor-pointer items-start gap-2 text-xs leading-relaxed text-ink/70">
+          <input
+            type="checkbox"
+            name="publishConsent"
+            checked={publishConsent}
+            onChange={(e) => {
+              setPublishConsent(e.target.checked)
+              setMissing('')
+            }}
+            className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-gold"
+          />
+          <span>
+            Даю{' '}
+            <Link to="/legal/consent-publication" target="_blank" className="underline hover:text-ink">отдельное согласие на распространение моих персональных данных</Link>
+            {' '}— подписи, оценки и текста отзыва — на странице этого материала. Согласие можно отозвать, и отзыв будет снят с сайта.
+          </span>
+        </label>
+      </div>
+      <ConsentCheck />
       {missing && <p className="text-sm text-red-600">{missing}</p>}
       {state === 'error' && <p className="text-sm text-red-600">Не получилось отправить отзыв. Попробуйте ещё раз через минуту или напишите в поддержку.</p>}
       <button type="submit" disabled={state === 'sending'} className="rounded-full bg-ink px-6 py-2.5 text-sm font-semibold text-white hover:bg-ink/90 disabled:opacity-60">

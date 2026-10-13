@@ -14,8 +14,11 @@ const cleanText = (value, max = 1000) =>
     .trim()
     .slice(0, max)
 
-/** Только имя без фамилии — на сайте показываем его (в форме покупатель соглашается на публикацию). */
-export const firstName = (fullName) => cleanText(fullName, 80).split(/\s+/)[0] || 'Покупатель'
+/**
+ * Подпись под отзывом: ровно то, что человек сам вписал в поле «Как подписать отзыв» (одна строка, до 40 символов).
+ * Из ФИО покупки подпись не берём: в «Иванов Иван Иванович» первое слово — фамилия, а обещаем мы только имя.
+ */
+export const reviewSignature = (value) => cleanText(value, 40).replace(/\n+/g, ' ').trim()
 
 /** Текст отзыва. У старых отзывов было два поля («понравилось» / «не понравилось») — склеиваем их в один текст. */
 export const reviewText = (r) => r.text ?? [r.liked, r.disliked].filter(Boolean).join('\n')
@@ -35,15 +38,16 @@ export function getReviewByPurchase(purchaseToken) {
 }
 
 /** Создаёт отзыв или обновляет прежний по этой покупке. Возвращает { review, updated }. */
-export function saveReview({ materialSlug, purchaseToken, name, rating, text }) {
-  const fields = { rating: Math.min(5, Math.max(1, Math.round(Number(rating)))), text: cleanText(text, 2000), liked: undefined, disliked: undefined }
+export function saveReview({ materialSlug, purchaseToken, name, rating, text, consents }) {
+  // consents — { processingAt, publishAt, publishVersion }: когда и по какой редакции человек согласился на обработку и на публикацию.
+  const fields = { name: reviewSignature(name), rating: Math.min(5, Math.max(1, Math.round(Number(rating)))), text: cleanText(text, 2000), liked: undefined, disliked: undefined, consents }
   const existing = getReviewByPurchase(purchaseToken)
   if (existing) {
     const review = store.update(existing.token, (x) => ({ ...x, ...fields, updatedAt: Date.now() }))
     return { review: { ...review, token: existing.token }, updated: true }
   }
   const number = listReviews().reduce((max, r) => Math.max(max, r.number), 0) + 1
-  const token = store.create({ number, materialSlug, purchaseToken, name: firstName(name), ...fields, hidden: false })
+  const token = store.create({ number, materialSlug, purchaseToken, ...fields, hidden: false })
   return { review: { token, ...store.get(token) }, updated: false }
 }
 

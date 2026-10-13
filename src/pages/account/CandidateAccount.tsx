@@ -28,6 +28,8 @@ import { events } from '../../data/events'
 import { vacancies as publicVacancies } from '../../data/vacancies'
 import { allConsultationServices } from '../../data/consultationServices'
 import { INDUSTRIES, type Industry } from '../../types'
+import ConsentCheck from '../../components/ConsentCheck'
+import { consentOf } from '../../lib/consent'
 
 const featuredConsultationIds = ['resume-write', 'career-scenario', 'interview-prep']
 
@@ -334,6 +336,7 @@ export default function CandidateAccount() {
 
   function handleBuySubmit(e: FormEvent) {
     e.preventDefault()
+    const consent = consentOf(e)
     if (!buyingPack || !buyerPhone.trim()) return
     // Демо-покупка: без реальной оплаты (Prodamus не подключен для этого
     // продукта) — заявка фиксируется как лид, генерации начисляются сразу.
@@ -344,6 +347,7 @@ export default function CandidateAccount() {
       contact: buyerPhone,
       phone: buyerPhone || undefined,
       interest: [`${buyingPack.count} генераций резюме за ${buyingPack.price} ₽`],
+      consent,
     })
     addCredits(RESUME_CREDITS_KEY, buyingPack.count)
     refreshCredits()
@@ -1231,6 +1235,7 @@ export default function CandidateAccount() {
                 required
                 className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
               />
+              <ConsentCheck />
               <button type="submit" className="rounded-full bg-ink py-3 text-sm font-semibold text-white hover:bg-ink/90">
                 Оплатить {buyingPack.price} ₽
               </button>

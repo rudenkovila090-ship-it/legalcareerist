@@ -9,6 +9,8 @@ import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import PhoneInput from '../../components/PhoneInput'
 import LeadSuccessCard from '../../components/LeadSuccessCard'
 import HowHeardField from '../../components/HowHeardField'
+import ConsentCheck from '../../components/ConsentCheck'
+import { consentOf } from '../../lib/consent'
 
 const proof = [
   { value: '8 000+', label: 'кандидатов в кадровом резерве' },
@@ -92,6 +94,7 @@ export default function CareerReserve({ embedded = false }: { embedded?: boolean
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
+    const consent = consentOf(e)
     if (!form.name.trim() || (!form.email.trim() && !form.phone.trim())) return
     submitLead({
       sourceBlock: 'kadry',
@@ -108,6 +111,7 @@ export default function CareerReserve({ embedded = false }: { embedded?: boolean
         form.university.trim() ? `Университет: ${form.university.trim()}` : '',
         resumeFile ? 'Резюме — приложено документом ниже' : '',
       ].filter(Boolean),
+      consent,
     })
     uploadDocument(resumeFile, 'Резюме', form.name)
     setSent(true)
@@ -119,6 +123,7 @@ export default function CareerReserve({ embedded = false }: { embedded?: boolean
 
   function handlePrioritySubmit(e: FormEvent) {
     e.preventDefault()
+    const consent = consentOf(e)
     if (!priorityForm.name.trim() || !priorityForm.phone.trim()) return
     submitLead({
       sourceBlock: 'kadry',
@@ -136,6 +141,7 @@ export default function CareerReserve({ embedded = false }: { embedded?: boolean
         priorityForm.university.trim() ? `Университет: ${priorityForm.university.trim()}` : '',
         priorityResumeFile ? 'Резюме — приложено документом ниже' : '',
       ].filter(Boolean),
+      consent,
     })
     uploadDocument(priorityResumeFile, 'Резюме', priorityForm.name)
     setPrioritySent(true)
@@ -310,15 +316,13 @@ export default function CareerReserve({ embedded = false }: { embedded?: boolean
                 <div className="col-span-full">
                   <HowHeardField value={priorityForm.howHeard} onChange={(v) => setPriorityForm((f) => ({ ...f, howHeard: v }))} className="rounded-lg border border-white/15 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none" />
                 </div>
+                <ConsentCheck tone="dark" className="col-span-full" />
                 <button
                   type="submit"
                   className="col-span-full rounded-full bg-gold-light py-3 text-sm font-semibold text-ink transition-colors hover:bg-white"
                 >
                   Вступить в кадровый резерв
                 </button>
-                <p className="col-span-full text-center text-xs text-white/50">
-                  Нажимая «Вступить в кадровый резерв», вы соглашаетесь на обработку персональных данных.
-                </p>
               </form>
             )}
           </div>
@@ -416,15 +420,13 @@ export default function CareerReserve({ embedded = false }: { embedded?: boolean
                 <div className="col-span-full">
                   <HowHeardField value={form.howHeard} onChange={(v) => setForm((f) => ({ ...f, howHeard: v }))} className="rounded-lg border border-white/15 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none" />
                 </div>
+                <ConsentCheck tone="dark" className="col-span-full" />
                 <button
                   type="submit"
                   className="col-span-full rounded-lg bg-gold-light py-3 text-sm font-semibold text-ink transition-colors hover:bg-white"
                 >
                   Отправить заявку
                 </button>
-                <p className="col-span-full text-xs text-white/50">
-                  Нажимая «Отправить заявку», вы соглашаетесь на обработку персональных данных.
-                </p>
               </form>
             )}
           </div>

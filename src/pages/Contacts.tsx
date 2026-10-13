@@ -6,6 +6,8 @@ import LeadSuccessCard from '../components/LeadSuccessCard'
 import { submitLead, nextTicketNumber } from '../lib/leads'
 import { useDocumentTitle } from '../lib/useDocumentTitle'
 import type { LeadSourceBlock } from '../types'
+import ConsentCheck from '../components/ConsentCheck'
+import { consentOf } from '../lib/consent'
 
 export default function Contacts({ eyebrow, sourceBlock }: { eyebrow: string; sourceBlock: LeadSourceBlock }) {
   useDocumentTitle(`${eyebrow} — Контакты`)
@@ -21,6 +23,7 @@ export default function Contacts({ eyebrow, sourceBlock }: { eyebrow: string; so
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
+    const consent = consentOf(e)
     setMissingFields(false)
 
     if (!name.trim() || !phone.trim() || !question.trim()) {
@@ -40,6 +43,7 @@ export default function Contacts({ eyebrow, sourceBlock }: { eyebrow: string; so
       ticketNumber,
       howHeard,
       interest: [`Вопрос: ${question}`],
+      consent,
     })
     setTicket(ticketNumber)
   }
@@ -113,13 +117,13 @@ export default function Contacts({ eyebrow, sourceBlock }: { eyebrow: string; so
               <p className="mt-3 text-sm text-red-600">Заполните ФИО, телефон и вопрос.</p>
             )}
 
+            <ConsentCheck />
             <button
               type="submit"
               className="mt-4 w-full rounded-lg bg-ink py-2.5 text-sm font-semibold text-white hover:bg-ink/90"
             >
               Отправить
             </button>
-            <p className="mt-2 text-center text-xs text-ink/40">Нажимая «Отправить», вы соглашаетесь на обработку персональных данных.</p>
           </form>
         )}
       </div>

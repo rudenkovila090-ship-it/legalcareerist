@@ -34,6 +34,8 @@ import { useEventViewCount } from '../../lib/useEventViews'
 import { demoCandidates, candidateContactPrice } from '../../data/candidateContacts'
 import { INDUSTRIES, SPECIALIZATIONS, COMPANY_INDUSTRY_TREE } from '../../types'
 import type { ApplicationStatus, VacancyModerationStatus, VacancyVisibilityStage, CandidateLevel, Industry, EventType, EventFormat } from '../../types'
+import ConsentCheck from '../../components/ConsentCheck'
+import { consentOf } from '../../lib/consent'
 
 const responseStatusLabel: Record<ApplicationStatus, string> = {
   new: 'Новый',
@@ -517,6 +519,7 @@ export default function EmployerAccount() {
 
   function handleBuyEventSubmit(e: FormEvent) {
     e.preventDefault()
+    const consent = consentOf(e)
     if (!buyingEventPack || !eventBuyerPhone.trim()) return
     submitLead({
       sourceBlock: 'kadry',
@@ -525,6 +528,7 @@ export default function EmployerAccount() {
       contact: eventBuyerPhone,
       phone: eventBuyerPhone || undefined,
       interest: [`${buyingEventPack.count} размещений мероприятий за ${buyingEventPack.price} ₽`],
+      consent,
     })
     addCredits(EVENT_CREDITS_KEY, buyingEventPack.count)
     setEventCreditsState(getCreditsState(EVENT_CREDITS_KEY))
@@ -800,6 +804,7 @@ export default function EmployerAccount() {
 
   function handleBuySubmit(e: FormEvent) {
     e.preventDefault()
+    const consent = consentOf(e)
     if (!buyingPack || !buyerPhone.trim()) return
     submitLead({
       sourceBlock: 'kadry',
@@ -808,6 +813,7 @@ export default function EmployerAccount() {
       contact: buyerPhone,
       phone: buyerPhone || undefined,
       interest: [`${buyingPack.count} генераций вакансий за ${buyingPack.price} ₽`],
+      consent,
     })
     addCredits(VACANCY_CREDITS_KEY, buyingPack.count)
     refreshCredits()
@@ -2397,6 +2403,7 @@ export default function EmployerAccount() {
                 required
                 className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
               />
+              <ConsentCheck />
               <button type="submit" className="rounded-full bg-ink py-3 text-sm font-semibold text-white hover:bg-ink/90">
                 Оплатить {buyingPack.price} ₽
               </button>
@@ -2424,6 +2431,7 @@ export default function EmployerAccount() {
                 required
                 className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
               />
+              <ConsentCheck />
               <button type="submit" className="rounded-full bg-ink py-3 text-sm font-semibold text-white hover:bg-ink/90">
                 Оплатить {buyingEventPack.price} ₽
               </button>

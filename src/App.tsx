@@ -34,6 +34,7 @@ const BlogHome = lazy(() => import('./pages/BlogHome'))
 const Contacts = lazy(() => import('./pages/Contacts'))
 const Privacy = lazy(() => import('./pages/legal/Privacy'))
 const Consent = lazy(() => import('./pages/legal/Consent'))
+const ConsentPublication = lazy(() => import('./pages/legal/ConsentPublication'))
 const About = lazy(() => import('./pages/About'))
 const News = lazy(() => import('./pages/News'))
 const NewsDetail = lazy(() => import('./pages/NewsDetail'))
@@ -138,6 +139,7 @@ export default function App() {
           {/* Юридические документы */}
           <Route path="/legal/privacy" element={<Privacy />} />
           <Route path="/legal/consent" element={<Consent />} />
+          <Route path="/legal/consent-publication" element={<ConsentPublication />} />
           <Route path="/legal/offer" element={<Placeholder eyebrow="Юридический блок" title="Оферта" />} />
           <Route path="/legal/marketing-consent" element={<Placeholder eyebrow="Юридический блок" title="Согласие на получение рекламных и информационных материалов" />} />
 

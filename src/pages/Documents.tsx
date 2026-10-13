@@ -5,6 +5,7 @@ import { useDocumentTitle } from '../lib/useDocumentTitle'
 const legalDocs = [
   { to: '/legal/privacy', title: 'Политика обработки персональных данных' },
   { to: '/legal/consent', title: 'Согласие на обработку персональных данных' },
+  { to: '/legal/consent-publication', title: 'Согласие на распространение персональных данных (публикация отзыва)' },
   { to: '/legal/marketing-consent', title: 'Согласие на получение рекламных и информационных материалов' },
 ]
 

@@ -7,6 +7,7 @@
 // настроен ли токен/chat_id — если нет, просто отвечает ok:false, страница это не блокирует.
 import type { Lead, LeadSourceBlock } from '../types'
 import { getUtm } from './utm'
+import { CONSENT_VERSION } from './consent'
 
 const LEADS_KEY = 'ky_leads'
 
@@ -113,6 +114,8 @@ export interface LeadInput {
   vacancySlug?: string
   /** Slug мероприятия — если задан, бэкенд считает это в реальный счетчик переходов к регистрации. */
   eventSlug?: string
+  /** Отмечена ли галочка согласия на обработку персональных данных (consentOf(e) в src/lib/consent.ts). */
+  consent?: boolean
 }
 
 // Номер заявки — короткий, читаемый на слух номер для клиента (не технический
@@ -155,7 +158,7 @@ export function submitLead(input: LeadInput): Lead {
   localStorage.setItem(LEADS_KEY, JSON.stringify(all))
 
   trackEvent('lead_submit', { source: input.sourceBlock, form: input.formType })
-  notifyTelegram(lead, input.vacancySlug, input.eventSlug)
+  notifyTelegram(lead, input.vacancySlug, input.eventSlug, input.consent === true)
 
   return lead
 }
@@ -163,7 +166,7 @@ export function submitLead(input: LeadInput): Lead {
 /** Уведомление админу в Telegram — не блокирует отправку формы при ошибке/недоступности бэкенда.
  *  vacancySlug/eventSlug (если есть) заодно учитываются бэкендом в реальном счетчике
  *  откликов вакансии / переходов к регистрации на мероприятие. */
-function notifyTelegram(lead: Lead, vacancySlug?: string, eventSlug?: string) {
+function notifyTelegram(lead: Lead, vacancySlug?: string, eventSlug?: string, consent = false) {
   if (typeof fetch === 'undefined') return
   const template = richTemplate(lead.sourceBlock, lead.formType)
   const direction =
@@ -192,6 +195,8 @@ function notifyTelegram(lead: Lead, vacancySlug?: string, eventSlug?: string) {
       date: lead.date,
       vacancySlug,
       eventSlug,
+      consent,
+      consentVersion: CONSENT_VERSION,
       utm: getUtm(),
     }),
   }).catch(() => {

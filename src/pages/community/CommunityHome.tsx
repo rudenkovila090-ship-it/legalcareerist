@@ -14,6 +14,8 @@ import HowHeardField from '../../components/HowHeardField'
 import LeadSuccessCard from '../../components/LeadSuccessCard'
 import { validateJoinContacts } from '../../lib/joinValidation'
 import { SHOW_AMBASSADORS } from '../../lib/featureFlags'
+import ConsentCheck from '../../components/ConsentCheck'
+import { consentOf } from '../../lib/consent'
 
 const railItems = [
   { id: 'hero', label: 'Обзор' },
@@ -264,6 +266,7 @@ export default function CommunityHome() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
+    const consent = consentOf(e)
     const invalid = validateJoinContacts({ name, phone, email, telegram })
     setFormError(invalid ?? '')
     if (invalid) return
@@ -278,6 +281,7 @@ export default function CommunityHome() {
       telegram: telegram ? (telegram.startsWith('@') ? telegram : `@${telegram}`) : undefined,
       howHeard,
       interest: [tariff.period],
+      consent,
     })
 
     // Уходим на настоящую страницу оплаты Prodamus. После
@@ -289,7 +293,7 @@ export default function CommunityHome() {
       const res = await fetch('/api/community/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tariffId, name, phone, email, telegram, howHeard }),
+        body: JSON.stringify({ tariffId, name, phone, email, telegram, howHeard, consent }),
       })
       const data = await res.json()
       if (!res.ok || !data.url) throw new Error('subscribe_failed')
@@ -302,6 +306,7 @@ export default function CommunityHome() {
 
   function handleAmbassadorSubmit(e: FormEvent) {
     e.preventDefault()
+    const consent = consentOf(e)
     if (!ambassadorForm.name.trim() || (!ambassadorForm.phone.trim() && !ambassadorForm.telegram.trim())) return
     submitLead({
       sourceBlock: 'community',
@@ -313,6 +318,7 @@ export default function CommunityHome() {
       telegram: ambassadorForm.telegram || undefined,
       howHeard: ambassadorForm.howHeard,
       interest: [ambassadorForm.about].filter(Boolean),
+      consent,
     })
     setAmbassadorSent(true)
   }
@@ -506,6 +512,7 @@ export default function CommunityHome() {
               <div className="sm:col-span-2">
                 <HowHeardField value={ambassadorForm.howHeard} onChange={(v) => setAmbassadorForm((f) => ({ ...f, howHeard: v }))} />
               </div>
+              <ConsentCheck className="sm:col-span-2" />
               <button
                 type="submit"
                 className="rounded-lg bg-ink py-2.5 text-sm font-semibold text-white hover:bg-ink/90 sm:col-span-2"
@@ -723,6 +730,7 @@ export default function CommunityHome() {
                 {submitError && (
                   <p className="text-sm text-red-600">Не получилось перейти к оплате — попробуйте еще раз через минуту.</p>
                 )}
+                <ConsentCheck />
                 <button
                   type="submit"
                   disabled={submitting}
@@ -730,7 +738,6 @@ export default function CommunityHome() {
                 >
                   {submitting ? 'Переходим к оплате…' : 'Перейти к оплате'}
                 </button>
-                <p className="text-xs text-ink/50">Нажимая «Перейти к оплате», вы соглашаетесь на обработку персональных данных.</p>
               </form>
             </div>
           </div>

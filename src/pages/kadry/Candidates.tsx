@@ -25,6 +25,8 @@ import { pluralRu } from '../../lib/plural'
 import { SHOW_PERSONAL_ACCOUNTS } from '../../lib/featureFlags'
 import KadryFooter from './KadryFooter'
 import HowHeardField from '../../components/HowHeardField'
+import ConsentCheck from '../../components/ConsentCheck'
+import { consentOf } from '../../lib/consent'
 
 const money = new Intl.NumberFormat('ru-RU')
 
@@ -162,6 +164,7 @@ export default function Candidates() {
 
   async function handleSupportSubmit(e: FormEvent) {
     e.preventDefault()
+    const consent = consentOf(e)
     setSupportMissing(false)
     if (!supportForm.fio.trim() || !supportForm.phone.trim() || !supportForm.email.trim() || !supportForm.telegram.trim()) {
       setSupportMissing(true)
@@ -180,6 +183,7 @@ export default function Candidates() {
       ticketNumber,
       howHeard: supportForm.howHeard,
       interest: supportForm.question.trim() ? [`Вопрос: ${supportForm.question.trim()}`] : [],
+      consent,
     })
     setSupportTicket(ticketNumber)
   }
@@ -352,13 +356,13 @@ export default function Candidates() {
                     {supportMissing && (
                       <p className="text-sm text-red-600">Заполните все поля — ФИО, телефон, почту и Telegram.</p>
                     )}
+                    <ConsentCheck />
                     <button
                       type="submit"
                       className="rounded-full bg-ink py-3 text-sm font-semibold text-white transition-colors hover:bg-ink/90"
                     >
                       Отправить
                     </button>
-                    <p className="text-xs text-ink/50">Нажимая «Отправить», вы соглашаетесь на обработку персональных данных.</p>
                   </form>
                 )}
               </div>
