@@ -6,6 +6,7 @@ import portraitLounge from '../assets/noir/portrait-lounge.webp'
 import portraitBartender from '../assets/noir/portrait-bartender.webp'
 import portraitDetective from '../assets/noir/portrait-detective.webp'
 import portraitBarWoman from '../assets/noir/portrait-bar-woman.webp'
+import speakerJulia from '../assets/noir/speaker-julia-mukhina.webp'
 import { noirEventSlugs } from './noirEvents'
 
 // Авторское оформление и тексты отдельных мероприятий. Лежит отдельно от events.ts:
@@ -181,6 +182,7 @@ export const eventStories: Record<string, EventStory> = {
         icon: 'magnifier',
         speaker: {
           name: 'Юлия Мухина',
+          photo: speakerJulia,
           topic: 'Цифровой след',
           topicLead: 'Какие профессиональные риски создают для юриста социальные сети',
           questions: [
