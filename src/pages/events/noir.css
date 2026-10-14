@@ -1450,193 +1450,142 @@
   height: auto;
 }
 
-/* ===== Сюжет вечера: ламповый приёмник =====
-   Тёмный бакелитовый корпус, хромированные рамки, янтарная шкала с подсветкой, красная стрелка, пара ламп сверху —
-   по референсам заказчика. Три волны — акты, остальные — «ночной эфир города». */
+/* ===== Сюжет вечера: автомагнитола =====
+   Низкая широкая панель в тёмной приборной доске: хромированный ободок, янтарная шкала с красной стрелкой, экран эфира,
+   справа ручка настройки, слева кнопки поиска, внизу ряд пресетов (красные — акты, тёмные — ночной эфир города). */
 .rd {
+  max-width: 46rem;
+  margin-top: 1.4rem;
+}
+.rd-face {
   position: relative;
-  max-width: 56rem;
-  margin-top: 3.4rem;
-}
-.rd-tubes {
-  position: absolute;
-  top: -3.1rem;
-  left: 12%;
-  z-index: 0;
-  display: flex;
-  gap: 1.1rem;
-  pointer-events: none;
-}
-.rd-tubes i {
-  position: relative;
-  display: block;
-  width: 1.7rem;
-  height: 3.4rem;
-  border: 1px solid rgba(255, 220, 170, 0.22);
-  border-radius: 0.85rem 0.85rem 0.2rem 0.2rem;
-  background:
-    linear-gradient(90deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.04) 30%, rgba(255, 255, 255, 0.12) 70%, rgba(255, 255, 255, 0.02)),
-    rgba(40, 26, 14, 0.55);
-  box-shadow:
-    inset 0 0 9px rgba(255, 170, 70, 0.4),
-    0 0 20px rgba(255, 150, 50, 0.28);
-}
-.rd-tubes i::before {
-  content: '';
-  position: absolute;
-  bottom: 0.55rem;
-  left: 50%;
-  width: 0.55rem;
-  height: 1.1rem;
-  transform: translateX(-50%);
-  border-radius: 0.3rem;
-  background: radial-gradient(ellipse at 50% 70%, #fff3c4, #ffb347 40%, #d9611a 80%, transparent);
-  box-shadow: 0 0 14px 4px rgba(255, 150, 40, 0.55);
-}
-.rd-tubes i::after {
-  content: '';
-  position: absolute;
-  top: 0.55rem;
-  bottom: 1.9rem;
-  left: 50%;
-  width: 1px;
-  background: rgba(255, 200, 130, 0.32);
-}
-.rd-antenna {
-  position: absolute;
-  right: 8%;
-  bottom: calc(100% - 0.3rem);
-  z-index: 0;
-  width: 2px;
-  height: 9.5rem;
-  border-radius: 1px;
-  background: linear-gradient(90deg, #7d7d7d, #e8e8e8, #5c5c5c);
-  transform: rotate(24deg);
-  transform-origin: 50% 100%;
-  pointer-events: none;
-}
-.rd-antenna::before {
-  content: '';
-  position: absolute;
-  top: -4px;
-  left: 50%;
-  width: 8px;
-  height: 8px;
-  margin-left: -4px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #ff9a8a, #b0231a 60%, #5a0d08);
-}
-
-.rd-body {
-  position: relative;
-  z-index: 1;
-  padding: 1.15rem 1.15rem 1.3rem;
-  border: 1px solid rgba(255, 220, 170, 0.14);
-  border-radius: 18px 18px 12px 12px;
+  display: grid;
+  grid-template-columns: 4.6rem minmax(0, 1fr) 4.6rem;
+  grid-template-areas:
+    'seek disp knob'
+    'keys keys keys';
+  gap: 0.8rem 0.9rem;
+  align-items: center;
+  padding: 0.9rem 0.9rem 0.95rem;
+  border-radius: 14px;
   background:
     var(--scratch) 0 0 / 300px 375px,
     var(--noise),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 12%, transparent 78%, rgba(0, 0, 0, 0.45)),
-    linear-gradient(160deg, #2c1b14, #140d0a 60%, #0d0807);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.1), transparent 9%, transparent 84%, rgba(0, 0, 0, 0.5)),
+    linear-gradient(160deg, #2a1b14, #140d0a 60%, #0d0807);
   box-shadow:
-    0 34px 60px -26px #000,
-    inset 0 1px 0 rgba(255, 255, 255, 0.12),
-    inset 0 0 46px rgba(0, 0, 0, 0.65);
+    0 0 0 1px #000,
+    0 0 0 3px #46403a,
+    0 0 0 4px #15110e,
+    0 26px 44px -22px #000,
+    0 0 40px -10px rgba(255, 140, 40, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    inset 0 0 38px rgba(0, 0, 0, 0.6);
+}
+/* Красный светодиод в углу — как мигающий индикатор «защиты» на настоящей магнитоле. */
+.rd-led {
+  position: absolute;
+  top: 0.55rem;
+  left: 0.6rem;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #ff3b2a;
+  box-shadow: 0 0 6px 1px rgba(255, 60, 40, 0.8);
+}
+.rd-cap {
+  color: rgba(234, 223, 200, 0.42);
+  font: 600 0.52rem/1 Inter, ui-sans-serif, sans-serif;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
 }
 
-/* --- верх: индикатор сигнала и шкала --- */
-.rd-top {
-  display: grid;
-  grid-template-columns: 9.5rem minmax(0, 1fr);
-  gap: 0.9rem;
+/* --- поиск станции --- */
+.rd-seek {
+  grid-area: seek;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
 }
-.rd-vu,
-.rd-dial-frame {
-  padding: 6px;
-  border-radius: 9px;
-  background: linear-gradient(145deg, #d8d1c2, #6c655a 45%, #c4bcab 55%, #443e36);
-  box-shadow:
-    inset 0 0 0 1px rgba(0, 0, 0, 0.6),
-    0 3px 8px rgba(0, 0, 0, 0.65);
-}
-.rd-vu-face {
-  display: block;
+.rd-seek-btn {
   width: 100%;
-  height: 100%;
-  border-radius: 4px;
-  background: radial-gradient(120% 90% at 50% 100%, #f6e7bb, #d8c28a 70%, #b79a58);
-  box-shadow: inset 0 0 14px rgba(90, 50, 10, 0.55);
-}
-.rd-vu-text {
-  fill: #2b1a0c;
-  font-family: 'IBM Plex Mono', ui-monospace, monospace;
-  font-size: 8px;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-}
-.rd-vu-needle {
-  stroke: #1b1410;
-  stroke-width: 1.4;
-  stroke-linecap: round;
-  transform-box: view-box;
-  transform-origin: 60px 62px;
-  transform: rotate(-24deg);
-}
-.rd-dial-frame {
-  position: relative;
-}
-.rd-dial-frame::after {
-  content: '';
-  position: absolute;
-  inset: -16px;
-  z-index: -1;
-  background: radial-gradient(60% 80% at 50% 50%, rgba(255, 150, 50, 0.3), transparent 72%);
-  pointer-events: none;
-}
-.rd-dial {
-  position: relative;
-  height: 6.4rem;
-  overflow: hidden;
-  border-radius: 4px;
-  background: linear-gradient(180deg, #f6bd68 0%, #e69a3d 45%, #b0621a 100%);
+  padding: 0.55rem 0;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  background: linear-gradient(180deg, #3b3532, #1c1816);
   box-shadow:
-    inset 0 0 26px rgba(70, 25, 0, 0.85),
-    inset 0 0 3px #000;
+    0 3px 0 #0a0706,
+    0 5px 8px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  color: #d9ccb0;
+  font-size: 0.66rem;
+  letter-spacing: 0.1em;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.1s, color 0.2s;
+}
+.rd-seek-btn:hover {
+  color: #ffd08a;
+}
+.rd-seek-btn:active {
+  transform: translateY(3px);
+  box-shadow: 0 0 0 #0a0706, inset 0 2px 6px rgba(0, 0, 0, 0.7);
+}
+
+/* --- дисплей: янтарная шкала + экран эфира --- */
+.rd-display {
+  grid-area: disp;
+  min-width: 0;
+}
+.rd-strip {
+  position: relative;
+  height: 4.5rem;
+  overflow: hidden;
+  border: 4px solid transparent;
+  border-radius: 7px;
+  background:
+    linear-gradient(180deg, #f6bd68 0%, #e69a3d 50%, #b0621a 100%) padding-box,
+    linear-gradient(145deg, #d8d1c2, #6c655a 45%, #c4bcab 55%, #443e36) border-box;
+  box-shadow:
+    inset 0 0 22px rgba(70, 25, 0, 0.8),
+    0 3px 8px rgba(0, 0, 0, 0.65);
 }
 .rd-scale {
   position: absolute;
-  inset: 0 1.3rem;
+  inset: 0 1rem auto;
+  height: 2.1rem;
 }
 .rd-t {
   position: absolute;
-  top: 0.55rem;
+  top: 0.3rem;
   width: 1px;
-  height: 0.5rem;
+  height: 0.38rem;
   background: #3a1a06;
   opacity: 0.75;
   transform: translateX(-0.5px);
 }
 .rd-t-1 {
-  height: 0.8rem;
+  height: 0.62rem;
 }
 .rd-t-4 {
   width: 1.5px;
-  height: 1.15rem;
+  height: 0.9rem;
   opacity: 1;
 }
 .rd-num {
   position: absolute;
-  top: 1.85rem;
+  top: 1.22rem;
   transform: translateX(-50%);
   color: #2a1306;
-  font: 600 0.72rem/1 'IBM Plex Mono', ui-monospace, monospace;
+  font: 600 0.6rem/1 'IBM Plex Mono', ui-monospace, monospace;
 }
 .rd-mark {
   position: absolute;
-  top: 0.12rem;
-  width: 0.42rem;
-  height: 0.42rem;
-  margin-left: -0.21rem;
+  top: 0;
+  width: 0.36rem;
+  height: 0.36rem;
+  margin-left: -0.18rem;
   background: rgba(90, 30, 10, 0.55);
   transform: rotate(45deg);
 }
@@ -1651,7 +1600,7 @@
   position: absolute;
   top: 0;
   width: 2px;
-  height: 3.9rem;
+  height: 1.7rem;
   margin-left: -1px;
   background: linear-gradient(180deg, #ff5a44, #b0140c);
   box-shadow: 0 0 8px 1px rgba(255, 60, 40, 0.7);
@@ -1661,34 +1610,58 @@
   position: absolute;
   top: -1px;
   left: -3px;
-  border-top: 6px solid #b0140c;
+  border-top: 5px solid #b0140c;
   border-right: 4px solid transparent;
   border-left: 4px solid transparent;
 }
 .rd-readout {
   position: absolute;
-  right: 1.3rem;
-  bottom: 0.45rem;
-  left: 1.3rem;
+  right: 1rem;
+  bottom: 0.3rem;
+  left: 1rem;
   display: flex;
   align-items: baseline;
-  gap: 0.5rem;
+  gap: 0.45rem;
   color: #2a1306;
 }
 .rd-fm,
 .rd-mhz {
-  font: 700 0.7rem/1 'IBM Plex Mono', ui-monospace, monospace;
+  font: 700 0.6rem/1 'IBM Plex Mono', ui-monospace, monospace;
   letter-spacing: 0.1em;
 }
 .rd-freq {
   min-width: 4.4ch;
-  font: 600 1.95rem/1 'IBM Plex Mono', ui-monospace, monospace;
+  font: 600 1.55rem/1 'IBM Plex Mono', ui-monospace, monospace;
   text-shadow: 0 1px 0 rgba(255, 225, 170, 0.5);
+}
+.rd-sig {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 0.8rem;
+  margin-left: 0.3rem;
+  align-self: center;
+}
+.rd-sig i {
+  display: block;
+  width: 3px;
+  background: #2a1306;
+  opacity: 0.18;
+}
+.rd-sig i:nth-child(1) { height: 25%; }
+.rd-sig i:nth-child(2) { height: 45%; }
+.rd-sig i:nth-child(3) { height: 65%; }
+.rd-sig i:nth-child(4) { height: 82%; }
+.rd-sig i:nth-child(5) { height: 100%; }
+.rd-sig[data-level='1'] i:nth-child(-n + 1),
+.rd-sig[data-level='4'] i:nth-child(-n + 4),
+.rd-sig[data-level='5'] i {
+  opacity: 0.9;
 }
 .rd-name {
   margin-left: auto;
-  font: 700 0.72rem/1.1 Inter, ui-sans-serif, sans-serif;
-  letter-spacing: 0.14em;
+  font: 700 0.64rem/1.1 Inter, ui-sans-serif, sans-serif;
+  letter-spacing: 0.12em;
   text-align: right;
   text-transform: uppercase;
 }
@@ -1696,73 +1669,32 @@
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(115deg, rgba(255, 255, 255, 0.3), transparent 36%),
+    linear-gradient(115deg, rgba(255, 255, 255, 0.28), transparent 34%),
     var(--scratch) 0 0 / 300px 375px;
   mix-blend-mode: screen;
   opacity: 0.8;
   pointer-events: none;
 }
 
-/* --- середина: динамик, экран эфира, ручка --- */
-.rd-mid {
-  display: grid;
-  grid-template-columns: 8.5rem minmax(0, 1fr) 9.5rem;
-  gap: 1rem;
-  margin-top: 1rem;
-}
-.rd-speaker {
-  position: relative;
-  min-height: 13rem;
-  border-radius: 8px;
-  background:
-    radial-gradient(circle at 50% 50%, #000 0 1.4px, transparent 1.9px) 0 0 / 7px 7px,
-    linear-gradient(160deg, #5b4331, #2a1d15);
-  box-shadow:
-    inset 0 0 22px #000,
-    0 0 0 3px #1a1310,
-    0 0 0 4px rgba(255, 255, 255, 0.09);
-}
-.rd-speaker::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: linear-gradient(120deg, rgba(255, 255, 255, 0.14), transparent 40%);
-}
-.rd-onair {
-  position: absolute;
-  bottom: 0.6rem;
-  left: 50%;
-  padding: 0.18rem 0.5rem 0.2rem;
-  transform: translateX(-50%);
-  border: 1px solid rgba(255, 90, 70, 0.55);
-  border-radius: 3px;
-  background: #3a0a0a;
-  color: #ff7a66;
-  font: 700 0.6rem/1 Inter, ui-sans-serif, sans-serif;
-  letter-spacing: 0.18em;
-  text-shadow: 0 0 8px rgba(255, 80, 60, 0.9);
-  text-transform: uppercase;
-  white-space: nowrap;
-}
 .rd-screen {
   position: relative;
-  min-height: 17.5rem;
-  padding: 1.25rem 1.35rem 1.4rem;
+  display: grid;
+  margin-top: 0.6rem;
+  padding: 0.95rem 1.1rem 1.05rem;
   overflow: hidden;
-  border-radius: 8px;
+  border-radius: 7px;
   background: radial-gradient(120% 100% at 50% 0%, #20150a, #090504);
   box-shadow:
-    inset 0 0 0 1px rgba(255, 170, 80, 0.28),
-    inset 0 0 44px rgba(0, 0, 0, 0.9),
-    0 0 26px rgba(255, 140, 40, 0.1);
+    inset 0 0 0 1px rgba(255, 170, 80, 0.26),
+    inset 0 0 36px rgba(0, 0, 0, 0.9),
+    0 0 22px rgba(255, 140, 40, 0.08);
 }
 .rd-screen::before {
   content: '';
   position: absolute;
   inset: 0;
   z-index: 3;
-  background: repeating-linear-gradient(180deg, rgba(0, 0, 0, 0.28) 0 1px, transparent 1px 3px);
+  background: repeating-linear-gradient(180deg, rgba(0, 0, 0, 0.26) 0 1px, transparent 1px 3px);
   pointer-events: none;
 }
 .rd-noise {
@@ -1782,12 +1714,18 @@
 .rd[data-silent] .rd-noise {
   opacity: 0.7;
 }
+/* Все эфиры в одной ячейке сетки; видна только выбранная — экран не меняет высоту. */
 .rd-air {
   position: relative;
   z-index: 1;
-  transition:
-    opacity 0.4s,
-    filter 0.5s;
+  grid-area: 1 / 1;
+  visibility: hidden;
+  opacity: 0;
+}
+.rd-air[data-active] {
+  visibility: visible;
+  opacity: 1;
+  transition: opacity 0.4s, filter 0.5s;
 }
 .rd-air[data-tuning] {
   opacity: 0;
@@ -1795,73 +1733,52 @@
 }
 .rd-eyebrow {
   color: var(--color-gold);
-  font: 600 0.7rem/1.3 Inter, ui-sans-serif, sans-serif;
-  letter-spacing: 0.18em;
+  font: 600 0.62rem/1.3 Inter, ui-sans-serif, sans-serif;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
 }
 .rd-eyebrow-2 {
-  margin-top: 1rem;
+  margin-top: 0.6rem;
   color: rgba(234, 223, 200, 0.5);
 }
 .rd-title {
-  margin-top: 0.55rem;
+  margin-top: 0.4rem;
   color: var(--color-ink);
-  font-size: 1.55rem;
+  font-size: 1.3rem;
   font-weight: 600;
   line-height: 1.2;
 }
 .rd-copy {
-  margin-top: 0.8rem;
+  margin-top: 0.55rem;
 }
 .rd-copy p {
   color: rgba(234, 223, 200, 0.84);
-  font-size: 0.95rem;
-  line-height: 1.65;
+  font-size: 0.875rem;
+  line-height: 1.55;
 }
 .rd-copy p + p {
-  margin-top: 0.8rem;
+  margin-top: 0.55rem;
 }
 
-.rd-ctl {
+/* --- ручка настройки --- */
+.rd-tune {
+  grid-area: knob;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-}
-.rd-tune {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-}
-.rd-arrow {
-  width: 1.5rem;
-  height: 1.5rem;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(234, 223, 200, 0.55);
-  font-size: 0.6rem;
-  line-height: 1;
-  cursor: pointer;
-  transition: color 0.2s, background 0.2s;
-}
-.rd-arrow:hover {
-  background: rgba(255, 255, 255, 0.14);
-  color: #ffd08a;
+  gap: 0.45rem;
 }
 .rd-knob {
   position: relative;
   flex: none;
-  width: 5.4rem;
-  height: 5.4rem;
+  width: 3.9rem;
+  height: 3.9rem;
   padding: 0;
   border: 0;
   border-radius: 50%;
   background: repeating-conic-gradient(from 0deg, #d2d2d2 0 4deg, #6a6a6a 4deg 8deg);
   box-shadow:
-    0 8px 14px rgba(0, 0, 0, 0.7),
+    0 6px 11px rgba(0, 0, 0, 0.7),
     inset 0 0 0 3px #23201d,
     inset 0 0 0 5px #8c8c8c;
   cursor: pointer;
@@ -1880,102 +1797,66 @@
   position: absolute;
   top: 7%;
   left: 50%;
-  width: 0.45rem;
-  height: 0.45rem;
-  margin-left: -0.225rem;
+  width: 0.38rem;
+  height: 0.38rem;
+  margin-left: -0.19rem;
   border-radius: 50%;
   background: #ffb347;
   box-shadow: 0 0 8px 2px rgba(255, 150, 40, 0.8);
 }
 .rd-knob:focus-visible,
-.rd-arrow:focus-visible,
+.rd-seek-btn:focus-visible,
 .rd-key:focus-visible {
   outline: 2px solid #d9a85c;
   outline-offset: 3px;
 }
-.rd-minis {
-  display: flex;
-  gap: 1.1rem;
-}
-.rd-minis i {
-  position: relative;
-  display: block;
-  width: 2.3rem;
-  height: 2.3rem;
-  border-radius: 50%;
-  background: repeating-conic-gradient(from 0deg, #bdbdbd 0 5deg, #5e5e5e 5deg 10deg);
-  box-shadow:
-    0 4px 8px rgba(0, 0, 0, 0.7),
-    inset 0 0 0 2px #1d1a17;
-  transform: rotate(var(--rot, 0deg));
-}
-.rd-minis i::after {
-  content: '';
-  position: absolute;
-  top: 8%;
-  left: 50%;
-  width: 0.2rem;
-  height: 0.5rem;
-  margin-left: -0.1rem;
-  background: #2a1306;
-}
 
-/* --- клавиши --- */
+/* --- пресеты --- */
 .rd-keys {
+  grid-area: keys;
   display: grid;
   grid-template-columns: 1fr 2fr;
-  gap: 1.1rem;
-  margin-top: 1.2rem;
-  padding-top: 1rem;
+  gap: 0.8rem;
+  padding-top: 0.75rem;
   border-top: 1px solid rgba(255, 255, 255, 0.07);
 }
-.rd-cap {
-  display: block;
-  margin-bottom: 0.5rem;
-  color: rgba(234, 223, 200, 0.5);
-  font: 600 0.62rem/1 Inter, ui-sans-serif, sans-serif;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-}
-.rd-row {
+.rd-acts,
+.rd-extra {
   display: grid;
-  gap: 0.45rem;
+  gap: 0.4rem;
 }
-.rd-row-acts {
+.rd-acts {
   grid-template-columns: repeat(3, 1fr);
 }
-.rd-row-extra {
+.rd-extra {
   grid-template-columns: repeat(6, 1fr);
 }
 .rd-key {
   display: flex;
   min-width: 0;
-  min-height: 3.7rem;
-  padding: 0.4rem 0.2rem 0.35rem;
+  min-height: 3.1rem;
+  padding: 0.3rem 0.15rem;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.2rem;
+  gap: 0.15rem;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 5px 5px 3px 3px;
   background: linear-gradient(180deg, #3b3532, #1c1816);
   box-shadow:
-    0 4px 0 #0a0706,
-    0 7px 10px rgba(0, 0, 0, 0.6),
+    0 3px 0 #0a0706,
+    0 5px 8px rgba(0, 0, 0, 0.55),
     inset 0 1px 0 rgba(255, 255, 255, 0.16);
   color: #d9ccb0;
   cursor: pointer;
-  transition:
-    transform 0.12s,
-    box-shadow 0.12s,
-    color 0.2s;
+  transition: transform 0.12s, box-shadow 0.12s, color 0.2s;
 }
 .rd-key-n {
-  font: 700 1.05rem/1 'IBM Plex Mono', ui-monospace, monospace;
+  font: 700 0.95rem/1 'IBM Plex Mono', ui-monospace, monospace;
 }
 .rd-key-l {
-  font: 600 0.54rem/1.1 Inter, ui-sans-serif, sans-serif;
-  letter-spacing: 0.06em;
+  font: 600 0.5rem/1.1 Inter, ui-sans-serif, sans-serif;
+  letter-spacing: 0.05em;
   text-align: center;
   text-transform: uppercase;
   overflow-wrap: anywhere;
@@ -1985,7 +1866,7 @@
   color: #f3dcc6;
 }
 .rd-key[aria-pressed='true'] {
-  transform: translateY(4px);
+  transform: translateY(3px);
   box-shadow:
     0 0 0 #0a0706,
     0 2px 4px rgba(0, 0, 0, 0.6),
@@ -2000,61 +1881,71 @@
   text-shadow: 0 0 9px rgba(255, 90, 60, 0.85);
 }
 
+/* --- телефон: экран на всю ширину; под ним ряд «поиск — акты — ручка», затем ночной эфир цифрами --- */
 @media (max-width: 767px) {
   .rd {
-    margin-top: 3rem;
+    margin-top: 1.2rem;
   }
-  .rd-antenna {
-    height: 6rem;
-  }
-  .rd-top {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .rd-vu {
-    display: none;
-  }
-  .rd-dial {
-    height: 5.8rem;
-  }
-  .rd-freq {
-    font-size: 1.6rem;
-  }
-  .rd-mid {
-    grid-template-columns: minmax(0, 1fr) auto;
+  .rd-face {
+    grid-template-columns: 4.1rem minmax(0, 1fr) 3.4rem;
     grid-template-areas:
-      'screen screen'
-      'speaker ctl';
-    gap: 0.9rem;
-  }
-  .rd-screen {
-    grid-area: screen;
-    min-height: 15rem;
-    padding: 1.1rem 1.1rem 1.25rem;
-  }
-  .rd-speaker {
-    grid-area: speaker;
-    min-height: 7rem;
-  }
-  .rd-ctl {
-    grid-area: ctl;
-    flex-direction: row;
-    gap: 0.6rem;
-  }
-  .rd-minis {
-    display: none;
-  }
-  .rd-knob {
-    width: 4.6rem;
-    height: 4.6rem;
+      'disp disp disp'
+      'seek acts knob'
+      'extra extra extra';
+    gap: 0.7rem 0.55rem;
+    padding: 0.75rem 0.7rem 0.85rem;
   }
   .rd-keys {
-    grid-template-columns: minmax(0, 1fr);
+    display: contents;
   }
-  .rd-row-extra {
-    grid-template-columns: repeat(3, 1fr);
+  .rd-seek {
+    flex-direction: row;
+    gap: 0.25rem;
+  }
+  .rd-seek-btn {
+    padding: 0.7rem 0;
+    font-size: 0.55rem;
+  }
+  .rd-seek .rd-cap,
+  .rd-tune .rd-cap {
+    display: none;
+  }
+  .rd-acts {
+    grid-area: acts;
+  }
+  .rd-extra {
+    grid-area: extra;
+    gap: 0.35rem;
+    padding-top: 0.7rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+  }
+  .rd-tune {
+    align-self: center;
+  }
+  .rd-knob {
+    width: 3.2rem;
+    height: 3.2rem;
+  }
+  .rd-strip {
+    height: 4.1rem;
+  }
+  .rd-freq {
+    font-size: 1.3rem;
+  }
+  .rd-name {
+    font-size: 0.56rem;
+  }
+  .rd-sig {
+    display: none;
+  }
+  .rd-screen {
+    padding: 0.85rem 0.9rem 0.95rem;
   }
   .rd-key {
-    min-height: 3.5rem;
+    min-height: 2.9rem;
+  }
+  .rd-extra .rd-key-l {
+    display: none;
   }
 }
 
@@ -2681,34 +2572,19 @@
   }
 }
 
-/* Приёмник: лампы мерцают, стрелка индикатора живёт, при смене волны экран «шипит», ручка поворачивается. */
+/* Магнитола: подсветка шкалы дышит, светодиод мигает, при смене волны экран «шипит» и проясняется, ручка поворачивается. */
 @media (prefers-reduced-motion: no-preference) {
-  .rd-tubes i::before {
-    animation: rd-glow 4.6s linear infinite;
+  .rd-led {
+    animation: rd-led 2.6s steps(1, end) infinite;
   }
-  .rd-tubes i:nth-child(2)::before {
-    animation-duration: 6.1s;
-    animation-delay: -2s;
-  }
-  .rd-dial-frame::after {
+  .rd-strip {
     animation: rd-breathe 5.5s ease-in-out infinite;
   }
-  .rd-vu-needle {
-    animation: rd-vu 2.7s ease-in-out infinite;
+  .rd[data-tuning] .rd-sig i {
+    animation: rd-sig 0.3s steps(1, end) infinite;
   }
-  .rd[data-tuning] .rd-vu-needle {
-    animation: rd-vu-noise 0.22s linear infinite;
-  }
-  .rd[data-silent] .rd-vu-needle {
-    animation: none;
-    transform: rotate(-44deg);
-  }
-  .rd-onair {
-    animation: rd-onair 2.4s ease-in-out infinite;
-  }
-  .rd[data-silent] .rd-onair {
-    animation: none;
-    opacity: 0.25;
+  .rd[data-tuning] .rd-sig i:nth-child(2n) {
+    animation-delay: -0.12s;
   }
   .rd-knob {
     transition: transform 0.9s cubic-bezier(0.3, 1.25, 0.4, 1);
@@ -2717,45 +2593,20 @@
   .rd[data-silent] .rd-noise {
     animation: rd-noise 0.2s steps(5) infinite;
   }
-  .rd-air {
+  .rd-air[data-active]:not([data-tuning]) {
     animation: rd-lock 0.7s ease-out both;
   }
-  .rd-speaker {
-    animation: rd-speaker 3.2s ease-in-out infinite;
-  }
-  @keyframes rd-glow {
-    0%, 100% { opacity: 1; }
-    18% { opacity: 0.85; }
-    20% { opacity: 0.5; }
-    23% { opacity: 1; }
-    64% { opacity: 0.92; }
-    66% { opacity: 0.6; }
-    68% { opacity: 1; }
+  @keyframes rd-led {
+    0%, 78%, 100% { opacity: 1; }
+    80% { opacity: 0.15; }
   }
   @keyframes rd-breathe {
-    0%, 100% { opacity: 0.85; }
-    50% { opacity: 1; }
+    0%, 100% { filter: brightness(0.96); }
+    50% { filter: brightness(1.06); }
   }
-  @keyframes rd-vu {
-    0%, 100% { transform: rotate(-28deg); }
-    12% { transform: rotate(-6deg); }
-    24% { transform: rotate(-22deg); }
-    37% { transform: rotate(14deg); }
-    50% { transform: rotate(-12deg); }
-    63% { transform: rotate(4deg); }
-    78% { transform: rotate(-30deg); }
-    90% { transform: rotate(-16deg); }
-  }
-  @keyframes rd-vu-noise {
-    0% { transform: rotate(38deg); }
-    25% { transform: rotate(18deg); }
-    50% { transform: rotate(44deg); }
-    75% { transform: rotate(26deg); }
-    100% { transform: rotate(38deg); }
-  }
-  @keyframes rd-onair {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.45; }
+  @keyframes rd-sig {
+    0% { opacity: 0.9; }
+    50% { opacity: 0.18; }
   }
   @keyframes rd-noise {
     0% { transform: translate(0, 0); }
@@ -2770,9 +2621,5 @@
     35% { opacity: 0.7; filter: blur(2px); transform: translateX(4px); }
     55% { opacity: 0.4; filter: blur(1px); transform: translateX(-2px); }
     100% { opacity: 1; filter: blur(0); transform: none; }
-  }
-  @keyframes rd-speaker {
-    0%, 100% { filter: brightness(1); }
-    50% { filter: brightness(1.12); }
   }
 }

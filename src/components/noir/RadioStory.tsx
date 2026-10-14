@@ -4,8 +4,8 @@ import { prefersReducedMotion } from '../../lib/motion'
 import { ShotOnView } from './ShotFx'
 import '../../pages/events/noir.css'
 
-// «Сюжет вечера» как ламповый приёмник: три волны — акты расследования, остальные — ночной эфир города.
-// Настраиваться можно ручкой, стрелками или клавишами-пресетами; между волнами стрелка идёт по шкале, а экран «шипит».
+// «Сюжет вечера» как автомагнитола: три волны — акты расследования, остальные — ночной эфир города.
+// Настраиваться можно ручкой, кнопками поиска, клавишами-пресетами и стрелками клавиатуры; между волнами стрелка идёт по шкале, а экран «шипит».
 
 const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI']
 const MIN = 87.5
@@ -96,143 +96,118 @@ export default function RadioStory({ acts, extras }: { acts: EventAct[]; extras:
   const actKeys = stations.map((s, i) => ({ s, i })).filter(({ s }) => s.kind === 'act')
   const extraKeys = stations.map((s, i) => ({ s, i })).filter(({ s }) => s.kind === 'extra')
   const rot = -140 + (idx / Math.max(1, n - 1)) * 280
+  // Уровень сигнала: у актов — полный, у ночных волн слабее, у шестой — почти нет.
+  const level = st.silent ? 1 : st.kind === 'act' ? 5 : 4
 
   return (
     <div className="rd" data-silent={st.silent ? '' : undefined} data-tuning={tuning ? '' : undefined}>
-      {/* Лампы и антенна — как на референсах: тёплый свет в тёмной комнате. */}
-      <div className="rd-tubes" aria-hidden="true">
-        <i />
-        <i />
-      </div>
-      <div className="rd-antenna" aria-hidden="true" />
+      <div className="rd-face">
+        <i className="rd-led" aria-hidden="true" />
 
-      <div className="rd-body">
-        <div className="rd-top">
-          <div className="rd-vu" aria-hidden="true">
-            <svg viewBox="0 0 120 74" className="rd-vu-face">
-              <path d="M12 58 A52 52 0 0 1 108 58" fill="none" stroke="#2b1a0c" strokeWidth="1.2" />
-              {Array.from({ length: 11 }, (_, i) => {
-                const a = (-50 + i * 10) * (Math.PI / 180)
-                const x1 = 60 + Math.sin(a) * 47
-                const y1 = 62 - Math.cos(a) * 47
-                const x2 = 60 + Math.sin(a) * (i % 5 === 0 ? 37 : 41)
-                const y2 = 62 - Math.cos(a) * (i % 5 === 0 ? 37 : 41)
-                return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke={i >= 8 ? '#9a1d14' : '#2b1a0c'} strokeWidth={i % 5 === 0 ? 1.6 : 1} />
-              })}
-              <path d="M86 24 A52 52 0 0 1 108 58" fill="none" stroke="#9a1d14" strokeWidth="3" opacity="0.55" />
-              <text x="60" y="44" textAnchor="middle" className="rd-vu-text">
-                СИГНАЛ
-              </text>
-              <line x1="60" y1="62" x2="60" y2="16" className="rd-vu-needle" />
-              <circle cx="60" cy="62" r="4.2" fill="#1b1410" />
-            </svg>
+        <div className="rd-seek">
+          <button type="button" className="rd-seek-btn" onClick={() => tune(idx - 1)} aria-label="Предыдущая волна">
+            ◄◄
+          </button>
+          <button type="button" className="rd-seek-btn" onClick={() => tune(idx + 1)} aria-label="Следующая волна">
+            ►►
+          </button>
+          <span className="rd-cap">Поиск</span>
+        </div>
+
+        <div className="rd-display">
+          <div className="rd-strip">
+            <div className="rd-scale" aria-hidden="true">
+              {TICKS.map((f) => (
+                <i key={f} className={Number.isInteger(f) ? (f % 4 === 0 ? 'rd-t rd-t-4' : 'rd-t rd-t-1') : 'rd-t'} style={{ left: `${pct(f)}%` }} />
+              ))}
+              {[88, 92, 96, 100, 104, 108].map((f) => (
+                <b key={f} className="rd-num" style={{ left: `${pct(f)}%` }}>
+                  {f}
+                </b>
+              ))}
+              {stations.map((s, i) => (
+                <i key={s.id} className="rd-mark" data-act={s.kind === 'act' ? '' : undefined} data-on={i === idx ? '' : undefined} style={{ left: `${pct(s.freq)}%` }} />
+              ))}
+              <i className="rd-needle" style={{ left: `${pct(freq)}%` }} />
+            </div>
+            <div className="rd-readout">
+              <span className="rd-fm">FM1</span>
+              <span className="rd-freq">{freq.toFixed(1)}</span>
+              <span className="rd-mhz">МГц</span>
+              <span className="rd-sig" data-level={level} aria-hidden="true">
+                <i />
+                <i />
+                <i />
+                <i />
+                <i />
+              </span>
+              <span className="rd-name">{tuning ? '· · ·' : st.name}</span>
+            </div>
+            <div className="rd-glass" aria-hidden="true" />
           </div>
 
-          <div className="rd-dial-frame">
-            <div className="rd-dial">
-              <div className="rd-scale">
-                {TICKS.map((f) => (
-                  <i key={f} className={Number.isInteger(f) ? (f % 4 === 0 ? 'rd-t rd-t-4' : 'rd-t rd-t-1') : 'rd-t'} style={{ left: `${pct(f)}%` }} />
-                ))}
-                {[88, 92, 96, 100, 104, 108].map((f) => (
-                  <b key={f} className="rd-num" style={{ left: `${pct(f)}%` }}>
-                    {f}
-                  </b>
-                ))}
-                {stations.map((s, i) => (
-                  <i key={s.id} className="rd-mark" data-act={s.kind === 'act' ? '' : undefined} data-on={i === idx ? '' : undefined} style={{ left: `${pct(s.freq)}%` }} />
-                ))}
-                <i className="rd-needle" style={{ left: `${pct(freq)}%` }} />
-              </div>
-              <div className="rd-readout">
-                <span className="rd-fm">FM</span>
-                <span className="rd-freq">{freq.toFixed(1)}</span>
-                <span className="rd-mhz">МГц</span>
-                <span className="rd-name">{tuning ? '· · ·' : st.name}</span>
-              </div>
-              <div className="rd-glass" />
-            </div>
+          {/* Все эфиры лежат в одной ячейке, видна только выбранная: высота экрана равна самому длинному тексту и не прыгает при переключении. */}
+          <div className="rd-screen" role="region" aria-label="Эфир" aria-live="polite">
+            <div className="rd-noise" data-on={tuning ? '' : undefined} aria-hidden="true" />
+            {stations.map((s, i) => {
+              const active = i === idx
+              return (
+                <div key={s.id} className="rd-air" data-active={active ? '' : undefined} data-tuning={active && tuning ? '' : undefined} aria-hidden={!active}>
+                  {s.kind === 'act' ? (
+                    <>
+                      <p className="rd-eyebrow">
+                        {s.name} · {s.freq.toFixed(1)} FM
+                      </p>
+                      <h3 className="font-noir rd-title">{s.title}</h3>
+                      <div className="rd-copy">
+                        {s.paragraphs?.map((p) => (
+                          <p key={p}>{p}</p>
+                        ))}
+                      </div>
+                      {s.sealed && (
+                        <div className="relative mt-3 inline-block">
+                          <div className="noir-sealed rounded px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.16em]">{s.sealed}</div>
+                          {active && !tuning && <ShotOnView x="78%" y="50%" size={0.5} />}
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <p className="rd-eyebrow">Ночной эфир · {s.freq.toFixed(1)} FM</p>
+                      <h3 className="font-noir rd-title">{s.name}</h3>
+                      <p className="rd-eyebrow rd-eyebrow-2">{s.silent ? 'Нет сигнала' : 'В эфире'}</p>
+                      <div className="rd-copy">
+                        <p>{s.description}</p>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )
+            })}
           </div>
         </div>
 
-        <div className="rd-mid">
-          <div className="rd-speaker" aria-hidden="true">
-            <span className="rd-onair">В эфире</span>
-          </div>
-
-          <div className="rd-screen" role="region" aria-label="Эфир" aria-live="polite">
-            <div className="rd-noise" data-on={tuning ? '' : undefined} aria-hidden="true" />
-            <div key={st.id} className="rd-air" data-tuning={tuning ? '' : undefined}>
-              {st.kind === 'act' ? (
-                <>
-                  <p className="rd-eyebrow">
-                    {st.name} · {st.freq.toFixed(1)} FM
-                  </p>
-                  <h3 className="font-noir rd-title">{st.title}</h3>
-                  <div className="rd-copy">
-                    {st.paragraphs?.map((p) => (
-                      <p key={p}>{p}</p>
-                    ))}
-                  </div>
-                  {st.sealed && !tuning && (
-                    <div className="relative mt-4 inline-block">
-                      <div className="noir-sealed rounded px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em]">{st.sealed}</div>
-                      <ShotOnView x="78%" y="50%" size={0.55} />
-                    </div>
-                  )}
-                </>
-              ) : (
-                <>
-                  <p className="rd-eyebrow">Ночной эфир · {st.freq.toFixed(1)} FM</p>
-                  <h3 className="font-noir rd-title">{st.name}</h3>
-                  <p className="rd-eyebrow rd-eyebrow-2">{st.silent ? 'Нет сигнала' : 'В эфире'}</p>
-                  <div className="rd-copy">
-                    <p>{st.description}</p>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-
-          <div className="rd-ctl">
-            <div className="rd-tune">
-              <button type="button" className="rd-arrow" onClick={() => tune(idx - 1)} aria-label="Предыдущая волна">
-                ◄
-              </button>
-              <button type="button" className="rd-knob" style={{ '--rot': `${rot}deg` } as CSSProperties} onClick={() => tune(idx + 1)} onKeyDown={onKnobKey} aria-label={`Ручка настройки. Сейчас: ${st.name}, ${st.freq.toFixed(1)} мегагерц. Нажмите, чтобы переключить на следующую волну`} />
-              <button type="button" className="rd-arrow" onClick={() => tune(idx + 1)} aria-label="Следующая волна">
-                ►
-              </button>
-            </div>
-            <div className="rd-minis" aria-hidden="true">
-              <i style={{ '--rot': '-35deg' } as CSSProperties} />
-              <i style={{ '--rot': '50deg' } as CSSProperties} />
-            </div>
-          </div>
+        <div className="rd-tune">
+          <button type="button" className="rd-knob" style={{ '--rot': `${rot}deg` } as CSSProperties} onClick={() => tune(idx + 1)} onKeyDown={onKnobKey} aria-label={`Ручка настройки. Сейчас: ${st.name}, ${st.freq.toFixed(1)} мегагерц. Нажмите, чтобы переключить на следующую волну`} />
+          <span className="rd-cap">Настройка</span>
         </div>
 
         <div className="rd-keys">
-          <div className="rd-group">
-            <span className="rd-cap">Акты</span>
-            <div className="rd-row rd-row-acts">
-              {actKeys.map(({ s, i }) => (
-                <button key={s.id} type="button" className="rd-key rd-key-act" aria-pressed={i === idx} aria-label={`${s.name}: ${s.title}, ${s.freq.toFixed(1)} мегагерц`} onClick={() => tune(i)}>
-                  <span className="rd-key-n">{s.key}</span>
-                  <span className="rd-key-l">{s.freq.toFixed(1)}</span>
-                </button>
-              ))}
-            </div>
+          <div className="rd-acts">
+            {actKeys.map(({ s, i }) => (
+              <button key={s.id} type="button" className="rd-key rd-key-act" aria-pressed={i === idx} aria-label={`${s.name}: ${s.title}, ${s.freq.toFixed(1)} мегагерц`} onClick={() => tune(i)}>
+                <span className="rd-key-n">{s.key}</span>
+                <span className="rd-key-l">{s.freq.toFixed(1)}</span>
+              </button>
+            ))}
           </div>
-          <div className="rd-group">
-            <span className="rd-cap">Ночной эфир</span>
-            <div className="rd-row rd-row-extra">
-              {extraKeys.map(({ s, i }, k) => (
-                <button key={s.id} type="button" className="rd-key" aria-pressed={i === idx} aria-label={`${s.name}, ${s.freq.toFixed(1)} мегагерц`} onClick={() => tune(i)}>
-                  <span className="rd-key-n">{k + 1}</span>
-                  <span className="rd-key-l">{s.key}</span>
-                </button>
-              ))}
-            </div>
+          <div className="rd-extra">
+            {extraKeys.map(({ s, i }, k) => (
+              <button key={s.id} type="button" className="rd-key" aria-pressed={i === idx} aria-label={`${s.name}, ${s.freq.toFixed(1)} мегагерц`} onClick={() => tune(i)}>
+                <span className="rd-key-n">{k + 1}</span>
+                <span className="rd-key-l">{s.key}</span>
+              </button>
+            ))}
           </div>
         </div>
       </div>
