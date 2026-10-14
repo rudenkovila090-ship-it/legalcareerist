@@ -194,6 +194,7 @@ function EvidenceFile({ character, index, dateLabel, dateCode, onClose }: Eviden
   // Имя можно объявить раньше темы: пока темы нет, «показания» и блокнот остаются закрытыми.
   const hasTalk = Boolean(speaker?.topic)
   const themes = speaker?.themes ?? []
+  const meaning = speaker?.meaning
   const risk = speaker?.risk
   const titleId = useId()
   const closeRef = useRef<HTMLButtonElement>(null)
@@ -268,15 +269,25 @@ function EvidenceFile({ character, index, dateLabel, dateCode, onClose }: Eviden
         </div>
 
         <div className="ef-piece ef-notebook" style={piece(4, -1)}>
-          <p className="ef-h">О чем расскажет</p>
-          {themes.length > 0 ? (
-            <ul>
-              {themes.map((t) => (
-                <li key={t}>{t}</li>
-              ))}
-            </ul>
-          ) : (
+          {themes.length > 0 && (
             <>
+              <p className="ef-h">О чем расскажет</p>
+              <ul>
+                {themes.map((t) => (
+                  <li key={t}>{t}</li>
+                ))}
+              </ul>
+            </>
+          )}
+          {meaning && (
+            <>
+              <p className={themes.length > 0 ? 'ef-h ef-h-next' : 'ef-h'}>Смысл</p>
+              <p>{meaning}</p>
+            </>
+          )}
+          {themes.length === 0 && !meaning && (
+            <>
+              <p className="ef-h">О чем расскажет</p>
               <div className="ef-lines" aria-hidden="true">
                 <i style={{ width: '88%' }} />
                 <i style={{ width: '64%' }} />
@@ -293,7 +304,14 @@ function EvidenceFile({ character, index, dateLabel, dateCode, onClose }: Eviden
           {speaker && hasTalk ? (
             <>
               <p className="ef-topic">«{speaker.topic}»</p>
+              {speaker.suspect && (
+                <p className="ef-suspect">
+                  <span>Подозреваемый</span>
+                  <b>{speaker.suspect}</b>
+                </p>
+              )}
               {speaker.topicLead && <p>{speaker.topicLead}.</p>}
+              {speaker.description && <p>{speaker.description}</p>}
               {speaker.questions?.map((q) => (
                 <p key={q}>{q}</p>
               ))}

@@ -1070,6 +1070,33 @@
   font-weight: 600;
   line-height: 1.25;
 }
+/* «Подозреваемый» — красный штамп в показаниях: что именно разбирается на выступлении. */
+.ef-suspect {
+  display: grid;
+  gap: 0.1rem;
+  justify-self: start;
+  padding: 0.35rem 0.65rem 0.4rem;
+  border: 1.5px solid var(--stamp-red);
+  border-radius: 3px;
+  color: var(--stamp-red);
+  mix-blend-mode: multiply;
+  transform: rotate(-1.5deg);
+}
+.ef-suspect span {
+  font-size: 0.66em;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.ef-suspect b {
+  font-size: 0.95em;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.ef-h-next {
+  margin-top: 0.9rem;
+}
 .ef-by {
   margin-top: 0.2rem;
   font-size: 0.92em;
