@@ -50,6 +50,11 @@ function Paperclip() {
   )
 }
 
+/** Лист бумаги с рваным краем, пятнами и заломами — фон карточки-«вещдока» (стили .ef-paper). */
+function Paper() {
+  return <i className="ef-paper" aria-hidden="true" />
+}
+
 /** Тёмный силуэт «фото» — пока у гостя нет снимка. Виден только контур, лицо не прорисовано, как на референсе. Фон — в CSS (.ef-photo). */
 function SilhouetteArt({ kind }: { kind: Silhouette }) {
   return (
@@ -202,7 +207,18 @@ function EvidenceFile({ character, index, dateLabel, dateCode, onClose }: Eviden
   const closeRef = useRef<HTMLButtonElement>(null)
   const pressedBackdrop = useRef(false)
   const { face } = look(index)
-  const piece = (k: number, r: number) => ({ '--k': k, '--r': `${r}deg` }) as CSSProperties
+  // --k/--r — порядок и наклон листа; остальное — где у него пятно, затёртость и залом (у каждого свои, чтобы листы не выглядели копиями).
+  const piece = (k: number, r: number) =>
+    ({
+      '--k': k,
+      '--r': `${r}deg`,
+      '--sx': `${18 + ((k * 37) % 64)}%`,
+      '--sy': `${14 + ((k * 53) % 60)}%`,
+      '--bx': `${(k * 29) % 90}%`,
+      '--by': `${40 + ((k * 41) % 55)}%`,
+      '--cy': `${34 + ((k * 17) % 34)}%`,
+      '--ca': `${-3 + (k % 5)}deg`,
+    }) as CSSProperties
 
   useEffect(() => {
     closeRef.current?.focus()
@@ -246,14 +262,17 @@ function EvidenceFile({ character, index, dateLabel, dateCode, onClose }: Eviden
         </button>
 
         <div className="ef-piece ef-label ef-label-l" style={piece(0, -2)}>
+          <Paper />
           <i className="ef-tape ef-tape-l" />
           <span>Материалы дела</span>
         </div>
         <div className="ef-piece ef-label ef-label-r" style={piece(1, 1)}>
+          <Paper />
           <span>№ {fileNumber(dateCode, index)}</span>
         </div>
 
         <figure className="ef-piece ef-polaroid" style={piece(2, -1.4)}>
+          <Paper />
           <div className="ef-photo">{speaker?.photo ? <img src={speaker.photo} alt={speaker.name} draggable={false} /> : <SilhouetteArt kind={face} />}</div>
           <figcaption id={titleId} className="ef-script">
             {speaker ? speaker.name : 'Имя объявим позже'}
@@ -262,6 +281,7 @@ function EvidenceFile({ character, index, dateLabel, dateCode, onClose }: Eviden
         </figure>
 
         <div className="ef-piece ef-sticky" style={piece(3, 2)}>
+          <Paper />
           <i className="ef-tape ef-tape-tl" />
           <i className="ef-tape ef-tape-br" />
           <p className="ef-k">Проходит по делу как</p>
@@ -271,6 +291,7 @@ function EvidenceFile({ character, index, dateLabel, dateCode, onClose }: Eviden
         </div>
 
         <div className="ef-piece ef-notebook" style={piece(4, -1)}>
+          <Paper />
           {hasAbout && (
             <>
               <p className="ef-h">О чем расскажет</p>
@@ -304,6 +325,7 @@ function EvidenceFile({ character, index, dateLabel, dateCode, onClose }: Eviden
         </div>
 
         <div className="ef-piece ef-witness" style={piece(5, 1.2)}>
+          <Paper />
           <i className="ef-tape ef-tape-tl" />
           <p className="ef-h">Показания</p>
           {speaker && hasTalk ? (
@@ -334,12 +356,14 @@ function EvidenceFile({ character, index, dateLabel, dateCode, onClose }: Eviden
         </div>
 
         <div className="ef-piece ef-map" style={piece(6, -1.6)}>
+          <Paper />
           <PublicationMap route={speaker?.map === 'route'} />
           <p className="ef-script ef-script-sm">{speaker?.map === 'route' ? 'Путь публикации' : 'Место происшествия'}</p>
         </div>
 
         {/* Описание роли: то, что раньше было отдельным блоком «Персонажи и роли». */}
         <div className="ef-piece ef-role" style={piece(7, -0.5)}>
+          <Paper />
           <i className="ef-tape ef-tape-tr" />
           <div className="ef-role-head">
             <span className="ef-glyph" aria-hidden="true">
@@ -371,6 +395,7 @@ function EvidenceFile({ character, index, dateLabel, dateCode, onClose }: Eviden
         </div>
 
         <div className="ef-piece ef-risk" style={piece(8, -0.8)}>
+          <Paper />
           <p className="ef-h">Уровень риска</p>
           <div className="ef-scale" role="img" aria-label={risk ? `Уровень риска: ${risk} из 5` : 'Уровень риска пока не установлен'}>
             {[1, 2, 3, 4, 5].map((n) => (

@@ -122,84 +122,87 @@
   stroke-dashoffset: 1;
 }
 .cm-block {
-  stroke: rgba(234, 223, 200, 0.15);
+  stroke: rgba(200, 190, 170, 0.12);
   stroke-width: 1.1;
 }
 .cm-avenue {
-  stroke: rgba(217, 168, 92, 0.28);
+  stroke: rgba(160, 142, 108, 0.2);
   stroke-width: 2.2;
 }
 .cm-ring {
-  stroke: rgba(234, 223, 200, 0.13);
+  stroke: rgba(200, 190, 170, 0.11);
   stroke-width: 1.4;
 }
 .cm-river {
-  stroke: rgba(150, 170, 190, 0.11);
+  stroke: rgba(120, 135, 150, 0.09);
   stroke-width: 34;
 }
 .cm-bank {
-  stroke: rgba(180, 195, 210, 0.22);
+  stroke: rgba(150, 165, 180, 0.17);
   stroke-width: 1.2;
 }
+/* Красная нить — густая, тёмная, как засохшая кровь, а не неоновая линия. */
 .cm-thread {
-  stroke: rgba(211, 48, 59, 0.75);
-  stroke-width: 1.5;
+  stroke: rgba(140, 22, 32, 0.8);
+  stroke-width: 1.3;
 }
+
+/* Метки: вещдоки на карте. Грязные кольца от руки, угловатые значки, подписи машинописью на зачернённой полосе. */
 .cm-m {
+  --cm-ink: #c4bba6;
+  --cm-ring: rgba(196, 187, 166, 0.55);
   opacity: 0;
-  transition: opacity 0.6s;
+  transition: opacity 0.8s;
 }
 .cm-m.on {
   opacity: 1;
 }
-.cm-pop {
-  transform: scale(0.4);
-  transition: transform 0.7s cubic-bezier(0.3, 1.6, 0.5, 1);
+.cm-red {
+  --cm-ink: #b8323d;
+  --cm-ring: rgba(150, 26, 36, 0.9);
 }
-.cm-m.on .cm-pop {
-  transform: scale(1);
+.cm-amber {
+  --cm-ink: #b39560;
+  --cm-ring: rgba(150, 118, 62, 0.65);
 }
 .cm-disc {
-  fill: rgba(11, 5, 6, 0.9);
-  stroke-width: 1.6;
+  fill: rgba(7, 3, 4, 0.92);
 }
-.cm-red .cm-disc {
-  stroke: #d3303b;
+.cm-loop {
+  fill: none;
+  stroke: var(--cm-ring);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
-.cm-red .cm-icon {
-  stroke: #ec5b66;
+.cm-loop-2 {
+  stroke-width: 1.1;
+  opacity: 0.7;
 }
-.cm-amber .cm-disc {
-  stroke: #d9a85c;
+.cm-icon {
+  stroke: var(--cm-ink);
 }
-.cm-amber .cm-icon {
-  stroke: #ebc27f;
+.cm-fill {
+  fill: var(--cm-ink);
+  stroke: none;
 }
-.cm-cream .cm-disc {
-  stroke: rgba(234, 223, 200, 0.7);
-}
-.cm-cream .cm-icon {
-  stroke: #eadfc8;
+.cm-stain {
+  fill: rgba(92, 10, 18, 0.34);
 }
 .cm-glow {
-  fill: rgba(217, 168, 92, 0.17);
+  fill: rgba(150, 110, 50, 0.1);
 }
-.cm-ping {
-  fill: none;
-  stroke: #d3303b;
-  stroke-width: 1.4;
-  opacity: 0;
+.cm-redact {
+  fill: rgba(5, 2, 3, 0.9);
+  stroke: rgba(200, 190, 170, 0.1);
+  stroke-width: 0.8;
 }
 .cm-label {
-  font-family: var(--font-sans);
-  font-size: 12px;
+  font-family: 'IBM Plex Mono', ui-monospace, 'Courier New', monospace;
+  font-size: 10.5px;
   font-weight: 600;
-  letter-spacing: 0.14em;
-  fill: rgba(234, 223, 200, 0.85);
-  paint-order: stroke;
-  stroke: #0b0506;
-  stroke-width: 5px;
-  stroke-linejoin: round;
+  letter-spacing: 0.1em;
+  fill: rgba(214, 203, 178, 0.74);
 }
 .cm-vignette {
   position: absolute;
@@ -261,12 +264,19 @@
   min-height: 15rem;
   padding: 26px 28px 46px;
   border-radius: 6px;
-  background-color: #e8dcc2;
-  background-image: linear-gradient(rgba(60, 40, 20, 0.08) 1px, transparent 1px), radial-gradient(120% 100% at 0% 0%, rgba(255, 255, 255, 0.35), transparent 60%);
-  background-size: 100% 30px, auto;
+  background-color: #d9cca9;
+  background-image:
+    linear-gradient(rgba(60, 40, 20, 0.1) 1px, transparent 1px),
+    linear-gradient(180deg, transparent 63%, rgba(255, 250, 236, 0.22) 63.4%, rgba(58, 36, 12, 0.2) 63.9%, transparent 65%),
+    var(--fibers),
+    var(--mottle),
+    var(--noise),
+    radial-gradient(120% 100% at 0% 0%, rgba(255, 255, 255, 0.2), transparent 60%),
+    radial-gradient(60% 40% at 90% 85%, rgba(88, 56, 18, 0.26), transparent 70%);
+  background-size: 100% 30px, auto, auto, auto, auto, auto, auto;
   color: #24150d;
   font-family: 'Courier New', ui-monospace, monospace;
-  box-shadow: 0 10px 24px -12px rgba(0, 0, 0, 0.7);
+  box-shadow: 0 10px 24px -12px rgba(0, 0, 0, 0.7), inset 0 0 28px rgba(100, 64, 22, 0.42);
   transform-origin: left center;
   backface-visibility: hidden;
 }
@@ -443,8 +453,8 @@
   position: relative;
   display: block;
   padding: 6px 6px 22px;
-  background: #e9dec6;
-  box-shadow: 0 10px 22px -8px rgba(0, 0, 0, 0.8);
+  background: var(--fibers), var(--mottle), var(--noise), linear-gradient(160deg, #e1d4b2, #cbbb94);
+  box-shadow: 0 10px 22px -8px rgba(0, 0, 0, 0.8), inset 0 0 14px rgba(100, 64, 22, 0.42);
   transform-origin: 50% 0;
 }
 .eb-photo {
@@ -464,7 +474,7 @@
   right: -18%;
   bottom: 8px;
   padding: 0.6rem 0.75rem 0.65rem;
-  background: #f0e6cf;
+  background: var(--fibers), var(--mottle), var(--noise), linear-gradient(160deg, #e9ddbf, #d6c6a0);
   color: #24150d;
   /* Основной шрифт сайта и размер от 14px: прежний жирный Courier New в 10px на кириллице слипался. */
   font-family: var(--font-sans);
@@ -524,12 +534,29 @@
   backdrop-filter: blur(6px);
 }
 
+/* ===== Потёртость: общий язык бумаги =====
+   Всё «бумажное» на странице (карточки дел, папки, листы досье, фото на стене) стареет одинаково: зерно, разводы, жёлтые края,
+   заломы, рваные кромки, пятна. Не руины — вещи, которые часто открывали и держали в руках. */
+.theme-noir,
+.ef-overlay {
+  --noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .2 0 0 0 0 .12 0 0 0 0 .04 0 0 0 .62 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --mottle: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='420' height='420'%3E%3Cfilter id='m' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.011 .018' numOctaves='3' seed='6' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .36 0 0 0 0 .22 0 0 0 0 .07 0 0 0 1.25 -.42'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23m)'/%3E%3C/svg%3E");
+  --fibers: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='f' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.012 .6' numOctaves='2' seed='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .3 0 0 0 0 .2 0 0 0 0 .08 0 0 0 .55 -.2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E");
+  --ink-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='k'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.7' numOctaves='3' seed='9' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -4.2 3.1'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23k)'/%3E%3C/svg%3E");
+  --scratch: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='375' viewBox='0 0 300 375'%3E%3Cg fill='none' stroke='%23fff' stroke-linecap='round'%3E%3Cpath d='M42 0 L47 120 L44 250 L49 375' stroke-width='.7' opacity='.32'/%3E%3Cpath d='M210 20 L205 90 L212 160' stroke-width='.5' opacity='.4'/%3E%3Cpath d='M120 300 Q150 311 190 296' stroke-width='.9' opacity='.42'/%3E%3Cpath d='M10 200 L90 191' stroke-width='.5' opacity='.34'/%3E%3Cpath d='M250 0 L262 140 L255 212' stroke-width='.8' opacity='.28'/%3E%3Cpath d='M165 0 L170 60' stroke-width='.5' opacity='.35'/%3E%3Cpath d='M0 330 L120 322' stroke-width='.6' opacity='.3'/%3E%3C/g%3E%3Cg fill='%23fff'%3E%3Ccircle cx='30' cy='60' r='.9' opacity='.5'/%3E%3Ccircle cx='88' cy='140' r='1.1' opacity='.6'/%3E%3Ccircle cx='200' cy='45' r='.8' opacity='.5'/%3E%3Ccircle cx='251' cy='222' r='1.3' opacity='.45'/%3E%3Ccircle cx='140' cy='330' r='.9' opacity='.6'/%3E%3Ccircle cx='60' cy='290' r='1.2' opacity='.5'/%3E%3Ccircle cx='270' cy='300' r='.8' opacity='.5'/%3E%3Ccircle cx='170' cy='170' r='.7' opacity='.5'/%3E%3Ccircle cx='115' cy='40' r='.6' opacity='.5'/%3E%3Ccircle cx='225' cy='110' r='1' opacity='.55'/%3E%3Ccircle cx='15' cy='345' r='1.1' opacity='.5'/%3E%3Ccircle cx='190' cy='250' r='.7' opacity='.45'/%3E%3Ccircle cx='95' cy='235' r='.9' opacity='.5'/%3E%3Ccircle cx='282' cy='60' r='.8' opacity='.5'/%3E%3C/g%3E%3C/svg%3E");
+  --rough-a: polygon(0.6% 1.4%, 5% 0.4%, 12% 1.2%, 22% 0.3%, 35% 1%, 49% 0.2%, 63% 0.9%, 78% 0.1%, 90% 0.8%, 96% 0%, 100% 4.5%, 99.5% 16%, 100% 31%, 99.3% 48%, 100% 63%, 99.4% 79%, 99.9% 92%, 99.2% 99.5%, 90% 99%, 76% 99.8%, 61% 99.1%, 47% 100%, 31% 99.3%, 17% 99.9%, 6% 99.2%, 0.4% 99.7%, 0.9% 86%, 0.1% 70%, 0.7% 53%, 0% 37%, 0.8% 21%, 0.2% 9%);
+  --rough-b: polygon(0.3% 0.6%, 9% 0.1%, 21% 0.9%, 37% 0.2%, 52% 1%, 68% 0.3%, 83% 0.9%, 94% 0.2%, 99.6% 1%, 100% 15%, 99.2% 29%, 99.9% 46%, 99.1% 62%, 100% 77%, 99.4% 91%, 99.8% 99.4%, 86% 98.6%, 71% 99.7%, 58% 98.9%, 44% 99.8%, 30% 99%, 15% 99.6%, 7% 100%, 0% 92%, 0.9% 78%, 0.1% 60%, 0.8% 42%, 0.2% 25%, 0.6% 10%);
+  --rough-c: polygon(7% 0.4%, 18% 1%, 31% 0.2%, 46% 0.9%, 60% 0.1%, 74% 0.8%, 88% 0.2%, 99.6% 0.7%, 100% 14%, 99.3% 33%, 99.9% 52%, 99.2% 71%, 100% 88%, 99.4% 99.5%, 84% 99%, 69% 99.9%, 53% 99.1%, 38% 99.8%, 22% 99.2%, 9% 99.8%, 0.3% 99.2%, 0.9% 80%, 0.1% 63%, 0.7% 46%, 0.2% 30%, 0.8% 17%, 0% 7%);
+  --rough-d: polygon(0% 2.5%, 4% 0.5%, 9% 2%, 15% 0.3%, 22% 1.8%, 30% 0.2%, 38% 2.1%, 47% 0.4%, 55% 1.9%, 64% 0.1%, 72% 2%, 81% 0.4%, 89% 1.7%, 96% 0.2%, 100% 2%, 99.6% 30%, 100% 62%, 99.5% 100%, 55% 99.4%, 0.4% 100%, 0.2% 58%, 0.6% 28%);
+  --sf-rough-1: polygon(0.8% 0.9%, 9% 0.2%, 21% 1.1%, 34% 0.3%, 47% 1.2%, 61% 0.2%, 76% 0.9%, 90% 0.1%, 100% 1.4%, 99.4% 14%, 100% 30%, 99.2% 47%, 100% 63%, 99.5% 80%, 100% 94%, 99% 100%, 88% 99.1%, 74% 99.9%, 59% 98.9%, 45% 99.8%, 31% 99%, 17% 99.9%, 6% 99.2%, 0.5% 100%, 0% 85%, 0.8% 66%, 0.1% 48%, 0.9% 30%, 0.2% 14%);
+  --sf-rough-2: polygon(0.4% 0.2%, 12% 0.9%, 26% 0.1%, 41% 1%, 55% 0.2%, 70% 1.1%, 84% 0.3%, 100% 1%, 99.5% 20%, 100% 38%, 99.1% 57%, 99.9% 75%, 99.2% 91%, 100% 99.6%, 82% 99%, 66% 99.9%, 50% 98.8%, 35% 99.8%, 20% 99.1%, 8% 100%, 0.3% 99.3%, 0.9% 82%, 0.2% 64%, 0.8% 44%, 0.1% 27%, 0.7% 12%);
+  --sf-rough-3: polygon(2% 0.3%, 14% 1%, 29% 0.2%, 44% 0.9%, 58% 0.1%, 73% 1%, 88% 0.2%, 99.5% 0.9%, 100% 16%, 99.3% 34%, 100% 52%, 99.4% 70%, 100% 85%, 99.5% 100%, 90% 99.2%, 76% 99.9%, 62% 99%, 47% 99.8%, 33% 98.9%, 18% 99.7%, 7% 99.1%, 0% 98%, 0.8% 84%, 0.1% 68%, 0.9% 50%, 0.2% 33%, 0.7% 16%, 0% 5%);
+}
+
 /* ===== Спикеры: папки-разделители и карточка дела ===== */
 
 .sf,
 .ef-overlay {
-  /* Зернистость бумаги: мелкий шум, зашитый в SVG, — без отдельных картинок. */
-  --noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .2 0 0 0 0 .12 0 0 0 0 .04 0 0 0 .5 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   --stamp-red: #a3281b;
   --ink-brown: #2a1d12;
 }
@@ -572,10 +599,12 @@
   cursor: pointer;
   container-type: inline-size;
   -webkit-tap-highlight-color: transparent;
+  /* Тень по рваному контуру папки и язычка, а не по прямоугольнику. */
+  filter: drop-shadow(5px 6px 4px rgba(0, 0, 0, 0.55)) drop-shadow(0 14px 12px rgba(0, 0, 0, 0.35));
   transition: filter 0.3s;
 }
 .sf-card:hover {
-  filter: brightness(1.07);
+  filter: drop-shadow(7px 9px 5px rgba(0, 0, 0, 0.6)) drop-shadow(0 20px 16px rgba(0, 0, 0, 0.4)) brightness(1.07);
 }
 .sf-card:focus-visible {
   outline: 2px solid #d9a85c;
@@ -591,26 +620,64 @@
   align-items: center;
   overflow: hidden;
   padding: 7cqw 6cqw 8cqw 8cqw;
-  border-radius: 3px;
+  clip-path: var(--sf-rough, none);
   background:
+    var(--fibers),
+    var(--mottle),
     var(--noise),
-    radial-gradient(110% 55% at 18% 0%, rgba(255, 236, 190, 0.34), transparent 62%),
-    radial-gradient(90% 50% at 92% 100%, rgba(80, 45, 10, 0.3), transparent 66%),
-    linear-gradient(90deg, #b88a55, #c9a06a 7%, #c39a63 93%, #ad7f4a);
+    /* затёртые светлые места там, где папку чаще всего трогали */
+    radial-gradient(60% 30% at 14% 26%, rgba(240, 214, 170, 0.3), transparent 70%),
+    radial-gradient(70% 22% at 80% 72%, rgba(225, 195, 145, 0.22), transparent 70%),
+    /* верх и низ темнее: за них держали пальцами */
+    radial-gradient(90% 16% at 50% 0%, rgba(55, 32, 10, 0.55), transparent 80%),
+    radial-gradient(90% 16% at 50% 100%, rgba(55, 32, 10, 0.55), transparent 80%),
+    /* пятно сырости */
+    radial-gradient(40% 18% at var(--stx, 70%) var(--sty, 58%), rgba(70, 40, 12, 0.34), transparent 72%),
+    linear-gradient(90deg, #a2763f, #b98d55 8%, #b3874f 92%, #946a37);
   box-shadow:
-    inset 0 0 0 1px rgba(70, 40, 10, 0.25),
-    inset 0 0 18px rgba(80, 45, 10, 0.35),
-    6px 0 14px -6px rgba(0, 0, 0, 0.6),
-    0 14px 18px -12px rgba(0, 0, 0, 0.85);
-  transition: box-shadow 0.4s;
+    inset 0 0 0 1px rgba(60, 35, 10, 0.4),
+    inset 0 0 24px rgba(65, 38, 10, 0.6);
 }
-.sf-card:hover .sf-paper,
-.sf-card:focus-visible .sf-paper {
-  box-shadow:
-    inset 0 0 0 1px rgba(70, 40, 10, 0.25),
-    inset 0 0 18px rgba(80, 45, 10, 0.35),
-    8px 0 18px -6px rgba(0, 0, 0, 0.65),
-    0 26px 26px -14px rgba(0, 0, 0, 0.9);
+/* Залом поперёк папки: светлая и тёмная линия рядом, как на сложенной и разложенной бумаге. */
+.sf-paper::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent calc(var(--fy, 62%) - 0.5%), rgba(250, 228, 190, 0.5) var(--fy, 62%), rgba(50, 28, 8, 0.5) calc(var(--fy, 62%) + 0.5%), transparent calc(var(--fy, 62%) + 1.6%));
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 14%, #000 70%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 14%, #000 70%, transparent);
+}
+/* Белёсая кромка с обеих сторон — там, где крафт стёрся и посыпался. */
+.sf-paper::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: linear-gradient(90deg, rgba(246, 224, 186, 0.62) 0 1.5px, transparent 3px calc(100% - 3px), rgba(246, 224, 186, 0.55) calc(100% - 1.5px));
+  -webkit-mask-image: repeating-linear-gradient(180deg, #000 0 11px, transparent 11px 15px, #000 15px 34px, transparent 34px 41px, #000 41px 47px, transparent 47px 60px);
+  mask-image: repeating-linear-gradient(180deg, #000 0 11px, transparent 11px 15px, #000 15px 34px, transparent 34px 41px, #000 41px 47px, transparent 47px 60px);
+}
+/* У каждой папки — свои края, залом и пятно, чтобы не выглядели штампованными. */
+.sf-slot:nth-child(3n + 1) .sf-paper {
+  --sf-rough: var(--sf-rough-1);
+  --fy: 63%;
+  --stx: 74%;
+  --sty: 57%;
+}
+.sf-slot:nth-child(3n + 2) .sf-paper {
+  --sf-rough: var(--sf-rough-2);
+  --fy: 71%;
+  --stx: 26%;
+  --sty: 44%;
+}
+.sf-slot:nth-child(3n) .sf-paper {
+  --sf-rough: var(--sf-rough-3);
+  --fy: 55%;
+  --stx: 62%;
+  --sty: 71%;
 }
 
 /* Карточка-бланк сверху: «Дело / дата / № 03». */
@@ -624,7 +691,9 @@
   width: 100%;
   padding: 3cqw;
   border: 1px solid rgba(47, 33, 19, 0.6);
-  background: rgba(255, 238, 200, 0.22);
+  background: var(--noise), radial-gradient(70% 90% at 90% 20%, rgba(80, 48, 14, 0.2), transparent 70%), rgba(255, 238, 200, 0.2);
+  box-shadow: inset 0 0 8px rgba(70, 42, 12, 0.3);
+  transform: rotate(-0.7deg);
   font: 600 7.2cqw/1.1 'IBM Plex Mono', ui-monospace, 'Courier New', monospace;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -656,6 +725,9 @@
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: #2a1b0f;
+  mix-blend-mode: multiply;
+  opacity: 0.9;
+  text-shadow: 0 0 1px rgba(40, 24, 8, 0.5);
 }
 .sf-epithet {
   display: block;
@@ -677,11 +749,10 @@
   justify-content: center;
   width: 12.5cqw;
   height: 17%;
-  border-radius: 0 3.5cqw 3.5cqw 0;
-  background: var(--noise), linear-gradient(90deg, #b88a55, #c39a63 30%, #c9a06a);
-  box-shadow:
-    inset 0 0 0 1px rgba(70, 40, 10, 0.25),
-    3px 3px 8px -3px rgba(0, 0, 0, 0.7);
+  /* кромка язычка обтрёпана и чуть надорвана */
+  clip-path: polygon(0 0, 70% 3%, 100% 0, 96% 22%, 100% 44%, 95% 68%, 100% 100%, 0 100%);
+  background: var(--fibers), var(--mottle), var(--noise), linear-gradient(90deg, #a2763f, #b58950 30%, #bd9159);
+  box-shadow: inset 0 0 0 1px rgba(60, 35, 10, 0.35), inset -3px 0 8px rgba(60, 35, 10, 0.5);
   color: #2a1b0f;
 }
 .sf-tab span {
@@ -691,7 +762,7 @@
 }
 /* Раскрытое досье помечено красным язычком — сразу видно, чьё имя уже объявлено. */
 .sf-card:not([data-sealed]) .sf-tab {
-  background: var(--noise), linear-gradient(90deg, #8d2417, #a3281b);
+  background: var(--fibers), var(--noise), linear-gradient(90deg, #7b2014, #94261a);
   color: #f3e6c8;
 }
 
@@ -748,8 +819,11 @@
   text-transform: uppercase;
   white-space: nowrap;
   mix-blend-mode: multiply;
-  opacity: 0.82;
+  opacity: 0.8;
   pointer-events: none;
+  /* краска легла неровно: местами пропала */
+  -webkit-mask-image: var(--ink-mask);
+  mask-image: var(--ink-mask);
   transform: translateX(-50%) rotate(-24deg);
 }
 .sf-torn {
@@ -760,8 +834,10 @@
   width: 54cqw;
   height: 40cqw;
   background:
-    repeating-linear-gradient(180deg, transparent 0 10px, rgba(100, 125, 160, 0.38) 10px 11px),
-    linear-gradient(160deg, #f1ead7, #dcd2b8);
+    repeating-linear-gradient(180deg, transparent 0 10px, rgba(100, 125, 160, 0.3) 10px 11px),
+    var(--fibers),
+    var(--mottle),
+    linear-gradient(160deg, #e6dcc0, #cfc09b);
   clip-path: polygon(0 0, 100% 0, 100% 78%, 90% 86%, 82% 79%, 70% 92%, 58% 83%, 44% 96%, 30% 85%, 16% 94%, 6% 83%, 0 90%);
   transform: rotate(7deg);
 }
@@ -772,8 +848,8 @@
   bottom: 12%;
   width: 52cqw;
   padding: 4cqw;
-  background: linear-gradient(160deg, #f1ead7, #d9cfb4);
-  box-shadow: 0 3px 8px -2px rgba(0, 0, 0, 0.55);
+  background: var(--fibers), var(--mottle), var(--noise), linear-gradient(160deg, #e6dcc0, #c8b995);
+  box-shadow: 0 3px 8px -2px rgba(0, 0, 0, 0.55), inset 0 0 10px rgba(90, 58, 18, 0.4);
   transform: rotate(-9deg);
 }
 .sf-print svg {
@@ -821,17 +897,23 @@
   width: min(100%, 34rem);
   margin: auto;
   padding: 1.15rem 1.05rem 1.3rem;
-  border-radius: 14px;
+  border-radius: 7px 9px 6px 8px;
   background:
-    radial-gradient(120% 70% at 25% 0%, rgba(255, 214, 150, 0.2), transparent 60%),
+    radial-gradient(120% 70% at 25% 0%, rgba(255, 214, 150, 0.16), transparent 60%),
+    radial-gradient(40% 22% at 82% 92%, rgba(28, 14, 4, 0.5), transparent 75%),
+    radial-gradient(34% 18% at 10% 60%, rgba(255, 225, 170, 0.1), transparent 75%),
+    var(--fibers),
+    var(--mottle),
     var(--noise),
-    linear-gradient(155deg, #92734f, #6c5236 70%, #5f4730);
+    linear-gradient(155deg, #86684a, #65503a 70%, #564230);
   box-shadow:
     0 0 0 3px #4a3622,
     inset 0 0 0 1px rgba(255, 225, 170, 0.18),
     inset 0 0 60px rgba(30, 15, 5, 0.55),
     0 30px 70px -20px #000;
-  color: var(--ink-brown);
+  color: #33241a;
+  /* чернила чуть впитались в бумагу */
+  text-shadow: 0 0 0.5px rgba(40, 24, 8, 0.5);
   font: 400 0.74rem/1.5 'IBM Plex Mono', ui-monospace, 'Courier New', monospace;
 }
 .ef-board::before {
@@ -839,7 +921,9 @@
   position: absolute;
   inset: 7px;
   border: 1px solid rgba(35, 20, 8, 0.4);
-  border-radius: 9px;
+  border-radius: 5px;
+  background: var(--scratch) 0 0 / 300px 375px;
+  opacity: 0.55;
   pointer-events: none;
 }
 @media (min-width: 480px) {
@@ -881,11 +965,57 @@
 }
 .ef-piece {
   position: relative;
-  background: var(--noise), linear-gradient(160deg, #ece3cb, #ddd2b4);
-  box-shadow:
-    0 9px 14px -8px rgba(0, 0, 0, 0.75),
-    inset 0 0 22px rgba(125, 90, 35, 0.22);
+  /* Фон рисует вложенный .ef-paper с рваным краем; тень — по его контуру, а не по прямоугольнику. */
+  background: none;
+  box-shadow: none;
+  filter: drop-shadow(0 6px 4px rgba(0, 0, 0, 0.5)) drop-shadow(0 1px 1px rgba(0, 0, 0, 0.45));
   transform: rotate(var(--r, 0deg));
+}
+.ef-paper {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  clip-path: var(--rough-a);
+  background: var(--fibers), var(--mottle), var(--noise), linear-gradient(160deg, #e0d3b2, #cdbd96);
+  box-shadow:
+    inset 0 0 28px rgba(102, 66, 24, 0.5),
+    inset 0 0 2px rgba(60, 36, 12, 0.6);
+}
+/* Пятна: кофейное кольцо, разводы, затёртые углы. Положение у каждого листа своё (--sx, --bx…). */
+.ef-paper::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at var(--sx, 78%) var(--sy, 24%), transparent 0 15px, rgba(108, 66, 22, 0.3) 16px 17.5px, rgba(108, 66, 22, 0.1) 19px, transparent 23px),
+    radial-gradient(circle at var(--sx, 78%) var(--sy, 24%), rgba(125, 82, 32, 0.13) 0 15px, transparent 18px),
+    radial-gradient(60% 45% at var(--bx, 15%) var(--by, 88%), rgba(88, 56, 18, 0.3), transparent 72%),
+    radial-gradient(34% 28% at 94% 6%, rgba(76, 48, 14, 0.22), transparent 72%);
+}
+/* Заломы: светлая и тёмная линия рядом, как на бумаге, которую складывали и разворачивали. */
+.ef-paper::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(calc(180deg + var(--ca, 0deg)), transparent calc(var(--cy, 46%) - 0.6%), rgba(255, 250, 236, 0.4) var(--cy, 46%), rgba(58, 36, 12, 0.34) calc(var(--cy, 46%) + 0.45%), transparent calc(var(--cy, 46%) + 1.5%)),
+    linear-gradient(86deg, transparent 61%, rgba(255, 250, 236, 0.2) 61.4%, rgba(58, 36, 12, 0.24) 61.8%, transparent 62.6%);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 10%, #000 78%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 10%, #000 78%, transparent);
+}
+.ef-label-l .ef-paper,
+.ef-witness .ef-paper,
+.ef-risk .ef-paper {
+  clip-path: var(--rough-c);
+}
+.ef-label-r .ef-paper {
+  clip-path: var(--rough-d);
+}
+.ef-polaroid .ef-paper,
+.ef-sticky .ef-paper,
+.ef-map .ef-paper {
+  clip-path: var(--rough-b);
 }
 
 .ef-tape {
@@ -894,8 +1024,9 @@
   display: block;
   width: 2.6rem;
   height: 0.95rem;
-  background: rgba(228, 208, 150, 0.62);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  /* пожелтевший скотч с рваными краями и просветом по центру */
+  background: linear-gradient(180deg, rgba(214, 190, 126, 0.84), rgba(188, 162, 96, 0.78));
+  clip-path: polygon(0 0, 3% 14%, 0 30%, 3% 46%, 0 62%, 3% 78%, 0 100%, 100% 100%, 97% 84%, 100% 68%, 96% 52%, 100% 34%, 97% 18%, 100% 0);
 }
 .ef-tape-l {
   top: -0.45rem;
@@ -944,7 +1075,9 @@
   flex-direction: column;
   margin: 0;
   padding: 0.8rem 0.8rem 0.5rem;
-  background: linear-gradient(160deg, #f1ead8, #e1d7bd);
+}
+.ef-polaroid .ef-paper {
+  background: var(--fibers), var(--mottle), var(--noise), linear-gradient(160deg, #e9dec0, #d4c59e);
 }
 .ef-photo {
   position: relative;
@@ -968,7 +1101,16 @@
   object-fit: cover;
   /* лицо в верхней трети кадра — при любой высоте рамки режем снизу, а не по голове */
   object-position: 50% 18%;
-  filter: grayscale(0.55) sepia(0.3) contrast(1.05);
+  filter: grayscale(0.6) sepia(0.42) contrast(0.98) brightness(0.96);
+}
+.ef-photo::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: var(--scratch) center / 100% 100%;
+  mix-blend-mode: screen;
+  pointer-events: none;
 }
 /* Края «фото» чуть темнее, как у старого снимка; поверх картинки, поэтому отдельным слоем. */
 .ef-photo::after {
@@ -1094,6 +1236,8 @@
   border-radius: 3px;
   color: var(--stamp-red);
   mix-blend-mode: multiply;
+  -webkit-mask-image: var(--ink-mask);
+  mask-image: var(--ink-mask);
   transform: rotate(-1.5deg);
 }
 .ef-suspect span {
@@ -1147,7 +1291,6 @@
   grid-column: 2;
   grid-row: 4;
   padding: 0.45rem 0.45rem 0.55rem;
-  background: linear-gradient(160deg, #ece3cb, #d9ceb0);
 }
 .ef-mapsvg {
   display: block;
@@ -1246,7 +1389,7 @@
 }
 .ef-conf-in {
   padding: 1.35rem 0.55rem 1.05rem;
-  background: var(--noise), linear-gradient(160deg, #eee5cc, #dbd0b1);
+  background: var(--fibers), var(--mottle), var(--noise), linear-gradient(160deg, #e3d7b8, #cfc09a);
   clip-path: polygon(0 5%, 6% 0, 14% 4%, 25% 0, 38% 5%, 52% 1%, 66% 5%, 79% 0, 91% 4%, 100% 1%, 99% 38%, 100% 66%, 98% 100%, 88% 95%, 74% 100%, 60% 96%, 45% 100%, 30% 95%, 15% 100%, 4% 96%, 0 100%, 1% 62%, 0 30%);
   color: var(--stamp-red);
   font-size: 0.86em;
@@ -1608,9 +1751,15 @@
     animation: wisp-draw 5.2s ease-out var(--wd, 0.35s) both;
   }
 
-  /* --- карта города: метки появляются «с пингом», нити дрожат --- */
-  .cm-m.on .cm-ping {
-    animation: cm-ping 2.8s ease-out infinite;
+  /* --- карта города: метки проступают рывками, как при неисправном свете, а красные потом нервно мерцают --- */
+  .cm-m.on {
+    animation: cm-surface 1.1s steps(1, end) 1;
+  }
+  .cm-red.on .cm-sign {
+    animation: cm-uneasy var(--cd, 8s) linear var(--cdl, 0s) infinite;
+  }
+  .cm-glow {
+    animation: cm-lamp 6.5s linear infinite;
   }
 
   /* --- папка с делом: страницы переворачиваются --- */
@@ -1797,9 +1946,34 @@
   @keyframes wisp-draw {
     to { stroke-dashoffset: 0; }
   }
-  @keyframes cm-ping {
-    0% { opacity: 0.85; transform: scale(0.8); }
-    100% { opacity: 0; transform: scale(2.3); }
+  @keyframes cm-surface {
+    0% { opacity: 0; }
+    10% { opacity: 0.85; }
+    16% { opacity: 0.1; }
+    30% { opacity: 0.7; }
+    38% { opacity: 0.2; }
+    56% { opacity: 1; }
+    64% { opacity: 0.45; }
+    100% { opacity: 1; }
+  }
+  @keyframes cm-uneasy {
+    0%, 38%, 52%, 100% { opacity: 1; }
+    40% { opacity: 0.3; }
+    43% { opacity: 0.95; }
+    46% { opacity: 0.2; }
+    49% { opacity: 0.85; }
+    81% { opacity: 1; }
+    82% { opacity: 0.5; }
+    84% { opacity: 1; }
+  }
+  @keyframes cm-lamp {
+    0%, 100% { opacity: 1; }
+    22% { opacity: 0.85; }
+    24% { opacity: 0.4; }
+    27% { opacity: 1; }
+    71% { opacity: 0.9; }
+    73% { opacity: 0.55; }
+    75% { opacity: 1; }
   }
   @keyframes eb-sway {
     from { transform: rotate(-0.9deg); }
