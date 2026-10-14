@@ -610,10 +610,10 @@
 /* Круглые картинки партнёров: золотой контур — часть изображения; при наведении мягкое свечение. */
 .fam-ava {
   display: block;
-  width: 9rem;
-  height: 9rem;
+  width: 6rem;
+  height: 6rem;
   border-radius: 50%;
-  box-shadow: 0 10px 22px -10px rgba(0, 0, 0, 0.85);
+  box-shadow: 0 8px 16px -8px rgba(0, 0, 0, 0.85);
   transition: box-shadow 0.4s;
 }
 .fam-ava img {

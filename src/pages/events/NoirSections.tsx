@@ -123,6 +123,15 @@ export function NoirHero({ event, story, onBuy, share, views }: NoirHeroProps) {
                 <span className="hidden h-5 w-px shrink-0 bg-ink/30 sm:block" aria-hidden="true" />
                 <span>{event.city}</span>
               </div>
+              {story.venue && (
+                <div className="mt-2 flex items-start gap-2 text-base font-medium text-ink/85 sm:text-lg">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="mt-[0.3em] h-[1.05em] w-[1.05em] shrink-0 text-gold" aria-hidden="true">
+                    <path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21Z" />
+                    <circle cx="12" cy="9.5" r="2.5" />
+                  </svg>
+                  <span>{story.venue}</span>
+                </div>
+              )}
             </Rise>
 
             <h1 className="font-noir mt-5 text-ink">
@@ -308,14 +317,14 @@ export function NoirFamily({ story }: { story: EventStory }) {
         <p className="mt-3 max-w-2xl leading-relaxed text-ink/70">{intro}</p>
       </Reveal>
       {groups.map((g) => (
-        <div key={g.title} className="mt-8">
+        <div key={g.title} className="mt-6">
           <Reveal>
-            <h3 className="font-noir text-xl font-semibold text-ink">{g.title}</h3>
+            <h3 className="font-noir text-lg font-semibold text-ink">{g.title}</h3>
           </Reveal>
-          <div className="mt-5 flex flex-wrap gap-x-10 gap-y-8">
+          <div className="mt-4 flex flex-wrap gap-x-8 gap-y-6">
             {g.members.map((m, i) => (
               <Reveal key={m.name} variant="zoom" delay={i * 120}>
-                <div className="flex w-full max-w-[17rem] flex-col items-center text-center">
+                <div className="flex w-full max-w-[12.5rem] flex-col items-center text-center">
                   {m.logo &&
                     (m.link ? (
                       // Картинка тоже ведёт по ссылке, но для клавиатуры и скринридеров ссылка одна — подпись под ней.
@@ -327,10 +336,10 @@ export function NoirFamily({ story }: { story: EventStory }) {
                         <img src={m.logo} alt={m.name} draggable={false} />
                       </span>
                     ))}
-                  <p className="font-noir mt-4 text-lg font-semibold leading-snug text-ink">{m.name}</p>
-                  {m.description && <p className="mt-1.5 text-sm leading-relaxed text-ink/65">{m.description}</p>}
+                  <p className="font-noir mt-3 text-base font-semibold leading-snug text-ink">{m.name}</p>
+                  {m.description && <p className="mt-1 text-[0.8125rem] leading-relaxed text-ink/65">{m.description}</p>}
                   {m.link && (
-                    <a href={m.link.href} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-sm [overflow-wrap:anywhere] font-semibold text-gold underline decoration-gold/40 underline-offset-4 transition-colors hover:text-gold-light hover:decoration-gold-light">
+                    <a href={m.link.href} target="_blank" rel="noopener noreferrer" className="mt-1.5 inline-block text-[0.8125rem] [overflow-wrap:anywhere] font-semibold text-gold underline decoration-gold/40 underline-offset-4 transition-colors hover:text-gold-light hover:decoration-gold-light">
                       {m.link.label}
                     </a>
                   )}

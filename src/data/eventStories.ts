@@ -146,6 +146,8 @@ export interface EventFamily {
 }
 
 export interface EventStory {
+  /** Адрес площадки без города (город берется из мероприятия): показывается в верхней строке страницы. */
+  venue?: string
   /** Вопрос вечера. */
   tagline: string
   /** Картинки: сцена для шапки и портрет для блока «О вечере». */
@@ -179,8 +181,12 @@ export interface EventStory {
 
 const [jazzSlug] = noirEventSlugs
 
+// Адрес площадки: один раз здесь — для верхней строки страницы и страницы «Место встречи» в досье.
+const JAZZ_VENUE = 'м. Балтийская, Набережная Обводного канала 136, зал Hall Prime'
+
 export const eventStories: Record<string, EventStory> = {
   [jazzSlug]: {
+    venue: JAZZ_VENUE,
     tagline: 'Кто убил карьеру?',
     heroImage: barScene,
     portraitImage: loungeScene,
@@ -223,7 +229,7 @@ export const eventStories: Record<string, EventStory> = {
       },
       {
         label: 'Место встречи',
-        text: 'Санкт-Петербург, м. Балтийская, Набережная Обводного канала 136, зал Hall Prime',
+        text: `Санкт-Петербург, ${JAZZ_VENUE}`,
       },
     ],
     audience: [
