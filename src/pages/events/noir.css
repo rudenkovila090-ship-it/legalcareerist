@@ -255,12 +255,18 @@
   box-shadow: 0 26px 50px -26px #000, inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 .cf-stage {
-  display: grid;
-  perspective: 1800px;
-}
-.cf-page {
-  grid-area: 1 / 1;
   position: relative;
+  perspective: 1800px;
+  /* Режем по низу папки: пока перевернутый лист доезжает, лежащий под ним более длинный лист не торчит наружу.
+     Вверх и в стороны запас — переворот страницы идет по дуге, и ему нужно место. */
+  clip-path: inset(-140px -100vw 0 -100vw);
+}
+/* Открытый лист лежит в потоке и задаёт высоту папки; остальные — поверх него, вне потока. */
+.cf-page {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
   min-height: 15rem;
   padding: 26px 28px 46px;
   border-radius: 6px;
@@ -280,8 +286,21 @@
   transform-origin: left center;
   backface-visibility: hidden;
 }
+.cf-page[data-current] {
+  position: relative;
+}
 .cf-page[data-current]:not(:last-child) {
   cursor: pointer;
+}
+/* Листы, которые ещё лежат под открытым, скрыты (иначе длинный лист торчал бы из-под короткого);
+   только что закрытый лист остаётся на время, пока открытый переворачивается обратно. */
+.cf-page:not([data-current]):not([data-flipped]) {
+  visibility: hidden;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .cf-page:not([data-current]):not([data-flipped]) {
+    transition: visibility 0s linear 0.95s;
+  }
 }
 .cf-page::after {
   content: '';
@@ -333,6 +352,40 @@
 .cf-text {
   margin-top: 1.4rem;
   font-size: 1.02rem;
+  line-height: 30px;
+}
+/* Список пунктов («Польза»): каждая строка стоит на линейке листа (шаг 30px), заголовок — красной строкой над пояснением. */
+.cf-list {
+  margin-top: 1.1rem;
+  list-style: none;
+}
+.cf-list li {
+  position: relative;
+  padding-left: 1.15rem;
+}
+.cf-list li::before {
+  content: '';
+  position: absolute;
+  top: 11px;
+  left: 0.1rem;
+  width: 7px;
+  height: 7px;
+  background: rgba(163, 32, 42, 0.9);
+  transform: rotate(45deg);
+}
+.cf-item-t {
+  display: block;
+  color: rgba(120, 22, 30, 0.95);
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  line-height: 30px;
+  text-transform: uppercase;
+}
+.cf-item-x {
+  display: block;
+  font-size: 0.94rem;
   line-height: 30px;
 }
 .cf-foot {

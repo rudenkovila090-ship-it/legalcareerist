@@ -3,12 +3,16 @@ import '../../pages/events/noir.css'
 
 interface CasePage {
   label: string
-  text: string
+  /** Сплошной текст страницы. */
+  text?: string
+  /** Либо список пунктов «заголовок — пояснение» (например, «Польза»). */
+  items?: { title: string; text: string }[]
 }
 
 /**
  * Папка с делом: вкладки сверху, страницы-карточки внутри. При переключении страница
- * переворачивается, как лист в папке (формат → жанр → цель). Стрелки и клик по странице — вперёд/назад.
+ * переворачивается, как лист в папке. Стрелки и клик по странице — вперёд/назад. Высота папки равна высоте открытого листа:
+ * короткая страница («Жанр») не растягивается под длинную («Польза»).
  */
 export default function CaseFile({ pages }: { pages: CasePage[] }) {
   const [cur, setCur] = useState(0)
@@ -41,7 +45,17 @@ export default function CaseFile({ pages }: { pages: CasePage[] }) {
                 <span className="cf-label">{p.label}</span>
                 <span className="cf-stamp">Конфиденциально</span>
               </div>
-              <p className="cf-text">{p.text}</p>
+              {p.text && <p className="cf-text">{p.text}</p>}
+              {p.items && (
+                <ul className="cf-list">
+                  {p.items.map((it) => (
+                    <li key={it.title}>
+                      <b className="cf-item-t">{it.title}</b>
+                      <span className="cf-item-x">{it.text}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
               <div className="cf-foot">
                 Стр. {i + 1} из {pages.length}
               </div>
