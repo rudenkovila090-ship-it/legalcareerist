@@ -3,7 +3,7 @@
 // 2. POST /api/community/subscribe — выбор тарифа на сайте → подписанная
 //    ссылка на оплату в Prodamus (идентификация клиента по телефону, без
 //    tg_user_id — на этом шаге человек ещё не открывал бота).
-// 3. POST /api/telegram/webhook — апдейты бота @LegalcareeristBot: по
+// 3. POST /api/telegram/webhook — апдейты бота @legalcareerist_bot: по
 //    /start access_<token> проверяет, оплачена ли заявка, и присылает
 //    ссылку на вступление в сообщество (сразу либо как только придёт
 //    вебхук об оплате).
@@ -70,6 +70,7 @@ import { archiveLegacyCollections } from './lib/collectionStore.js'
 import { recordConsent } from './lib/consentLog.js'
 import { scanRetention, applyRetention, retentionReportText, retentionDoneText } from './lib/retention.js'
 import { findPerson, describeFound, erasePerson, erasedText } from './lib/erasure.js'
+import { planImport, applyImport, planSummary, doneSummary } from './lib/botHelpImport.js'
 import { nextTicketNumber } from './lib/ticketCounter.js'
 import { buildDailyReport, mskDayKey, parseReportPeriod } from './lib/dailyReport.js'
 import { logWebhook, lastWebhook } from './lib/webhookLog.js'
@@ -227,7 +228,7 @@ async function downloadTelegramFile(fileId) {
   return Buffer.from(await res.arrayBuffer())
 }
 
-const BOT_USERNAME = (process.env.BOT_USERNAME || 'LegalcareeristBot').replace(/^@/, '')
+const BOT_USERNAME = (process.env.BOT_USERNAME || 'legalcareerist_bot').replace(/^@/, '')
 
 /** Письмо покупателю с материалом: PDF во вложении (если загружен), ссылка (если задана) и кнопка «получить в Telegram». Возвращает { ok, error? }. */
 async function emailMaterial({ to, name, materialSlug, token }) {
@@ -1144,7 +1145,7 @@ app.post('/api/event/:slug/checkout', async (req, res) => {
   }
 })
 
-// Апдейты от Telegram-бота @LegalcareeristBot. Настраивается один раз
+// Апдейты от Telegram-бота @legalcareerist_bot. Настраивается один раз
 // командой setWebhook (см. README сервера).
 // Ожидание текстового ответа от админа (сумма выручки, данные новой сделки):
 // chatId → { type, number? }. Живёт в памяти — после перезапуска сервера просто нажмите кнопку ещё раз.
@@ -1308,6 +1309,13 @@ async function extrasAction(parts, now, chatId) {
       return eventRequestsScreen(data.eventLeads)
     case 'evmonth':
       return eventsMonthSummary(data.eventLeads, arg, now)
+    case 'impgo':
+    case 'impall': {
+      const entry = importPlans.get(arg)
+      if (!entry || Date.now() - entry.at > IMPORT_CONFIRM_MS) return { text: 'Подтверждение устарело. Пришлите файл с подписью /import ещё раз.', keyboard: [[{ text: '🏠 Меню', callback_data: 'a:menu' }]] }
+      importPlans.delete(arg)
+      return { text: doneSummary(applyImport(entry.plan, { includeReview: action === 'impall' })), keyboard: [[{ text: '🏠 Меню', callback_data: 'a:menu' }]] }
+    }
     case 'erase': {
       const plan = erasePlans.get(arg)
       if (!plan || Date.now() - plan.at > ERASE_CONFIRM_MS) return { text: 'Подтверждение устарело. Повторите команду /forget с данными человека.', keyboard: [[{ text: '🏠 Меню', callback_data: 'a:menu' }]] }
@@ -1805,7 +1813,7 @@ async function adminScreen(data, now, chatId) {
 // Кнопки, которые что-то меняют или отправляют данные: помощникам (только просмотр) они недоступны, в журнал попадают только они.
 // Кнопки, которые только открывают ввод текста или подтверждение — в журнал не пишем (запишется само действие).
 const PROMPT_ONLY = /^a:(k:(rev|new)|s:(ikind|inew|rnew|redit|rdel)|x:(tnew|ambnew|ambdel|fexpnew|evpaid|promonew))\b/
-const MUTATING = /^a:(k:(adv|back|q1|q0|lost|reopen|revok|rev|new|pp|pf)|s:(vst|cst|idone|iclose|isnooze|ikind|inew|rnew|redit|rdel|rdelok)|x:(grant|promonew|promodel|tnew|tdone|ambnew|ambplus|ambdel|ambdelok|kickok|cr|fexpnew|fexpdel|evst|evpaid|backup|erase|pdgo)|remgo)\b/
+const MUTATING = /^a:(k:(adv|back|q1|q0|lost|reopen|revok|rev|new|pp|pf)|s:(vst|cst|idone|iclose|isnooze|ikind|inew|rnew|redit|rdel|rdelok)|x:(grant|promonew|promodel|tnew|tdone|ambnew|ambplus|ambdel|ambdelok|kickok|cr|fexpnew|fexpdel|evst|evpaid|backup|erase|pdgo|impgo|impall)|remgo)\b/
 
 /** Нажатие кнопки кабинета — от админа (все кнопки) или помощника (только просмотр); остальным молча отвечаем. */
 async function handleAdminCallback(query) {
@@ -2316,8 +2324,17 @@ async function handleTelegramUpdate(update) {
     await sendTelegramMessage(chatId, `Загружать материалы может только админский аккаунт. Ваш chat id: ${chatId}${isViewer ? ' (это чат помощника, только просмотр)' : ''}. Если это ваш аккаунт, сверьте его с TELEGRAM_ADMIN_CHAT_ID в server/.env.`)
     return
   }
+  // Выгрузка BotHelp: админ присылает CSV-файл с подписью /import — бот показывает, что будет сделано, и ждёт кнопку.
+  if (isAdmin && message?.document && /^\/import\b/i.test(message.caption ?? '')) {
+    await handleImportFile(chatId, message.document)
+    return
+  }
+  if (isAdmin && text && /^\/import(@\w+)?$/i.test(text)) {
+    await sendTelegramMessage(chatId, 'Загрузка выгрузки из BotHelp.\n\nПришлите CSV-файл («Подписчики → Экспорт», поле «дни» должно быть в файле) и напишите в подписи к нему /import. Бот сначала покажет, что будет загружено, и только после кнопки «Загрузить» запишет: карточки, метки, согласия на рассылку и подписки с оставшимися днями.')
+    return
+  }
   if (isAdmin && message?.document && !/^\/material\s+\S/i.test(message.caption ?? '')) {
-    const examples = [...Object.keys(MATERIALS), 'checklist-novichka'].map((k) => `/material ${k}`).join('\n')
+    const examples = [...Object.keys(MATERIALS), 'checklist-novichka'].map((k) => `/material ${k}`).join('\n') + '\n\nВыгрузка из BotHelp: подпись /import'
     await sendTelegramMessage(chatId, `Файл «${message.document.file_name ?? 'без имени'}» получен, но я не понял подпись${message.caption ? ` «${message.caption.slice(0, 60)}»` : ' (её нет)'}.\n\nПодпись должна быть такой (после /material обязательно пробел, потом код материала):\n${examples}\n\nОтправьте файл ещё раз с нужной подписью.`)
     return
   }
@@ -2627,6 +2644,29 @@ async function sendDailyReportIfDue() {
 
 // Раз в сутки после указанного часа (МСК): дата последнего запуска хранится в файле, чтобы перезапуск не повторял и не пропускал задачу.
 const DAILY_JOBS_FILE = path.join(import.meta.dirname, 'data', 'daily-jobs.json')
+// ---- Загрузка выгрузки BotHelp админом (см. lib/botHelpImport.js) ----
+/** Ожидающие подтверждения загрузки: id → { plan, at }. Живут в памяти 15 минут; после перезапуска сервера файл нужно прислать заново. */
+const importPlans = new Map()
+const IMPORT_CONFIRM_MS = 15 * 60 * 1000
+
+async function handleImportFile(chatId, document) {
+  let plan
+  try {
+    if (document.file_size > 20 * 1024 * 1024) throw new Error('файл больше 20 МБ')
+    plan = planImport((await downloadTelegramFile(document.file_id)).toString('utf8'))
+  } catch (err) {
+    await sendTelegramMessage(chatId, `⚠️ Не получилось прочитать файл: ${err.message}`)
+    return
+  }
+  for (const [id, entry] of importPlans) if (Date.now() - entry.at > IMPORT_CONFIRM_MS) importPlans.delete(id)
+  const id = crypto.randomBytes(4).toString('hex')
+  importPlans.set(id, { plan, at: Date.now() })
+  const keyboard = [[{ text: '✅ Загрузить', callback_data: `a:x:impgo:${id}` }]]
+  if (plan.review.length) keyboard.push([{ text: `✅ Загрузить и завести подпиской «на проверку» (${plan.review.length})`, callback_data: `a:x:impall:${id}` }])
+  keyboard.push([{ text: 'Отмена', callback_data: 'a:menu' }])
+  await sendLongMessage(chatId, planSummary(plan), keyboard)
+}
+
 // ---- Сроки хранения и удаление данных по запросу (см. lib/retention.js, lib/erasure.js) ----
 /** Подтверждения удаления: id → { keys, at }. Живут в памяти 15 минут: после перезапуска сервера команду /forget нужно повторить. */
 const erasePlans = new Map()

@@ -26,7 +26,7 @@ export default function MarketingConsent() {
               <li>
                 <span className="font-medium text-ink">Каналы:</span> адрес электронной почты, который я указал в форме, и Telegram —
                 через чат-бот Оператора{' '}
-                <a className="underline" href="https://t.me/LegalcareeristBot" target="_blank" rel="noreferrer">@LegalcareeristBot</a>{' '}
+                <a className="underline" href="https://t.me/legalcareerist_bot" target="_blank" rel="noreferrer">@legalcareerist_bot</a>{' '}
                 (если я запускал бота). Телефон для рекламы не используется.
               </li>
               <li>
