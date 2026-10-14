@@ -4,7 +4,7 @@ import boardScene from '../assets/legal-night-jazz-2-board.webp'
 import portraitProfile from '../assets/noir/portrait-profile.webp'
 import portraitLounge from '../assets/noir/portrait-lounge.webp'
 import portraitBartender from '../assets/noir/portrait-bartender.webp'
-import posterPartners from '../assets/noir/audience-partners-poster.webp'
+import jazzClubPartners from '../assets/noir/audience-partners-jazz-club.webp'
 import portraitBarWoman from '../assets/noir/portrait-bar-woman.webp'
 import speakerJulia from '../assets/noir/speaker-julia-mukhina.webp'
 import speakerIlya from '../assets/noir/speaker-ilya-rudenkov.webp'
@@ -182,7 +182,7 @@ export const eventStories: Record<string, EventStory> = {
       { who: 'Студентам юридических факультетов', photo: portraitProfile },
       { who: 'Начинающим и практикующим юристам', photo: portraitLounge },
       { who: 'Адвокатам', photo: portraitBartender },
-      { who: 'Партнерам юридических фирм и владельцам юридического бизнеса', photo: posterPartners },
+      { who: 'Партнерам юридических фирм и владельцам юридического бизнеса', photo: jazzClubPartners },
       { who: 'Всем, кто строит карьеру в юридической профессии', photo: portraitBarWoman },
     ],
     promoNote: 'Резидентам сообщества — скидка 50% по промокоду.',
