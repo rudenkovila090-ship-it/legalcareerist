@@ -556,9 +556,11 @@ export default function EventDetail() {
                   placeholder="Почта"
                   className="rounded-lg border border-ink/15 px-3.5 py-2.5 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40"
                 />
-                <div className="sm:col-span-2">
-                  <HowHeardField value={partnerForm.howHeard} onChange={(v) => setPartnerForm((f) => ({ ...f, howHeard: v }))} className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40" />
-                </div>
+                {!story && (
+                  <div className="sm:col-span-2">
+                    <HowHeardField value={partnerForm.howHeard} onChange={(v) => setPartnerForm((f) => ({ ...f, howHeard: v }))} className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40" />
+                  </div>
+                )}
                 <ConsentCheck className="sm:col-span-2" />
                 <button type="submit" className="rounded-lg bg-ink py-2.5 text-sm font-semibold text-white hover:bg-ink/90 sm:col-span-2">
                   Отправить заявку
@@ -691,7 +693,6 @@ export default function EventDetail() {
                     />
                     {tariff.price > 0 && !event.registrationLink && (
                       <div>
-                        {story?.promoNote && <div className="mb-2 text-xs font-medium text-gold">{story.promoNote}</div>}
                         <div className="flex gap-2">
                           <input
                             value={promoInput}
@@ -721,7 +722,7 @@ export default function EventDetail() {
                         {promoError && <div className="mt-2 text-xs text-red-600">{promoError}</div>}
                       </div>
                     )}
-                    <HowHeardField value={form.howHeard} onChange={(v) => setForm((f) => ({ ...f, howHeard: v }))} className="rounded-lg border border-ink/15 px-3.5 py-2.5 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40" />
+                    {!story && <HowHeardField value={form.howHeard} onChange={(v) => setForm((f) => ({ ...f, howHeard: v }))} className="rounded-lg border border-ink/15 px-3.5 py-2.5 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40" />}
                     {payError && <div className="text-xs text-red-600">Не получилось перейти к оплате. Попробуйте еще раз или напишите нам.</div>}
                     <ConsentCheck />
                     <button type="submit" disabled={paying} className="mt-1 rounded-lg bg-ink py-2.5 text-sm font-semibold text-white hover:bg-ink/90 disabled:opacity-60">

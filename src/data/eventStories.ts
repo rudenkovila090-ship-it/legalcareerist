@@ -10,6 +10,7 @@ import speakerJulia from '../assets/noir/speaker-julia-mukhina.webp'
 import speakerIlya from '../assets/noir/speaker-ilya-rudenkov.webp'
 import speakerEva from '../assets/noir/speaker-eva-gerasimova.webp'
 import partnerDasha from '../assets/noir/partner-dasha-italy.webp'
+import partnerCareerLawyer from '../assets/noir/partner-career-lawyer.webp'
 import { noirEventSlugs } from './noirEvents'
 
 // Авторское оформление и тексты отдельных мероприятий. Лежит отдельно от events.ts:
@@ -155,8 +156,6 @@ export interface EventStory {
   /** Для кого — стена с фото и красными нитками. */
   audience: EventAudience[]
   principle: string
-  /** Подсказка в форме билета над полем промокода. */
-  promoNote?: string
   acts: EventAct[]
   /** Дополнительные радиоволны блока «Сюжет вечера» (акты занимают три своих волны). */
   radio: RadioStation[]
@@ -211,7 +210,6 @@ export const eventStories: Record<string, EventStory> = {
       { who: 'Партнерам юридических фирм и владельцам юридического бизнеса', photo: jazzClubPartners },
       { who: 'Всем, кто строит карьеру в юридической профессии', photo: portraitBarWoman },
     ],
-    promoNote: 'Резидентам сообщества — скидка 50% по промокоду.',
     principle:
       'Мы не просто рассказываем о карьерных ошибках — мы предлагаем гостям самим пройти через расследование и увидеть, как одно решение может изменить судьбу профессионала.',
     acts: [
@@ -257,6 +255,11 @@ export const eventStories: Record<string, EventStory> = {
               name: 'Даша едет в Италию 🇮🇹',
               logo: partnerDasha,
               link: { label: '@study_inEuropefromRussia', href: 'https://t.me/study_inEuropefromRussia' },
+            },
+            {
+              name: 'Карьерный юрист — сообщество',
+              logo: partnerCareerLawyer,
+              link: { label: '@legalcareerist', href: 'https://t.me/legalcareerist' },
             },
           ],
         },

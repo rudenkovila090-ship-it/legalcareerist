@@ -228,15 +228,6 @@ export function NoirIntro({ story }: { story: EventStory }) {
             </Reveal>
           ))}
         </div>
-
-        <Reveal className="mt-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gold">{story.questionLead}</p>
-          <p className="font-noir mt-3 text-2xl font-medium italic leading-snug text-ink sm:text-[1.7rem]">
-            <span className="noir-q mr-1 text-[var(--noir-crimson-bright)]" aria-hidden="true">«</span>
-            {story.question}
-            <span className="noir-q ml-1 text-[var(--noir-crimson-bright)]" aria-hidden="true">»</span>
-          </p>
-        </Reveal>
       </div>
 
       <Reveal variant="zoom" delay={150} className="hidden md:block">
@@ -246,6 +237,16 @@ export function NoirIntro({ story }: { story: EventStory }) {
           </div>
           <div className="noir-sweep" aria-hidden="true" />
         </div>
+      </Reveal>
+
+      {/* Вопрос вечера — на всю ширину блока (под текстом и портретом): в узкой колонке одно слово повисало на отдельной строке. */}
+      <Reveal className="md:col-span-2">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gold">{story.questionLead}</p>
+        <p className="font-noir mt-3 text-pretty text-2xl font-medium italic leading-snug text-ink sm:text-[1.7rem]">
+          <span className="noir-q mr-1 text-[var(--noir-crimson-bright)]" aria-hidden="true">«</span>
+          {story.question}
+          <span className="noir-q ml-1 text-[var(--noir-crimson-bright)]" aria-hidden="true">»</span>
+        </p>
       </Reveal>
     </section>
   )
