@@ -2,7 +2,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import PageHero from '../../components/PageHero'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
 
-const BOT_USERNAME = 'LegalcareeristBot'
+const BOT_USERNAME = 'legalcareerist_bot'
 
 // Страница после оплаты материала — Prodamus возвращает сюда (urlSuccess в server/index.js, /api/marketplace/purchase).
 // Личного кабинета и скачивания по ссылке нет: файл приходит на почту, а в Telegram — по кнопке ниже
