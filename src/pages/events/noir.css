@@ -973,6 +973,14 @@
   line-height: 1.1;
   transform: rotate(-2deg);
 }
+.ef-pos {
+  margin: 0 0 0.3rem;
+  padding-left: 0.2rem;
+  color: #4a3826;
+  font-size: 0.78em;
+  line-height: 1.35;
+  letter-spacing: 0.03em;
+}
 .ef-script-sm {
   margin: 0.4rem 0 0;
   padding: 0;

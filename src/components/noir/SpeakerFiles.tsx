@@ -191,6 +191,10 @@ interface EvidenceFileProps {
 /** Карточка дела на корковой доске: «фото» гостя, роль, темы, показания, схема, уровень риска, пометка «конфиденциально». */
 function EvidenceFile({ character, index, dateLabel, dateCode, onClose }: EvidenceFileProps) {
   const speaker = character.speaker
+  // Имя можно объявить раньше темы: пока темы нет, «показания» и блокнот остаются закрытыми.
+  const hasTalk = Boolean(speaker?.topic)
+  const themes = speaker?.themes ?? []
+  const risk = speaker?.risk
   const titleId = useId()
   const closeRef = useRef<HTMLButtonElement>(null)
   const pressedBackdrop = useRef(false)
@@ -251,6 +255,7 @@ function EvidenceFile({ character, index, dateLabel, dateCode, onClose }: Eviden
           <figcaption id={titleId} className="ef-script">
             {speaker ? speaker.name : 'Имя объявим позже'}
           </figcaption>
+          {speaker?.position && <p className="ef-pos">{speaker.position}</p>}
         </figure>
 
         <div className="ef-piece ef-sticky" style={piece(3, 2)}>
@@ -264,9 +269,9 @@ function EvidenceFile({ character, index, dateLabel, dateCode, onClose }: Eviden
 
         <div className="ef-piece ef-notebook" style={piece(4, -1)}>
           <p className="ef-h">О чем расскажет</p>
-          {speaker ? (
+          {themes.length > 0 ? (
             <ul>
-              {speaker.themes.map((t) => (
+              {themes.map((t) => (
                 <li key={t}>{t}</li>
               ))}
             </ul>
@@ -285,11 +290,11 @@ function EvidenceFile({ character, index, dateLabel, dateCode, onClose }: Eviden
         <div className="ef-piece ef-witness" style={piece(5, 1.2)}>
           <i className="ef-tape ef-tape-tl" />
           <p className="ef-h">Показания</p>
-          {speaker ? (
+          {speaker && hasTalk ? (
             <>
               <p className="ef-topic">«{speaker.topic}»</p>
-              <p>{speaker.topicLead}.</p>
-              {speaker.questions.map((q) => (
+              {speaker.topicLead && <p>{speaker.topicLead}.</p>}
+              {speaker.questions?.map((q) => (
                 <p key={q}>{q}</p>
               ))}
               <p className="ef-by">
@@ -305,8 +310,8 @@ function EvidenceFile({ character, index, dateLabel, dateCode, onClose }: Eviden
         </div>
 
         <div className="ef-piece ef-map" style={piece(6, -1.6)}>
-          <PublicationMap route={Boolean(speaker)} />
-          <p className="ef-script ef-script-sm">{speaker ? 'Путь публикации' : 'Место происшествия'}</p>
+          <PublicationMap route={speaker?.map === 'route'} />
+          <p className="ef-script ef-script-sm">{speaker?.map === 'route' ? 'Путь публикации' : 'Место происшествия'}</p>
         </div>
 
         {/* Описание роли: то, что раньше было отдельным блоком «Персонажи и роли». */}
@@ -342,14 +347,14 @@ function EvidenceFile({ character, index, dateLabel, dateCode, onClose }: Eviden
 
         <div className="ef-piece ef-risk" style={piece(8, -0.8)}>
           <p className="ef-h">Уровень риска</p>
-          <div className="ef-scale" role="img" aria-label={speaker ? `Уровень риска: ${speaker.risk} из 5` : 'Уровень риска пока не установлен'}>
+          <div className="ef-scale" role="img" aria-label={risk ? `Уровень риска: ${risk} из 5` : 'Уровень риска пока не установлен'}>
             {[1, 2, 3, 4, 5].map((n) => (
-              <span key={n} data-on={speaker?.risk === n ? '' : undefined} data-unknown={speaker ? undefined : ''}>
+              <span key={n} data-on={risk === n ? '' : undefined} data-unknown={risk ? undefined : ''}>
                 {n}
               </span>
             ))}
           </div>
-          {!speaker && <p className="ef-sm ef-gap">пока не установлен</p>}
+          {!risk && <p className="ef-sm ef-gap">пока не установлен</p>}
         </div>
 
         <div className="ef-piece ef-conf" style={piece(9, 1.5)}>

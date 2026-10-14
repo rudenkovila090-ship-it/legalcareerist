@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from 'react'
 import type { EventItem } from '../../types'
-import type { EventStory, ProgramAct, ProgramSlot } from '../../data/eventStories'
+import type { EventSpeaker, EventStory, ProgramAct, ProgramSlot } from '../../data/eventStories'
 import { eventTimeRange } from '../../lib/eventTime'
 import { prefersReducedMotion } from '../../lib/motion'
 import Reveal from '../../components/noir/Reveal'
@@ -390,6 +390,13 @@ function actTime(act: ProgramAct) {
   return `${act.slots[0].time.split('–')[0]}–${act.slots[act.slots.length - 1].time.split('–')[1]}`
 }
 
+/** Подпись под названием выступления: гость и тема — по мере того, как их объявляют. */
+function speechCaption(speaker: EventSpeaker | undefined) {
+  if (!speaker) return 'Имя гостя и тему выступления объявим позже.'
+  if (speaker.topic) return `${speaker.name} · «${speaker.topic}»`
+  return `${speaker.name}${speaker.position ? ` · ${speaker.position}` : ''}. Тему выступления объявим позже.`
+}
+
 /** Карточка выступления: время, роль, название и — если гость уже объявлен — его имя и тема. */
 function SpeechCard({ slot, story }: { slot: ProgramSlot; story: EventStory }) {
   const character = story.characters.find((c) => c.name === slot.role)
@@ -411,7 +418,7 @@ function SpeechCard({ slot, story }: { slot: ProgramSlot; story: EventStory }) {
         )}
       </div>
       <h3 className="font-noir mt-5 text-2xl font-semibold leading-snug text-ink">{slot.title}</h3>
-      <p className="mt-3 text-sm leading-relaxed text-ink/60">{speaker ? `${speaker.name} · «${speaker.topic}»` : 'Имя гостя и тему выступления объявим позже.'}</p>
+      <p className="mt-3 text-sm leading-relaxed text-ink/60">{speechCaption(speaker)}</p>
     </article>
   )
 }

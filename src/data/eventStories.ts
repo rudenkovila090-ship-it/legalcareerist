@@ -7,6 +7,7 @@ import portraitBartender from '../assets/noir/portrait-bartender.webp'
 import portraitDetective from '../assets/noir/portrait-detective.webp'
 import portraitBarWoman from '../assets/noir/portrait-bar-woman.webp'
 import speakerJulia from '../assets/noir/speaker-julia-mukhina.webp'
+import speakerIlya from '../assets/noir/speaker-ilya-rudenkov.webp'
 import { noirEventSlugs } from './noirEvents'
 
 // Авторское оформление и тексты отдельных мероприятий. Лежит отдельно от events.ts:
@@ -18,22 +19,27 @@ export type CharacterIcon = 'hat' | 'glass' | 'magnifier' | 'pearl' | 'scales' |
 
 /**
  * Приглашённый гость, исполняющий роль. Пока поля нет у персонажа — его папка в блоке «Спикеры» остаётся
- * закрытой («имя объявим позже»); когда заполнено — папка подписана именем, а в «деле» появляются тема и вопросы.
+ * закрытой («имя позже»); когда заполнено — папка подписана именем. Тему, вопросы и пункты блокнота можно
+ * добавить позже: пока их нет, в деле они остаются закрытыми.
  */
 export interface EventSpeaker {
   name: string
+  /** Должность или регалия: «Основатель Карьерного юриста». */
+  position?: string
   /** Фото гостя; пока его нет — в деле стоит силуэт. */
   photo?: string
   /** Название выступления. */
-  topic: string
+  topic?: string
   /** Одна фраза-подзаголовок под названием. */
-  topicLead: string
+  topicLead?: string
   /** Вопросы выступления — «показания» в деле. */
-  questions: string[]
+  questions?: string[]
   /** О чём расскажет: пункты блокнота. */
-  themes: string[]
+  themes?: string[]
   /** Уровень риска темы (1–5) — шкала в углу дела. */
-  risk: 1 | 2 | 3 | 4 | 5
+  risk?: 1 | 2 | 3 | 4 | 5
+  /** 'route' — на схеме показан след публикации (для темы про цифровой след); по умолчанию — «место происшествия». */
+  map?: 'route'
 }
 
 export interface EventCharacter {
@@ -251,6 +257,7 @@ export const eventStories: Record<string, EventStory> = {
           ],
           themes: ['Конфиденциальность', 'Публичные высказывания', 'Репутация', 'Цифровой след', 'Границы допустимого для юриста'],
           risk: 4,
+          map: 'route',
         },
       },
       {
@@ -279,6 +286,11 @@ export const eventStories: Record<string, EventStory> = {
         motive: 'Сохранить тайну, которая может затронуть всех.',
         symbol: 'Среда, культура организации и ответственность тех, кто формирует правила игры.',
         icon: 'key',
+        speaker: {
+          name: 'Илья Руденков',
+          position: 'Основатель Карьерного юриста',
+          photo: speakerIlya,
+        },
       },
     ],
   },
