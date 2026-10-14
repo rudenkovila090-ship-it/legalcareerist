@@ -8,6 +8,7 @@ import CaseFile from '../../components/noir/CaseFile'
 import EvidenceBoard from '../../components/noir/EvidenceBoard'
 import SpeakerFiles from '../../components/noir/SpeakerFiles'
 import RadioStory from '../../components/noir/RadioStory'
+import Newspaper from '../../components/noir/Newspaper'
 import { CharacterGlyph } from '../../components/noir/CharacterGlyph'
 import { ShotFx } from '../../components/noir/ShotFx'
 import { NoirDust, NoirMarquee } from '../../components/noir/NoirAmbient'
@@ -353,6 +354,34 @@ export function NoirFamily({ story }: { story: EventStory }) {
         <a href="#partner" className="inline-block rounded-full border border-ink/25 px-6 py-2.5 text-sm font-semibold text-ink/80 transition-colors hover:border-gold hover:text-gold">
           Стать партнером вечера
         </a>
+      </Reveal>
+    </section>
+  )
+}
+
+/** «Новости бара» — газета на столе; листается по клику. Дата, место и цена берутся из самого мероприятия. */
+export function NoirNewspaper({ story, event }: { story: EventStory; event: EventItem }) {
+  if (!story.paper) return null
+  const [ru] = event.title.split(' / ')
+  const [, issue] = splitTrailingNumber(ru)
+  const facts = {
+    issue: issue || '1',
+    date: new Date(event.dateTime).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }),
+    time: eventTimeRange(event),
+    city: event.city ?? '',
+    venue: story.venue,
+    price: `${event.price.toLocaleString('ru-RU')} ₽`,
+    question: story.question,
+    photo: story.heroImage,
+  }
+  return (
+    <section id="news" className="scroll-mt-24">
+      <NoirHeading>{story.paper.name}</NoirHeading>
+      <Reveal delay={90}>
+        <p className="mt-2 text-sm text-ink/55">{story.paper.pages.length > 1 ? 'Свежий номер: нажмите на страницу, чтобы перевернуть.' : 'Свежий номер закрытого клуба.'}</p>
+      </Reveal>
+      <Reveal variant="zoom" className="mt-5">
+        <Newspaper paper={story.paper} facts={facts} />
       </Reveal>
     </section>
   )
