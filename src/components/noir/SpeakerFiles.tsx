@@ -192,9 +192,11 @@ interface EvidenceFileProps {
 function EvidenceFile({ character, index, dateLabel, dateCode, onClose }: EvidenceFileProps) {
   const speaker = character.speaker
   // Имя можно объявить раньше темы: пока темы нет, «показания» и блокнот остаются закрытыми.
-  const hasTalk = Boolean(speaker?.topic)
+  const hasTalk = Boolean(speaker?.topic || speaker?.testimony)
   const themes = speaker?.themes ?? []
   const meaning = speaker?.meaning
+  const about = speaker?.about
+  const hasAbout = themes.length > 0 || Boolean(about)
   const risk = speaker?.risk
   const titleId = useId()
   const closeRef = useRef<HTMLButtonElement>(null)
@@ -269,23 +271,26 @@ function EvidenceFile({ character, index, dateLabel, dateCode, onClose }: Eviden
         </div>
 
         <div className="ef-piece ef-notebook" style={piece(4, -1)}>
-          {themes.length > 0 && (
+          {hasAbout && (
             <>
               <p className="ef-h">О чем расскажет</p>
-              <ul>
-                {themes.map((t) => (
-                  <li key={t}>{t}</li>
-                ))}
-              </ul>
+              {about && <p>{about}</p>}
+              {themes.length > 0 && (
+                <ul>
+                  {themes.map((t) => (
+                    <li key={t}>{t}</li>
+                  ))}
+                </ul>
+              )}
             </>
           )}
           {meaning && (
             <>
-              <p className={themes.length > 0 ? 'ef-h ef-h-next' : 'ef-h'}>Смысл</p>
+              <p className={hasAbout ? 'ef-h ef-h-next' : 'ef-h'}>Смысл</p>
               <p>{meaning}</p>
             </>
           )}
-          {themes.length === 0 && !meaning && (
+          {!hasAbout && !meaning && (
             <>
               <p className="ef-h">О чем расскажет</p>
               <div className="ef-lines" aria-hidden="true">
@@ -303,7 +308,7 @@ function EvidenceFile({ character, index, dateLabel, dateCode, onClose }: Eviden
           <p className="ef-h">Показания</p>
           {speaker && hasTalk ? (
             <>
-              <p className="ef-topic">«{speaker.topic}»</p>
+              {speaker.topic && <p className="ef-topic">«{speaker.topic}»</p>}
               {speaker.suspect && (
                 <p className="ef-suspect">
                   <span>Подозреваемый</span>
@@ -315,6 +320,7 @@ function EvidenceFile({ character, index, dateLabel, dateCode, onClose }: Eviden
               {speaker.questions?.map((q) => (
                 <p key={q}>{q}</p>
               ))}
+              {speaker.testimony && <p className="ef-quote">«{speaker.testimony}»</p>}
               <p className="ef-by">
                 — {character.name}, {speaker.name}
               </p>
@@ -344,6 +350,7 @@ function EvidenceFile({ character, index, dateLabel, dateCode, onClose }: Eviden
               <p className="ef-k">{character.keywords}</p>
             </div>
           </div>
+          {speaker?.roleNote && <p className="ef-lead">{speaker.roleNote}</p>}
           <p>{character.text}</p>
           <dl className="ef-dl">
             <div>

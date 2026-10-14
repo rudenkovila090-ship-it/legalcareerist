@@ -1094,6 +1094,21 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
+.ef-notebook p + ul {
+  margin-top: 0.6rem;
+}
+/* Реплика гостя в образе: курсивом, с красной чертой слева, как подчёркнутая цитата в протоколе. */
+.ef-quote {
+  padding-left: 0.7rem;
+  border-left: 2px solid var(--stamp-red);
+  font-style: italic;
+  line-height: 1.55;
+}
+/* Роль гостя одной фразой — первая строка листа «Роль в деле». */
+.ef-lead {
+  font-size: 1.05em;
+  font-weight: 600;
+}
 .ef-h-next {
   margin-top: 0.9rem;
 }

@@ -8,6 +8,7 @@ import portraitDetective from '../assets/noir/portrait-detective.webp'
 import portraitBarWoman from '../assets/noir/portrait-bar-woman.webp'
 import speakerJulia from '../assets/noir/speaker-julia-mukhina.webp'
 import speakerIlya from '../assets/noir/speaker-ilya-rudenkov.webp'
+import speakerEva from '../assets/noir/speaker-eva-gerasimova.webp'
 import { noirEventSlugs } from './noirEvents'
 
 // Авторское оформление и тексты отдельных мероприятий. Лежит отдельно от events.ts:
@@ -38,6 +39,12 @@ export interface EventSpeaker {
   description?: string
   /** «Смысл» — как выступление вписано в сюжет вечера. */
   meaning?: string
+  /** Роль гостя на вечере одной фразой — строка в листе «Роль в деле». */
+  roleNote?: string
+  /** «О чем расскажет» сплошным текстом (если нет списка themes). */
+  about?: string
+  /** Реплика гостя в образе — цитата в «показаниях» (если нет названия выступления). */
+  testimony?: string
   /** Вопросы выступления — «показания» в деле. */
   questions?: string[]
   /** О чём расскажет: пункты блокнота. */
@@ -274,6 +281,15 @@ export const eventStories: Record<string, EventStory> = {
         motive: 'Получить то, что, по ее мнению, должно было принадлежать ей.',
         symbol: 'Токсичная конкуренция, присвоение заслуг, карьерные интриги.',
         icon: 'pearl',
+        speaker: {
+          name: 'Ева Герасимова',
+          photo: speakerEva,
+          roleNote: 'Ведущая расследования, хранительница интриги.',
+          about:
+            'О том, что за каждой карьерой скрываются амбиции, секреты и судьбоносные решения. Проведет гостей через расследование убийства Карьеры, представит подозреваемых, задаст неудобные вопросы и поможет связать все улики в единую картину.',
+          testimony:
+            'Я никого не убивала. Я лишь наблюдала за теми, кто хотел добиться успеха любой ценой. Поверьте, у каждого здесь есть секрет. И каждый что-то скрывает. Вопрос только в том, кто первым допустил роковую ошибку…',
+        },
       },
       {
         name: 'Адвокат дьявола',
