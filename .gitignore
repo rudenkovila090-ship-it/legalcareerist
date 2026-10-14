@@ -17,6 +17,11 @@ server/.env
 server/node_modules
 server/data
 
+# Второй бот (bot2/) — токен, ключи и данные людей только на сервере
+bot2/.env
+bot2/data
+bot2/node_modules
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
