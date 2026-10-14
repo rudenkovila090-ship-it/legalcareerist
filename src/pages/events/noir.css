@@ -503,6 +503,13 @@
   }
 }
 
+/* Карточки выступлений в «Программе»: тёмная подложка, чтобы подписи карты города на фоне не мешали читать заголовок. */
+.theme-noir .noir-speech {
+  background: rgba(11, 5, 6, 0.78);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+
 /* ===== Спикеры: папки-разделители и карточка дела ===== */
 
 .sf,
@@ -511,18 +518,6 @@
   --noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .2 0 0 0 0 .12 0 0 0 0 .04 0 0 0 .5 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   --stamp-red: #a3281b;
   --ink-brown: #2a1d12;
-}
-
-.sf-count {
-  margin-bottom: 1.1rem;
-  font: 400 0.72rem/1 'IBM Plex Mono', ui-monospace, 'Courier New', monospace;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: rgba(234, 223, 200, 0.55);
-}
-.sf-count b {
-  font-weight: 600;
-  color: var(--color-gold);
 }
 
 .sf-grid {
@@ -619,12 +614,6 @@
   font: 600 7.2cqw/1.1 'IBM Plex Mono', ui-monospace, 'Courier New', monospace;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-}
-.sf-index em {
-  font: italic 400 8.4cqw/1 'Playfair Display', Georgia, serif;
-  letter-spacing: 0;
-  text-transform: none;
-  opacity: 0.8;
 }
 .sf-index strong {
   grid-column: 1 / -1;

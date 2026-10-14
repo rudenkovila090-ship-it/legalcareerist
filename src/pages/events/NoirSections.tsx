@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from 'react'
 import type { EventItem } from '../../types'
-import type { EventStory } from '../../data/eventStories'
+import type { EventStory, ProgramAct, ProgramSlot } from '../../data/eventStories'
 import { eventTimeRange } from '../../lib/eventTime'
 import { prefersReducedMotion } from '../../lib/motion'
 import Reveal from '../../components/noir/Reveal'
 import CaseFile from '../../components/noir/CaseFile'
 import EvidenceBoard from '../../components/noir/EvidenceBoard'
 import SpeakerFiles from '../../components/noir/SpeakerFiles'
+import { CharacterGlyph } from '../../components/noir/CharacterGlyph'
 import { ShotFx, ShotOnView } from '../../components/noir/ShotFx'
 import { NoirDust, NoirMarquee } from '../../components/noir/NoirAmbient'
 import './noir.css'
@@ -291,7 +292,7 @@ export function NoirStory({ story }: { story: EventStory }) {
     <section>
       <NoirHeading>Сюжет вечера</NoirHeading>
       <Reveal delay={80}>
-        <p className="mt-2 text-sm text-ink/55">Три акта расследования.</p>
+        <p className="mt-2 text-sm text-ink/55">Три акта расследования</p>
       </Reveal>
       <ol className="mt-6 space-y-8">
         {story.acts.map((act, i) => (
@@ -319,6 +320,154 @@ export function NoirStory({ story }: { story: EventStory }) {
   )
 }
 
+/** «Члены семьи» — партнёры вечера. Пока имена не объявлены, показываем вводную и ссылку на заявку о партнёрстве. */
+export function NoirFamily({ story }: { story: EventStory }) {
+  const { intro, members } = story.family
+  return (
+    <section id="family" className="scroll-mt-24">
+      <NoirHeading>Члены семьи</NoirHeading>
+      <Reveal delay={90}>
+        <p className="mt-3 max-w-2xl leading-relaxed text-ink/70">{intro}</p>
+      </Reveal>
+      {members.length > 0 && (
+        <div className="mt-6 grid gap-5 sm:grid-cols-2">
+          {members.map((m, i) => {
+            const body = (
+              <>
+                {m.logo && <img src={m.logo} alt="" className="mb-4 h-12 w-auto max-w-full object-contain object-left" />}
+                <h3 className="font-noir text-xl font-semibold text-ink">{m.name}</h3>
+                {m.description && <p className="mt-2 text-sm leading-relaxed text-ink/65">{m.description}</p>}
+              </>
+            )
+            return (
+              <Reveal key={m.name} delay={(i % 2) * 120}>
+                {m.url ? (
+                  <a href={m.url} target="_blank" rel="noreferrer" className="glass noir-card block h-full rounded-2xl p-6">
+                    {body}
+                  </a>
+                ) : (
+                  <div className="glass noir-card h-full rounded-2xl p-6">{body}</div>
+                )}
+              </Reveal>
+            )
+          })}
+        </div>
+      )}
+      <Reveal delay={150} className="mt-5">
+        <a href="#partner" className="inline-block rounded-full border border-ink/25 px-6 py-2.5 text-sm font-semibold text-ink/80 transition-colors hover:border-gold hover:text-gold">
+          Стать партнером вечера
+        </a>
+      </Reveal>
+    </section>
+  )
+}
+
+/** Часы из референса программы: серый диск со стрелками. */
+function ClockIcon({ className = 'h-5 w-5' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={`shrink-0 text-ink/45 ${className}`} aria-hidden="true">
+      <circle cx="12" cy="12" r="10" fill="currentColor" />
+      <path d="M12 6.5V12l3.6 2.2" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ stroke: 'var(--noir-ground)' }} />
+    </svg>
+  )
+}
+
+/** Строка программы: часы, время, название капсом — как на референсе. */
+function ProgramRow({ time, title }: { time: string; title: string }) {
+  return (
+    <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5">
+      <span className="flex items-center gap-2.5 text-lg text-ink sm:text-xl">
+        <ClockIcon />
+        {time}
+      </span>
+      <span className="text-lg uppercase tracking-wide text-ink sm:text-xl">{title}</span>
+    </div>
+  )
+}
+
+/** Время акта — от начала первого слота до конца последнего. */
+function actTime(act: ProgramAct) {
+  return `${act.slots[0].time.split('–')[0]}–${act.slots[act.slots.length - 1].time.split('–')[1]}`
+}
+
+/** Карточка выступления: время, роль, название и — если гость уже объявлен — его имя и тема. */
+function SpeechCard({ slot, story }: { slot: ProgramSlot; story: EventStory }) {
+  const character = story.characters.find((c) => c.name === slot.role)
+  const speaker = character?.speaker
+  return (
+    <article className="glass noir-card noir-speech flex flex-col rounded-2xl p-6">
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-semibold uppercase tracking-wide text-ink/70">
+        <span className="flex items-center gap-2">
+          <ClockIcon className="h-4 w-4" />
+          {slot.time}
+        </span>
+        {character && (
+          <span className="flex items-center gap-2">
+            <span className="text-gold [&>svg]:h-4 [&>svg]:w-4">
+              <CharacterGlyph icon={character.icon} />
+            </span>
+            {character.name}
+          </span>
+        )}
+      </div>
+      <h3 className="font-noir mt-5 text-2xl font-semibold leading-snug text-ink">{slot.title}</h3>
+      <p className="mt-3 text-sm leading-relaxed text-ink/60">{speaker ? `${speaker.name} · «${speaker.topic}»` : 'Имя гостя и тему выступления объявим позже.'}</p>
+    </article>
+  )
+}
+
+/** Акт: заголовок со временем, подряд идущие выступления — карточками в две колонки, остальное (перерыв, финал) — строками. */
+function ProgramActView({ act, story }: { act: ProgramAct; story: EventStory }) {
+  const groups: { cards: ProgramSlot[] | null; row?: ProgramSlot }[] = []
+  for (const slot of act.slots) {
+    const last = groups[groups.length - 1]
+    if (slot.role) {
+      if (last?.cards) last.cards.push(slot)
+      else groups.push({ cards: [slot] })
+    } else {
+      groups.push({ cards: null, row: slot })
+    }
+  }
+  return (
+    <div>
+      <ProgramRow time={actTime(act)} title={act.title} />
+      <div className="mt-6 space-y-6">
+        {groups.map((g, i) =>
+          g.cards ? (
+            <div key={i} className="grid gap-5 sm:grid-cols-2">
+              {g.cards.map((slot) => (
+                <SpeechCard key={slot.title} slot={slot} story={story} />
+              ))}
+            </div>
+          ) : (
+            g.row && (
+              <div key={i} className="border-t border-ink/10 pt-6">
+                <ProgramRow time={g.row.time} title={g.row.title} />
+              </div>
+            )
+          ),
+        )}
+      </div>
+    </div>
+  )
+}
+
+/** «Программа» — по референсу: строки со временем, акты и карточки выступлений. */
+export function NoirProgram({ story }: { story: EventStory }) {
+  return (
+    <section id="program" className="scroll-mt-24">
+      <NoirHeading>Программа</NoirHeading>
+      <ol className="mt-6 border-b border-ink/10">
+        {story.program.map((entry, i) => (
+          <li key={entry.title} className="border-t border-ink/10 py-6 sm:py-7">
+            <Reveal delay={Math.min(i, 3) * 70}>{'slots' in entry ? <ProgramActView act={entry} story={story} /> : <ProgramRow time={entry.time} title={entry.title} />}</Reveal>
+          </li>
+        ))}
+      </ol>
+    </section>
+  )
+}
+
 /** «Спикеры» — папки с делами гостей по ролям вечера; по клику открывается карточка дела. */
 export function NoirSpeakers({ story, event }: { story: EventStory; event: EventItem }) {
   const when = new Date(event.dateTime)
@@ -329,7 +478,6 @@ export function NoirSpeakers({ story, event }: { story: EventStory; event: Event
       <NoirHeading>Спикеры</NoirHeading>
       <Reveal delay={90}>
         <p className="mt-3 max-w-2xl leading-relaxed text-ink/70">{story.speakersIntro}</p>
-        <p className="mt-2 text-sm text-ink/55">Наведите курсор на папку и откройте дело (на телефоне — нажмите).</p>
       </Reveal>
       <Reveal className="mt-8">
         <SpeakerFiles characters={story.characters} dateLabel={dateLabel} shortDate={shortDate} />

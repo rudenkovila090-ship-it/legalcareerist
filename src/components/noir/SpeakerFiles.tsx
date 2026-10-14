@@ -113,7 +113,7 @@ function PublicationMap({ route }: { route: boolean }) {
 }
 
 /** Папка-разделитель: крафтовая полоса с выступающим язычком, вертикальным названием роли и «торчащей» уликой. */
-function Folder({ character, index, shortDate, onOpen }: { character: EventCharacter; index: number; shortDate: string; onOpen: (index: number, opener: HTMLButtonElement) => void }) {
+function Folder({ character, index, onOpen }: { character: EventCharacter; index: number; onOpen: (index: number, opener: HTMLButtonElement) => void }) {
   const { decor, stamp } = look(index)
   const sealed = !character.speaker
   const words = character.name.split(' ')
@@ -145,7 +145,6 @@ function Folder({ character, index, shortDate, onOpen }: { character: EventChara
 
           <span className="sf-index">
             <b>Дело</b>
-            <em>{shortDate}</em>
             <strong>№ {pad(index + 1)}</strong>
           </span>
 
@@ -264,7 +263,7 @@ function EvidenceFile({ character, index, dateLabel, dateCode, onClose }: Eviden
         </div>
 
         <div className="ef-piece ef-notebook" style={piece(4, -1)}>
-          <p className="ef-h">О чём расскажет</p>
+          <p className="ef-h">О чем расскажет</p>
           {speaker ? (
             <ul>
               {speaker.themes.map((t) => (
@@ -299,7 +298,7 @@ function EvidenceFile({ character, index, dateLabel, dateCode, onClose }: Eviden
             </>
           ) : (
             <>
-              <p>Показания ещё не приобщены к делу.</p>
+              <p>Показания еще не приобщены к делу.</p>
               <span className="ef-redact">Выступление — раскроется на вечере</span>
             </>
           )}
@@ -385,21 +384,16 @@ export default function SpeakerFiles({ characters, dateLabel, shortDate }: Speak
     opener.current?.focus()
   }, [])
 
-  const revealed = characters.filter((c) => c.speaker).length
   const current = open !== null ? characters[open] : undefined
 
   return (
     <div className="sf">
-      <p className="sf-count">
-        Раскрыто дел: <b>{revealed}</b> из {characters.length}
-      </p>
       <ul className="sf-grid">
         {characters.map((c, i) => (
           <Folder
             key={c.name}
             character={c}
             index={i}
-            shortDate={shortDate}
             onOpen={(index, el) => {
               opener.current = el
               setOpen(index)

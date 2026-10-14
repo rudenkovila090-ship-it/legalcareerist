@@ -18,7 +18,7 @@ import { eventTimeRange } from '../../lib/eventTime'
 import HowHeardField from '../../components/HowHeardField'
 import { pluralRu } from '../../lib/plural'
 import { eventStories } from '../../data/eventStories'
-import { NoirHero, NoirIntro, NoirFacts, NoirAudience, NoirStory, NoirSpeakers } from './NoirSections'
+import { NoirHero, NoirIntro, NoirFacts, NoirAudience, NoirStory, NoirFamily, NoirProgram, NoirSpeakers } from './NoirSections'
 import { useNoirFont } from '../../lib/useNoirFont'
 import { useNoirScroll } from '../../lib/useNoirScroll'
 import ScrollCylinder from '../../components/noir/ScrollCylinder'
@@ -211,7 +211,7 @@ export default function EventDetail() {
       setPromo({ code: data.code, label: data.label, price: data.price, discount: data.discount })
       return true
     } catch {
-      setPromoError('Не получилось проверить промокод. Попробуйте ещё раз.')
+      setPromoError('Не получилось проверить промокод. Попробуйте еще раз.')
       return false
     } finally {
       setPromoChecking(false)
@@ -429,8 +429,10 @@ export default function EventDetail() {
             <div className="mb-10 space-y-12">
               <NoirIntro story={story} />
               <NoirFacts story={story} />
+              <NoirFamily story={story} />
               <NoirAudience story={story} />
               <NoirStory story={story} />
+              <NoirProgram story={story} />
               <NoirSpeakers story={story} event={event} />
             </div>
           )}
@@ -517,7 +519,7 @@ export default function EventDetail() {
           {/* Стать партнером мероприятия — лид-заявка: пока просто фиксируем
               отклик (кто и от какой компании хочет стать партнером именно
               этого мероприятия), без логики согласования. */}
-          <div className="mt-8">
+          <div id="partner" className="mt-8 scroll-mt-24">
             <h2 className="text-xl font-semibold">Стать партнером мероприятия</h2>
             <p className="mt-2 text-sm text-ink/60">
               Оставьте заявку — мы свяжемся, чтобы обсудить формат партнерства для этого мероприятия.
@@ -655,7 +657,7 @@ export default function EventDetail() {
                 )}
 
                 {justPaid && (
-                  <div className="mt-4 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">Оплата получена — вы зарегистрированы. Подтверждение придёт на почту, за день до мероприятия — напоминание.</div>
+                  <div className="mt-4 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">Оплата получена — вы зарегистрированы. Подтверждение придет на почту, за день до мероприятия — напоминание.</div>
                 )}
                 {registered ? (
                   <div className="mt-4 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">Вы зарегистрированы. Напоминание придет заранее.</div>
@@ -677,7 +679,7 @@ export default function EventDetail() {
                       type="email"
                       value={form.email}
                       onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-                      placeholder={tariff.price > 0 && !event.registrationLink ? 'Почта (пришлём подтверждение)' : 'Почта'}
+                      placeholder={tariff.price > 0 && !event.registrationLink ? 'Почта (пришлем подтверждение)' : 'Почта'}
                       required={tariff.price > 0 && !event.registrationLink}
                       className="rounded-lg border border-ink/15 px-3.5 py-2.5 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40"
                     />
@@ -713,14 +715,14 @@ export default function EventDetail() {
                         </div>
                         {promo && (
                           <div className="mt-2 rounded-lg bg-emerald-50 p-2.5 text-xs text-emerald-800">
-                            Промокод {promo.code} применён ({promo.label}): скидка {promo.discount.toLocaleString('ru-RU')} ₽, к оплате {promo.price.toLocaleString('ru-RU')} ₽.
+                            Промокод {promo.code} применен ({promo.label}): скидка {promo.discount.toLocaleString('ru-RU')} ₽, к оплате {promo.price.toLocaleString('ru-RU')} ₽.
                           </div>
                         )}
                         {promoError && <div className="mt-2 text-xs text-red-600">{promoError}</div>}
                       </div>
                     )}
                     <HowHeardField value={form.howHeard} onChange={(v) => setForm((f) => ({ ...f, howHeard: v }))} className="rounded-lg border border-ink/15 px-3.5 py-2.5 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40" />
-                    {payError && <div className="text-xs text-red-600">Не получилось перейти к оплате. Попробуйте ещё раз или напишите нам.</div>}
+                    {payError && <div className="text-xs text-red-600">Не получилось перейти к оплате. Попробуйте еще раз или напишите нам.</div>}
                     <ConsentCheck />
                     <button type="submit" disabled={paying} className="mt-1 rounded-lg bg-ink py-2.5 text-sm font-semibold text-white hover:bg-ink/90 disabled:opacity-60">
                       {paying ? 'Переходим к оплате…' : tariff.price === 0 ? 'Приобрести билет' : `Приобрести билет — ${(promo?.price ?? tariff.price).toLocaleString('ru-RU')} ₽`}
