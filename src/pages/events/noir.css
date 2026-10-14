@@ -460,22 +460,36 @@
 }
 .eb-tag {
   position: absolute;
-  left: -12%;
-  right: -12%;
-  bottom: 6px;
-  padding: 0.4rem 0.5rem;
+  left: -18%;
+  right: -18%;
+  bottom: 8px;
+  padding: 0.6rem 0.75rem 0.65rem;
   background: #f0e6cf;
   color: #24150d;
-  font-family: 'Courier New', ui-monospace, monospace;
-  font-size: 0.66rem;
-  font-weight: 700;
-  line-height: 1.25;
+  /* Основной шрифт сайта и размер от 14px: прежний жирный Courier New в 10px на кириллице слипался. */
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: 0.01em;
   text-align: center;
+  text-wrap: balance;
   opacity: 0;
   transform: translateY(10px) rotate(-2deg);
   transition: opacity 0.3s, transform 0.4s cubic-bezier(0.3, 1.4, 0.5, 1);
   box-shadow: 0 6px 14px -6px rgba(0, 0, 0, 0.8);
   pointer-events: none;
+}
+/* Телефон: фото узкие, поэтому подпись чуть мельче (13px) и шире, чтобы укладываться в меньшее число строк и не закрывать картинку целиком. */
+@media (max-width: 639px) {
+  .eb-tag {
+    left: -24%;
+    right: -24%;
+    bottom: 6px;
+    padding: 0.5rem 0.6rem 0.55rem;
+    font-size: 0.8125rem;
+    line-height: 1.35;
+  }
 }
 .eb-card[data-active] .eb-tag {
   opacity: 1;
