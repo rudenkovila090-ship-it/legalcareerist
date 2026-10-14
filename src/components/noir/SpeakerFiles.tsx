@@ -7,30 +7,30 @@ import '../../pages/events/noir.css'
 
 const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII']
 
-type Decor = 'stamp' | 'torn' | 'print' | 'clip'
+type Decor = 'stamp' | 'slip' | 'print' | 'evid'
 type Silhouette = 'hat' | 'man' | 'woman'
 
-// Что «торчит» из каждой папки (как на референсе: штамп, надорванный лист, отпечаток, скрепка) и какой силуэт стоит в деле,
+// Что лежит на лицевой стороне каждой папки (штамп, листок с чёрными строками, отпечаток, бирка вещдока) и какой силуэт стоит в деле,
 // пока у роли нет фото гостя. Привязка — по порядку ролей в eventStories.
 const LOOKS: { decor: Decor; stamp?: string; face: Silhouette }[] = [
   { decor: 'stamp', stamp: 'Секретно', face: 'hat' },
-  { decor: 'torn', face: 'man' },
+  { decor: 'slip', face: 'man' },
   { decor: 'print', face: 'hat' },
-  { decor: 'clip', face: 'woman' },
+  { decor: 'evid', face: 'woman' },
   { decor: 'stamp', stamp: 'Улика', face: 'man' },
-  { decor: 'torn', face: 'man' },
+  { decor: 'slip', face: 'man' },
 ]
 const look = (i: number) => LOOKS[i % LOOKS.length]
 
 /** Номер дела — четыре цифры, у каждой роли свой (задаётся в данных; запасной вариант — вычисленный из порядка роли). */
-const caseNumber = (c: EventCharacter, i: number) => c.caseNo ?? String(1000 + ((i + 1) * 2749) % 9000)
+const caseNumber = (c: EventCharacter, i: number) => c.caseNo ?? String(1000 + (((i + 1) * 2749) % 9000))
 
 // Где у папки язычок: три позиции, как у настоящих папок со срезом в треть.
 const TABS = ['5%', '34%', '63%']
 
 function Fingerprint() {
   return (
-    <svg viewBox="0 0 60 70" fill="none" stroke="#1b1410" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
+    <svg viewBox="0 0 60 70" fill="none" stroke="#16130f" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
       <path d="M30 6C16 6 7 17 7 31v8" strokeDasharray="30 5 12 4" />
       <path d="M30 11C19 11 12 20 12 31v12c0 5-2 8-4 11" strokeDasharray="26 4 16 5" />
       <path d="M30 16c-8 0 -13 7-13 15v10c0 6-1 10-3 14" strokeDasharray="22 6 14 3" />
@@ -45,20 +45,7 @@ function Fingerprint() {
   )
 }
 
-function Paperclip() {
-  return (
-    <svg viewBox="0 0 24 56" fill="none" stroke="#5d5a58" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-      <path d="M17 12v30a7 7 0 0 1-14 0V10a5 5 0 0 1 10 0v28a2.6 2.6 0 0 1-5.2 0V16" />
-    </svg>
-  )
-}
-
-/** Лист бумаги с рваным краем, пятнами и заломами — фон карточки-«вещдока» (стили .ef-paper). */
-function Paper() {
-  return <i className="ef-paper" aria-hidden="true" />
-}
-
-/** Тёмный силуэт «фото» — пока у гостя нет снимка. Виден только контур, лицо не прорисовано, как на референсе. Фон — в CSS (.ef-photo). */
+/** Тёмный силуэт «фото» — пока у гостя нет снимка. Виден только контур, лицо не прорисовано. Фон — в CSS (.ef-photo). */
 function SilhouetteArt({ kind }: { kind: Silhouette }) {
   return (
     <svg viewBox="0 0 160 190" preserveAspectRatio="xMidYMax meet" className="ef-sil" aria-hidden="true">
@@ -88,38 +75,6 @@ function SilhouetteArt({ kind }: { kind: Silhouette }) {
   )
 }
 
-/** Схема города со следом публикации: от автора через репосты — к тому, кто решил, что обойдётся. */
-function PublicationMap({ route }: { route: boolean }) {
-  return (
-    <svg viewBox="0 0 200 210" className="ef-mapsvg" aria-hidden="true">
-      <rect width="200" height="210" fill="#cfc4a8" />
-      <g fill="none" stroke="#3a2e22" strokeLinecap="round" opacity="0.62">
-        <path d="M-5 38 205 56M-5 92C55 78 120 108 205 96M-5 148 205 126M-5 190 205 176" strokeWidth="1.1" />
-        <path d="M26-5 52 215M84-5C96 60 78 130 100 215M140-5 150 215M184-5 172 215" strokeWidth="1.1" />
-        <path d="M-5 205 205 12" strokeWidth="2.6" />
-        <path d="M60 60 100 150M120 20 70 190M165 30 124 190M10 120 90 70" strokeWidth="0.8" />
-      </g>
-      <path d="M100 0C108 40 126 60 160 84 188 104 200 130 200 160" fill="none" stroke="#7d8fa0" strokeWidth="9" opacity="0.38" />
-      {route ? (
-        <g>
-          <path d="M34 168C58 142 66 116 98 104S150 78 166 38" fill="none" stroke="#a3281b" strokeWidth="2.4" strokeDasharray="5 5" strokeLinecap="round" />
-          <circle cx="34" cy="168" r="7" fill="#a3281b" />
-          <circle cx="34" cy="168" r="12" fill="none" stroke="#a3281b" strokeWidth="1.4" />
-          <circle cx="98" cy="104" r="5" fill="#2a1d12" />
-          <circle cx="132" cy="84" r="4" fill="#2a1d12" />
-          <circle cx="166" cy="38" r="9" fill="#e9dfc6" stroke="#a3281b" strokeWidth="2" />
-          <path d="M163 34.5c0-2 1.4-3 3-3s3 1 3 2.6c0 2-3 2.4-3 4.4M166 43v.1" fill="none" stroke="#a3281b" strokeWidth="1.5" strokeLinecap="round" />
-        </g>
-      ) : (
-        <g>
-          <path d="M100 150c-9-14-16-22-16-32a16 16 0 0 1 32 0c0 10-7 18-16 32Z" fill="#a3281b" />
-          <circle cx="100" cy="118" r="5.5" fill="#e9dfc6" />
-        </g>
-      )}
-    </svg>
-  )
-}
-
 /**
  * Лицевая сторона папки-дела: язычок, листы внутри, наклейка с номером и ролью, улика, имя гостя.
  * Одна и та же разметка — и папка в списке, и обложка в окне дела (размеры в cqw, от ширины контейнера).
@@ -138,34 +93,24 @@ function FolderFace({ character, index }: { character: EventCharacter; index: nu
         <b>{ROMAN[index] ?? index + 1}</b>
       </span>
       <span className="fd-front">
-        {decor === 'torn' && <span className="fd-torn" />}
-        {decor === 'clip' && (
-          <span className="fd-clip">
-            <Paperclip />
+        <span className="fd-label">
+          <span className="fd-no">
+            <span>Дело</span>
+            <span>№ {caseNumber(character, index)}</span>
           </span>
-        )}
+          <span className="fd-role">{character.name}</span>
+        </span>
+
+        {decor === 'stamp' && <span className="fd-stamp">{stamp}</span>}
+        {decor === 'slip' && <span className="fd-slip" />}
+        {decor === 'evid' && <span className="fd-evid">Вещдок</span>}
         {decor === 'print' && (
           <span className="fd-print">
             <Fingerprint />
           </span>
         )}
 
-        <span className="fd-label">
-          <span className="fd-no">
-            <b>Дело</b>№ {caseNumber(character, index)}
-          </span>
-          <span className="fd-role">{character.name}</span>
-        </span>
-
-        {decor === 'stamp' && <span className="fd-stamp">{stamp}</span>}
-
-        {sealed ? (
-          <span className="fd-bar">имя позже</span>
-        ) : (
-          <span className="fd-tag">
-            <span>{character.speaker?.name}</span>
-          </span>
-        )}
+        {sealed ? <span className="fd-bar">имя позже</span> : <span className="fd-tag">{character.speaker?.name}</span>}
       </span>
     </span>
   )
@@ -184,7 +129,7 @@ function Folder({ character, index, onOpen }: { character: EventCharacter; index
         data-sealed={sealed ? '' : undefined}
         aria-haspopup="dialog"
         aria-label={label}
-        style={{ '--tilt': index % 2 ? '1.2deg' : '-1.2deg' } as CSSProperties}
+        style={{ '--tilt': index % 2 ? '1deg' : '-1deg' } as CSSProperties}
         onClick={(e: MouseEvent<HTMLButtonElement>) => onOpen(index, e.currentTarget)}
       >
         <FolderFace character={character} index={index} />
@@ -203,19 +148,21 @@ interface EvidenceFileProps {
 /** Сколько ждём, пока обложка закроется и окно уйдёт, прежде чем убрать его из страницы (мс). */
 const CLOSE_MS = 950
 
-/** Карточка дела на корковой доске: «фото» гостя, роль, темы, показания, схема, уровень риска, пометка «конфиденциально». */
+/** Дело: вертикальная папка. Сверху фото и «паспорт» дела, ниже два листа — показания и роль. Всё, что может быть длинным, сжато. */
 function EvidenceFile({ character, index, dateLabel, onClose }: EvidenceFileProps) {
   const speaker = character.speaker
-  // Имя можно объявить раньше темы: пока темы нет, «показания» и блокнот остаются закрытыми.
-  const hasTalk = Boolean(speaker?.topic || speaker?.testimony)
   const themes = speaker?.themes ?? []
-  const meaning = speaker?.meaning
-  const about = speaker?.about
-  const hasAbout = themes.length > 0 || Boolean(about)
   const risk = speaker?.risk
+  const hasTestimony = Boolean(speaker && (speaker.topic || speaker.topicLead || speaker.description || speaker.questions?.length || speaker.testimony || speaker.suspect))
+  const hasAbout = themes.length > 0 || Boolean(speaker?.about)
+  const hasMeaning = Boolean(speaker?.meaning)
+  const nothingYet = !hasTestimony && !hasAbout && !hasMeaning
+  // Лист «Роль в деле» свернут: это общее описание роли, и оно удлиняет дело. Пока у роли нет показаний — открыт, ведь больше читать нечего.
+  const [roleOpen, setRoleOpen] = useState(nothingYet)
   const titleId = useId()
   const closeRef = useRef<HTMLButtonElement>(null)
   const pressedBackdrop = useRef(false)
+  const { face } = look(index)
   // Закрытие — тоже анимация: обложка опускается обратно на доску, и только потом окно убирается.
   const [closing, setClosing] = useState(false)
   const closingRef = useRef(false)
@@ -231,19 +178,8 @@ function EvidenceFile({ character, index, dateLabel, onClose }: EvidenceFileProp
     closeTimer.current = window.setTimeout(onClose, CLOSE_MS)
   }, [onClose])
   useEffect(() => () => window.clearTimeout(closeTimer.current), [])
-  const { face } = look(index)
-  // --k/--r — порядок и наклон листа; остальное — где у него пятно, затёртость и залом (у каждого свои, чтобы листы не выглядели копиями).
-  const piece = (k: number, r: number) =>
-    ({
-      '--k': k,
-      '--r': `${r}deg`,
-      '--sx': `${18 + ((k * 37) % 64)}%`,
-      '--sy': `${14 + ((k * 53) % 60)}%`,
-      '--bx': `${(k * 29) % 90}%`,
-      '--by': `${40 + ((k * 41) % 55)}%`,
-      '--cy': `${34 + ((k * 17) % 34)}%`,
-      '--ca': `${-3 + (k % 5)}deg`,
-    }) as CSSProperties
+  // --k — порядок появления листа, --r — его наклон.
+  const piece = (k: number, r: number) => ({ '--k': k, '--r': `${r}deg` }) as CSSProperties
 
   useEffect(() => {
     closeRef.current?.focus()
@@ -288,74 +224,36 @@ function EvidenceFile({ character, index, dateLabel, onClose }: EvidenceFileProp
             ✕
           </button>
 
-          <div className="ef-piece ef-label ef-label-l" style={piece(0, -2)}>
-            <Paper />
-            <i className="ef-tape ef-tape-l" />
-            <span>Материалы дела</span>
-          </div>
-          <div className="ef-piece ef-label ef-label-r" style={piece(1, 1)}>
-            <Paper />
-            <span>Дело № {caseNumber(character, index)}</span>
-          </div>
+          <div className="ef-top">
+            <figure className="ef-print ef-piece" style={piece(0, -1)}>
+              <div className="ef-photo">{speaker?.photo ? <img src={speaker.photo} alt={speaker.name} draggable={false} /> : <SilhouetteArt kind={face} />}</div>
+              <figcaption id={titleId} className="ef-name">
+                {speaker ? speaker.name : 'Имя объявим позже'}
+              </figcaption>
+              {speaker?.position && <p className="ef-pos">{speaker.position}</p>}
+            </figure>
 
-          <figure className="ef-piece ef-polaroid" style={piece(2, -1.4)}>
-            <Paper />
-            <div className="ef-photo">{speaker?.photo ? <img src={speaker.photo} alt={speaker.name} draggable={false} /> : <SilhouetteArt kind={face} />}</div>
-            <figcaption id={titleId} className="ef-script">
-              {speaker ? speaker.name : 'Имя объявим позже'}
-            </figcaption>
-            {speaker?.position && <p className="ef-pos">{speaker.position}</p>}
-          </figure>
-
-          <div className="ef-piece ef-sticky" style={piece(3, 2)}>
-            <Paper />
-            <i className="ef-tape ef-tape-tl" />
-            <i className="ef-tape ef-tape-br" />
-            <p className="ef-k">Проходит по делу как</p>
-            <p className="ef-hot">{character.name}</p>
-            <p className="ef-sm">{character.epithet}</p>
-            <p className="ef-k ef-gap">На вечере: {dateLabel}</p>
-          </div>
-
-          <div className="ef-piece ef-notebook" style={piece(4, -1)}>
-            <Paper />
-            {hasAbout && (
-              <>
-                <p className="ef-h">О чем расскажет</p>
-                {about && <p>{about}</p>}
-                {themes.length > 0 && (
-                  <ul>
-                    {themes.map((t) => (
-                      <li key={t}>{t}</li>
-                    ))}
-                  </ul>
-                )}
-              </>
-            )}
-            {meaning && (
-              <>
-                <p className={hasAbout ? 'ef-h ef-h-next' : 'ef-h'}>Смысл</p>
-                <p>{meaning}</p>
-              </>
-            )}
-            {!hasAbout && !meaning && (
-              <>
-                <p className="ef-h">О чем расскажет</p>
-                <div className="ef-lines" aria-hidden="true">
-                  <i style={{ width: '88%' }} />
-                  <i style={{ width: '64%' }} />
-                  <i style={{ width: '76%' }} />
+            <div className="ef-meta ef-piece" style={piece(1, 0)}>
+              <p className="ef-no">Дело № {caseNumber(character, index)}</p>
+              <p className="ef-roleh">{character.name}</p>
+              <p className="ef-epi">{character.epithet}</p>
+              <p className="ef-date">На вечере: {dateLabel}</p>
+              <div className="ef-risk">
+                <p className="ef-lab">Уровень риска</p>
+                <div className="ef-scale" data-unknown={risk ? undefined : ''} role="img" aria-label={risk ? `Уровень риска: ${risk} из 5` : 'Уровень риска пока не установлен'}>
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <i key={n} data-on={risk && n <= risk ? '' : undefined} />
+                  ))}
                 </div>
-                <p className="ef-sm ef-gap">тема выступления — позже</p>
-              </>
-            )}
+                {!risk && <p className="ef-hint">пока не установлен</p>}
+              </div>
+              <span className="ef-stamp">Конфиденциально</span>
+            </div>
           </div>
 
-          <div className="ef-piece ef-witness" style={piece(5, 1.2)}>
-            <Paper />
-            <i className="ef-tape ef-tape-tl" />
-            <p className="ef-h">Показания</p>
-            {speaker && hasTalk ? (
+          <section className="ef-sheet ef-piece" style={piece(2, -0.5)}>
+            <h4 className="ef-h">Показания</h4>
+            {hasTestimony && speaker && (
               <>
                 {speaker.topic && <p className="ef-topic">«{speaker.topic}»</p>}
                 {speaker.suspect && (
@@ -364,83 +262,63 @@ function EvidenceFile({ character, index, dateLabel, onClose }: EvidenceFileProp
                     <b>{speaker.suspect}</b>
                   </p>
                 )}
-                {speaker.topicLead && <p>{speaker.topicLead}.</p>}
-                {speaker.description && <p>{speaker.description}</p>}
+                {speaker.topicLead && <p className="ef-p">{speaker.topicLead}.</p>}
+                {speaker.description && <p className="ef-p">{speaker.description}</p>}
                 {speaker.questions?.map((q) => (
-                  <p key={q}>{q}</p>
+                  <p key={q} className="ef-p">
+                    {q}
+                  </p>
                 ))}
-                {speaker.testimony && <p className="ef-quote">«{speaker.testimony}»</p>}
-                <p className="ef-by">
-                  — {character.name}, {speaker.name}
-                </p>
+                {speaker.testimony && <p className="ef-q">«{speaker.testimony}»</p>}
               </>
-            ) : (
+            )}
+            {hasAbout && speaker && (
+              <div className="ef-part">
+                <h5 className="ef-sub">О чем расскажет</h5>
+                {speaker.about && <p className="ef-p">{speaker.about}</p>}
+                {themes.length > 0 && (
+                  <ul className="ef-tags">
+                    {themes.map((t) => (
+                      <li key={t}>{t}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+            {hasMeaning && speaker && (
+              <div className="ef-part">
+                <h5 className="ef-sub">Смысл</h5>
+                <p className="ef-p">{speaker.meaning}</p>
+              </div>
+            )}
+            {nothingYet && (
               <>
-                <p>Показания еще не приобщены к делу.</p>
+                <p className="ef-p">Показания еще не приобщены к делу.</p>
                 <span className="ef-redact">Выступление — раскроется на вечере</span>
               </>
             )}
-          </div>
+          </section>
 
-          <div className="ef-piece ef-map" style={piece(6, -1.6)}>
-            <Paper />
-            <PublicationMap route={speaker?.map === 'route'} />
-            <p className="ef-script ef-script-sm">{speaker?.map === 'route' ? 'Путь публикации' : 'Место происшествия'}</p>
-          </div>
-
-          {/* Описание роли: то, что раньше было отдельным блоком «Персонажи и роли». */}
-          <div className="ef-piece ef-role" style={piece(7, -0.5)}>
-            <Paper />
-            <i className="ef-tape ef-tape-tr" />
-            <div className="ef-role-head">
-              <span className="ef-glyph" aria-hidden="true">
+          <section className="ef-sheet ef-role ef-piece" data-collapsed={roleOpen ? undefined : ''} style={piece(3, 0.4)}>
+            <h4 className="ef-h">
+              <button type="button" className="ef-toggle" aria-expanded={roleOpen} onClick={() => setRoleOpen((v) => !v)}>
                 <CharacterGlyph icon={character.icon} />
-              </span>
-              <div>
-                <p className="ef-h">Роль в деле</p>
-                <p className="ef-k">{character.keywords}</p>
-              </div>
-            </div>
-            {speaker?.roleNote && <p className="ef-lead">{speaker.roleNote}</p>}
-            <p>{character.text}</p>
-            <dl className="ef-dl">
-              <div>
-                <dt className="ef-k">Мотив</dt>
-                <dd>{character.motive}</dd>
-              </div>
-              <div>
-                <dt className="ef-k">Символизирует</dt>
-                <dd>{character.symbol}</dd>
-              </div>
-              <div>
-                <dt className="ef-k">Улика</dt>
-                <dd>
-                  <span className="ef-redact">Раскроется на вечере</span>
-                </dd>
-              </div>
-            </dl>
-          </div>
-
-          <div className="ef-piece ef-risk" style={piece(8, -0.8)}>
-            <Paper />
-            <p className="ef-h">Уровень риска</p>
-            <div className="ef-scale" role="img" aria-label={risk ? `Уровень риска: ${risk} из 5` : 'Уровень риска пока не установлен'}>
-              {[1, 2, 3, 4, 5].map((n) => (
-                <span key={n} data-on={risk === n ? '' : undefined} data-unknown={risk ? undefined : ''}>
-                  {n}
+                Роль в деле
+                <span className="ef-plus" aria-hidden="true">
+                  {roleOpen ? '−' : '+'}
                 </span>
-              ))}
-            </div>
-            {!risk && <p className="ef-sm ef-gap">пока не установлен</p>}
-          </div>
-
-          <div className="ef-piece ef-conf" style={piece(9, 1.5)}>
-            <span className="ef-clip" aria-hidden="true">
-              <Paperclip />
-            </span>
-            <div className="ef-conf-in">Конфиденциально</div>
-          </div>
+              </button>
+            </h4>
+            <p className="ef-kw">{character.keywords}</p>
+            {roleOpen && (
+              <>
+                {speaker?.roleNote && <p className="ef-lead">{speaker.roleNote}</p>}
+                <p className="ef-p">{character.text}</p>
+              </>
+            )}
+          </section>
         </div>
+
         {/* Обложка папки: та же лицевая сторона, что и в списке; в начале закрывает доску и раскрывается влево. */}
         <div className="ef-cover" aria-hidden="true">
           <FolderFace character={character} index={index} />
@@ -458,7 +336,7 @@ interface SpeakerFilesProps {
 }
 
 /**
- * Блок «Спикеры»: по папке-делу на каждую роль. Папки чуть сдвигаются при наведении, по клику открывается карточка дела.
+ * Блок «Спикеры»: по папке-делу на каждую роль. Папки чуть приоткрываются при наведении, по клику открывается дело.
  * Роль без объявленного гостя открывается тоже — с засекреченным именем и описанием роли.
  */
 export default function SpeakerFiles({ characters, dateLabel }: SpeakerFilesProps) {

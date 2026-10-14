@@ -198,7 +198,7 @@
   stroke-width: 0.8;
 }
 .cm-label {
-  font-family: 'IBM Plex Mono', ui-monospace, 'Courier New', monospace;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
   font-size: 10.5px;
   font-weight: 600;
   letter-spacing: 0.1em;
@@ -220,17 +220,16 @@
 .cf-tab {
   position: relative;
   top: 1px;
-  padding: 0.6rem 1.05rem;
-  border: 1px solid rgba(234, 223, 200, 0.18);
+  padding: 0.7rem 1.1rem;
+  border: 1px solid rgba(234, 223, 200, 0.2);
   border-bottom: 0;
-  border-radius: 10px 10px 0 0;
   background: #2b0a10;
-  color: rgba(234, 223, 200, 0.62);
-  font-family: var(--font-sans);
-  font-size: 0.7rem;
-  font-weight: 600;
+  color: rgba(234, 223, 200, 0.7);
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
   line-height: 1;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   cursor: pointer;
   transition: background 0.3s, color 0.3s, padding 0.3s;
@@ -240,19 +239,18 @@
 }
 .cf-tab[data-active] {
   z-index: 2;
-  padding-top: 0.8rem;
-  padding-bottom: 0.7rem;
-  background: #e7dbbf;
-  border-color: #e7dbbf;
-  color: #2a160d;
+  padding-top: 0.9rem;
+  padding-bottom: 0.8rem;
+  background: #dcd6c8;
+  border-color: #dcd6c8;
+  color: #16130f;
 }
 .cf-folder {
   position: relative;
   padding: 16px 16px 12px;
-  border: 1px solid rgba(234, 223, 200, 0.18);
-  border-radius: 0 14px 14px 14px;
-  background: linear-gradient(160deg, #3b0d14, #22070b);
-  box-shadow: 0 26px 50px -26px #000, inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(234, 223, 200, 0.2);
+  background: var(--grain), linear-gradient(160deg, #3b0d14, #22070b);
+  box-shadow: 0 26px 50px -26px #000, inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 .cf-stage {
   position: relative;
@@ -268,21 +266,18 @@
   left: 0;
   width: 100%;
   min-height: 15rem;
-  padding: 26px 28px 46px;
-  border-radius: 6px;
-  background-color: #d9cca9;
+  padding: 26px 28px 48px;
+  background-color: #d4cebf;
   background-image:
-    linear-gradient(rgba(60, 40, 20, 0.1) 1px, transparent 1px),
-    linear-gradient(180deg, transparent 63%, rgba(255, 250, 236, 0.22) 63.4%, rgba(58, 36, 12, 0.2) 63.9%, transparent 65%),
-    var(--fibers),
-    var(--mottle),
-    var(--noise),
-    radial-gradient(120% 100% at 0% 0%, rgba(255, 255, 255, 0.2), transparent 60%),
-    radial-gradient(60% 40% at 90% 85%, rgba(88, 56, 18, 0.26), transparent 70%);
-  background-size: 100% 30px, auto, auto, auto, auto, auto, auto;
-  color: #24150d;
-  font-family: 'Courier New', ui-monospace, monospace;
-  box-shadow: 0 10px 24px -12px rgba(0, 0, 0, 0.7), inset 0 0 28px rgba(100, 64, 22, 0.42);
+    linear-gradient(rgba(22, 19, 15, 0.13) 1px, transparent 1px),
+    linear-gradient(180deg, transparent 63%, rgba(255, 255, 255, 0.35) 63.4%, rgba(0, 0, 0, 0.22) 63.9%, transparent 65%),
+    var(--grain),
+    radial-gradient(120% 100% at 0% 0%, rgba(255, 255, 255, 0.28), transparent 60%),
+    radial-gradient(60% 40% at 90% 85%, rgba(0, 0, 0, 0.18), transparent 70%);
+  background-size: 100% 34px, auto, auto, auto, auto;
+  color: #16130f;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.6), 0 12px 24px -12px rgba(0, 0, 0, 0.8), inset 0 0 28px rgba(0, 0, 0, 0.22);
   transform-origin: left center;
   backface-visibility: hidden;
 }
@@ -309,8 +304,7 @@
   bottom: 0;
   width: 34px;
   height: 34px;
-  border-radius: 0 0 6px 0;
-  background: linear-gradient(135deg, transparent 50%, rgba(0, 0, 0, 0.2) 50%, #d8c8a4 100%);
+  background: linear-gradient(135deg, transparent 50%, rgba(0, 0, 0, 0.3) 50%, #a9a396 100%);
 }
 .cf-page:last-child::after {
   display: none;
@@ -327,32 +321,33 @@
   gap: 1rem;
 }
 .cf-label {
-  padding-bottom: 0.35rem;
-  border-bottom: 2px solid #24150d;
-  font-size: 1.05rem;
-  font-weight: 700;
-  letter-spacing: 0.2em;
+  padding-bottom: 0.4rem;
+  border-bottom: 3px solid #16130f;
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
 }
 .cf-stamp {
   flex: none;
-  padding: 0.2rem 0.55rem;
-  border: 2px solid rgba(163, 32, 42, 0.85);
-  border-radius: 4px;
-  color: rgba(163, 32, 42, 0.85);
-  font-family: var(--font-sans);
-  font-size: 0.62rem;
-  font-weight: 700;
+  padding: 0.25rem 0.6rem;
+  border: 2px solid #a02a33;
+  color: #a02a33;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.68rem;
+  font-weight: 800;
   line-height: 1.1;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
   transform: rotate(-5deg);
-  mix-blend-mode: multiply;
+  -webkit-mask-image: var(--ink-mask);
+  mask-image: var(--ink-mask);
 }
 .cf-text {
   margin-top: 1.4rem;
-  font-size: 1.02rem;
-  line-height: 30px;
+  font-size: 1.12rem;
+  font-weight: 500;
+  line-height: 34px;
 }
 /* Список пунктов («Польза»): каждая строка стоит на линейке листа (шаг 30px), заголовок — красной строкой над пояснением. */
 .cf-list {
@@ -366,38 +361,39 @@
 .cf-list li::before {
   content: '';
   position: absolute;
-  top: 11px;
+  top: 13px;
   left: 0.1rem;
-  width: 7px;
-  height: 7px;
-  background: rgba(163, 32, 42, 0.9);
+  width: 8px;
+  height: 8px;
+  background: #a02a33;
   transform: rotate(45deg);
 }
 .cf-item-t {
   display: block;
-  color: rgba(120, 22, 30, 0.95);
-  font-family: var(--font-sans);
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  line-height: 30px;
+  color: #7a1219;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  line-height: 34px;
   text-transform: uppercase;
 }
 .cf-item-x {
   display: block;
-  font-size: 0.94rem;
-  line-height: 30px;
+  font-size: 1.04rem;
+  font-weight: 500;
+  line-height: 34px;
 }
 .cf-foot {
   position: absolute;
   left: 28px;
   bottom: 14px;
-  font-family: var(--font-sans);
-  font-size: 0.66rem;
-  font-weight: 600;
-  letter-spacing: 0.16em;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: rgba(36, 21, 13, 0.5);
+  color: rgba(22, 19, 15, 0.62);
 }
 .cf-nav {
   display: flex;
@@ -407,10 +403,9 @@
   margin-top: 12px;
 }
 .cf-arrow {
-  width: 34px;
-  height: 34px;
-  border: 1px solid rgba(234, 223, 200, 0.3);
-  border-radius: 999px;
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(234, 223, 200, 0.4);
   color: #eadfc8;
   font-size: 1rem;
   line-height: 1;
@@ -424,10 +419,9 @@
 }
 .cf-dots span {
   display: inline-block;
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   margin: 0 3px;
-  border-radius: 50%;
   background: rgba(234, 223, 200, 0.3);
   transition: background 0.3s;
 }
@@ -529,7 +523,7 @@
   padding: 0.6rem 0.75rem 0.65rem;
   background: var(--fibers), var(--mottle), var(--noise), linear-gradient(160deg, #e9ddbf, #d6c6a0);
   color: #24150d;
-  /* Основной шрифт сайта и размер от 14px: прежний жирный Courier New в 10px на кириллице слипался. */
+  /* Основной шрифт сайта (Inter) и размер от 14px: подпись должна читаться, а не слипаться. */
   font-family: var(--font-sans);
   font-size: 0.875rem;
   font-weight: 600;
@@ -596,15 +590,10 @@
   --mottle: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='420' height='420'%3E%3Cfilter id='m' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.011 .018' numOctaves='3' seed='6' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .36 0 0 0 0 .22 0 0 0 0 .07 0 0 0 1.25 -.42'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23m)'/%3E%3C/svg%3E");
   --fibers: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='f' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.012 .6' numOctaves='2' seed='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .3 0 0 0 0 .2 0 0 0 0 .08 0 0 0 .55 -.2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E");
   --static: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='s'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.95' numOctaves='1' seed='4' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .95 0 0 0 0 .9 0 0 0 0 .8 0 0 0 2.6 -1.05'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23s)'/%3E%3C/svg%3E");
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .04 0 0 0 0 .04 0 0 0 0 .04 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+  --grain-soft: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .13 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
   --ink-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='k'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.7' numOctaves='3' seed='9' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -4.2 3.1'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23k)'/%3E%3C/svg%3E");
   --scratch: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='375' viewBox='0 0 300 375'%3E%3Cg fill='none' stroke='%23fff' stroke-linecap='round'%3E%3Cpath d='M42 0 L47 120 L44 250 L49 375' stroke-width='.7' opacity='.32'/%3E%3Cpath d='M210 20 L205 90 L212 160' stroke-width='.5' opacity='.4'/%3E%3Cpath d='M120 300 Q150 311 190 296' stroke-width='.9' opacity='.42'/%3E%3Cpath d='M10 200 L90 191' stroke-width='.5' opacity='.34'/%3E%3Cpath d='M250 0 L262 140 L255 212' stroke-width='.8' opacity='.28'/%3E%3Cpath d='M165 0 L170 60' stroke-width='.5' opacity='.35'/%3E%3Cpath d='M0 330 L120 322' stroke-width='.6' opacity='.3'/%3E%3C/g%3E%3Cg fill='%23fff'%3E%3Ccircle cx='30' cy='60' r='.9' opacity='.5'/%3E%3Ccircle cx='88' cy='140' r='1.1' opacity='.6'/%3E%3Ccircle cx='200' cy='45' r='.8' opacity='.5'/%3E%3Ccircle cx='251' cy='222' r='1.3' opacity='.45'/%3E%3Ccircle cx='140' cy='330' r='.9' opacity='.6'/%3E%3Ccircle cx='60' cy='290' r='1.2' opacity='.5'/%3E%3Ccircle cx='270' cy='300' r='.8' opacity='.5'/%3E%3Ccircle cx='170' cy='170' r='.7' opacity='.5'/%3E%3Ccircle cx='115' cy='40' r='.6' opacity='.5'/%3E%3Ccircle cx='225' cy='110' r='1' opacity='.55'/%3E%3Ccircle cx='15' cy='345' r='1.1' opacity='.5'/%3E%3Ccircle cx='190' cy='250' r='.7' opacity='.45'/%3E%3Ccircle cx='95' cy='235' r='.9' opacity='.5'/%3E%3Ccircle cx='282' cy='60' r='.8' opacity='.5'/%3E%3C/g%3E%3C/svg%3E");
-  --rough-a: polygon(0.6% 1.4%, 5% 0.4%, 12% 1.2%, 22% 0.3%, 35% 1%, 49% 0.2%, 63% 0.9%, 78% 0.1%, 90% 0.8%, 96% 0%, 100% 4.5%, 99.5% 16%, 100% 31%, 99.3% 48%, 100% 63%, 99.4% 79%, 99.9% 92%, 99.2% 99.5%, 90% 99%, 76% 99.8%, 61% 99.1%, 47% 100%, 31% 99.3%, 17% 99.9%, 6% 99.2%, 0.4% 99.7%, 0.9% 86%, 0.1% 70%, 0.7% 53%, 0% 37%, 0.8% 21%, 0.2% 9%);
-  --rough-b: polygon(0.3% 0.6%, 9% 0.1%, 21% 0.9%, 37% 0.2%, 52% 1%, 68% 0.3%, 83% 0.9%, 94% 0.2%, 99.6% 1%, 100% 15%, 99.2% 29%, 99.9% 46%, 99.1% 62%, 100% 77%, 99.4% 91%, 99.8% 99.4%, 86% 98.6%, 71% 99.7%, 58% 98.9%, 44% 99.8%, 30% 99%, 15% 99.6%, 7% 100%, 0% 92%, 0.9% 78%, 0.1% 60%, 0.8% 42%, 0.2% 25%, 0.6% 10%);
-  --rough-c: polygon(7% 0.4%, 18% 1%, 31% 0.2%, 46% 0.9%, 60% 0.1%, 74% 0.8%, 88% 0.2%, 99.6% 0.7%, 100% 14%, 99.3% 33%, 99.9% 52%, 99.2% 71%, 100% 88%, 99.4% 99.5%, 84% 99%, 69% 99.9%, 53% 99.1%, 38% 99.8%, 22% 99.2%, 9% 99.8%, 0.3% 99.2%, 0.9% 80%, 0.1% 63%, 0.7% 46%, 0.2% 30%, 0.8% 17%, 0% 7%);
-  --rough-d: polygon(0% 2.5%, 4% 0.5%, 9% 2%, 15% 0.3%, 22% 1.8%, 30% 0.2%, 38% 2.1%, 47% 0.4%, 55% 1.9%, 64% 0.1%, 72% 2%, 81% 0.4%, 89% 1.7%, 96% 0.2%, 100% 2%, 99.6% 30%, 100% 62%, 99.5% 100%, 55% 99.4%, 0.4% 100%, 0.2% 58%, 0.6% 28%);
-  --sf-rough-1: polygon(0.8% 0.9%, 9% 0.2%, 21% 1.1%, 34% 0.3%, 47% 1.2%, 61% 0.2%, 76% 0.9%, 90% 0.1%, 100% 1.4%, 99.4% 14%, 100% 30%, 99.2% 47%, 100% 63%, 99.5% 80%, 100% 94%, 99% 100%, 88% 99.1%, 74% 99.9%, 59% 98.9%, 45% 99.8%, 31% 99%, 17% 99.9%, 6% 99.2%, 0.5% 100%, 0% 85%, 0.8% 66%, 0.1% 48%, 0.9% 30%, 0.2% 14%);
-  --sf-rough-2: polygon(0.4% 0.2%, 12% 0.9%, 26% 0.1%, 41% 1%, 55% 0.2%, 70% 1.1%, 84% 0.3%, 100% 1%, 99.5% 20%, 100% 38%, 99.1% 57%, 99.9% 75%, 99.2% 91%, 100% 99.6%, 82% 99%, 66% 99.9%, 50% 98.8%, 35% 99.8%, 20% 99.1%, 8% 100%, 0.3% 99.3%, 0.9% 82%, 0.2% 64%, 0.8% 44%, 0.1% 27%, 0.7% 12%);
-  --sf-rough-3: polygon(2% 0.3%, 14% 1%, 29% 0.2%, 44% 0.9%, 58% 0.1%, 73% 1%, 88% 0.2%, 99.5% 0.9%, 100% 16%, 99.3% 34%, 100% 52%, 99.4% 70%, 100% 85%, 99.5% 100%, 90% 99.2%, 76% 99.9%, 62% 99%, 47% 99.8%, 33% 98.9%, 18% 99.7%, 7% 99.1%, 0% 98%, 0.8% 84%, 0.1% 68%, 0.9% 50%, 0.2% 33%, 0.7% 16%, 0% 5%);
 }
 
 /* Круглые картинки партнёров: золотой контур — часть изображения; при наведении мягкое свечение. */
@@ -634,955 +623,7 @@ a.fam-ava:hover {
   }
 }
 
-/* ===== Спикеры: папки-разделители и карточка дела ===== */
-
-.sf,
-.ef-overlay {
-  --stamp-red: #a3281b;
-  --ink-brown: #2a1d12;
-}
-
-/* ===== Папки-дела («Спикеры») =====
-   Манильская папка, какой её видят на столе: задняя сторона с выступающим язычком, из-под лицевой торчат листы,
-   на лицевой — бумажная наклейка с номером дела и ролью. Размеры в cqw — от ширины самой папки, поэтому та же
-   «лицевая сторона» без правок служит обложкой в окне дела (там она раскрывается, как настоящая папка). */
-.sf-grid {
-  list-style: none;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1.9rem 1.1rem;
-  padding: 0.4rem 0 0.6rem;
-}
-@media (min-width: 640px) {
-  .sf-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 2.2rem 1.6rem;
-  }
-}
-.sf-slot {
-  position: relative;
-  z-index: 1;
-}
-.sf-slot:hover,
-.sf-slot:focus-within {
-  z-index: 30;
-}
-.sf-card {
-  position: relative;
-  display: block;
-  width: 100%;
-  aspect-ratio: 5 / 4.2;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: #2f2113;
-  text-align: left;
-  cursor: pointer;
-  container-type: inline-size;
-  -webkit-tap-highlight-color: transparent;
-  /* Тень по рваному контуру папки и язычка, а не по прямоугольнику. */
-  filter: drop-shadow(0 7px 5px rgba(0, 0, 0, 0.55)) drop-shadow(0 16px 12px rgba(0, 0, 0, 0.35));
-  transition: filter 0.3s;
-}
-.sf-card:hover {
-  filter: drop-shadow(0 11px 7px rgba(0, 0, 0, 0.6)) drop-shadow(0 24px 16px rgba(0, 0, 0, 0.4)) brightness(1.06);
-}
-.sf-card:focus-visible {
-  outline: 2px solid #d9a85c;
-  outline-offset: 6px;
-  border-radius: 4px;
-}
-
-.fd {
-  position: absolute;
-  inset: 0;
-  display: block;
-  perspective: 800px;
-  color: #2f2113;
-}
-/* Задняя сторона папки. */
-.fd-back {
-  position: absolute;
-  top: 9cqw;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  clip-path: var(--rough-c);
-  background: var(--fibers), var(--mottle), var(--noise), linear-gradient(180deg, #80592a, #90693a 40%, #7d5628);
-  box-shadow: inset 0 0 20px rgba(40, 22, 4, 0.7);
-}
-/* Язычок: у соседних папок он стоит в разных местах, как на настоящих папках с тремя позициями. */
-.fd-tab {
-  position: absolute;
-  top: 0;
-  left: var(--tab, 5%);
-  display: flex;
-  width: 32cqw;
-  height: 13cqw;
-  padding-top: 1.6cqw;
-  align-items: center;
-  justify-content: center;
-  clip-path: polygon(0 100%, 3% 30%, 7% 8%, 12% 2%, 88% 2%, 93% 8%, 97% 30%, 100% 100%);
-  background: var(--fibers), var(--noise), linear-gradient(180deg, #a67d43, #90693a);
-  box-shadow: inset 0 0 8px rgba(40, 22, 4, 0.5);
-}
-.fd-tab b {
-  color: #2a1b0f;
-  font: 700 6.4cqw/1 Inter, ui-sans-serif, system-ui, sans-serif;
-  letter-spacing: 0.14em;
-}
-/* Имя гостя объявлено — язычок красный, сразу видно. */
-.fd[data-revealed] .fd-tab {
-  background: var(--fibers), var(--noise), linear-gradient(180deg, #a02e1e, #7b2014);
-}
-.fd[data-revealed] .fd-tab b {
-  color: #f3e6c8;
-}
-/* Листы внутри: торчат над лицевой стороной. */
-.fd-papers {
-  position: absolute;
-  top: 11cqw;
-  right: 7cqw;
-  left: 6cqw;
-  height: 30cqw;
-}
-.fd-papers i {
-  position: absolute;
-  inset: 0;
-  background:
-    repeating-linear-gradient(180deg, transparent 0 3.2cqw, rgba(70, 90, 130, 0.26) 3.2cqw 3.5cqw),
-    var(--fibers),
-    linear-gradient(#e9dfc2, #d3c49d);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
-}
-.fd-papers i:nth-child(1) {
-  transform: rotate(-1.8deg) translate(-1cqw, 1cqw);
-}
-.fd-papers i:nth-child(2) {
-  transform: rotate(1.4deg) translate(1.4cqw, -1cqw);
-  filter: brightness(0.95);
-}
-/* Лицевая сторона: крафт с заломом поперёк, пятном сырости и потёртыми краями. */
-.fd-front {
-  position: absolute;
-  top: 20cqw;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  clip-path: var(--fr, var(--rough-a));
-  transform-origin: 50% 100%;
-  background:
-    var(--fibers),
-    var(--mottle),
-    var(--noise),
-    radial-gradient(60% 34% at 14% 24%, rgba(240, 214, 170, 0.3), transparent 70%),
-    radial-gradient(42% 26% at var(--stx, 72%) var(--sty, 72%), rgba(70, 40, 12, 0.34), transparent 72%),
-    radial-gradient(90% 18% at 50% 100%, rgba(55, 32, 10, 0.5), transparent 80%),
-    linear-gradient(180deg, #bf9559, #b38850 60%, #a97e47);
-  box-shadow:
-    inset 0 2px 0 rgba(255, 235, 200, 0.4),
-    inset 0 0 22px rgba(65, 38, 10, 0.55);
-}
-.fd-front::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: linear-gradient(180deg, transparent calc(var(--fy, 60%) - 0.7%), rgba(250, 228, 190, 0.5) var(--fy, 60%), rgba(50, 28, 8, 0.45) calc(var(--fy, 60%) + 0.7%), transparent calc(var(--fy, 60%) + 2%));
-  -webkit-mask-image: linear-gradient(90deg, transparent, #000 10%, #000 78%, transparent);
-  mask-image: linear-gradient(90deg, transparent, #000 10%, #000 78%, transparent);
-}
-.fd-front::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: linear-gradient(180deg, rgba(246, 224, 186, 0.6) 0 1.5px, transparent 3px);
-  -webkit-mask-image: repeating-linear-gradient(90deg, #000 0 14px, transparent 14px 19px, #000 19px 46px, transparent 46px 55px, #000 55px 61px, transparent 61px 76px);
-  mask-image: repeating-linear-gradient(90deg, #000 0 14px, transparent 14px 19px, #000 19px 46px, transparent 46px 55px, #000 55px 61px, transparent 61px 76px);
-}
-/* У каждой папки в ряду — свои края, залом и пятно. */
-.sf-slot:nth-child(3n + 1) .fd {
-  --fr: var(--rough-a);
-  --stx: 76%;
-  --sty: 70%;
-  --fy: 58%;
-}
-.sf-slot:nth-child(3n + 2) .fd {
-  --fr: var(--rough-b);
-  --stx: 24%;
-  --sty: 74%;
-  --fy: 66%;
-}
-.sf-slot:nth-child(3n) .fd {
-  --fr: var(--rough-d);
-  --stx: 60%;
-  --sty: 80%;
-  --fy: 52%;
-}
-
-/* Наклейка с номером дела и ролью. */
-.fd-label {
-  position: absolute;
-  top: 8cqw;
-  left: 6cqw;
-  width: 60cqw;
-  padding: 4cqw 4.4cqw 4.6cqw;
-  background: var(--fibers), var(--noise), linear-gradient(160deg, #eee3c6, #dccfaa);
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.4),
-    inset 0 0 10px rgba(110, 70, 20, 0.25);
-  transform: rotate(-1.2deg);
-}
-.fd-no {
-  display: block;
-  padding-bottom: 2.4cqw;
-  border-bottom: 1px dashed rgba(47, 33, 19, 0.5);
-  font: 600 5cqw/1.1 'IBM Plex Mono', ui-monospace, 'Courier New', monospace;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-.fd-no b {
-  margin-right: 0.5em;
-  font-weight: 700;
-}
-.fd-role {
-  display: block;
-  margin-top: 3cqw;
-  color: #2a1b0f;
-  font: 800 8cqw/1.1 Inter, ui-sans-serif, system-ui, sans-serif;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  text-shadow: 0 0 1px rgba(40, 24, 8, 0.5);
-}
-/* Имя гостя на бумажной наклейке — или чёрная полоса, пока имя не объявлено. */
-.fd-tag,
-.fd-bar {
-  position: absolute;
-  bottom: 5cqw;
-  left: 6cqw;
-}
-.fd-tag {
-  padding: 2cqw 3.2cqw;
-  background: #efe4c8;
-  color: var(--ink-brown);
-  font: 600 5.4cqw/1.25 'IBM Plex Mono', ui-monospace, 'Courier New', monospace;
-  transform: rotate(-2deg);
-  box-shadow: 0 3px 6px -2px rgba(0, 0, 0, 0.6);
-}
-.fd-tag::before {
-  content: '';
-  position: absolute;
-  top: -2.2cqw;
-  left: 50%;
-  width: 18cqw;
-  height: 4cqw;
-  transform: translateX(-50%) rotate(2deg);
-  background: rgba(225, 205, 150, 0.72);
-}
-.fd-tag span {
-  display: block;
-  white-space: nowrap;
-}
-.fd-bar {
-  padding: 2.2cqw 3.4cqw;
-  background: #0a0605;
-  color: rgba(234, 223, 200, 0.5);
-  font: 600 5cqw/1 'IBM Plex Mono', ui-monospace, 'Courier New', monospace;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
-}
-/* Улики на лицевой стороне: у каждой папки своя. */
-.fd-stamp {
-  position: absolute;
-  top: 22cqw;
-  right: 3cqw;
-  padding: 1.4cqw 3cqw;
-  border: 0.8cqw solid var(--stamp-red);
-  border-radius: 1.6cqw;
-  color: var(--stamp-red);
-  font: 800 5.4cqw/1 Inter, ui-sans-serif, sans-serif;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  white-space: nowrap;
-  mix-blend-mode: multiply;
-  opacity: 0.82;
-  -webkit-mask-image: var(--ink-mask);
-  mask-image: var(--ink-mask);
-  transform: rotate(-14deg);
-  pointer-events: none;
-}
-.fd-print {
-  position: absolute;
-  right: 5cqw;
-  bottom: 5cqw;
-  width: 22cqw;
-  padding: 3cqw;
-  background: var(--fibers), var(--mottle), var(--noise), linear-gradient(160deg, #e6dcc0, #c8b995);
-  box-shadow:
-    0 3px 8px -2px rgba(0, 0, 0, 0.55),
-    inset 0 0 10px rgba(90, 58, 18, 0.4);
-  transform: rotate(-8deg);
-}
-.fd-print svg {
-  display: block;
-  width: 100%;
-  height: auto;
-}
-.fd-clip {
-  position: absolute;
-  top: 3cqw;
-  left: 50cqw;
-  z-index: 2;
-  width: 8cqw;
-  transform: rotate(8deg);
-  filter: drop-shadow(1px 2px 1px rgba(0, 0, 0, 0.45));
-}
-.fd-clip svg {
-  display: block;
-  width: 100%;
-  height: auto;
-}
-.fd-torn {
-  position: absolute;
-  right: 4cqw;
-  bottom: 5cqw;
-  width: 30cqw;
-  height: 20cqw;
-  background:
-    repeating-linear-gradient(180deg, transparent 0 3cqw, rgba(100, 125, 160, 0.3) 3cqw 3.3cqw),
-    var(--fibers),
-    var(--mottle),
-    linear-gradient(160deg, #e6dcc0, #cfc09b);
-  clip-path: polygon(0 0, 100% 0, 100% 78%, 90% 88%, 80% 78%, 68% 94%, 56% 82%, 42% 96%, 28% 84%, 14% 94%, 5% 82%, 0 90%);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
-  transform: rotate(6deg);
-}
-
-/* Обложка в окне дела: та же лицевая сторона, но на всю доску; раскрывается вокруг левой кромки, как папка. */
-.ef-cover {
-  display: none;
-}
-.ef-cover .fd {
-  perspective: none;
-}
-.ef-cover .fd-back,
-.ef-cover .fd-papers {
-  display: none;
-}
-.ef-cover .fd-front {
-  top: 0;
-  clip-path: none;
-  border-radius: 7px 9px 6px 8px;
-  --fy: 62%;
-  --stx: 70%;
-  --sty: 78%;
-}
-.ef-cover .fd-tab {
-  top: -8cqw;
-}
-.ef-cover .fd-stamp {
-  top: 34cqw;
-}
-
-/* --- Карточка дела (модальное окно) --- */
-
-.ef-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 100;
-  display: flex;
-  padding: 1.4rem 0.75rem;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  background:
-    radial-gradient(80% 60% at 50% 40%, rgba(60, 24, 16, 0.5), transparent 70%),
-    rgba(5, 2, 2, 0.86);
-  -webkit-backdrop-filter: blur(3px);
-  backdrop-filter: blur(3px);
-}
-/* Обёртка «папки»: доска внутри, обложка поверх; сверху запас под язычок обложки. */
-.ef-wrap {
-  position: relative;
-  width: min(100%, 34rem);
-  margin: auto;
-  padding-top: 2.9rem;
-  perspective: 2600px;
-  perspective-origin: 30% 40%;
-}
-.ef-cover {
-  position: absolute;
-  top: 2.9rem;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  z-index: 20;
-  container-type: inline-size;
-  transform-origin: 0 50%;
-  -webkit-backface-visibility: hidden;
-  backface-visibility: hidden;
-  pointer-events: none;
-  filter: drop-shadow(0 12px 14px rgba(0, 0, 0, 0.6));
-}
-.ef-board {
-  position: relative;
-  display: grid;
-  grid-template-columns: minmax(0, 1.18fr) minmax(0, 1fr);
-  gap: 1rem 0.85rem;
-  align-items: start;
-  padding: 1.15rem 1.05rem 1.3rem;
-  border-radius: 7px 9px 6px 8px;
-  background:
-    radial-gradient(120% 70% at 25% 0%, rgba(255, 214, 150, 0.16), transparent 60%),
-    radial-gradient(40% 22% at 82% 92%, rgba(28, 14, 4, 0.5), transparent 75%),
-    radial-gradient(34% 18% at 10% 60%, rgba(255, 225, 170, 0.1), transparent 75%),
-    var(--fibers),
-    var(--mottle),
-    var(--noise),
-    linear-gradient(155deg, #86684a, #65503a 70%, #564230);
-  box-shadow:
-    0 0 0 3px #4a3622,
-    inset 0 0 0 1px rgba(255, 225, 170, 0.18),
-    inset 0 0 60px rgba(30, 15, 5, 0.55),
-    0 30px 70px -20px #000;
-  color: #33241a;
-  /* чернила чуть впитались в бумагу */
-  text-shadow: 0 0 0.5px rgba(40, 24, 8, 0.5);
-  font: 400 0.74rem/1.5 'IBM Plex Mono', ui-monospace, 'Courier New', monospace;
-}
-.ef-board::before {
-  content: '';
-  position: absolute;
-  inset: 7px;
-  border: 1px solid rgba(35, 20, 8, 0.4);
-  border-radius: 5px;
-  background: var(--scratch) 0 0 / 300px 375px;
-  opacity: 0.55;
-  pointer-events: none;
-}
-@media (min-width: 480px) {
-  .ef-board {
-    gap: 1.1rem 1rem;
-    padding: 1.4rem 1.3rem 1.6rem;
-    font-size: 0.8rem;
-  }
-}
-
-.ef-close {
-  position: absolute;
-  z-index: 6;
-  top: -0.6rem;
-  right: -0.4rem;
-  display: grid;
-  place-items: center;
-  width: 2.3rem;
-  height: 2.3rem;
-  border: 1px solid rgba(234, 223, 200, 0.35);
-  border-radius: 50%;
-  background: #150b08;
-  box-shadow: 0 6px 14px -4px #000;
-  color: #eadfc8;
-  font: 400 1rem/1 Inter, ui-sans-serif, sans-serif;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-.ef-close:hover {
-  background: var(--noir-crimson, #a3202a);
-}
-.ef-close:focus-visible {
-  outline: 2px solid #d9a85c;
-  outline-offset: 2px;
-}
-
-:where(.ef-piece) p {
-  margin: 0;
-}
-.ef-piece {
-  position: relative;
-  /* Фон рисует вложенный .ef-paper с рваным краем; тень — по его контуру, а не по прямоугольнику. */
-  background: none;
-  box-shadow: none;
-  filter: drop-shadow(0 6px 4px rgba(0, 0, 0, 0.5)) drop-shadow(0 1px 1px rgba(0, 0, 0, 0.45));
-  transform: rotate(var(--r, 0deg));
-}
-.ef-paper {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  clip-path: var(--rough-a);
-  background: var(--fibers), var(--mottle), var(--noise), linear-gradient(160deg, #e0d3b2, #cdbd96);
-  box-shadow:
-    inset 0 0 28px rgba(102, 66, 24, 0.5),
-    inset 0 0 2px rgba(60, 36, 12, 0.6);
-}
-/* Пятна: кофейное кольцо, разводы, затёртые углы. Положение у каждого листа своё (--sx, --bx…). */
-.ef-paper::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(circle at var(--sx, 78%) var(--sy, 24%), transparent 0 15px, rgba(108, 66, 22, 0.3) 16px 17.5px, rgba(108, 66, 22, 0.1) 19px, transparent 23px),
-    radial-gradient(circle at var(--sx, 78%) var(--sy, 24%), rgba(125, 82, 32, 0.13) 0 15px, transparent 18px),
-    radial-gradient(60% 45% at var(--bx, 15%) var(--by, 88%), rgba(88, 56, 18, 0.3), transparent 72%),
-    radial-gradient(34% 28% at 94% 6%, rgba(76, 48, 14, 0.22), transparent 72%);
-}
-/* Заломы: светлая и тёмная линия рядом, как на бумаге, которую складывали и разворачивали. */
-.ef-paper::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(calc(180deg + var(--ca, 0deg)), transparent calc(var(--cy, 46%) - 0.6%), rgba(255, 250, 236, 0.4) var(--cy, 46%), rgba(58, 36, 12, 0.34) calc(var(--cy, 46%) + 0.45%), transparent calc(var(--cy, 46%) + 1.5%)),
-    linear-gradient(86deg, transparent 61%, rgba(255, 250, 236, 0.2) 61.4%, rgba(58, 36, 12, 0.24) 61.8%, transparent 62.6%);
-  -webkit-mask-image: linear-gradient(90deg, transparent, #000 10%, #000 78%, transparent);
-  mask-image: linear-gradient(90deg, transparent, #000 10%, #000 78%, transparent);
-}
-.ef-label-l .ef-paper,
-.ef-witness .ef-paper,
-.ef-risk .ef-paper {
-  clip-path: var(--rough-c);
-}
-.ef-label-r .ef-paper {
-  clip-path: var(--rough-d);
-}
-.ef-polaroid .ef-paper,
-.ef-sticky .ef-paper,
-.ef-map .ef-paper {
-  clip-path: var(--rough-b);
-}
-
-.ef-tape {
-  position: absolute;
-  z-index: 2;
-  display: block;
-  width: 2.6rem;
-  height: 0.95rem;
-  /* пожелтевший скотч с рваными краями и просветом по центру */
-  background: linear-gradient(180deg, rgba(214, 190, 126, 0.84), rgba(188, 162, 96, 0.78));
-  clip-path: polygon(0 0, 3% 14%, 0 30%, 3% 46%, 0 62%, 3% 78%, 0 100%, 100% 100%, 97% 84%, 100% 68%, 96% 52%, 100% 34%, 97% 18%, 100% 0);
-}
-.ef-tape-l {
-  top: -0.45rem;
-  left: -0.7rem;
-  transform: rotate(-35deg);
-}
-.ef-tape-tl {
-  top: -0.4rem;
-  left: -0.8rem;
-  transform: rotate(-38deg);
-}
-.ef-tape-tr {
-  top: -0.4rem;
-  right: -0.8rem;
-  transform: rotate(38deg);
-}
-.ef-tape-br {
-  right: -0.8rem;
-  bottom: -0.4rem;
-  transform: rotate(-38deg);
-}
-
-.ef-label {
-  grid-row: 1;
-  padding: 0.6rem 0.8rem;
-  font-size: 0.78em;
-  font-weight: 600;
-  line-height: 1.2;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-.ef-label-l {
-  grid-column: 1;
-  justify-self: start;
-}
-.ef-label-r {
-  grid-column: 2;
-  text-align: right;
-}
-
-.ef-polaroid {
-  grid-column: 1;
-  grid-row: 2 / span 2;
-  align-self: stretch;
-  display: flex;
-  flex-direction: column;
-  margin: 0;
-  padding: 0.8rem 0.8rem 0.5rem;
-}
-.ef-polaroid .ef-paper {
-  background: var(--fibers), var(--mottle), var(--noise), linear-gradient(160deg, #e9dec0, #d4c59e);
-}
-.ef-photo {
-  position: relative;
-  flex: 1;
-  min-height: 13rem;
-  overflow: hidden;
-  background: radial-gradient(90% 75% at 50% 38%, #4a443d, #14100d 80%);
-  box-shadow: inset 0 0 28px rgba(0, 0, 0, 0.8);
-}
-.ef-photo img,
-.ef-sil {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-}
-.ef-sil {
-  overflow: visible;
-}
-.ef-photo img {
-  object-fit: cover;
-  /* лицо в верхней трети кадра — при любой высоте рамки режем снизу, а не по голове */
-  object-position: 50% 18%;
-  filter: grayscale(0.6) sepia(0.42) contrast(0.98) brightness(0.96);
-}
-.ef-photo::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  background: var(--scratch) center / 100% 100%;
-  mix-blend-mode: screen;
-  pointer-events: none;
-}
-/* Края «фото» чуть темнее, как у старого снимка; поверх картинки, поэтому отдельным слоем. */
-.ef-photo::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  box-shadow: inset 0 0 26px rgba(0, 0, 0, 0.7);
-  pointer-events: none;
-}
-.ef-script {
-  margin: 0.55rem 0 0.15rem;
-  padding-left: 0.2rem;
-  color: var(--ink-brown);
-  font-family: 'Marck Script', 'Segoe Script', 'Brush Script MT', cursive;
-  font-size: 1.55rem;
-  line-height: 1.1;
-  transform: rotate(-2deg);
-}
-.ef-pos {
-  margin: 0 0 0.3rem;
-  padding-left: 0.2rem;
-  color: #4a3826;
-  font-size: 0.78em;
-  line-height: 1.35;
-  letter-spacing: 0.03em;
-}
-.ef-script-sm {
-  margin: 0.4rem 0 0;
-  padding: 0;
-  font-size: 1.05rem;
-  text-align: center;
-}
-
-.ef-sticky {
-  grid-column: 2;
-  grid-row: 2;
-  padding: 1rem 0.9rem 0.85rem;
-}
-.ef-k {
-  font-size: 0.72em;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: #3d2d1c;
-}
-.ef-hot {
-  margin-top: 0.3rem;
-  font-size: 1.18em;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--stamp-red);
-}
-.ef-sm {
-  font-size: 0.9em;
-  color: #4a3826;
-}
-.ef-gap {
-  margin-top: 0.7rem;
-}
-
-.ef-notebook {
-  grid-column: 2;
-  grid-row: 3;
-  padding: 0.95rem 0.8rem 0.95rem 1.6rem;
-}
-.ef-notebook::before {
-  content: '';
-  position: absolute;
-  top: 0.6rem;
-  bottom: 0.6rem;
-  left: 0.18rem;
-  width: 0.8rem;
-  background: radial-gradient(circle at 50% 50%, #1f140a 0 0.2rem, rgba(60, 38, 14, 0.45) 0.24rem, transparent 0.3rem) 0 0 / 0.8rem 1.5rem no-repeat space;
-}
-.ef-h {
-  margin-bottom: 0.45rem;
-  font-size: 0.74em;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-.ef-notebook ul {
-  display: grid;
-  gap: 0.3rem;
-  list-style: none;
-}
-.ef-notebook li {
-  position: relative;
-  padding-left: 0.95rem;
-  line-height: 1.35;
-}
-.ef-notebook li::before {
-  content: '–';
-  position: absolute;
-  left: 0;
-}
-
-.ef-witness {
-  grid-column: 1;
-  grid-row: 4;
-  align-self: stretch;
-  align-content: start;
-  display: grid;
-  gap: 0.55rem;
-  padding: 1.05rem 0.95rem 0.9rem;
-}
-.ef-witness .ef-h {
-  margin-bottom: 0;
-}
-.ef-topic {
-  font-size: 1.12em;
-  font-weight: 600;
-  line-height: 1.25;
-}
-/* «Подозреваемый» — красный штамп в показаниях: что именно разбирается на выступлении. */
-.ef-suspect {
-  display: grid;
-  gap: 0.1rem;
-  justify-self: start;
-  padding: 0.35rem 0.65rem 0.4rem;
-  border: 1.5px solid var(--stamp-red);
-  border-radius: 3px;
-  color: var(--stamp-red);
-  mix-blend-mode: multiply;
-  -webkit-mask-image: var(--ink-mask);
-  mask-image: var(--ink-mask);
-  transform: rotate(-1.5deg);
-}
-.ef-suspect span {
-  font-size: 0.66em;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-.ef-suspect b {
-  font-size: 0.95em;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-.ef-notebook p + ul {
-  margin-top: 0.6rem;
-}
-/* Реплика гостя в образе: курсивом, с красной чертой слева, как подчёркнутая цитата в протоколе. */
-.ef-quote {
-  padding-left: 0.7rem;
-  border-left: 2px solid var(--stamp-red);
-  font-style: italic;
-  line-height: 1.55;
-}
-/* Роль гостя одной фразой — первая строка листа «Роль в деле». */
-.ef-lead {
-  font-size: 1.05em;
-  font-weight: 600;
-}
-.ef-h-next {
-  margin-top: 0.9rem;
-}
-.ef-by {
-  margin-top: 0.2rem;
-  font-size: 0.92em;
-  font-style: italic;
-  color: #4a3826;
-}
-.ef-redact {
-  display: inline-block;
-  justify-self: start;
-  padding: 0.25rem 0.5rem;
-  background: #0a0605;
-  color: rgba(234, 223, 200, 0.55);
-  font-size: 0.7em;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
-.ef-map {
-  grid-column: 2;
-  grid-row: 4;
-  padding: 0.45rem 0.45rem 0.55rem;
-}
-.ef-mapsvg {
-  display: block;
-  width: 100%;
-  height: auto;
-  filter: sepia(0.35) contrast(1.05);
-}
-
-/* Описание роли — широкий лист: иконка, ключевые слова, текст, мотив, «символизирует», запечатанная улика. */
-.ef-role {
-  grid-column: 1 / -1;
-  grid-row: 5;
-  display: grid;
-  gap: 0.7rem;
-  padding: 1.1rem 1.05rem 1rem;
-}
-.ef-role-head {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-.ef-role-head .ef-h {
-  margin-bottom: 0.15rem;
-}
-.ef-glyph {
-  display: grid;
-  flex: none;
-  place-items: center;
-  width: 2.5rem;
-  height: 2.5rem;
-  border: 1.5px solid #4a3826;
-  border-radius: 50%;
-  color: #4a3826;
-}
-.ef-dl {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.7rem 1rem;
-  padding-top: 0.7rem;
-  border-top: 1px dashed rgba(42, 29, 18, 0.4);
-}
-.ef-dl dd {
-  margin-top: 0.15rem;
-}
-.ef-dl > :last-child {
-  grid-column: 1 / -1;
-}
-/* Засекреченные строки блокнота: чёрные полосы вместо тем выступления. */
-.ef-lines {
-  display: grid;
-  gap: 0.5rem;
-  padding: 0.2rem 0;
-}
-.ef-lines i {
-  display: block;
-  height: 0.8rem;
-  background: #0a0605;
-}
-
-.ef-risk {
-  grid-column: 1;
-  grid-row: 6;
-  align-self: end;
-  padding: 0.75rem 0.85rem 0.85rem;
-}
-.ef-scale {
-  display: flex;
-  gap: 0.4rem;
-}
-.ef-scale span {
-  display: grid;
-  place-items: center;
-  width: 1.85rem;
-  height: 1.85rem;
-  border: 1.5px solid #4a3826;
-  color: #4a3826;
-  font-weight: 600;
-}
-.ef-scale span[data-on] {
-  border-color: #7a1d12;
-  background: var(--stamp-red);
-  color: #f6ead0;
-}
-.ef-scale span[data-unknown] {
-  border-style: dashed;
-  opacity: 0.55;
-}
-
-.ef-conf {
-  grid-column: 2;
-  grid-row: 6;
-  align-self: end;
-  background: none;
-  box-shadow: none;
-  filter: drop-shadow(0 8px 8px rgba(0, 0, 0, 0.55));
-}
-.ef-conf-in {
-  padding: 1.35rem 0.55rem 1.05rem;
-  background: var(--fibers), var(--mottle), var(--noise), linear-gradient(160deg, #e3d7b8, #cfc09a);
-  clip-path: polygon(0 5%, 6% 0, 14% 4%, 25% 0, 38% 5%, 52% 1%, 66% 5%, 79% 0, 91% 4%, 100% 1%, 99% 38%, 100% 66%, 98% 100%, 88% 95%, 74% 100%, 60% 96%, 45% 100%, 30% 95%, 15% 100%, 4% 96%, 0 100%, 1% 62%, 0 30%);
-  color: var(--stamp-red);
-  font-size: 0.86em;
-  font-weight: 700;
-  line-height: 1.3;
-  letter-spacing: 0.08em;
-  text-align: center;
-  text-transform: uppercase;
-  overflow-wrap: anywhere;
-}
 /* Телефон: в половине ширины длинные слова («Конфиденциальность») не помещаются — блокнот и показания растягиваем. */
-@media (max-width: 479px) {
-  .ef-polaroid {
-    grid-row: 2;
-  }
-  .ef-sticky {
-    align-self: center;
-  }
-  .ef-notebook {
-    grid-column: 1 / -1;
-    grid-row: 3;
-  }
-  .ef-witness {
-    grid-column: 1 / -1;
-    grid-row: 4;
-  }
-  .ef-map {
-    grid-column: 1;
-    grid-row: 6;
-  }
-  .ef-conf {
-    grid-column: 2;
-    grid-row: 6;
-    align-self: center;
-  }
-  .ef-risk {
-    grid-column: 1 / -1;
-    grid-row: 7;
-    justify-self: start;
-  }
-  .ef-dl {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-.ef-clip {
-  position: absolute;
-  z-index: 3;
-  top: -1.2rem;
-  left: 0.6rem;
-  width: 1.15rem;
-  transform: rotate(-10deg);
-  filter: drop-shadow(1px 2px 1px rgba(0, 0, 0, 0.45));
-}
-.ef-clip svg {
-  display: block;
-  width: 100%;
-  height: auto;
-}
 
 /* ===== Сюжет вечера: автомагнитола =====
    Низкая широкая панель в тёмной приборной доске: хромированный ободок, янтарная шкала с красной стрелкой, экран эфира,
@@ -1593,6 +634,7 @@ a.fam-ava:hover {
 }
 .rd-face {
   position: relative;
+  font-variant-numeric: tabular-nums;
   display: grid;
   grid-template-columns: 4.6rem minmax(0, 1fr) 4.6rem;
   grid-template-areas:
@@ -1629,7 +671,7 @@ a.fam-ava:hover {
 }
 .rd-cap {
   color: rgba(234, 223, 200, 0.42);
-  font: 600 0.52rem/1 Inter, ui-sans-serif, sans-serif;
+  font: 700 0.7rem/1 Inter, ui-sans-serif, sans-serif;
   letter-spacing: 0.18em;
   text-transform: uppercase;
 }
@@ -1712,7 +754,7 @@ a.fam-ava:hover {
   top: 1.22rem;
   transform: translateX(-50%);
   color: #2a1306;
-  font: 600 0.6rem/1 'IBM Plex Mono', ui-monospace, monospace;
+  font: 700 0.66rem/1 Inter, ui-sans-serif, system-ui, sans-serif;
 }
 .rd-mark {
   position: absolute;
@@ -1760,12 +802,12 @@ a.fam-ava:hover {
 }
 .rd-fm,
 .rd-mhz {
-  font: 700 0.6rem/1 'IBM Plex Mono', ui-monospace, monospace;
+  font: 700 0.68rem/1 Inter, ui-sans-serif, system-ui, sans-serif;
   letter-spacing: 0.1em;
 }
 .rd-freq {
   min-width: 4.4ch;
-  font: 600 1.55rem/1 'IBM Plex Mono', ui-monospace, monospace;
+  font: 600 1.55rem/1 Inter, ui-sans-serif, system-ui, sans-serif;
   text-shadow: 0 1px 0 rgba(255, 225, 170, 0.5);
 }
 .rd-sig {
@@ -1794,7 +836,7 @@ a.fam-ava:hover {
 }
 .rd-name {
   margin-left: auto;
-  font: 700 0.64rem/1.1 Inter, ui-sans-serif, sans-serif;
+  font: 700 0.72rem/1.1 Inter, ui-sans-serif, sans-serif;
   letter-spacing: 0.12em;
   text-align: right;
   text-transform: uppercase;
@@ -1867,7 +909,7 @@ a.fam-ava:hover {
 }
 .rd-eyebrow {
   color: var(--color-gold);
-  font: 600 0.62rem/1.3 Inter, ui-sans-serif, sans-serif;
+  font: 700 0.68rem/1.3 Inter, ui-sans-serif, sans-serif;
   letter-spacing: 0.16em;
   text-transform: uppercase;
 }
@@ -1949,7 +991,7 @@ a.fam-ava:hover {
 .rd-keys {
   grid-area: keys;
   display: grid;
-  grid-template-columns: 1fr 2fr;
+  grid-template-columns: 0.85fr 2.15fr;
   gap: 0.8rem;
   padding-top: 0.75rem;
   border-top: 1px solid rgba(255, 255, 255, 0.07);
@@ -1986,14 +1028,14 @@ a.fam-ava:hover {
   transition: transform 0.12s, box-shadow 0.12s, color 0.2s;
 }
 .rd-key-n {
-  font: 700 0.95rem/1 'IBM Plex Mono', ui-monospace, monospace;
+  font: 700 0.95rem/1 Inter, ui-sans-serif, system-ui, sans-serif;
 }
 .rd-key-l {
-  font: 600 0.5rem/1.1 Inter, ui-sans-serif, sans-serif;
-  letter-spacing: 0.05em;
+  font: 700 0.66rem/1.1 Inter, ui-sans-serif, sans-serif;
+  letter-spacing: 0.02em;
   text-align: center;
   text-transform: uppercase;
-  overflow-wrap: anywhere;
+  overflow-wrap: normal;
 }
 .rd-key-act {
   background: linear-gradient(180deg, #8f2029, #4b0d13);
@@ -2084,12 +1126,12 @@ a.fam-ava:hover {
 }
 
 /* ===== «Новости бара»: газета =====
-   Старая газетная бумага на столе: серо-жёлтая, с волокнами, разводами, сгибом по центру и по горизонтали, рваными краями.
-   Чёрно-белое фото в растре, строгая шапка, врезки и купон. Заголовки — Playfair, служебные строки — моноширинный. */
+   Чёрно-белая газетная бумага: белая, ровные края и острые углы, без цветных выделений (только чёрный, серый и белый).
+   Фото — в чёрно-белом растре. Шрифты — только Inter и Playfair, без наклона. */
 .np {
   max-width: 46rem;
   margin-top: 1.6rem;
-  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.5)) drop-shadow(0 18px 16px rgba(0, 0, 0, 0.55));
+  filter: drop-shadow(0 2px 0 rgba(0, 0, 0, 0.55)) drop-shadow(0 22px 18px rgba(0, 0, 0, 0.6));
 }
 .np-stage {
   position: relative;
@@ -2104,21 +1146,17 @@ a.fam-ava:hover {
   width: 100%;
   min-height: 28rem;
   padding: 1.5rem 1.7rem 3.1rem;
-  color: #1c150d;
-  clip-path: var(--rough-b);
+  color: #0c0c0c;
   transform-origin: left center;
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
   background:
-    var(--fibers),
-    var(--mottle),
-    var(--noise),
-    radial-gradient(60% 40% at 8% 6%, rgba(255, 252, 238, 0.45), transparent 70%),
-    radial-gradient(50% 36% at 92% 94%, rgba(92, 62, 22, 0.32), transparent 72%),
-    linear-gradient(160deg, #d9d0b6, #cbc0a2);
+    var(--grain-soft),
+    radial-gradient(70% 40% at 6% 4%, rgba(255, 255, 255, 0.9), transparent 70%),
+    linear-gradient(160deg, #f6f6f4, #ebebe8);
   box-shadow:
-    inset 0 0 46px rgba(110, 72, 24, 0.5),
-    inset 0 0 2px rgba(60, 36, 12, 0.6);
+    inset 0 0 0 1px rgba(0, 0, 0, 0.35),
+    inset 0 0 40px rgba(0, 0, 0, 0.1);
 }
 .np-page[data-current] {
   position: relative;
@@ -2141,10 +1179,10 @@ a.fam-ava:hover {
   inset: 0;
   pointer-events: none;
   background:
-    linear-gradient(90deg, transparent calc(50% - 1px), rgba(255, 252, 238, 0.45) 50%, rgba(60, 36, 12, 0.3) calc(50% + 1px), transparent calc(50% + 3px)),
-    linear-gradient(180deg, transparent calc(64% - 1px), rgba(255, 252, 238, 0.4) 64%, rgba(60, 36, 12, 0.28) calc(64% + 1px), transparent calc(64% + 3px));
+    linear-gradient(90deg, transparent calc(50% - 1px), rgba(255, 255, 255, 0.9) 50%, rgba(0, 0, 0, 0.16) calc(50% + 1px), transparent calc(50% + 3px)),
+    linear-gradient(180deg, transparent calc(64% - 1px), rgba(255, 255, 255, 0.9) 64%, rgba(0, 0, 0, 0.14) calc(64% + 1px), transparent calc(64% + 3px));
 }
-/* Загнутый уголок: подсказывает, что страницу можно перевернуть. */
+/* Подсказка, что страницу можно перевернуть: серый уголок. */
 .np-page[data-more]::after {
   content: '';
   position: absolute;
@@ -2152,7 +1190,7 @@ a.fam-ava:hover {
   bottom: 0;
   width: 2.6rem;
   height: 2.6rem;
-  background: linear-gradient(135deg, transparent 50%, rgba(0, 0, 0, 0.28) 50%, #b9ad8c 100%);
+  background: linear-gradient(135deg, transparent 50%, rgba(0, 0, 0, 0.35) 50%, #bdbdba 100%);
 }
 
 .np-mast {
@@ -2161,8 +1199,8 @@ a.fam-ava:hover {
 .np-rule {
   display: block;
   height: 5px;
-  border-top: 2px solid #1c150d;
-  border-bottom: 1px solid #1c150d;
+  border-top: 2px solid #0c0c0c;
+  border-bottom: 1px solid #0c0c0c;
 }
 .np-name {
   margin: 0.55rem 0 0.45rem;
@@ -2175,8 +1213,9 @@ a.fam-ava:hover {
 }
 .np-motto {
   margin-top: 0.4rem;
-  font: italic 500 0.82rem/1.3 'Playfair Display', Georgia, serif;
-  color: rgba(28, 21, 13, 0.75);
+  font: 600 0.82rem/1.3 Inter, ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: 0.06em;
+  color: #3a3a38;
 }
 .np-dateline {
   display: flex;
@@ -2184,19 +1223,19 @@ a.fam-ava:hover {
   justify-content: space-between;
   gap: 0.2rem 0.9rem;
   margin: 0.7rem 0 1.1rem;
-  padding: 0.35rem 0;
-  border-top: 1px solid rgba(28, 21, 13, 0.7);
-  border-bottom: 1px solid rgba(28, 21, 13, 0.7);
-  font: 600 0.64rem/1.3 'IBM Plex Mono', ui-monospace, monospace;
+  padding: 0.4rem 0;
+  border-top: 1px solid #0c0c0c;
+  border-bottom: 1px solid #0c0c0c;
+  font: 700 0.68rem/1.3 Inter, ui-sans-serif, system-ui, sans-serif;
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 .np-kicker {
   display: inline-block;
-  padding: 0.18rem 0.5rem;
-  background: #1c150d;
-  color: #e4dac0;
-  font: 700 0.62rem/1.2 Inter, ui-sans-serif, sans-serif;
+  padding: 0.2rem 0.55rem;
+  background: #0c0c0c;
+  color: #f6f6f4;
+  font: 700 0.66rem/1.2 Inter, ui-sans-serif, sans-serif;
   letter-spacing: 0.18em;
   text-transform: uppercase;
 }
@@ -2210,8 +1249,8 @@ a.fam-ava:hover {
 }
 .np-subhead {
   margin-top: 0.6rem;
-  font: italic 500 1.02rem/1.4 'Playfair Display', Georgia, serif;
-  color: rgba(28, 21, 13, 0.82);
+  font: 600 1.05rem/1.4 Inter, ui-sans-serif, system-ui, sans-serif;
+  color: #2a2a28;
   text-wrap: pretty;
 }
 .np-grid {
@@ -2219,7 +1258,7 @@ a.fam-ava:hover {
   gap: 1.3rem;
   margin-top: 1.1rem;
   padding-top: 1rem;
-  border-top: 3px double rgba(28, 21, 13, 0.75);
+  border-top: 3px double #0c0c0c;
 }
 @media (min-width: 720px) {
   .np-grid {
@@ -2228,7 +1267,7 @@ a.fam-ava:hover {
   }
   .np-side {
     padding-left: 1.4rem;
-    border-left: 1px solid rgba(28, 21, 13, 0.55);
+    border-left: 1px solid #0c0c0c;
   }
 }
 .np-photo {
@@ -2238,8 +1277,8 @@ a.fam-ava:hover {
   position: relative;
   aspect-ratio: 16 / 10;
   overflow: hidden;
-  border: 1px solid rgba(28, 21, 13, 0.8);
-  background: #bdb394;
+  border: 1px solid #0c0c0c;
+  background: #d9d9d6;
 }
 .np-photo-in img {
   display: block;
@@ -2256,41 +1295,41 @@ a.fam-ava:hover {
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 50% 50%, rgba(28, 21, 13, 0.4) 0 0.7px, transparent 1.1px) 0 0 / 3px 3px;
+  background: radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0.4) 0 0.7px, transparent 1.1px) 0 0 / 3px 3px;
   mix-blend-mode: multiply;
   pointer-events: none;
 }
 .np-photo figcaption {
   margin-top: 0.4rem;
-  font: italic 500 0.8rem/1.35 'Playfair Display', Georgia, serif;
-  color: rgba(28, 21, 13, 0.92);
+  font: 600 0.8rem/1.35 Inter, ui-sans-serif, system-ui, sans-serif;
+  color: #2a2a28;
 }
 .np-lead {
-  font: 600 1.02rem/1.55 Inter, ui-sans-serif, sans-serif;
+  font: 700 1.04rem/1.55 Inter, ui-sans-serif, sans-serif;
   text-wrap: pretty;
 }
 .np-lead::first-letter {
   float: left;
   padding: 0.08em 0.1em 0 0;
-  color: #8f1d18;
+  color: #0c0c0c;
   font: 700 3.1em/0.8 'Playfair Display', Georgia, serif;
 }
 .np-p {
   margin-top: 0.75rem;
-  font: 400 0.92rem/1.6 Inter, ui-sans-serif, sans-serif;
+  font: 500 0.94rem/1.6 Inter, ui-sans-serif, sans-serif;
   text-wrap: pretty;
 }
 .np-box {
   padding: 0.75rem 0.9rem 0.9rem;
-  border: 2px solid #1c150d;
-  outline: 1px solid rgba(28, 21, 13, 0.55);
+  border: 2px solid #0c0c0c;
+  outline: 1px solid #0c0c0c;
   outline-offset: 3px;
 }
 .np-box h5 {
   margin-bottom: 0.5rem;
   padding-bottom: 0.35rem;
-  border-bottom: 1px solid rgba(28, 21, 13, 0.7);
-  font: 700 0.78rem/1 Inter, ui-sans-serif, sans-serif;
+  border-bottom: 1px solid #0c0c0c;
+  font: 800 0.8rem/1 Inter, ui-sans-serif, sans-serif;
   letter-spacing: 0.22em;
   text-transform: uppercase;
 }
@@ -2299,20 +1338,20 @@ a.fam-ava:hover {
   gap: 0.55rem;
 }
 .np-box dt {
-  font: 600 0.6rem/1.2 'IBM Plex Mono', ui-monospace, monospace;
+  font: 700 0.64rem/1.2 Inter, ui-sans-serif, sans-serif;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: #8f1d18;
+  color: #5a5a57;
 }
 .np-box dd {
   margin: 0.1rem 0 0;
-  font: 600 0.88rem/1.35 Inter, ui-sans-serif, sans-serif;
+  font: 700 0.9rem/1.35 Inter, ui-sans-serif, sans-serif;
 }
 .np-coupon {
   position: relative;
   margin-top: 1.1rem;
   padding: 0.9rem 0.9rem 1rem;
-  border: 2px dashed rgba(28, 21, 13, 0.85);
+  border: 2px dashed #0c0c0c;
   text-align: center;
 }
 .np-scissors {
@@ -2320,46 +1359,45 @@ a.fam-ava:hover {
   top: -0.85rem;
   left: 0.8rem;
   padding: 0 0.3rem;
-  background: #d2c8ac;
+  background: #f1f1ef;
   font-size: 1.1rem;
   line-height: 1.2;
 }
 .np-coupon p {
-  font: 700 0.98rem/1.2 'Playfair Display', Georgia, serif;
+  font: 700 1rem/1.2 'Playfair Display', Georgia, serif;
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
 .np-coupon a {
   display: block;
   margin-top: 0.7rem;
-  padding: 0.6rem 0.5rem;
-  background: #8f1d18;
-  color: #f3e6c8;
-  font: 700 0.78rem/1.2 Inter, ui-sans-serif, sans-serif;
+  padding: 0.65rem 0.5rem;
+  background: #0c0c0c;
+  color: #f6f6f4;
+  font: 800 0.78rem/1.2 Inter, ui-sans-serif, sans-serif;
   letter-spacing: 0.06em;
   text-decoration: none;
   text-transform: uppercase;
-  box-shadow: 0 2px 0 #4a0d0a;
   transition: background 0.2s;
 }
 .np-coupon a:hover {
-  background: #a82620;
+  background: #3a3a38;
 }
 .np-quote {
   margin-top: 1.2rem;
   padding: 0.8rem 0;
-  border-top: 3px double rgba(28, 21, 13, 0.75);
-  border-bottom: 3px double rgba(28, 21, 13, 0.75);
+  border-top: 3px double #0c0c0c;
+  border-bottom: 3px double #0c0c0c;
 }
 .np-quote-l {
-  font: 700 0.6rem/1.2 'IBM Plex Mono', ui-monospace, monospace;
+  font: 800 0.64rem/1.2 Inter, ui-sans-serif, sans-serif;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: #8f1d18;
+  color: #5a5a57;
 }
 .np-quote-t {
   margin-top: 0.45rem;
-  font: italic 600 1.12rem/1.3 'Playfair Display', Georgia, serif;
+  font: 700 1.14rem/1.3 'Playfair Display', Georgia, serif;
   text-wrap: balance;
 }
 .np-foot {
@@ -2368,10 +1406,9 @@ a.fam-ava:hover {
   bottom: 0.9rem;
   left: 1.7rem;
   padding-top: 0.4rem;
-  border-top: 1px solid rgba(28, 21, 13, 0.6);
-  font: italic 500 0.8rem/1.2 'Playfair Display', Georgia, serif;
-  color: rgba(28, 21, 13, 0.88);
-  /* по центру: рваные нижние углы листа не откусывают начало строки */
+  border-top: 1px solid #0c0c0c;
+  font: 600 0.8rem/1.2 Inter, ui-sans-serif, sans-serif;
+  color: #3a3a38;
   text-align: center;
 }
 
@@ -2387,6 +1424,737 @@ a.fam-ava:hover {
     justify-content: center;
     text-align: center;
   }
+}
+
+/* Единый шрифтовой язык страницы: только Playfair Display (заголовки) и Inter (всё остальное), без наклона. */
+.theme-noir *,
+.ef-overlay * {
+  font-style: normal;
+}
+
+/* ===== Дела спикеров: папки и окно дела =====
+   Материал — тёмный графитовый картон и холодная серо-белая бумага, как в архиве, где дела давно не открывали.
+   Никаких скруглений и цветной «канцелярщины»: острые углы, жёсткие тени, чёрные полосы, штамп и сталь. Шрифты — только Inter и Playfair. */
+.sf,
+.ef-overlay {
+  --gr-hi: #4b4640;
+  --gr: #34302c;
+  --gr-lo: #1e1b19;
+  --bone: #dcd6c8;
+  --bone-lo: #c4bdab;
+  --ink-file: #16130f;
+  --stamp-red: #a02a33;
+}
+
+/* --- Папки в списке: вертикальные, как на архивной полке --- */
+.sf-grid {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2rem 1.2rem;
+  padding: 0.4rem 0 0.6rem;
+}
+@media (min-width: 640px) {
+  .sf-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 2.4rem 1.8rem;
+  }
+}
+.sf-slot {
+  position: relative;
+  z-index: 1;
+}
+.sf-slot:hover,
+.sf-slot:focus-within {
+  z-index: 30;
+}
+.sf-card {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 3.9;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink-file);
+  text-align: left;
+  cursor: pointer;
+  container-type: inline-size;
+  -webkit-tap-highlight-color: transparent;
+  /* Жёсткая тень по контуру папки и язычка. */
+  filter: drop-shadow(0 8px 3px rgba(0, 0, 0, 0.7)) drop-shadow(0 22px 16px rgba(0, 0, 0, 0.55));
+  transition: filter 0.3s;
+}
+.sf-card:hover {
+  filter: drop-shadow(0 12px 4px rgba(0, 0, 0, 0.75)) drop-shadow(0 28px 18px rgba(0, 0, 0, 0.6)) brightness(1.08);
+}
+.sf-card:focus-visible {
+  outline: 2px solid #d9a85c;
+  outline-offset: 6px;
+}
+
+.fd {
+  position: absolute;
+  inset: 0;
+  display: block;
+  perspective: 900px;
+}
+.fd-back {
+  position: absolute;
+  top: 8cqw;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background: var(--grain), linear-gradient(180deg, var(--gr), var(--gr-lo));
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+/* Язычок: трапеция с острыми углами; у соседних папок стоит в разных местах. */
+.fd-tab {
+  position: absolute;
+  top: 0;
+  left: var(--tab, 5%);
+  display: flex;
+  width: 34cqw;
+  height: 11cqw;
+  padding-top: 1cqw;
+  align-items: center;
+  justify-content: center;
+  clip-path: polygon(0 100%, 8% 0, 92% 0, 100% 100%);
+  background: var(--grain), linear-gradient(180deg, var(--gr-hi), var(--gr));
+}
+.fd-tab b {
+  color: #cfc8b8;
+  font: 800 5.6cqw/1 Inter, ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: 0.16em;
+}
+/* Имя гостя объявлено — язычок красный, это видно сразу. */
+.fd[data-revealed] .fd-tab {
+  background: var(--grain), linear-gradient(180deg, #a02a33, #6b1219);
+}
+.fd[data-revealed] .fd-tab b {
+  color: #f1e6d2;
+}
+/* Листы, торчащие из папки. */
+.fd-papers {
+  position: absolute;
+  top: 10cqw;
+  right: 6cqw;
+  left: 6cqw;
+  height: 22cqw;
+}
+.fd-papers i {
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(180deg, transparent 0 3.2cqw, rgba(22, 19, 15, 0.22) 3.2cqw 3.6cqw),
+    var(--grain),
+    linear-gradient(#d7d1c3, #bdb6a4);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+}
+.fd-papers i:nth-child(1) {
+  transform: rotate(-1.4deg) translate(-1cqw, 1cqw);
+  filter: brightness(0.82);
+}
+.fd-papers i:nth-child(2) {
+  transform: rotate(0.9deg) translate(1cqw, -0.6cqw);
+}
+/* Лицевая сторона: тёмный картон, царапины, пятно, потёртая кромка. */
+.fd-front {
+  position: absolute;
+  top: 22cqw;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  transform-origin: 50% 100%;
+  background:
+    var(--scratch) 0 0 / 300px 375px,
+    var(--grain),
+    radial-gradient(46% 24% at var(--stx, 72%) var(--sty, 78%), rgba(8, 4, 3, 0.65), transparent 72%),
+    radial-gradient(50% 20% at 10% 100%, rgba(0, 0, 0, 0.5), transparent 75%),
+    linear-gradient(180deg, var(--gr-hi), var(--gr) 38%, var(--gr-lo));
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.22),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.6),
+    inset 0 0 28px rgba(0, 0, 0, 0.55);
+}
+/* Залом и потёртость по верхней кромке — там, где папку брали пальцами. */
+.fd-front::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent calc(var(--fy, 62%) - 0.6%), rgba(255, 255, 255, 0.14) var(--fy, 62%), rgba(0, 0, 0, 0.5) calc(var(--fy, 62%) + 0.6%), transparent calc(var(--fy, 62%) + 1.8%));
+}
+.fd-front::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(235, 228, 212, 0.55) 0 1.5px, transparent 4px);
+  -webkit-mask-image: repeating-linear-gradient(90deg, #000 0 14px, transparent 14px 19px, #000 19px 46px, transparent 46px 55px, #000 55px 61px, transparent 61px 76px);
+  mask-image: repeating-linear-gradient(90deg, #000 0 14px, transparent 14px 19px, #000 19px 46px, transparent 46px 55px, #000 55px 61px, transparent 61px 76px);
+}
+.sf-slot:nth-child(3n + 1) .fd {
+  --stx: 74%;
+  --sty: 80%;
+  --fy: 60%;
+}
+.sf-slot:nth-child(3n + 2) .fd {
+  --stx: 26%;
+  --sty: 72%;
+  --fy: 68%;
+}
+.sf-slot:nth-child(3n) .fd {
+  --stx: 58%;
+  --sty: 86%;
+  --fy: 54%;
+}
+
+/* Бумажная наклейка с номером дела и ролью, на двух скрепках. */
+.fd-label {
+  position: absolute;
+  top: 9cqw;
+  left: 7cqw;
+  width: 74cqw;
+  padding: 5.6cqw 5cqw 5.4cqw;
+  background: var(--grain), linear-gradient(160deg, var(--bone), var(--bone-lo));
+  box-shadow:
+    0 2px 0 rgba(0, 0, 0, 0.6),
+    0 9px 10px -4px rgba(0, 0, 0, 0.8),
+    inset 0 0 12px rgba(60, 50, 35, 0.3);
+  transform: rotate(-0.8deg);
+}
+.fd-label::before,
+.fd-label::after {
+  content: '';
+  position: absolute;
+  top: 1.6cqw;
+  width: 5.5cqw;
+  height: 1.3cqw;
+  background: linear-gradient(#cfcfcf, #6d6d6d);
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.7);
+}
+.fd-label::before {
+  left: 4cqw;
+}
+.fd-label::after {
+  right: 4cqw;
+}
+.fd-no {
+  display: flex;
+  justify-content: space-between;
+  padding-bottom: 2.4cqw;
+  border-bottom: 0.5cqw solid rgba(22, 19, 15, 0.85);
+  font: 700 4.4cqw/1 Inter, ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.fd-role {
+  display: block;
+  margin-top: 3cqw;
+  font: 800 8.4cqw/1.12 Inter, ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+/* Имя гостя — на бумажной полосе; пока имя не объявлено — чёрная полоса. */
+.fd-tag,
+.fd-bar {
+  position: absolute;
+  bottom: 7cqw;
+  left: 7cqw;
+}
+.fd-tag {
+  padding: 2.3cqw 3.6cqw;
+  background: var(--bone);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.6), 0 6px 8px -3px rgba(0, 0, 0, 0.8);
+  font: 700 5.4cqw/1.2 Inter, ui-sans-serif, system-ui, sans-serif;
+  white-space: nowrap;
+}
+.fd-bar {
+  padding: 2.4cqw 3.6cqw;
+  background: #060504;
+  color: #8a8375;
+  font: 700 4.8cqw/1 Inter, ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+/* Улики на лицевой стороне — у каждой папки своя. */
+.fd-stamp {
+  position: absolute;
+  top: 56cqw;
+  right: 6cqw;
+  padding: 1.4cqw 3cqw;
+  border: 0.9cqw solid var(--stamp-red);
+  color: #c4343e;
+  font: 800 5.4cqw/1 Inter, ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  -webkit-mask-image: var(--ink-mask);
+  mask-image: var(--ink-mask);
+  transform: rotate(-13deg);
+  pointer-events: none;
+}
+.fd-print {
+  position: absolute;
+  right: 7cqw;
+  bottom: 7cqw;
+  width: 20cqw;
+  padding: 2.4cqw;
+  background: var(--grain), linear-gradient(160deg, var(--bone), var(--bone-lo));
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.6), 0 6px 8px -3px rgba(0, 0, 0, 0.8);
+  transform: rotate(-7deg);
+}
+.fd-print svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+/* Листок с залитыми чёрным строками. */
+.fd-slip {
+  position: absolute;
+  right: 7cqw;
+  bottom: 7cqw;
+  width: 32cqw;
+  height: 21cqw;
+  background:
+    linear-gradient(90deg, #060504 0 70%, transparent 70%) 0 2.4cqw / 100% 2.6cqw no-repeat,
+    linear-gradient(90deg, #060504 0 92%, transparent 92%) 0 7.2cqw / 100% 2.6cqw no-repeat,
+    linear-gradient(90deg, #060504 0 54%, transparent 54%) 0 12cqw / 100% 2.6cqw no-repeat,
+    linear-gradient(90deg, #060504 0 82%, transparent 82%) 0 16.8cqw / 100% 2.6cqw no-repeat,
+    var(--grain),
+    linear-gradient(160deg, var(--bone), var(--bone-lo));
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.6), 0 6px 8px -3px rgba(0, 0, 0, 0.8);
+  transform: rotate(5deg);
+}
+/* Бирка вещдока: срезанный угол и отверстие. */
+.fd-evid {
+  position: absolute;
+  right: 7cqw;
+  bottom: 7cqw;
+  display: flex;
+  width: 24cqw;
+  height: 27cqw;
+  padding: 13cqw 2cqw 0;
+  justify-content: center;
+  clip-path: polygon(0 18%, 18% 0, 100% 0, 100% 100%, 0 100%);
+  background: var(--grain), linear-gradient(160deg, var(--bone), var(--bone-lo));
+  color: var(--ink-file);
+  font: 800 4.4cqw/1.1 Inter, ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: 0.1em;
+  text-align: center;
+  text-transform: uppercase;
+  transform: rotate(6deg);
+}
+.fd-evid::before {
+  content: '';
+  position: absolute;
+  top: 5cqw;
+  left: 50%;
+  width: 4.4cqw;
+  height: 4.4cqw;
+  margin-left: -2.2cqw;
+  border-radius: 50%;
+  background: #1e1b19;
+  box-shadow: inset 0 1px 2px #000, 0 0 0 0.8cqw #8f8f8f;
+}
+
+/* Обложка в окне дела: та же лицевая сторона на всю доску; раскрывается вокруг левой кромки, как папка. */
+.ef-cover {
+  display: none;
+}
+.ef-cover .fd {
+  perspective: none;
+}
+.ef-cover .fd-back,
+.ef-cover .fd-papers {
+  display: none;
+}
+.ef-cover .fd-front {
+  top: 0;
+  --fy: 70%;
+  --stx: 70%;
+  --sty: 84%;
+}
+.ef-cover .fd-tab {
+  top: -11cqw;
+}
+.ef-cover .fd-stamp {
+  top: 62cqw;
+}
+
+/* --- Окно дела --- */
+.ef-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  padding: 1.2rem 0.75rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background:
+    radial-gradient(80% 60% at 50% 40%, rgba(70, 14, 20, 0.45), transparent 70%),
+    rgba(4, 2, 2, 0.9);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+}
+/* Обёртка «папки»: доска внутри, обложка поверх; сверху запас под язычок обложки. */
+.ef-wrap {
+  position: relative;
+  width: min(100%, 27rem);
+  margin: auto;
+  padding-top: 2.4rem;
+  perspective: 2600px;
+  perspective-origin: 30% 40%;
+}
+.ef-cover {
+  position: absolute;
+  top: 2.4rem;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 20;
+  container-type: inline-size;
+  transform-origin: 0 50%;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  pointer-events: none;
+  filter: drop-shadow(0 12px 14px rgba(0, 0, 0, 0.7));
+}
+.ef-board {
+  position: relative;
+  display: grid;
+  gap: 0.8rem;
+  padding: 1rem 1rem 1.1rem;
+  background:
+    var(--scratch) 0 0 / 300px 375px,
+    var(--grain),
+    radial-gradient(70% 30% at 85% 100%, rgba(0, 0, 0, 0.55), transparent 75%),
+    linear-gradient(160deg, #2c2824, #191715);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.12),
+    0 0 0 3px #000,
+    inset 0 0 50px rgba(0, 0, 0, 0.6),
+    0 30px 70px -20px #000;
+  color: var(--ink-file);
+  font: 500 0.88rem/1.5 Inter, ui-sans-serif, system-ui, sans-serif;
+}
+.ef-close {
+  position: absolute;
+  z-index: 6;
+  top: -0.7rem;
+  right: -0.5rem;
+  display: grid;
+  place-items: center;
+  width: 2.2rem;
+  height: 2.2rem;
+  border: 1px solid rgba(234, 223, 200, 0.4);
+  background: #0b0707;
+  box-shadow: 0 6px 14px -4px #000;
+  color: #eadfc8;
+  font: 600 1rem/1 Inter, ui-sans-serif, sans-serif;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.ef-close:hover {
+  background: #8e1c24;
+}
+.ef-close:focus-visible {
+  outline: 2px solid #d9a85c;
+  outline-offset: 2px;
+}
+
+/* Верхний ряд: фото и «паспорт» дела. */
+.ef-top {
+  display: grid;
+  grid-template-columns: minmax(0, 9.2rem) minmax(0, 1fr);
+  gap: 0.85rem;
+  align-items: start;
+}
+.ef-print {
+  position: relative;
+  margin: 0;
+  padding: 0.5rem 0.5rem 0.65rem;
+  background: var(--grain), linear-gradient(165deg, var(--bone), var(--bone-lo));
+  box-shadow:
+    0 2px 0 rgba(0, 0, 0, 0.6),
+    0 12px 16px -8px rgba(0, 0, 0, 0.9),
+    inset 0 0 14px rgba(60, 50, 35, 0.3);
+  transform: rotate(var(--r, 0deg));
+}
+.ef-photo {
+  position: relative;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  background: radial-gradient(90% 75% at 50% 38%, #4a4642, #12100f 80%);
+}
+.ef-photo img,
+.ef-sil {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.ef-photo img {
+  object-fit: cover;
+  object-position: 50% 18%;
+  filter: grayscale(1) contrast(1.12) brightness(0.95);
+}
+.ef-sil {
+  overflow: visible;
+}
+.ef-photo::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--scratch) center / 100% 100%;
+  box-shadow: inset 0 0 22px rgba(0, 0, 0, 0.75);
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+.ef-name {
+  margin-top: 0.5rem;
+  font: 700 1.02rem/1.2 'Playfair Display', Georgia, serif;
+  color: var(--ink-file);
+}
+.ef-pos {
+  margin: 0.15rem 0 0;
+  font: 600 0.72rem/1.3 Inter, ui-sans-serif, sans-serif;
+  color: #3d372f;
+}
+.ef-meta {
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: 0.25rem;
+  color: #d9d3c4;
+  transform: rotate(var(--r, 0deg));
+}
+.ef-no {
+  margin: 0;
+  font: 700 0.68rem/1.2 Inter, ui-sans-serif, sans-serif;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #9d9588;
+}
+.ef-roleh {
+  margin: 0.2rem 0 0;
+  font: 700 1.5rem/1.08 'Playfair Display', Georgia, serif;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #f1ebdc;
+  text-wrap: balance;
+}
+.ef-epi {
+  margin: 0;
+  font: 600 0.84rem/1.35 Inter, ui-sans-serif, sans-serif;
+  color: #c9c2b2;
+}
+.ef-date {
+  margin: 0.5rem 0 0;
+  font: 600 0.72rem/1.35 Inter, ui-sans-serif, sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #9d9588;
+}
+.ef-risk {
+  margin-top: 0.7rem;
+}
+.ef-lab {
+  margin: 0 0 0.35rem;
+  font: 700 0.64rem/1.2 Inter, ui-sans-serif, sans-serif;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #9d9588;
+}
+.ef-scale {
+  display: flex;
+  gap: 0.22rem;
+}
+.ef-scale i {
+  display: block;
+  width: 1.35rem;
+  height: 0.55rem;
+  border: 1px solid #6c665b;
+  background: #14110f;
+}
+.ef-scale i[data-on] {
+  border-color: #c4343e;
+  background: #a02a33;
+  box-shadow: 0 0 6px rgba(196, 52, 62, 0.45);
+}
+.ef-scale[data-unknown] i {
+  border-style: dashed;
+  opacity: 0.6;
+}
+.ef-hint {
+  margin: 0.3rem 0 0;
+  font: 600 0.68rem/1.2 Inter, ui-sans-serif, sans-serif;
+  color: #8a8375;
+}
+.ef-stamp {
+  justify-self: start;
+  margin-top: 0.8rem;
+  padding: 0.28rem 0.6rem 0.3rem;
+  border: 2px solid var(--stamp-red);
+  color: #c4343e;
+  font: 800 0.66rem/1.1 Inter, ui-sans-serif, sans-serif;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  -webkit-mask-image: var(--ink-mask);
+  mask-image: var(--ink-mask);
+  transform: rotate(-4deg);
+}
+
+/* Листы дела: холодная бумага со скрепкой, острые углы. */
+.ef-sheet {
+  position: relative;
+  display: grid;
+  gap: 0.5rem;
+  justify-items: start;
+  padding: 1.05rem 1rem 0.95rem;
+  background: var(--grain), linear-gradient(165deg, var(--bone), var(--bone-lo));
+  box-shadow:
+    0 2px 0 rgba(0, 0, 0, 0.6),
+    0 14px 18px -8px rgba(0, 0, 0, 0.9),
+    inset 0 0 24px rgba(60, 50, 35, 0.3);
+  transform: rotate(var(--r, 0deg));
+}
+.ef-sheet::before {
+  content: '';
+  position: absolute;
+  top: 0.4rem;
+  left: 0.7rem;
+  width: 1.1rem;
+  height: 0.24rem;
+  background: linear-gradient(#d0d0d0, #6a6a6a);
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.7);
+}
+.ef-h {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  padding-bottom: 0.4rem;
+  border-bottom: 2px solid var(--ink-file);
+  font: 800 0.72rem/1.2 Inter, ui-sans-serif, sans-serif;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+.ef-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-align: left;
+  text-transform: inherit;
+  cursor: pointer;
+}
+.ef-toggle:focus-visible {
+  outline: 2px solid #7a1219;
+  outline-offset: 3px;
+}
+.ef-plus {
+  margin-left: auto;
+  font: 700 1.2rem/1 Inter, ui-sans-serif, sans-serif;
+}
+.ef-role[data-collapsed] .ef-h {
+  padding-bottom: 0.3rem;
+}
+.ef-h svg {
+  width: 1.15rem;
+  height: 1.15rem;
+}
+.ef-topic {
+  margin: 0;
+  font: 700 1.2rem/1.22 'Playfair Display', Georgia, serif;
+}
+.ef-suspect {
+  display: inline-grid;
+  gap: 0.1rem;
+  padding: 0.3rem 0.65rem 0.35rem;
+  border: 2px solid var(--stamp-red);
+  color: #8e1c24;
+  transform: rotate(-1.2deg);
+  -webkit-mask-image: var(--ink-mask);
+  mask-image: var(--ink-mask);
+}
+.ef-suspect span {
+  font: 700 0.62rem/1.1 Inter, ui-sans-serif, sans-serif;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.ef-suspect b {
+  font: 800 0.9rem/1.15 Inter, ui-sans-serif, sans-serif;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.ef-p {
+  margin: 0;
+  font: 500 0.88rem/1.5 Inter, ui-sans-serif, sans-serif;
+  text-wrap: pretty;
+}
+.ef-p b {
+  font-weight: 800;
+}
+.ef-q {
+  margin: 0;
+  padding-left: 0.75rem;
+  border-left: 3px solid var(--ink-file);
+  font: 600 0.9rem/1.5 Inter, ui-sans-serif, sans-serif;
+  text-wrap: pretty;
+}
+.ef-lead {
+  margin: 0;
+  font: 700 0.95rem/1.4 Inter, ui-sans-serif, sans-serif;
+}
+.ef-kw {
+  margin: 0;
+  font: 700 0.68rem/1.35 Inter, ui-sans-serif, sans-serif;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #6b1219;
+}
+.ef-part {
+  align-self: stretch;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(22, 19, 15, 0.55);
+}
+.ef-sub {
+  margin: 0 0 0.3rem;
+  font: 800 0.64rem/1.2 Inter, ui-sans-serif, sans-serif;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #6b1219;
+}
+.ef-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin: 0.4rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+.ef-tags li {
+  padding: 0.18rem 0.5rem;
+  border: 1px solid rgba(22, 19, 15, 0.8);
+  font: 700 0.7rem/1.3 Inter, ui-sans-serif, sans-serif;
+}
+.ef-redact {
+  display: inline-block;
+  padding: 0.28rem 0.6rem;
+  background: #060504;
+  color: #8a8375;
+  font: 700 0.64rem/1.2 Inter, ui-sans-serif, sans-serif;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
 }
 
 /* ===== Анимации ===== */
@@ -2945,6 +2713,74 @@ a.fam-ava:hover {
 
 /* Папки: выезжают по очереди и на наведении приоткрываются (лицевая сторона чуть откидывается, листы выглядывают).
    Окно дела: папка всплывает на стол, обложка раскрывается влево, листы ложатся на доску; закрытие — наоборот. */
+
+/* Магнитола: подсветка шкалы дышит, светодиод мигает, при смене волны экран «шипит» и проясняется, ручка поворачивается. */
+@media (prefers-reduced-motion: no-preference) {
+  .rd-led {
+    animation: rd-led 2.6s steps(1, end) infinite;
+  }
+  .rd-strip {
+    animation: rd-breathe 5.5s ease-in-out infinite;
+  }
+  .rd[data-tuning] .rd-sig i {
+    animation: rd-sig 0.3s steps(1, end) infinite;
+  }
+  .rd[data-tuning] .rd-sig i:nth-child(2n) {
+    animation-delay: -0.12s;
+  }
+  .rd-knob {
+    transition: transform 0.9s cubic-bezier(0.3, 1.25, 0.4, 1);
+  }
+  .rd-noise[data-on],
+  .rd[data-silent] .rd-noise {
+    animation: rd-noise 0.2s steps(5) infinite;
+  }
+  .rd-air[data-active]:not([data-tuning]) {
+    animation: rd-lock 0.7s ease-out both;
+  }
+  @keyframes rd-led {
+    0%, 78%, 100% { opacity: 1; }
+    80% { opacity: 0.15; }
+  }
+  @keyframes rd-breathe {
+    0%, 100% { filter: brightness(0.96); }
+    50% { filter: brightness(1.06); }
+  }
+  @keyframes rd-sig {
+    0% { opacity: 0.9; }
+    50% { opacity: 0.18; }
+  }
+  @keyframes rd-noise {
+    0% { transform: translate(0, 0); }
+    20% { transform: translate(-6%, 4%); }
+    40% { transform: translate(5%, -7%); }
+    60% { transform: translate(-3%, 8%); }
+    80% { transform: translate(7%, 2%); }
+    100% { transform: translate(0, 0); }
+  }
+  @keyframes rd-lock {
+    0% { opacity: 0; filter: blur(4px); transform: translateX(-6px); }
+    35% { opacity: 0.7; filter: blur(2px); transform: translateX(4px); }
+    55% { opacity: 0.4; filter: blur(1px); transform: translateX(-2px); }
+    100% { opacity: 1; filter: blur(0); transform: none; }
+  }
+}
+
+/* Газета: страница переворачивается вокруг левой кромки; лежащие под ней листы скрываются после переворота. */
+@media (prefers-reduced-motion: no-preference) {
+  .np-page {
+    transition: transform 0.95s cubic-bezier(0.65, 0, 0.2, 1), opacity 0.01s linear 0s;
+  }
+  .np-page[data-flipped] {
+    transition: transform 0.95s cubic-bezier(0.65, 0, 0.2, 1), opacity 0.01s linear 0.47s;
+  }
+  .np-page:not([data-current]):not([data-flipped]) {
+    transition: visibility 0s linear 0.95s;
+  }
+}
+
+/* Папки: выезжают по очереди и на наведении приоткрываются (лицевая сторона чуть откидывается, листы выглядывают).
+   Окно дела: папка всплывает на стол, обложка раскрывается влево, листы ложатся на доску; закрытие — наоборот. */
 @media (prefers-reduced-motion: no-preference) {
   .sf-slot {
     opacity: 0;
@@ -3045,68 +2881,3 @@ a.fam-ava:hover {
   }
 }
 
-
-/* Магнитола: подсветка шкалы дышит, светодиод мигает, при смене волны экран «шипит» и проясняется, ручка поворачивается. */
-@media (prefers-reduced-motion: no-preference) {
-  .rd-led {
-    animation: rd-led 2.6s steps(1, end) infinite;
-  }
-  .rd-strip {
-    animation: rd-breathe 5.5s ease-in-out infinite;
-  }
-  .rd[data-tuning] .rd-sig i {
-    animation: rd-sig 0.3s steps(1, end) infinite;
-  }
-  .rd[data-tuning] .rd-sig i:nth-child(2n) {
-    animation-delay: -0.12s;
-  }
-  .rd-knob {
-    transition: transform 0.9s cubic-bezier(0.3, 1.25, 0.4, 1);
-  }
-  .rd-noise[data-on],
-  .rd[data-silent] .rd-noise {
-    animation: rd-noise 0.2s steps(5) infinite;
-  }
-  .rd-air[data-active]:not([data-tuning]) {
-    animation: rd-lock 0.7s ease-out both;
-  }
-  @keyframes rd-led {
-    0%, 78%, 100% { opacity: 1; }
-    80% { opacity: 0.15; }
-  }
-  @keyframes rd-breathe {
-    0%, 100% { filter: brightness(0.96); }
-    50% { filter: brightness(1.06); }
-  }
-  @keyframes rd-sig {
-    0% { opacity: 0.9; }
-    50% { opacity: 0.18; }
-  }
-  @keyframes rd-noise {
-    0% { transform: translate(0, 0); }
-    20% { transform: translate(-6%, 4%); }
-    40% { transform: translate(5%, -7%); }
-    60% { transform: translate(-3%, 8%); }
-    80% { transform: translate(7%, 2%); }
-    100% { transform: translate(0, 0); }
-  }
-  @keyframes rd-lock {
-    0% { opacity: 0; filter: blur(4px); transform: translateX(-6px); }
-    35% { opacity: 0.7; filter: blur(2px); transform: translateX(4px); }
-    55% { opacity: 0.4; filter: blur(1px); transform: translateX(-2px); }
-    100% { opacity: 1; filter: blur(0); transform: none; }
-  }
-}
-
-/* Газета: страница переворачивается вокруг левой кромки; лежащие под ней листы скрываются после переворота. */
-@media (prefers-reduced-motion: no-preference) {
-  .np-page {
-    transition: transform 0.95s cubic-bezier(0.65, 0, 0.2, 1), opacity 0.01s linear 0s;
-  }
-  .np-page[data-flipped] {
-    transition: transform 0.95s cubic-bezier(0.65, 0, 0.2, 1), opacity 0.01s linear 0.47s;
-  }
-  .np-page:not([data-current]):not([data-flipped]) {
-    transition: visibility 0s linear 0.95s;
-  }
-}

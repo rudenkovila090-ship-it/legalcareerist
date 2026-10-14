@@ -252,6 +252,8 @@ h4 {
   background-image: radial-gradient(60% 720px at 92% 0%, rgba(163, 32, 42, 0.42), transparent 70%);
   background-repeat: no-repeat;
   color: var(--color-ink);
+  /* Плотнее обычного: тонкое начертание на тёмном фоне «растворяется». Утилиты font-semibold/bold по-прежнему сильнее. */
+  font-weight: 500;
   /* Блоки выезжают сбоку — не даём им растягивать страницу (clip, а не hidden: липкая колонка билета продолжает работать). */
   overflow-x: clip;
   /* Карта города за текстом — fixed внутри обёртки: изоляция и clip-path не дают ей рисоваться поверх подвала сайта. */
@@ -261,6 +263,12 @@ h4 {
 .theme-noir > :not(.noir-citymap):not(.noir-grain) {
   position: relative;
   z-index: 1;
+}
+.theme-noir button,
+.theme-noir input,
+.theme-noir textarea,
+.theme-noir select {
+  font-weight: inherit;
 }
 .font-noir {
   font-family: "Playfair Display", "Times New Roman", Georgia, serif;

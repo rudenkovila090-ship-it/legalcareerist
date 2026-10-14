@@ -1,10 +1,8 @@
 import { useEffect } from 'react'
 
-// Шрифты тёмной «нуарной» темы мероприятия (все с кириллицей) — подгружаются только на странице, которой они нужны,
-// а не на весь сайт: Playfair Display — заголовки; IBM Plex Mono — «машинопись» в делах спикеров;
-// Marck Script — рукописная подпись под фото в деле.
-const NOIR_FONT_HREF =
-  'https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,400;1,500&family=IBM+Plex+Mono:wght@400;600&family=Marck+Script&display=swap'
+// Заголовочный шрифт тёмной «нуарной» темы мероприятия (Playfair Display, есть кириллица, без курсива) —
+// подгружается только на странице, которой он нужен, а не на весь сайт. Всё остальное набрано Inter, он уже подключён на сайте.
+const NOIR_FONT_HREF = 'https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&display=swap'
 
 export function useNoirFont(enabled: boolean) {
   useEffect(() => {

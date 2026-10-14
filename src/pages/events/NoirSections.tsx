@@ -152,7 +152,7 @@ export function NoirHero({ event, story, onBuy, share, views }: NoirHeroProps) {
                 )}
               </span>
               {en && (
-                <span className="noir-rise mt-3 block text-2xl font-medium italic text-ink/70 sm:text-3xl" style={{ '--rd': '2.2s' } as CSSProperties}>
+                <span className="noir-rise mt-3 block text-2xl font-semibold text-ink/75 sm:text-3xl" style={{ '--rd': '2.2s' } as CSSProperties}>
                   {en}
                 </span>
               )}
@@ -161,7 +161,7 @@ export function NoirHero({ event, story, onBuy, share, views }: NoirHeroProps) {
             <Diamond className="mt-8" delay={2.4} />
 
             <Rise delay={2.55} className="mt-6">
-              <p className="font-noir text-2xl italic text-ink sm:text-3xl">{story.tagline}</p>
+              <p className="font-noir text-2xl font-semibold text-ink sm:text-3xl">{story.tagline}</p>
             </Rise>
 
             {event.description && (
@@ -229,7 +229,7 @@ export function NoirIntro({ story }: { story: EventStory }) {
       <div>
         <NoirHeading>О вечере</NoirHeading>
         <Reveal delay={100} className="mt-4">
-          <p className="font-noir text-2xl italic leading-snug text-ink">{story.introLead}</p>
+          <p className="font-noir text-2xl font-semibold leading-snug text-ink">{story.introLead}</p>
         </Reveal>
         <div className="mt-5 space-y-4 leading-relaxed text-ink/75">
           {story.intro.map((p, i) => (
@@ -252,7 +252,7 @@ export function NoirIntro({ story }: { story: EventStory }) {
       {/* Вопрос вечера — на всю ширину блока (под текстом и портретом): в узкой колонке одно слово повисало на отдельной строке. */}
       <Reveal className="md:col-span-2">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gold">{story.questionLead}</p>
-        <p className="font-noir mt-3 text-pretty text-2xl font-medium italic leading-snug text-ink sm:text-[1.7rem]">
+        <p className="font-noir mt-3 text-pretty text-2xl font-semibold leading-snug text-ink sm:text-[1.7rem]">
           <span className="noir-q mr-1 text-[var(--noir-crimson-bright)]" aria-hidden="true">«</span>
           {story.question}
           <span className="noir-q ml-1 text-[var(--noir-crimson-bright)]" aria-hidden="true">»</span>
@@ -271,7 +271,7 @@ export function NoirFacts({ story }: { story: EventStory }) {
         <CaseFile pages={story.facts} />
       </Reveal>
       <Reveal className="mt-6">
-        <p className="font-noir text-xl italic leading-snug text-ink/90">{story.principle}</p>
+        <p className="font-noir text-xl font-semibold leading-snug text-ink/90">{story.principle}</p>
       </Reveal>
     </section>
   )
