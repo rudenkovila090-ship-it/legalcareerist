@@ -56,6 +56,7 @@ const DAY = 86400000
 const now = Date.now()
 
 let users = 0
+let nonTelegram = 0
 let created = 0
 let residents = 0
 let residentsSkipped = 0
@@ -65,6 +66,11 @@ const knownTg = new Set(listJoins().map((j) => String(j.tgUserId ?? '')))
 for (const r of rows) {
   const id = get(r, 'id')
   if (!id) continue
+  // 16-значные id в выгрузке — не Telegram (другой канал): боту они недоступны, карточки им не заводим.
+  if (!/^\d{5,11}$/.test(id)) {
+    nonTelegram += 1
+    continue
+  }
   const tags = get(r, 'User tags').split(';').map((t) => t.trim()).filter(Boolean)
   tags.forEach((t) => tagCount.set(t, (tagCount.get(t) ?? 0) + 1))
   const days = num(get(r, 'дни'))
@@ -117,6 +123,7 @@ for (const r of rows) {
   }
 }
 
+if (nonTelegram) console.log(`Пропущено ${nonTelegram}: id не в формате Telegram (другой канал), боту они недоступны`)
 console.log(`Строк в файле: ${rows.length}, людей: ${users}${dry ? '' : `, новых карточек пользователей бота: ${created}`}`)
 console.log(`Резидентов ${dry ? 'будет заведено' : 'заведено'} в учёт сообщества: ${residents} (пропущено: ${residentsSkipped} — нет оставшихся дней или уже в учёте)`)
 console.log('Метки:', [...tagCount].sort((a, b) => b[1] - a[1]).map(([t, n]) => `${t} — ${n}`).join('; '))
