@@ -642,36 +642,36 @@ a.fam-ava:hover {
   --ink-brown: #2a1d12;
 }
 
+/* ===== Папки-дела («Спикеры») =====
+   Манильская папка, какой её видят на столе: задняя сторона с выступающим язычком, из-под лицевой торчат листы,
+   на лицевой — бумажная наклейка с номером дела и ролью. Размеры в cqw — от ширины самой папки, поэтому та же
+   «лицевая сторона» без правок служит обложкой в окне дела (там она раскрывается, как настоящая папка). */
 .sf-grid {
   list-style: none;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1.7rem 0.9rem;
-  /* Язычки выступают за правый край папки — оставляем им место. */
-  padding: 0 14px 6px 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.9rem 1.1rem;
+  padding: 0.4rem 0 0.6rem;
 }
 @media (min-width: 640px) {
   .sf-grid {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-    gap: 0 0.55rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 2.2rem 1.6rem;
   }
 }
-/* Левые папки лежат выше правых, чтобы язычок накрывал соседа, а не прятался под ним. */
 .sf-slot {
   position: relative;
-  z-index: calc(10 - var(--i));
+  z-index: 1;
 }
 .sf-slot:hover,
 .sf-slot:focus-within {
   z-index: 30;
 }
-
-/* Всё внутри папки меряется в cqw — от её ширины, поэтому она выглядит одинаково и на телефоне, и на широком экране. */
 .sf-card {
   position: relative;
   display: block;
   width: 100%;
-  aspect-ratio: 2 / 5;
+  aspect-ratio: 5 / 4.2;
   padding: 0;
   border: 0;
   background: none;
@@ -681,11 +681,11 @@ a.fam-ava:hover {
   container-type: inline-size;
   -webkit-tap-highlight-color: transparent;
   /* Тень по рваному контуру папки и язычка, а не по прямоугольнику. */
-  filter: drop-shadow(5px 6px 4px rgba(0, 0, 0, 0.55)) drop-shadow(0 14px 12px rgba(0, 0, 0, 0.35));
+  filter: drop-shadow(0 7px 5px rgba(0, 0, 0, 0.55)) drop-shadow(0 16px 12px rgba(0, 0, 0, 0.35));
   transition: filter 0.3s;
 }
 .sf-card:hover {
-  filter: drop-shadow(7px 9px 5px rgba(0, 0, 0, 0.6)) drop-shadow(0 20px 16px rgba(0, 0, 0, 0.4)) brightness(1.07);
+  filter: drop-shadow(0 11px 7px rgba(0, 0, 0, 0.6)) drop-shadow(0 24px 16px rgba(0, 0, 0, 0.4)) brightness(1.06);
 }
 .sf-card:focus-visible {
   outline: 2px solid #d9a85c;
@@ -693,264 +693,297 @@ a.fam-ava:hover {
   border-radius: 4px;
 }
 
-.sf-paper {
+.fd {
   position: absolute;
   inset: 0;
+  display: block;
+  perspective: 800px;
+  color: #2f2113;
+}
+/* Задняя сторона папки. */
+.fd-back {
+  position: absolute;
+  top: 9cqw;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  clip-path: var(--rough-c);
+  background: var(--fibers), var(--mottle), var(--noise), linear-gradient(180deg, #80592a, #90693a 40%, #7d5628);
+  box-shadow: inset 0 0 20px rgba(40, 22, 4, 0.7);
+}
+/* Язычок: у соседних папок он стоит в разных местах, как на настоящих папках с тремя позициями. */
+.fd-tab {
+  position: absolute;
+  top: 0;
+  left: var(--tab, 5%);
   display: flex;
-  flex-direction: column;
+  width: 32cqw;
+  height: 13cqw;
+  padding-top: 1.6cqw;
   align-items: center;
-  overflow: hidden;
-  padding: 7cqw 6cqw 8cqw 8cqw;
-  clip-path: var(--sf-rough, none);
+  justify-content: center;
+  clip-path: polygon(0 100%, 3% 30%, 7% 8%, 12% 2%, 88% 2%, 93% 8%, 97% 30%, 100% 100%);
+  background: var(--fibers), var(--noise), linear-gradient(180deg, #a67d43, #90693a);
+  box-shadow: inset 0 0 8px rgba(40, 22, 4, 0.5);
+}
+.fd-tab b {
+  color: #2a1b0f;
+  font: 700 6.4cqw/1 Inter, ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: 0.14em;
+}
+/* Имя гостя объявлено — язычок красный, сразу видно. */
+.fd[data-revealed] .fd-tab {
+  background: var(--fibers), var(--noise), linear-gradient(180deg, #a02e1e, #7b2014);
+}
+.fd[data-revealed] .fd-tab b {
+  color: #f3e6c8;
+}
+/* Листы внутри: торчат над лицевой стороной. */
+.fd-papers {
+  position: absolute;
+  top: 11cqw;
+  right: 7cqw;
+  left: 6cqw;
+  height: 30cqw;
+}
+.fd-papers i {
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(180deg, transparent 0 3.2cqw, rgba(70, 90, 130, 0.26) 3.2cqw 3.5cqw),
+    var(--fibers),
+    linear-gradient(#e9dfc2, #d3c49d);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+}
+.fd-papers i:nth-child(1) {
+  transform: rotate(-1.8deg) translate(-1cqw, 1cqw);
+}
+.fd-papers i:nth-child(2) {
+  transform: rotate(1.4deg) translate(1.4cqw, -1cqw);
+  filter: brightness(0.95);
+}
+/* Лицевая сторона: крафт с заломом поперёк, пятном сырости и потёртыми краями. */
+.fd-front {
+  position: absolute;
+  top: 20cqw;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  clip-path: var(--fr, var(--rough-a));
+  transform-origin: 50% 100%;
   background:
     var(--fibers),
     var(--mottle),
     var(--noise),
-    /* затёртые светлые места там, где папку чаще всего трогали */
-    radial-gradient(60% 30% at 14% 26%, rgba(240, 214, 170, 0.3), transparent 70%),
-    radial-gradient(70% 22% at 80% 72%, rgba(225, 195, 145, 0.22), transparent 70%),
-    /* верх и низ темнее: за них держали пальцами */
-    radial-gradient(90% 16% at 50% 0%, rgba(55, 32, 10, 0.55), transparent 80%),
-    radial-gradient(90% 16% at 50% 100%, rgba(55, 32, 10, 0.55), transparent 80%),
-    /* пятно сырости */
-    radial-gradient(40% 18% at var(--stx, 70%) var(--sty, 58%), rgba(70, 40, 12, 0.34), transparent 72%),
-    linear-gradient(90deg, #a2763f, #b98d55 8%, #b3874f 92%, #946a37);
+    radial-gradient(60% 34% at 14% 24%, rgba(240, 214, 170, 0.3), transparent 70%),
+    radial-gradient(42% 26% at var(--stx, 72%) var(--sty, 72%), rgba(70, 40, 12, 0.34), transparent 72%),
+    radial-gradient(90% 18% at 50% 100%, rgba(55, 32, 10, 0.5), transparent 80%),
+    linear-gradient(180deg, #bf9559, #b38850 60%, #a97e47);
   box-shadow:
-    inset 0 0 0 1px rgba(60, 35, 10, 0.4),
-    inset 0 0 24px rgba(65, 38, 10, 0.6);
+    inset 0 2px 0 rgba(255, 235, 200, 0.4),
+    inset 0 0 22px rgba(65, 38, 10, 0.55);
 }
-/* Залом поперёк папки: светлая и тёмная линия рядом, как на сложенной и разложенной бумаге. */
-.sf-paper::before {
+.fd-front::before {
   content: '';
   position: absolute;
   inset: 0;
-  z-index: 0;
   pointer-events: none;
-  background: linear-gradient(180deg, transparent calc(var(--fy, 62%) - 0.5%), rgba(250, 228, 190, 0.5) var(--fy, 62%), rgba(50, 28, 8, 0.5) calc(var(--fy, 62%) + 0.5%), transparent calc(var(--fy, 62%) + 1.6%));
-  -webkit-mask-image: linear-gradient(90deg, transparent, #000 14%, #000 70%, transparent);
-  mask-image: linear-gradient(90deg, transparent, #000 14%, #000 70%, transparent);
+  background: linear-gradient(180deg, transparent calc(var(--fy, 60%) - 0.7%), rgba(250, 228, 190, 0.5) var(--fy, 60%), rgba(50, 28, 8, 0.45) calc(var(--fy, 60%) + 0.7%), transparent calc(var(--fy, 60%) + 2%));
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 10%, #000 78%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 10%, #000 78%, transparent);
 }
-/* Белёсая кромка с обеих сторон — там, где крафт стёрся и посыпался. */
-.sf-paper::after {
+.fd-front::after {
   content: '';
   position: absolute;
   inset: 0;
-  z-index: 0;
   pointer-events: none;
-  background: linear-gradient(90deg, rgba(246, 224, 186, 0.62) 0 1.5px, transparent 3px calc(100% - 3px), rgba(246, 224, 186, 0.55) calc(100% - 1.5px));
-  -webkit-mask-image: repeating-linear-gradient(180deg, #000 0 11px, transparent 11px 15px, #000 15px 34px, transparent 34px 41px, #000 41px 47px, transparent 47px 60px);
-  mask-image: repeating-linear-gradient(180deg, #000 0 11px, transparent 11px 15px, #000 15px 34px, transparent 34px 41px, #000 41px 47px, transparent 47px 60px);
+  background: linear-gradient(180deg, rgba(246, 224, 186, 0.6) 0 1.5px, transparent 3px);
+  -webkit-mask-image: repeating-linear-gradient(90deg, #000 0 14px, transparent 14px 19px, #000 19px 46px, transparent 46px 55px, #000 55px 61px, transparent 61px 76px);
+  mask-image: repeating-linear-gradient(90deg, #000 0 14px, transparent 14px 19px, #000 19px 46px, transparent 46px 55px, #000 55px 61px, transparent 61px 76px);
 }
-/* У каждой папки — свои края, залом и пятно, чтобы не выглядели штампованными. */
-.sf-slot:nth-child(3n + 1) .sf-paper {
-  --sf-rough: var(--sf-rough-1);
-  --fy: 63%;
-  --stx: 74%;
-  --sty: 57%;
+/* У каждой папки в ряду — свои края, залом и пятно. */
+.sf-slot:nth-child(3n + 1) .fd {
+  --fr: var(--rough-a);
+  --stx: 76%;
+  --sty: 70%;
+  --fy: 58%;
 }
-.sf-slot:nth-child(3n + 2) .sf-paper {
-  --sf-rough: var(--sf-rough-2);
-  --fy: 71%;
-  --stx: 26%;
-  --sty: 44%;
+.sf-slot:nth-child(3n + 2) .fd {
+  --fr: var(--rough-b);
+  --stx: 24%;
+  --sty: 74%;
+  --fy: 66%;
 }
-.sf-slot:nth-child(3n) .sf-paper {
-  --sf-rough: var(--sf-rough-3);
-  --fy: 55%;
-  --stx: 62%;
-  --sty: 71%;
-}
-
-/* Карточка-бланк сверху: «Дело / дата / № 03». */
-.sf-index {
-  position: relative;
-  z-index: 2;
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: baseline;
-  gap: 1cqw 2cqw;
-  width: 100%;
-  padding: 3cqw;
-  border: 1px solid rgba(47, 33, 19, 0.6);
-  background: var(--noise), radial-gradient(70% 90% at 90% 20%, rgba(80, 48, 14, 0.2), transparent 70%), rgba(255, 238, 200, 0.2);
-  box-shadow: inset 0 0 8px rgba(70, 42, 12, 0.3);
-  transform: rotate(-0.7deg);
-  font: 600 7.2cqw/1.1 'IBM Plex Mono', ui-monospace, 'Courier New', monospace;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-.sf-index strong {
-  grid-column: 1 / -1;
-  padding-top: 1.6cqw;
-  border-top: 1px dashed rgba(47, 33, 19, 0.45);
-  font-size: 10.5cqw;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+.sf-slot:nth-child(3n) .fd {
+  --fr: var(--rough-d);
+  --stx: 60%;
+  --sty: 80%;
+  --fy: 52%;
 }
 
-/* Название роли — вертикально вдоль папки, как на референсе: слова — отдельные колонки, подпись роли — последняя. */
-.sf-title {
-  position: relative;
-  z-index: 2;
-  flex: 1;
-  min-height: 0;
-  margin-top: 7cqw;
-  writing-mode: vertical-rl;
+/* Наклейка с номером дела и ролью. */
+.fd-label {
+  position: absolute;
+  top: 8cqw;
+  left: 6cqw;
+  width: 60cqw;
+  padding: 4cqw 4.4cqw 4.6cqw;
+  background: var(--fibers), var(--noise), linear-gradient(160deg, #eee3c6, #dccfaa);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.4),
+    inset 0 0 10px rgba(110, 70, 20, 0.25);
+  transform: rotate(-1.2deg);
 }
-.sf-name {
+.fd-no {
   display: block;
-  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
-  font-size: 13.5cqw;
-  font-weight: 600;
-  line-height: 1.12;
-  letter-spacing: 0.14em;
+  padding-bottom: 2.4cqw;
+  border-bottom: 1px dashed rgba(47, 33, 19, 0.5);
+  font: 600 5cqw/1.1 'IBM Plex Mono', ui-monospace, 'Courier New', monospace;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
+}
+.fd-no b {
+  margin-right: 0.5em;
+  font-weight: 700;
+}
+.fd-role {
+  display: block;
+  margin-top: 3cqw;
   color: #2a1b0f;
-  mix-blend-mode: multiply;
-  opacity: 0.9;
+  font: 800 8cqw/1.1 Inter, ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
   text-shadow: 0 0 1px rgba(40, 24, 8, 0.5);
 }
-.sf-epithet {
-  display: block;
-  margin-block-start: 3.5cqw;
-  font-family: 'Playfair Display', Georgia, serif;
-  font-size: max(9px, 8.8cqw);
-  font-style: italic;
-  line-height: 1.2;
-  color: rgba(42, 27, 15, 0.78);
-}
-
-/* Язычок-индекс на правом краю: римская цифра повёрнута, как на референсе. */
-.sf-tab {
+/* Имя гостя на бумажной наклейке — или чёрная полоса, пока имя не объявлено. */
+.fd-tag,
+.fd-bar {
   position: absolute;
-  top: var(--tab);
-  right: -10cqw;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 12.5cqw;
-  height: 17%;
-  /* кромка язычка обтрёпана и чуть надорвана */
-  clip-path: polygon(0 0, 70% 3%, 100% 0, 96% 22%, 100% 44%, 95% 68%, 100% 100%, 0 100%);
-  background: var(--fibers), var(--mottle), var(--noise), linear-gradient(90deg, #a2763f, #b58950 30%, #bd9159);
-  box-shadow: inset 0 0 0 1px rgba(60, 35, 10, 0.35), inset -3px 0 8px rgba(60, 35, 10, 0.5);
-  color: #2a1b0f;
+  bottom: 5cqw;
+  left: 6cqw;
 }
-.sf-tab span {
-  writing-mode: vertical-rl;
-  font: 700 8.6cqw/1 'Playfair Display', Georgia, serif;
-  letter-spacing: 0.08em;
-}
-/* Раскрытое досье помечено красным язычком — сразу видно, чьё имя уже объявлено. */
-.sf-card:not([data-sealed]) .sf-tab {
-  background: var(--fibers), var(--noise), linear-gradient(90deg, #7b2014, #94261a);
-  color: #f3e6c8;
-}
-
-/* Подпись внизу: имя гостя на бумажной наклейке или чёрная полоса «имя позже». */
-.sf-tag,
-.sf-bar {
-  position: relative;
-  z-index: 3;
-  width: 100%;
-  margin-top: 5cqw;
-}
-.sf-tag {
-  padding: 3cqw 2cqw;
+.fd-tag {
+  padding: 2cqw 3.2cqw;
   background: #efe4c8;
   color: var(--ink-brown);
-  text-align: center;
-  font: 600 9cqw/1.25 'IBM Plex Mono', ui-monospace, 'Courier New', monospace;
-  transform: rotate(-2.5deg);
+  font: 600 5.4cqw/1.25 'IBM Plex Mono', ui-monospace, 'Courier New', monospace;
+  transform: rotate(-2deg);
   box-shadow: 0 3px 6px -2px rgba(0, 0, 0, 0.6);
 }
-.sf-tag::before {
+.fd-tag::before {
   content: '';
   position: absolute;
-  top: -2.4cqw;
+  top: -2.2cqw;
   left: 50%;
-  width: 26cqw;
-  height: 5cqw;
+  width: 18cqw;
+  height: 4cqw;
   transform: translateX(-50%) rotate(2deg);
   background: rgba(225, 205, 150, 0.72);
 }
-.sf-bar {
-  padding: 2.6cqw 1cqw;
+.fd-tag span {
+  display: block;
+  white-space: nowrap;
+}
+.fd-bar {
+  padding: 2.2cqw 3.4cqw;
   background: #0a0605;
   color: rgba(234, 223, 200, 0.5);
-  text-align: center;
-  font: 600 7cqw/1 'IBM Plex Mono', ui-monospace, 'Courier New', monospace;
+  font: 600 5cqw/1 'IBM Plex Mono', ui-monospace, 'Courier New', monospace;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
 }
-
-/* Улики, торчащие из папок. */
-.sf-stamp {
+/* Улики на лицевой стороне: у каждой папки своя. */
+.fd-stamp {
   position: absolute;
-  z-index: 3;
-  left: 50%;
-  bottom: 21%;
-  padding: 1.6cqw 3.4cqw;
+  top: 22cqw;
+  right: 3cqw;
+  padding: 1.4cqw 3cqw;
   border: 0.8cqw solid var(--stamp-red);
-  border-radius: 2cqw;
+  border-radius: 1.6cqw;
   color: var(--stamp-red);
-  font: 800 9.4cqw/1 Inter, ui-sans-serif, sans-serif;
+  font: 800 5.4cqw/1 Inter, ui-sans-serif, sans-serif;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   white-space: nowrap;
   mix-blend-mode: multiply;
-  opacity: 0.8;
-  pointer-events: none;
-  /* краска легла неровно: местами пропала */
+  opacity: 0.82;
   -webkit-mask-image: var(--ink-mask);
   mask-image: var(--ink-mask);
-  transform: translateX(-50%) rotate(-24deg);
+  transform: rotate(-14deg);
+  pointer-events: none;
 }
-.sf-torn {
+.fd-print {
   position: absolute;
-  z-index: 1;
-  top: -3cqw;
-  right: 4cqw;
-  width: 54cqw;
-  height: 40cqw;
-  background:
-    repeating-linear-gradient(180deg, transparent 0 10px, rgba(100, 125, 160, 0.3) 10px 11px),
-    var(--fibers),
-    var(--mottle),
-    linear-gradient(160deg, #e6dcc0, #cfc09b);
-  clip-path: polygon(0 0, 100% 0, 100% 78%, 90% 86%, 82% 79%, 70% 92%, 58% 83%, 44% 96%, 30% 85%, 16% 94%, 6% 83%, 0 90%);
-  transform: rotate(7deg);
-}
-.sf-print {
-  position: absolute;
-  z-index: 1;
-  left: -5cqw;
-  bottom: 12%;
-  width: 52cqw;
-  padding: 4cqw;
+  right: 5cqw;
+  bottom: 5cqw;
+  width: 22cqw;
+  padding: 3cqw;
   background: var(--fibers), var(--mottle), var(--noise), linear-gradient(160deg, #e6dcc0, #c8b995);
-  box-shadow: 0 3px 8px -2px rgba(0, 0, 0, 0.55), inset 0 0 10px rgba(90, 58, 18, 0.4);
-  transform: rotate(-9deg);
+  box-shadow:
+    0 3px 8px -2px rgba(0, 0, 0, 0.55),
+    inset 0 0 10px rgba(90, 58, 18, 0.4);
+  transform: rotate(-8deg);
 }
-.sf-print svg {
+.fd-print svg {
   display: block;
   width: 100%;
   height: auto;
 }
-.sf-clip {
+.fd-clip {
   position: absolute;
-  z-index: 4;
-  top: 1cqw;
-  left: 13cqw;
-  width: 13cqw;
+  top: 3cqw;
+  left: 50cqw;
+  z-index: 2;
+  width: 8cqw;
   transform: rotate(8deg);
   filter: drop-shadow(1px 2px 1px rgba(0, 0, 0, 0.45));
 }
-.sf-clip svg {
+.fd-clip svg {
   display: block;
   width: 100%;
   height: auto;
+}
+.fd-torn {
+  position: absolute;
+  right: 4cqw;
+  bottom: 5cqw;
+  width: 30cqw;
+  height: 20cqw;
+  background:
+    repeating-linear-gradient(180deg, transparent 0 3cqw, rgba(100, 125, 160, 0.3) 3cqw 3.3cqw),
+    var(--fibers),
+    var(--mottle),
+    linear-gradient(160deg, #e6dcc0, #cfc09b);
+  clip-path: polygon(0 0, 100% 0, 100% 78%, 90% 88%, 80% 78%, 68% 94%, 56% 82%, 42% 96%, 28% 84%, 14% 94%, 5% 82%, 0 90%);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+  transform: rotate(6deg);
+}
+
+/* Обложка в окне дела: та же лицевая сторона, но на всю доску; раскрывается вокруг левой кромки, как папка. */
+.ef-cover {
+  display: none;
+}
+.ef-cover .fd {
+  perspective: none;
+}
+.ef-cover .fd-back,
+.ef-cover .fd-papers {
+  display: none;
+}
+.ef-cover .fd-front {
+  top: 0;
+  clip-path: none;
+  border-radius: 7px 9px 6px 8px;
+  --fy: 62%;
+  --stx: 70%;
+  --sty: 78%;
+}
+.ef-cover .fd-tab {
+  top: -8cqw;
+}
+.ef-cover .fd-stamp {
+  top: 34cqw;
 }
 
 /* --- Карточка дела (модальное окно) --- */
@@ -969,14 +1002,35 @@ a.fam-ava:hover {
   -webkit-backdrop-filter: blur(3px);
   backdrop-filter: blur(3px);
 }
+/* Обёртка «папки»: доска внутри, обложка поверх; сверху запас под язычок обложки. */
+.ef-wrap {
+  position: relative;
+  width: min(100%, 34rem);
+  margin: auto;
+  padding-top: 2.9rem;
+  perspective: 2600px;
+  perspective-origin: 30% 40%;
+}
+.ef-cover {
+  position: absolute;
+  top: 2.9rem;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 20;
+  container-type: inline-size;
+  transform-origin: 0 50%;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  pointer-events: none;
+  filter: drop-shadow(0 12px 14px rgba(0, 0, 0, 0.6));
+}
 .ef-board {
   position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1.18fr) minmax(0, 1fr);
   gap: 1rem 0.85rem;
   align-items: start;
-  width: min(100%, 34rem);
-  margin: auto;
   padding: 1.15rem 1.05rem 1.3rem;
   border-radius: 7px 9px 6px 8px;
   background:
@@ -2583,7 +2637,8 @@ a.fam-ava:hover {
   }
 }
 
-/* Спикеры: папки выезжают по очереди и чуть «приподнимаются» при наведении; бумаги на карточке дела ложатся одна за другой. */
+/* Папки: выезжают по очереди и на наведении приоткрываются (лицевая сторона чуть откидывается, листы выглядывают).
+   Окно дела: папка всплывает на стол, обложка раскрывается влево, листы ложатся на доску; закрытие — наоборот. */
 @media (prefers-reduced-motion: no-preference) {
   .sf-slot {
     opacity: 0;
@@ -2602,55 +2657,88 @@ a.fam-ava:hover {
       transform 0.45s cubic-bezier(0.3, 1.4, 0.5, 1),
       filter 0.3s;
   }
+  .fd-front,
+  .fd-papers {
+    transition: transform 0.5s cubic-bezier(0.3, 1.3, 0.5, 1);
+  }
   .sf-card:focus-visible {
-    transform: translateY(-10px) rotate(var(--tilt));
+    transform: translateY(-7px) rotate(var(--tilt, -1deg));
+  }
+  .sf-card:focus-visible .fd-front {
+    transform: rotateX(-11deg);
+  }
+  .sf-card:focus-visible .fd-papers {
+    transform: translateY(-3.5cqw);
   }
   @media (hover: hover) {
     .sf-card:hover {
-      transform: translateY(-10px) rotate(var(--tilt));
+      transform: translateY(-7px) rotate(var(--tilt, -1deg));
+    }
+    .sf-card:hover .fd-front {
+      transform: rotateX(-11deg);
+    }
+    .sf-card:hover .fd-papers {
+      transform: translateY(-3.5cqw);
     }
   }
   .sf-card:active {
-    transform: translateY(-4px) scale(0.985);
-  }
-  .sf-torn,
-  .sf-print,
-  .sf-stamp {
-    transition: transform 0.5s cubic-bezier(0.3, 1.4, 0.5, 1);
-  }
-  .sf-card:hover .sf-torn,
-  .sf-card:focus-visible .sf-torn {
-    transform: translateY(-5px) rotate(10deg);
-  }
-  .sf-card:hover .sf-print,
-  .sf-card:focus-visible .sf-print {
-    transform: translateY(-5px) rotate(-4deg);
-  }
-  .sf-card:hover .sf-stamp,
-  .sf-card:focus-visible .sf-stamp {
-    transform: translateX(-50%) rotate(-18deg) scale(1.06);
+    transform: translateY(-2px) scale(0.985);
   }
 
   .ef-overlay {
     animation: ef-fade 0.3s ease both;
   }
-  .ef-board {
-    animation: ef-open 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.05) both;
+  .ef-overlay[data-closing] {
+    animation: ef-fade-out 0.3s ease 0.62s both;
+  }
+  .ef-wrap {
+    animation: ef-lift 0.6s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+  }
+  .ef-wrap[data-closing] {
+    animation: ef-lower 0.45s ease 0.5s both;
+  }
+  .ef-cover {
+    display: block;
+    animation: ef-cover-open 1s cubic-bezier(0.6, 0.02, 0.25, 1) 0.35s both;
+  }
+  .ef-wrap[data-closing] .ef-cover {
+    animation: ef-cover-close 0.62s cubic-bezier(0.5, 0, 0.3, 1) both;
   }
   .ef-piece {
     animation: ef-drop 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.12) both;
-    animation-delay: calc(var(--k) * 70ms + 140ms);
+    animation-delay: calc(var(--k) * 70ms + 800ms);
+  }
+  .ef-wrap[data-closing] .ef-piece {
+    animation: ef-pick 0.3s ease both;
   }
   @keyframes ef-fade {
     from { opacity: 0; }
   }
-  @keyframes ef-open {
-    from { opacity: 0; transform: translateY(28px) scale(0.95) rotate(-1deg); }
+  @keyframes ef-fade-out {
+    to { opacity: 0; }
+  }
+  @keyframes ef-lift {
+    from { opacity: 0; transform: translateY(54px) rotateX(16deg) scale(0.93); }
+  }
+  @keyframes ef-lower {
+    to { opacity: 0; transform: translateY(26px) scale(0.97); }
+  }
+  @keyframes ef-cover-open {
+    from { transform: rotateY(0deg); filter: drop-shadow(0 12px 14px rgba(0, 0, 0, 0.6)) brightness(1); }
+    to { transform: rotateY(-118deg); filter: drop-shadow(0 12px 14px rgba(0, 0, 0, 0.6)) brightness(0.55); }
+  }
+  @keyframes ef-cover-close {
+    from { transform: rotateY(-118deg); filter: drop-shadow(0 12px 14px rgba(0, 0, 0, 0.6)) brightness(0.55); }
+    to { transform: rotateY(0deg); filter: drop-shadow(0 12px 14px rgba(0, 0, 0, 0.6)) brightness(1); }
   }
   @keyframes ef-drop {
     from { opacity: 0; transform: translateY(-30px) rotate(calc(var(--r) + 8deg)) scale(1.08); }
   }
+  @keyframes ef-pick {
+    to { opacity: 0; transform: translateY(-14px) rotate(var(--r)); }
+  }
 }
+
 
 /* Магнитола: подсветка шкалы дышит, светодиод мигает, при смене волны экран «шипит» и проясняется, ручка поворачивается. */
 @media (prefers-reduced-motion: no-preference) {

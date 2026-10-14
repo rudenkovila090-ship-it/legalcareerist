@@ -490,7 +490,6 @@ export function NoirProgram({ story }: { story: EventStory }) {
 export function NoirSpeakers({ story, event }: { story: EventStory; event: EventItem }) {
   const when = new Date(event.dateTime)
   const dateLabel = when.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })
-  const shortDate = when.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })
   return (
     <section id="speakers" className="scroll-mt-24">
       <NoirHeading>Спикеры</NoirHeading>
@@ -498,7 +497,7 @@ export function NoirSpeakers({ story, event }: { story: EventStory; event: Event
         <p className="mt-3 max-w-2xl leading-relaxed text-ink/70">{story.speakersIntro}</p>
       </Reveal>
       <Reveal className="mt-8">
-        <SpeakerFiles characters={story.characters} dateLabel={dateLabel} shortDate={shortDate} />
+        <SpeakerFiles characters={story.characters} dateLabel={dateLabel} />
       </Reveal>
     </section>
   )

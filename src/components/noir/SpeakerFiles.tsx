@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useId, useRef, useState, type CSSProperties, type MouseEvent } from 'react'
 import { createPortal } from 'react-dom'
 import type { EventCharacter } from '../../data/eventStories'
+import { prefersReducedMotion } from '../../lib/motion'
 import { CharacterGlyph } from './CharacterGlyph'
 import '../../pages/events/noir.css'
 
 const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII']
-const pad = (n: number) => String(n).padStart(2, '0')
 
 type Decor = 'stamp' | 'torn' | 'print' | 'clip'
 type Silhouette = 'hat' | 'man' | 'woman'
@@ -22,8 +22,11 @@ const LOOKS: { decor: Decor; stamp?: string; face: Silhouette }[] = [
 ]
 const look = (i: number) => LOOKS[i % LOOKS.length]
 
-/** Номер дела: «Д-2811-03» — день и месяц вечера, затем номер папки. */
-const fileNumber = (dateCode: string, i: number) => `Д-${dateCode}-${pad(i + 1)}`
+/** Номер дела — четыре цифры, у каждой роли свой (задаётся в данных; запасной вариант — вычисленный из порядка роли). */
+const caseNumber = (c: EventCharacter, i: number) => c.caseNo ?? String(1000 + ((i + 1) * 2749) % 9000)
+
+// Где у папки язычок: три позиции, как у настоящих папок со срезом в треть.
+const TABS = ['5%', '34%', '63%']
 
 function Fingerprint() {
   return (
@@ -117,11 +120,60 @@ function PublicationMap({ route }: { route: boolean }) {
   )
 }
 
-/** Папка-разделитель: крафтовая полоса с выступающим язычком, вертикальным названием роли и «торчащей» уликой. */
-function Folder({ character, index, onOpen }: { character: EventCharacter; index: number; onOpen: (index: number, opener: HTMLButtonElement) => void }) {
+/**
+ * Лицевая сторона папки-дела: язычок, листы внутри, наклейка с номером и ролью, улика, имя гостя.
+ * Одна и та же разметка — и папка в списке, и обложка в окне дела (размеры в cqw, от ширины контейнера).
+ */
+function FolderFace({ character, index }: { character: EventCharacter; index: number }) {
   const { decor, stamp } = look(index)
   const sealed = !character.speaker
-  const words = character.name.split(' ')
+  return (
+    <span className="fd" data-revealed={sealed ? undefined : ''} style={{ '--tab': TABS[index % TABS.length] } as CSSProperties} aria-hidden="true">
+      <span className="fd-back" />
+      <span className="fd-papers">
+        <i />
+        <i />
+      </span>
+      <span className="fd-tab">
+        <b>{ROMAN[index] ?? index + 1}</b>
+      </span>
+      <span className="fd-front">
+        {decor === 'torn' && <span className="fd-torn" />}
+        {decor === 'clip' && (
+          <span className="fd-clip">
+            <Paperclip />
+          </span>
+        )}
+        {decor === 'print' && (
+          <span className="fd-print">
+            <Fingerprint />
+          </span>
+        )}
+
+        <span className="fd-label">
+          <span className="fd-no">
+            <b>Дело</b>№ {caseNumber(character, index)}
+          </span>
+          <span className="fd-role">{character.name}</span>
+        </span>
+
+        {decor === 'stamp' && <span className="fd-stamp">{stamp}</span>}
+
+        {sealed ? (
+          <span className="fd-bar">имя позже</span>
+        ) : (
+          <span className="fd-tag">
+            <span>{character.speaker?.name}</span>
+          </span>
+        )}
+      </span>
+    </span>
+  )
+}
+
+/** Папка в списке: по клику открывается окно дела. */
+function Folder({ character, index, onOpen }: { character: EventCharacter; index: number; onOpen: (index: number, opener: HTMLButtonElement) => void }) {
+  const sealed = !character.speaker
   const label = sealed ? `Открыть дело: ${character.name}, имя гостя пока засекречено` : `Открыть дело: ${character.name}, ${character.speaker?.name}`
 
   return (
@@ -132,54 +184,10 @@ function Folder({ character, index, onOpen }: { character: EventCharacter; index
         data-sealed={sealed ? '' : undefined}
         aria-haspopup="dialog"
         aria-label={label}
-        style={{ '--tab': `${8 + index * 12}%`, '--tilt': index % 2 ? '1.3deg' : '-1.3deg' } as CSSProperties}
+        style={{ '--tilt': index % 2 ? '1.2deg' : '-1.2deg' } as CSSProperties}
         onClick={(e: MouseEvent<HTMLButtonElement>) => onOpen(index, e.currentTarget)}
       >
-        <span className="sf-paper" aria-hidden="true">
-          {decor === 'torn' && <span className="sf-torn" />}
-          {decor === 'clip' && (
-            <span className="sf-clip">
-              <Paperclip />
-            </span>
-          )}
-          {decor === 'print' && (
-            <span className="sf-print">
-              <Fingerprint />
-            </span>
-          )}
-
-          <span className="sf-index">
-            <b>Дело</b>
-            <strong>№ {pad(index + 1)}</strong>
-          </span>
-
-          <span className="sf-title">
-            {words.map((w) => (
-              <span key={w} className="sf-name">
-                {w}
-              </span>
-            ))}
-            <span className="sf-epithet">{character.epithet}</span>
-          </span>
-
-          {decor === 'stamp' && <span className="sf-stamp">{stamp}</span>}
-
-          {sealed ? (
-            <span className="sf-bar">имя позже</span>
-          ) : (
-            <span className="sf-tag">
-              {character.speaker?.name.split(' ').map((w) => (
-                <span key={w} className="block">
-                  {w}
-                </span>
-              ))}
-            </span>
-          )}
-        </span>
-
-        <span className="sf-tab" aria-hidden="true">
-          <span>{ROMAN[index] ?? index + 1}</span>
-        </span>
+        <FolderFace character={character} index={index} />
       </button>
     </li>
   )
@@ -189,12 +197,14 @@ interface EvidenceFileProps {
   character: EventCharacter
   index: number
   dateLabel: string
-  dateCode: string
   onClose: () => void
 }
 
+/** Сколько ждём, пока обложка закроется и окно уйдёт, прежде чем убрать его из страницы (мс). */
+const CLOSE_MS = 950
+
 /** Карточка дела на корковой доске: «фото» гостя, роль, темы, показания, схема, уровень риска, пометка «конфиденциально». */
-function EvidenceFile({ character, index, dateLabel, dateCode, onClose }: EvidenceFileProps) {
+function EvidenceFile({ character, index, dateLabel, onClose }: EvidenceFileProps) {
   const speaker = character.speaker
   // Имя можно объявить раньше темы: пока темы нет, «показания» и блокнот остаются закрытыми.
   const hasTalk = Boolean(speaker?.topic || speaker?.testimony)
@@ -206,6 +216,21 @@ function EvidenceFile({ character, index, dateLabel, dateCode, onClose }: Eviden
   const titleId = useId()
   const closeRef = useRef<HTMLButtonElement>(null)
   const pressedBackdrop = useRef(false)
+  // Закрытие — тоже анимация: обложка опускается обратно на доску, и только потом окно убирается.
+  const [closing, setClosing] = useState(false)
+  const closingRef = useRef(false)
+  const closeTimer = useRef(0)
+  const requestClose = useCallback(() => {
+    if (closingRef.current) return
+    closingRef.current = true
+    if (prefersReducedMotion()) {
+      onClose()
+      return
+    }
+    setClosing(true)
+    closeTimer.current = window.setTimeout(onClose, CLOSE_MS)
+  }, [onClose])
+  useEffect(() => () => window.clearTimeout(closeTimer.current), [])
   const { face } = look(index)
   // --k/--r — порядок и наклон листа; остальное — где у него пятно, затёртость и залом (у каждого свои, чтобы листы не выглядели копиями).
   const piece = (k: number, r: number) =>
@@ -228,7 +253,7 @@ function EvidenceFile({ character, index, dateLabel, dateCode, onClose }: Eviden
     document.body.style.overflow = 'hidden'
     if (scrollbar > 0) document.body.style.paddingRight = `${scrollbar}px`
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape') requestClose()
       // Фокус не уходит за пределы карточки: в ней одна кнопка — «Закрыть».
       if (e.key === 'Tab') {
         e.preventDefault()
@@ -241,11 +266,12 @@ function EvidenceFile({ character, index, dateLabel, dateCode, onClose }: Eviden
       document.body.style.overflow = overflow
       document.body.style.paddingRight = paddingRight
     }
-  }, [onClose])
+  }, [requestClose])
 
   return createPortal(
     <div
       className="ef-overlay"
+      data-closing={closing ? '' : undefined}
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}
@@ -253,165 +279,171 @@ function EvidenceFile({ character, index, dateLabel, dateCode, onClose }: Eviden
         pressedBackdrop.current = e.target === e.currentTarget
       }}
       onClick={(e) => {
-        if (pressedBackdrop.current && e.target === e.currentTarget) onClose()
+        if (pressedBackdrop.current && e.target === e.currentTarget) requestClose()
       }}
     >
-      <div className="ef-board">
-        <button ref={closeRef} type="button" className="ef-close" onClick={onClose} aria-label="Закрыть дело">
-          ✕
-        </button>
+      <div className="ef-wrap" data-closing={closing ? '' : undefined}>
+        <div className="ef-board">
+          <button ref={closeRef} type="button" className="ef-close" onClick={requestClose} aria-label="Закрыть дело">
+            ✕
+          </button>
 
-        <div className="ef-piece ef-label ef-label-l" style={piece(0, -2)}>
-          <Paper />
-          <i className="ef-tape ef-tape-l" />
-          <span>Материалы дела</span>
-        </div>
-        <div className="ef-piece ef-label ef-label-r" style={piece(1, 1)}>
-          <Paper />
-          <span>№ {fileNumber(dateCode, index)}</span>
-        </div>
+          <div className="ef-piece ef-label ef-label-l" style={piece(0, -2)}>
+            <Paper />
+            <i className="ef-tape ef-tape-l" />
+            <span>Материалы дела</span>
+          </div>
+          <div className="ef-piece ef-label ef-label-r" style={piece(1, 1)}>
+            <Paper />
+            <span>Дело № {caseNumber(character, index)}</span>
+          </div>
 
-        <figure className="ef-piece ef-polaroid" style={piece(2, -1.4)}>
-          <Paper />
-          <div className="ef-photo">{speaker?.photo ? <img src={speaker.photo} alt={speaker.name} draggable={false} /> : <SilhouetteArt kind={face} />}</div>
-          <figcaption id={titleId} className="ef-script">
-            {speaker ? speaker.name : 'Имя объявим позже'}
-          </figcaption>
-          {speaker?.position && <p className="ef-pos">{speaker.position}</p>}
-        </figure>
+          <figure className="ef-piece ef-polaroid" style={piece(2, -1.4)}>
+            <Paper />
+            <div className="ef-photo">{speaker?.photo ? <img src={speaker.photo} alt={speaker.name} draggable={false} /> : <SilhouetteArt kind={face} />}</div>
+            <figcaption id={titleId} className="ef-script">
+              {speaker ? speaker.name : 'Имя объявим позже'}
+            </figcaption>
+            {speaker?.position && <p className="ef-pos">{speaker.position}</p>}
+          </figure>
 
-        <div className="ef-piece ef-sticky" style={piece(3, 2)}>
-          <Paper />
-          <i className="ef-tape ef-tape-tl" />
-          <i className="ef-tape ef-tape-br" />
-          <p className="ef-k">Проходит по делу как</p>
-          <p className="ef-hot">{character.name}</p>
-          <p className="ef-sm">{character.epithet}</p>
-          <p className="ef-k ef-gap">На вечере: {dateLabel}</p>
-        </div>
+          <div className="ef-piece ef-sticky" style={piece(3, 2)}>
+            <Paper />
+            <i className="ef-tape ef-tape-tl" />
+            <i className="ef-tape ef-tape-br" />
+            <p className="ef-k">Проходит по делу как</p>
+            <p className="ef-hot">{character.name}</p>
+            <p className="ef-sm">{character.epithet}</p>
+            <p className="ef-k ef-gap">На вечере: {dateLabel}</p>
+          </div>
 
-        <div className="ef-piece ef-notebook" style={piece(4, -1)}>
-          <Paper />
-          {hasAbout && (
-            <>
-              <p className="ef-h">О чем расскажет</p>
-              {about && <p>{about}</p>}
-              {themes.length > 0 && (
-                <ul>
-                  {themes.map((t) => (
-                    <li key={t}>{t}</li>
-                  ))}
-                </ul>
-              )}
-            </>
-          )}
-          {meaning && (
-            <>
-              <p className={hasAbout ? 'ef-h ef-h-next' : 'ef-h'}>Смысл</p>
-              <p>{meaning}</p>
-            </>
-          )}
-          {!hasAbout && !meaning && (
-            <>
-              <p className="ef-h">О чем расскажет</p>
-              <div className="ef-lines" aria-hidden="true">
-                <i style={{ width: '88%' }} />
-                <i style={{ width: '64%' }} />
-                <i style={{ width: '76%' }} />
-              </div>
-              <p className="ef-sm ef-gap">тема выступления — позже</p>
-            </>
-          )}
-        </div>
+          <div className="ef-piece ef-notebook" style={piece(4, -1)}>
+            <Paper />
+            {hasAbout && (
+              <>
+                <p className="ef-h">О чем расскажет</p>
+                {about && <p>{about}</p>}
+                {themes.length > 0 && (
+                  <ul>
+                    {themes.map((t) => (
+                      <li key={t}>{t}</li>
+                    ))}
+                  </ul>
+                )}
+              </>
+            )}
+            {meaning && (
+              <>
+                <p className={hasAbout ? 'ef-h ef-h-next' : 'ef-h'}>Смысл</p>
+                <p>{meaning}</p>
+              </>
+            )}
+            {!hasAbout && !meaning && (
+              <>
+                <p className="ef-h">О чем расскажет</p>
+                <div className="ef-lines" aria-hidden="true">
+                  <i style={{ width: '88%' }} />
+                  <i style={{ width: '64%' }} />
+                  <i style={{ width: '76%' }} />
+                </div>
+                <p className="ef-sm ef-gap">тема выступления — позже</p>
+              </>
+            )}
+          </div>
 
-        <div className="ef-piece ef-witness" style={piece(5, 1.2)}>
-          <Paper />
-          <i className="ef-tape ef-tape-tl" />
-          <p className="ef-h">Показания</p>
-          {speaker && hasTalk ? (
-            <>
-              {speaker.topic && <p className="ef-topic">«{speaker.topic}»</p>}
-              {speaker.suspect && (
-                <p className="ef-suspect">
-                  <span>Подозреваемый</span>
-                  <b>{speaker.suspect}</b>
+          <div className="ef-piece ef-witness" style={piece(5, 1.2)}>
+            <Paper />
+            <i className="ef-tape ef-tape-tl" />
+            <p className="ef-h">Показания</p>
+            {speaker && hasTalk ? (
+              <>
+                {speaker.topic && <p className="ef-topic">«{speaker.topic}»</p>}
+                {speaker.suspect && (
+                  <p className="ef-suspect">
+                    <span>Подозреваемый</span>
+                    <b>{speaker.suspect}</b>
+                  </p>
+                )}
+                {speaker.topicLead && <p>{speaker.topicLead}.</p>}
+                {speaker.description && <p>{speaker.description}</p>}
+                {speaker.questions?.map((q) => (
+                  <p key={q}>{q}</p>
+                ))}
+                {speaker.testimony && <p className="ef-quote">«{speaker.testimony}»</p>}
+                <p className="ef-by">
+                  — {character.name}, {speaker.name}
                 </p>
-              )}
-              {speaker.topicLead && <p>{speaker.topicLead}.</p>}
-              {speaker.description && <p>{speaker.description}</p>}
-              {speaker.questions?.map((q) => (
-                <p key={q}>{q}</p>
-              ))}
-              {speaker.testimony && <p className="ef-quote">«{speaker.testimony}»</p>}
-              <p className="ef-by">
-                — {character.name}, {speaker.name}
-              </p>
-            </>
-          ) : (
-            <>
-              <p>Показания еще не приобщены к делу.</p>
-              <span className="ef-redact">Выступление — раскроется на вечере</span>
-            </>
-          )}
-        </div>
-
-        <div className="ef-piece ef-map" style={piece(6, -1.6)}>
-          <Paper />
-          <PublicationMap route={speaker?.map === 'route'} />
-          <p className="ef-script ef-script-sm">{speaker?.map === 'route' ? 'Путь публикации' : 'Место происшествия'}</p>
-        </div>
-
-        {/* Описание роли: то, что раньше было отдельным блоком «Персонажи и роли». */}
-        <div className="ef-piece ef-role" style={piece(7, -0.5)}>
-          <Paper />
-          <i className="ef-tape ef-tape-tr" />
-          <div className="ef-role-head">
-            <span className="ef-glyph" aria-hidden="true">
-              <CharacterGlyph icon={character.icon} />
-            </span>
-            <div>
-              <p className="ef-h">Роль в деле</p>
-              <p className="ef-k">{character.keywords}</p>
-            </div>
+              </>
+            ) : (
+              <>
+                <p>Показания еще не приобщены к делу.</p>
+                <span className="ef-redact">Выступление — раскроется на вечере</span>
+              </>
+            )}
           </div>
-          {speaker?.roleNote && <p className="ef-lead">{speaker.roleNote}</p>}
-          <p>{character.text}</p>
-          <dl className="ef-dl">
-            <div>
-              <dt className="ef-k">Мотив</dt>
-              <dd>{character.motive}</dd>
-            </div>
-            <div>
-              <dt className="ef-k">Символизирует</dt>
-              <dd>{character.symbol}</dd>
-            </div>
-            <div>
-              <dt className="ef-k">Улика</dt>
-              <dd>
-                <span className="ef-redact">Раскроется на вечере</span>
-              </dd>
-            </div>
-          </dl>
-        </div>
 
-        <div className="ef-piece ef-risk" style={piece(8, -0.8)}>
-          <Paper />
-          <p className="ef-h">Уровень риска</p>
-          <div className="ef-scale" role="img" aria-label={risk ? `Уровень риска: ${risk} из 5` : 'Уровень риска пока не установлен'}>
-            {[1, 2, 3, 4, 5].map((n) => (
-              <span key={n} data-on={risk === n ? '' : undefined} data-unknown={risk ? undefined : ''}>
-                {n}
+          <div className="ef-piece ef-map" style={piece(6, -1.6)}>
+            <Paper />
+            <PublicationMap route={speaker?.map === 'route'} />
+            <p className="ef-script ef-script-sm">{speaker?.map === 'route' ? 'Путь публикации' : 'Место происшествия'}</p>
+          </div>
+
+          {/* Описание роли: то, что раньше было отдельным блоком «Персонажи и роли». */}
+          <div className="ef-piece ef-role" style={piece(7, -0.5)}>
+            <Paper />
+            <i className="ef-tape ef-tape-tr" />
+            <div className="ef-role-head">
+              <span className="ef-glyph" aria-hidden="true">
+                <CharacterGlyph icon={character.icon} />
               </span>
-            ))}
+              <div>
+                <p className="ef-h">Роль в деле</p>
+                <p className="ef-k">{character.keywords}</p>
+              </div>
+            </div>
+            {speaker?.roleNote && <p className="ef-lead">{speaker.roleNote}</p>}
+            <p>{character.text}</p>
+            <dl className="ef-dl">
+              <div>
+                <dt className="ef-k">Мотив</dt>
+                <dd>{character.motive}</dd>
+              </div>
+              <div>
+                <dt className="ef-k">Символизирует</dt>
+                <dd>{character.symbol}</dd>
+              </div>
+              <div>
+                <dt className="ef-k">Улика</dt>
+                <dd>
+                  <span className="ef-redact">Раскроется на вечере</span>
+                </dd>
+              </div>
+            </dl>
           </div>
-          {!risk && <p className="ef-sm ef-gap">пока не установлен</p>}
-        </div>
 
-        <div className="ef-piece ef-conf" style={piece(9, 1.5)}>
-          <span className="ef-clip" aria-hidden="true">
-            <Paperclip />
-          </span>
-          <div className="ef-conf-in">Конфиденциально</div>
+          <div className="ef-piece ef-risk" style={piece(8, -0.8)}>
+            <Paper />
+            <p className="ef-h">Уровень риска</p>
+            <div className="ef-scale" role="img" aria-label={risk ? `Уровень риска: ${risk} из 5` : 'Уровень риска пока не установлен'}>
+              {[1, 2, 3, 4, 5].map((n) => (
+                <span key={n} data-on={risk === n ? '' : undefined} data-unknown={risk ? undefined : ''}>
+                  {n}
+                </span>
+              ))}
+            </div>
+            {!risk && <p className="ef-sm ef-gap">пока не установлен</p>}
+          </div>
+
+          <div className="ef-piece ef-conf" style={piece(9, 1.5)}>
+            <span className="ef-clip" aria-hidden="true">
+              <Paperclip />
+            </span>
+            <div className="ef-conf-in">Конфиденциально</div>
+          </div>
+        </div>
+        {/* Обложка папки: та же лицевая сторона, что и в списке; в начале закрывает доску и раскрывается влево. */}
+        <div className="ef-cover" aria-hidden="true">
+          <FolderFace character={character} index={index} />
         </div>
       </div>
     </div>,
@@ -421,16 +453,15 @@ function EvidenceFile({ character, index, dateLabel, dateCode, onClose }: Eviden
 
 interface SpeakerFilesProps {
   characters: EventCharacter[]
-  /** Дата вечера для подписей: «28 ноября 2026» и «28.11». */
+  /** Дата вечера для подписей: «28 ноября 2026». */
   dateLabel: string
-  shortDate: string
 }
 
 /**
  * Блок «Спикеры»: по папке-делу на каждую роль. Папки чуть сдвигаются при наведении, по клику открывается карточка дела.
  * Роль без объявленного гостя открывается тоже — с засекреченным именем и описанием роли.
  */
-export default function SpeakerFiles({ characters, dateLabel, shortDate }: SpeakerFilesProps) {
+export default function SpeakerFiles({ characters, dateLabel }: SpeakerFilesProps) {
   const [open, setOpen] = useState<number | null>(null)
   const opener = useRef<HTMLButtonElement | null>(null)
   // Закрыли дело — фокус возвращается на папку, с которой открывали (важно для клавиатуры и экранных читалок).
@@ -456,7 +487,7 @@ export default function SpeakerFiles({ characters, dateLabel, shortDate }: Speak
           />
         ))}
       </ul>
-      {current && open !== null && <EvidenceFile character={current} index={open} dateLabel={dateLabel} dateCode={shortDate.replace('.', '')} onClose={close} />}
+      {current && open !== null && <EvidenceFile character={current} index={open} dateLabel={dateLabel} onClose={close} />}
     </div>
   )
 }
