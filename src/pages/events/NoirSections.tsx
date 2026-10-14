@@ -7,8 +7,9 @@ import Reveal from '../../components/noir/Reveal'
 import CaseFile from '../../components/noir/CaseFile'
 import EvidenceBoard from '../../components/noir/EvidenceBoard'
 import SpeakerFiles from '../../components/noir/SpeakerFiles'
+import RadioStory from '../../components/noir/RadioStory'
 import { CharacterGlyph } from '../../components/noir/CharacterGlyph'
-import { ShotFx, ShotOnView } from '../../components/noir/ShotFx'
+import { ShotFx } from '../../components/noir/ShotFx'
 import { NoirDust, NoirMarquee } from '../../components/noir/NoirAmbient'
 import './noir.css'
 
@@ -280,42 +281,18 @@ export function NoirAudience({ story }: { story: EventStory }) {
   )
 }
 
-const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI']
-
-/** Закрытая плашка — спойлер, который не показываем до вечера (чёрная полоса наезжает на текст). */
-function Sealed({ children }: { children: ReactNode }) {
-  return <div className="noir-sealed rounded px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em]">{children}</div>
-}
-
+/** «Сюжет вечера» — ламповый приемник: три волны — акты расследования, остальные — ночной эфир города. */
 export function NoirStory({ story }: { story: EventStory }) {
   return (
-    <section>
+    <section id="story" className="scroll-mt-24">
       <NoirHeading>Сюжет вечера</NoirHeading>
       <Reveal delay={80}>
         <p className="mt-2 text-sm text-ink/55">Три акта расследования</p>
+        <p className="mt-1 text-sm text-ink/55">Покрутите ручку настройки или нажмите клавишу: на каждой волне свой эфир.</p>
       </Reveal>
-      <ol className="mt-6 space-y-8">
-        {story.acts.map((act, i) => (
-          <li key={act.title} className="grid gap-3 sm:grid-cols-[6rem_1fr] sm:gap-6">
-            <Reveal variant="left">
-              <div className="text-xs font-semibold uppercase tracking-[0.2em] text-ink/50">Акт</div>
-              <div className="noir-roman font-noir text-4xl font-semibold leading-none text-[var(--noir-crimson-bright)]">{ROMAN[i] ?? i + 1}</div>
-            </Reveal>
-            <Reveal delay={140}>
-              <h3 className="font-noir text-2xl font-semibold text-ink">{act.title}</h3>
-              <div className="mt-3 space-y-3 leading-relaxed text-ink/75">
-                {act.paragraphs.map((p) => <p key={p}>{p}</p>)}
-              </div>
-              {act.sealed && (
-                <div className="relative mt-4 inline-block">
-                  <Sealed>{act.sealed}</Sealed>
-                  <ShotOnView x="78%" y="50%" size={0.55} />
-                </div>
-              )}
-            </Reveal>
-          </li>
-        ))}
-      </ol>
+      <Reveal className="mt-6">
+        <RadioStory acts={story.acts} extras={story.radio} />
+      </Reveal>
     </section>
   )
 }
