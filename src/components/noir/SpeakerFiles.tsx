@@ -5,45 +5,23 @@ import { prefersReducedMotion } from '../../lib/motion'
 import { CharacterGlyph } from './CharacterGlyph'
 import '../../pages/events/noir.css'
 
-const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII']
-
-type Decor = 'stamp' | 'slip' | 'print' | 'evid'
 type Silhouette = 'hat' | 'man' | 'woman'
 
-// Что лежит на лицевой стороне каждой папки (штамп, листок с чёрными строками, отпечаток, бирка вещдока) и какой силуэт стоит в деле,
-// пока у роли нет фото гостя. Привязка — по порядку ролей в eventStories.
-const LOOKS: { decor: Decor; stamp?: string; face: Silhouette }[] = [
-  { decor: 'stamp', stamp: 'Секретно', face: 'hat' },
-  { decor: 'slip', face: 'man' },
-  { decor: 'print', face: 'hat' },
-  { decor: 'evid', face: 'woman' },
-  { decor: 'stamp', stamp: 'Улика', face: 'man' },
-  { decor: 'slip', face: 'man' },
+// Штамп на фото каждой папки и силуэт, пока у роли нет снимка гостя. Привязка — по порядку ролей в eventStories.
+const LOOKS: { stamp: string; face: Silhouette }[] = [
+  { stamp: 'Секретно', face: 'hat' },
+  { stamp: 'Свидетель', face: 'man' },
+  { stamp: 'Допрос', face: 'hat' },
+  { stamp: 'Улика', face: 'woman' },
+  { stamp: 'Алиби', face: 'man' },
+  { stamp: 'Архив', face: 'man' },
 ]
 const look = (i: number) => LOOKS[i % LOOKS.length]
 
 /** Номер дела — четыре цифры, у каждой роли свой (задаётся в данных; запасной вариант — вычисленный из порядка роли). */
 const caseNumber = (c: EventCharacter, i: number) => c.caseNo ?? String(1000 + (((i + 1) * 2749) % 9000))
 
-// Где у папки язычок: три позиции, как у настоящих папок со срезом в треть.
-const TABS = ['5%', '34%', '63%']
-
-function Fingerprint() {
-  return (
-    <svg viewBox="0 0 60 70" fill="none" stroke="#16130f" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
-      <path d="M30 6C16 6 7 17 7 31v8" strokeDasharray="30 5 12 4" />
-      <path d="M30 11C19 11 12 20 12 31v12c0 5-2 8-4 11" strokeDasharray="26 4 16 5" />
-      <path d="M30 16c-8 0 -13 7-13 15v10c0 6-1 10-3 14" strokeDasharray="22 6 14 3" />
-      <path d="M30 21c-5 0-8 5-8 10v9c0 7-1 12-3 17" strokeDasharray="18 4 10 5" />
-      <path d="M30 26c-2 0-4 2-4 5v10c0 8 0 14-1 20" strokeDasharray="14 5 8 4" />
-      <path d="M30 6c14 0 23 11 23 25v10c0 6 1 12 3 16" strokeDasharray="28 4 14 6" />
-      <path d="M30 11c11 0 18 9 18 20v11c0 7 1 11 3 15" strokeDasharray="24 5 12 4" />
-      <path d="M30 16c8 0 13 7 13 15v10c0 8 1 13 2 18" strokeDasharray="20 4 14 5" />
-      <path d="M30 21c5 0 8 5 8 10v9c0 8 0 14 1 19" strokeDasharray="16 5 10 4" />
-      <path d="M30 26c2 0 4 2 4 5v10c0 9 0 15 0 21" strokeDasharray="12 4 9 5" />
-    </svg>
-  )
-}
+const capital = (t: string) => t.charAt(0).toUpperCase() + t.slice(1)
 
 /** Тёмный силуэт «фото» — пока у гостя нет снимка. Виден только контур, лицо не прорисовано. Фон — в CSS (.ef-photo). */
 function SilhouetteArt({ kind }: { kind: Silhouette }) {
@@ -75,42 +53,126 @@ function SilhouetteArt({ kind }: { kind: Silhouette }) {
   )
 }
 
+/** Металлическая скрепка, на которой держится карточка дела. */
+function Clip() {
+  return (
+    <svg className="fd-clip" viewBox="0 0 32 84" fill="none" strokeLinecap="round" aria-hidden="true">
+      <path d="M21 74V18a8 8 0 0 0-16 0v46a13 13 0 0 0 26 0V22a5 5 0 0 0-10 0v38" stroke="#4d4b46" strokeWidth="3.6" />
+      <path d="M21 74V18a8 8 0 0 0-16 0v46a13 13 0 0 0 26 0V22a5 5 0 0 0-10 0v38" stroke="#c4c2ba" strokeWidth="2" />
+    </svg>
+  )
+}
+
+/** Красная круглая печать архива: кольцо с надписью, в центре — весы. */
+function Seal() {
+  const id = useId()
+  return (
+    <svg className="fd-seal" viewBox="0 0 100 100" aria-hidden="true">
+      <defs>
+        <path id={id} d="M50 50m-37 0a37 37 0 1 1 74 0a37 37 0 1 1-74 0" />
+      </defs>
+      <g fill="none" stroke="currentColor">
+        <circle cx="50" cy="50" r="47" strokeWidth="2.6" />
+        <circle cx="50" cy="50" r="26" strokeWidth="1.4" />
+        <g transform="translate(30 30) scale(1.67)" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 4v16M7 20h10M5 8h14M5 8l-2.6 6a3 3 0 0 0 5.2 0L5 8ZM19 8l-2.6 6a3 3 0 0 0 5.2 0L19 8Z" />
+        </g>
+      </g>
+      <text fill="currentColor" fontFamily="Inter, ui-sans-serif, system-ui, sans-serif" fontSize="8.6" fontWeight="800" letterSpacing="1.4">
+        <textPath href={`#${id}`} textLength="228" lengthAdjust="spacing">
+          LEGAL NIGHT JAZZ · ДЕЛО ЗАВЕДЕНО ·
+        </textPath>
+      </text>
+    </svg>
+  )
+}
+
+const SCALE = [190, 180, 170, 160, 150]
+
 /**
- * Лицевая сторона папки-дела: язычок, листы внутри, наклейка с номером и ролью, улика, имя гостя.
- * Одна и та же разметка — и папка в списке, и обложка в окне дела (размеры в cqw, от ширины контейнера).
+ * Лицевая сторона дела: бумажная карточка на скрепке — номер, роль, фото с ростовой линейкой и штампом, поля «роль / тема / риск»,
+ * суть дела, чёрные полосы и красная печать. Одна и та же разметка — и папка в списке, и обложка в окне дела (размеры в cqw, от ширины контейнера).
  */
 function FolderFace({ character, index }: { character: EventCharacter; index: number }) {
-  const { decor, stamp } = look(index)
-  const sealed = !character.speaker
+  const { stamp, face } = look(index)
+  const speaker = character.speaker
+  const sealed = !speaker
+  const risk = speaker?.risk
   return (
-    <span className="fd" data-revealed={sealed ? undefined : ''} style={{ '--tab': TABS[index % TABS.length] } as CSSProperties} aria-hidden="true">
-      <span className="fd-back" />
+    <span className="fd" data-revealed={sealed ? undefined : ''} aria-hidden="true">
+      {/* Листы, лежащие в деле: выглядывают справа, при наведении выезжают. */}
       <span className="fd-papers">
         <i />
         <i />
       </span>
-      <span className="fd-tab">
-        <b>{ROMAN[index] ?? index + 1}</b>
-      </span>
       <span className="fd-front">
-        <span className="fd-label">
-          <span className="fd-no">
-            <span>Дело</span>
-            <span>№ {caseNumber(character, index)}</span>
-          </span>
-          <span className="fd-role">{character.name}</span>
+        <Clip />
+        <span className="fd-head">
+          <span>Дело</span>
+          <span>№ {caseNumber(character, index)}</span>
         </span>
 
-        {decor === 'stamp' && <span className="fd-stamp">{stamp}</span>}
-        {decor === 'slip' && <span className="fd-slip" />}
-        {decor === 'evid' && <span className="fd-evid">Вещдок</span>}
-        {decor === 'print' && (
-          <span className="fd-print">
-            <Fingerprint />
-          </span>
-        )}
+        <span className="fd-id">
+          <span className="fd-name">{character.name}</span>
+          {sealed ? <span className="fd-bar">имя засекречено</span> : <span className="fd-aka">Спикер — {speaker.name}</span>}
+        </span>
 
-        {sealed ? <span className="fd-bar">имя позже</span> : <span className="fd-tag">{character.speaker?.name}</span>}
+        <span className="fd-mid">
+          <span className="fd-photo">
+            <span className="fd-pic" data-photo={speaker?.photo ? '' : undefined}>
+              {speaker?.photo ? <img src={speaker.photo} alt="" loading="lazy" decoding="async" /> : <SilhouetteArt kind={face} />}
+              <span className="fd-scale">
+                {SCALE.map((n) => (
+                  <i key={n}>{n}</i>
+                ))}
+              </span>
+            </span>
+            <span className="fd-stamp">{stamp}</span>
+          </span>
+          <span className="fd-meta">
+            <span className="fd-f">
+              <b>Роль</b>
+              <span className="fd-v">{capital(character.epithet)}</span>
+            </span>
+            <span className="fd-f fd-f-topic">
+              <b>Тема</b>
+              {speaker?.topic ? <span className="fd-v">{speaker.topic}</span> : <span className="fd-redact" />}
+            </span>
+            <span className="fd-f">
+              <b>Риск</b>
+              <span className="fd-dots" data-unknown={risk ? undefined : ''}>
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <i key={n} data-on={risk && n <= risk ? '' : undefined} />
+                ))}
+              </span>
+            </span>
+          </span>
+        </span>
+
+        <span className="fd-case">
+          <span className="fd-case-h">Суть дела</span>
+          <span className="fd-f fd-f-case">
+            <b>По делу</b>
+            <span className="fd-v">{character.keywords}</span>
+          </span>
+          <span className="fd-f">
+            <b>Статус</b>
+            <span className="fd-v">{sealed ? 'Личность устанавливается' : 'Личность установлена'}</span>
+          </span>
+        </span>
+
+        <span className="fd-bars">
+          <i />
+          <i />
+        </span>
+
+        <span className="fd-foot">
+          <span className="fd-f fd-filed">
+            <b>Заведено</b>
+            <span className="fd-v">Legal Night Jazz</span>
+          </span>
+          <Seal />
+        </span>
       </span>
     </span>
   )

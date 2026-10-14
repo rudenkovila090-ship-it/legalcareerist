@@ -1416,17 +1416,11 @@ a.fam-ava:hover {
 }
 
 /* ===== Дела спикеров: папки и окно дела =====
-   Материал — потёртый жёлтый крафт и пожелтевшая бумага, как в архиве, где дела давно не открывали.
-   Никаких скруглений и «канцелярщины»: острые углы, жёсткие тени, чёрные полосы, штамп и сталь. Шрифты — только Inter и Playfair. */
+   Карточка дела на скрепке: пожелтевшая бумага, фото с ростовой линейкой, штамп, красная печать и залитые чёрным строки.
+   Никаких скруглений и мультяшности: острые углы, жёсткие тени. Шрифты — только Inter и Playfair. */
 .sf,
 .ef-overlay {
-  /* крафт папки (от светлого к тёмному) и её задняя стенка */
-  --gr-hi: #c9a064;
-  --gr: #b78c52;
-  --gr-lo: #9a7140;
-  --back: #86602d;
-  --back-lo: #6f4d22;
-  /* пожелтевшая бумага: наклейки, листы дела */
+  /* пожелтевшая бумага: листы дела */
   --bone: #eee3c6;
   --bone-lo: #dccfaa;
   --ink-file: #2a1d12;
@@ -1459,7 +1453,7 @@ a.fam-ava:hover {
   position: relative;
   display: block;
   width: 100%;
-  aspect-ratio: 3 / 3.9;
+  aspect-ratio: 5 / 7;
   padding: 0;
   border: 0;
   background: none;
@@ -1486,275 +1480,358 @@ a.fam-ava:hover {
   display: block;
   perspective: 900px;
 }
-.fd-back {
-  position: absolute;
-  top: 0;
-  right: 7cqw;
-  bottom: 0;
-  left: 0;
-  background: var(--fibers), var(--mottle), var(--noise), linear-gradient(90deg, var(--back), var(--back-lo));
-  box-shadow: inset 0 0 0 1px rgba(255, 235, 190, 0.18), inset 0 0 20px rgba(40, 22, 4, 0.6);
-}
-/* Язычок: трапеция с острыми углами; у соседних папок стоит в разных местах. */
-.fd-tab {
-  position: absolute;
-  top: var(--tabY, 8%);
-  right: 0;
-  display: flex;
-  width: 11cqw;
-  height: 27cqw;
-  padding-left: 1.4cqw;
-  align-items: center;
-  justify-content: center;
-  /* угловатое «ушко»-язычок на правой стороне: дело достают и открывают отсюда */
-  clip-path: polygon(0 0, 100% 9%, 100% 91%, 0 100%);
-  background: var(--fibers), var(--noise), linear-gradient(90deg, #a67d43, #8f6934);
-  box-shadow: inset 0 0 8px rgba(40, 22, 4, 0.45);
-}
-.fd-tab b {
-  color: #2a1b0f;
-  font: 800 6.6cqw/1 Inter, ui-sans-serif, system-ui, sans-serif;
-  letter-spacing: 0.1em;
-  writing-mode: vertical-rl;
-}
-/* Имя гостя объявлено — язычок красный, это видно сразу. */
-.fd[data-revealed] .fd-tab {
-  background: var(--fibers), var(--noise), linear-gradient(90deg, #a62f36, #74161c);
-}
-.fd[data-revealed] .fd-tab b {
-  color: #f6ead0;
-}
-/* Листы, торчащие из папки. */
+/* Листы, лежащие в деле: выглядывают справа из-под карточки; при наведении выезжают. */
 .fd-papers {
   position: absolute;
-  top: 12cqw;
-  right: 3cqw;
-  bottom: 14cqw;
-  width: 24cqw;
+  top: 3.5cqw;
+  right: 0;
+  bottom: 4cqw;
+  width: 15cqw;
 }
 .fd-papers i {
   position: absolute;
   inset: 0;
   background:
-    repeating-linear-gradient(90deg, transparent 0 3cqw, rgba(42, 29, 18, 0.2) 3cqw 3.4cqw),
+    repeating-linear-gradient(90deg, transparent 0 2.4cqw, rgba(42, 29, 18, 0.22) 2.4cqw 2.8cqw),
     var(--fibers),
-    linear-gradient(#efe4c2, #d6c69b);
+    linear-gradient(#e4d7b3, #c7b68a);
   box-shadow: 1px 0 3px rgba(0, 0, 0, 0.6);
 }
 .fd-papers i:nth-child(1) {
-  transform: rotate(1.8deg) translate(1cqw, 1.4cqw);
+  transform: rotate(1.6deg) translate(0.8cqw, 1.2cqw);
   filter: brightness(0.86);
 }
 .fd-papers i:nth-child(2) {
-  transform: rotate(-1.2deg) translate(2cqw, -1cqw);
+  transform: rotate(-1deg) translate(1.6cqw, -0.8cqw);
 }
-/* Лицевая сторона: тёмный картон, царапины, пятно, потёртая кромка. */
+
+/* Карточка дела: пожелтевшая бумага, зерно, залом, потёртая кромка. Тексты — только Inter, прописными для подписей. */
 .fd-front {
   position: absolute;
-  top: 3cqw;
-  right: 11cqw;
+  top: 0;
+  right: 5cqw;
   bottom: 0;
   left: 0;
-  /* Откидывается вокруг левой кромки, как обложка книги: свободный край — справа. */
+  display: flex;
+  padding: 7.2cqw 6.2cqw 5cqw;
+  flex-direction: column;
+  /* Откидывается вокруг левой кромки, как обложка: свободный край — справа. */
   transform-origin: 0 50%;
+  color: var(--ink-file);
   background:
     var(--scratch) 0 0 / 300px 375px,
     var(--fibers),
     var(--mottle),
-    var(--noise),
-    radial-gradient(60% 34% at 14% 24%, rgba(245, 220, 170, 0.3), transparent 70%),
-    radial-gradient(46% 24% at var(--stx, 72%) var(--sty, 78%), rgba(60, 34, 10, 0.5), transparent 72%),
-    radial-gradient(90% 18% at 50% 100%, rgba(55, 32, 10, 0.5), transparent 80%),
-    linear-gradient(180deg, var(--gr-hi), var(--gr) 55%, var(--gr-lo));
+    var(--grain-soft),
+    radial-gradient(70% 28% at 12% 5%, rgba(255, 255, 255, 0.35), transparent 70%),
+    radial-gradient(38% 18% at var(--stx, 76%) var(--sty, 46%), rgba(110, 72, 24, 0.24), transparent 72%),
+    linear-gradient(0deg, rgba(110, 72, 24, 0.24), transparent 9%),
+    linear-gradient(172deg, #f0e4c4, #e6d7b0 60%, #dccb9f);
   box-shadow:
-    inset 0 2px 0 rgba(255, 238, 200, 0.4),
-    inset 0 0 0 1px rgba(50, 28, 8, 0.6),
-    inset 0 0 28px rgba(60, 34, 10, 0.5);
+    inset 0 2px 0 rgba(255, 246, 220, 0.5),
+    inset 0 0 0 1px rgba(70, 46, 16, 0.4),
+    inset 0 0 20px rgba(110, 72, 24, 0.34);
 }
-/* Залом и потёртость по верхней кромке — там, где папку брали пальцами. */
+/* Залом поперёк карточки — там, где её складывали. */
 .fd-front::before {
   content: '';
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: linear-gradient(180deg, transparent calc(var(--fy, 62%) - 0.6%), rgba(255, 240, 205, 0.45) var(--fy, 62%), rgba(45, 25, 6, 0.5) calc(var(--fy, 62%) + 0.6%), transparent calc(var(--fy, 62%) + 1.8%));
+  background: linear-gradient(180deg, transparent calc(var(--fy, 62%) - 0.5%), rgba(255, 250, 232, 0.5) var(--fy, 62%), rgba(70, 44, 12, 0.3) calc(var(--fy, 62%) + 0.5%), transparent calc(var(--fy, 62%) + 1.6%));
 }
+/* Потёртость по правой кромке — там, где дело открывают пальцами. */
 .fd-front::after {
   content: '';
   position: absolute;
   inset: 0;
   pointer-events: none;
-  /* потёртость по правой кромке — там, где папку открывают пальцами */
-  background: linear-gradient(270deg, rgba(248, 230, 190, 0.6) 0 1.5px, transparent 4px);
+  background: linear-gradient(270deg, rgba(255, 246, 220, 0.7) 0 1.5px, transparent 4px);
   -webkit-mask-image: repeating-linear-gradient(180deg, #000 0 14px, transparent 14px 19px, #000 19px 46px, transparent 46px 55px, #000 55px 61px, transparent 61px 76px);
   mask-image: repeating-linear-gradient(180deg, #000 0 14px, transparent 14px 19px, #000 19px 46px, transparent 46px 55px, #000 55px 61px, transparent 61px 76px);
 }
 .sf-slot:nth-child(3n + 1) .fd {
-  --tabY: 7%;
-  --stx: 74%;
-  --sty: 80%;
+  --stx: 80%;
+  --sty: 52%;
   --fy: 60%;
 }
 .sf-slot:nth-child(3n + 2) .fd {
-  --tabY: 38%;
-  --stx: 26%;
-  --sty: 72%;
+  --stx: 24%;
+  --sty: 62%;
   --fy: 68%;
 }
 .sf-slot:nth-child(3n) .fd {
-  --tabY: 66%;
-  --stx: 58%;
-  --sty: 86%;
+  --stx: 62%;
+  --sty: 40%;
   --fy: 54%;
 }
 
-/* Бумажная наклейка с номером дела и ролью, на двух скрепках. */
-.fd-label {
+/* Скрепка: сидит на верхней кромке слева, тень падает на бумагу. */
+.fd-clip {
   position: absolute;
-  top: 9cqw;
-  left: 7cqw;
-  width: 72cqw;
-  padding: 5.6cqw 5cqw 5.4cqw;
-  background: var(--noise), linear-gradient(160deg, var(--bone), var(--bone-lo));
-  box-shadow:
-    0 2px 0 rgba(40, 22, 4, 0.55),
-    0 9px 10px -4px rgba(40, 22, 4, 0.7),
-    inset 0 0 12px rgba(110, 70, 20, 0.28);
-  transform: rotate(-0.8deg);
+  top: -4.2cqw;
+  left: 6cqw;
+  z-index: 3;
+  width: 7.2cqw;
+  height: 19cqw;
+  filter: drop-shadow(0.5cqw 0.8cqw 0.5cqw rgba(0, 0, 0, 0.42));
 }
-.fd-label::before,
-.fd-label::after {
-  content: '';
-  position: absolute;
-  top: 1.6cqw;
-  width: 5.5cqw;
-  height: 1.3cqw;
-  background: linear-gradient(#cfcfcf, #6d6d6d);
-  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.7);
-}
-.fd-label::before {
-  left: 4cqw;
-}
-.fd-label::after {
-  right: 4cqw;
-}
-.fd-no {
+.fd-head {
+  position: relative;
   display: flex;
+  padding: 0 0 2.2cqw 11cqw;
   justify-content: space-between;
-  padding-bottom: 2.4cqw;
-  border-bottom: 0.5cqw solid rgba(22, 19, 15, 0.85);
-  font: 700 4.4cqw/1 Inter, ui-sans-serif, system-ui, sans-serif;
+  border-bottom: 0.45cqw solid rgba(42, 29, 18, 0.7);
+  font: 700 3.9cqw/1 Inter, ui-sans-serif, system-ui, sans-serif;
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
-.fd-role {
+.fd-id {
   display: block;
-  margin-top: 3cqw;
-  font: 800 7.8cqw/1.12 Inter, ui-sans-serif, system-ui, sans-serif;
-  letter-spacing: 0.03em;
+  margin-top: 3.2cqw;
+  min-height: 12.5cqw;
+}
+.fd-name {
+  display: block;
+  font: 800 6.2cqw/1.1 Inter, ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
 }
-/* Имя гостя — на бумажной полосе; пока имя не объявлено — чёрная полоса. */
-.fd-tag,
-.fd-bar {
-  position: absolute;
-  bottom: 7cqw;
-  left: 7cqw;
+.fd-aka {
+  display: block;
+  margin-top: 1.4cqw;
+  color: #4a3b29;
+  font: 600 4.2cqw/1.25 Inter, ui-sans-serif, system-ui, sans-serif;
 }
-.fd-tag {
-  padding: 2.3cqw 3.6cqw;
-  background: var(--bone);
-  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.6), 0 6px 8px -3px rgba(0, 0, 0, 0.8);
-  font: 700 5.4cqw/1.2 Inter, ui-sans-serif, system-ui, sans-serif;
-  white-space: nowrap;
-}
+/* Имя гостя ещё не объявлено — чёрная полоса. */
 .fd-bar {
-  padding: 2.4cqw 3.6cqw;
-  background: #060504;
+  display: block;
+  width: fit-content;
+  margin-top: 1.6cqw;
+  padding: 1.1cqw 3cqw;
+  background: #070504;
   color: #8a8375;
-  font: 700 4.8cqw/1 Inter, ui-sans-serif, system-ui, sans-serif;
+  font: 700 3.5cqw/1 Inter, ui-sans-serif, system-ui, sans-serif;
   letter-spacing: 0.16em;
   text-transform: uppercase;
 }
-/* Улики на лицевой стороне — у каждой папки своя. */
+
+/* Фото с ростовой линейкой и штампом + поля дела. */
+.fd-mid {
+  display: grid;
+  margin-top: 3.4cqw;
+  grid-template-columns: 41% minmax(0, 1fr);
+  gap: 4.2cqw;
+}
+.fd-photo {
+  position: relative;
+  display: block;
+  aspect-ratio: 4 / 5.3;
+}
+.fd-pic {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: radial-gradient(90% 70% at 50% 34%, #d4d1c8, #aaa79d 72%, #8c897f);
+  box-shadow:
+    0 0 0 0.45cqw #2b2118,
+    inset 0 0 14px rgba(0, 0, 0, 0.4);
+}
+.fd-pic img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 18%;
+  filter: grayscale(0.85) contrast(1.06) brightness(0.98);
+}
+.fd-pic::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--scratch) center / 100% 100%;
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+.fd-scale {
+  position: absolute;
+  top: 6%;
+  bottom: 6%;
+  left: 1.4cqw;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.fd-scale i {
+  display: flex;
+  align-items: center;
+  gap: 0.9cqw;
+  color: rgba(28, 22, 16, 0.78);
+  font: 600 2.5cqw/1 Inter, ui-sans-serif, system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+.fd-scale i::after {
+  content: '';
+  width: 2.2cqw;
+  height: 0.3cqw;
+  background: currentColor;
+}
+.fd-pic[data-photo] .fd-scale i {
+  color: rgba(255, 252, 240, 0.85);
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.75);
+}
 .fd-stamp {
   position: absolute;
-  top: 56cqw;
-  right: 6cqw;
-  padding: 1.4cqw 3cqw;
-  border: 0.9cqw solid var(--stamp-red);
+  right: -3.4cqw;
+  bottom: 12%;
+  left: -2.6cqw;
+  z-index: 3;
+  padding: 1.3cqw 0;
+  border: 0.7cqw solid var(--stamp-red);
   color: #c4343e;
-  font: 800 5.4cqw/1 Inter, ui-sans-serif, system-ui, sans-serif;
-  letter-spacing: 0.16em;
+  font: 800 3.9cqw/1 Inter, ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: 0.07em;
+  text-align: center;
   text-transform: uppercase;
   white-space: nowrap;
   -webkit-mask-image: var(--ink-mask);
   mask-image: var(--ink-mask);
-  transform: rotate(-13deg);
+  transform: rotate(-8deg);
   pointer-events: none;
 }
-.fd-print {
-  position: absolute;
-  right: 7cqw;
-  bottom: 7cqw;
-  width: 20cqw;
-  padding: 2.4cqw;
-  background: var(--noise), linear-gradient(160deg, var(--bone), var(--bone-lo));
-  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.6), 0 6px 8px -3px rgba(0, 0, 0, 0.8);
-  transform: rotate(-7deg);
-}
-.fd-print svg {
-  display: block;
-  width: 100%;
-  height: auto;
-}
-/* Листок с залитыми чёрным строками. */
-.fd-slip {
-  position: absolute;
-  right: 7cqw;
-  bottom: 7cqw;
-  width: 32cqw;
-  height: 21cqw;
-  background:
-    linear-gradient(90deg, #060504 0 70%, transparent 70%) 0 2.4cqw / 100% 2.6cqw no-repeat,
-    linear-gradient(90deg, #060504 0 92%, transparent 92%) 0 7.2cqw / 100% 2.6cqw no-repeat,
-    linear-gradient(90deg, #060504 0 54%, transparent 54%) 0 12cqw / 100% 2.6cqw no-repeat,
-    linear-gradient(90deg, #060504 0 82%, transparent 82%) 0 16.8cqw / 100% 2.6cqw no-repeat,
-    var(--noise),
-    linear-gradient(160deg, var(--bone), var(--bone-lo));
-  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.6), 0 6px 8px -3px rgba(0, 0, 0, 0.8);
-  transform: rotate(5deg);
-}
-/* Бирка вещдока: срезанный угол и отверстие. */
-.fd-evid {
-  position: absolute;
-  right: 7cqw;
-  bottom: 7cqw;
+.fd-meta {
   display: flex;
-  width: 24cqw;
-  height: 27cqw;
-  padding: 15cqw 2cqw 0;
-  justify-content: center;
-  clip-path: polygon(0 18%, 18% 0, 100% 0, 100% 100%, 0 100%);
-  background: var(--noise), linear-gradient(160deg, var(--bone), var(--bone-lo));
-  color: var(--ink-file);
-  font: 800 4.4cqw/1.1 Inter, ui-sans-serif, system-ui, sans-serif;
-  letter-spacing: 0.1em;
-  text-align: center;
-  text-transform: uppercase;
-  transform: rotate(6deg);
+  min-width: 0;
+  flex-direction: column;
+  justify-content: space-between;
 }
-.fd-evid::before {
-  content: '';
-  position: absolute;
-  top: 5cqw;
-  left: 50%;
-  width: 4.4cqw;
-  height: 4.4cqw;
-  margin-left: -2.2cqw;
+.fd-f b {
+  display: block;
+  margin-bottom: 0.9cqw;
+  color: #6b5a43;
+  font: 700 3.1cqw/1 Inter, ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.fd-v {
+  display: -webkit-box;
+  overflow: hidden;
+  color: #241a10;
+  font: 600 4.2cqw/1.25 Inter, ui-sans-serif, system-ui, sans-serif;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+.fd-f-topic .fd-v {
+  -webkit-line-clamp: 2;
+}
+/* Тема ещё не объявлена — залита чёрным. */
+.fd-redact {
+  display: block;
+  height: 8.6cqw;
+  background:
+    linear-gradient(#070504, #070504) 0 0 / 100% 3.2cqw no-repeat,
+    linear-gradient(#070504, #070504) 0 5.4cqw / 64% 3.2cqw no-repeat;
+}
+.fd-dots {
+  display: flex;
+  gap: 1.7cqw;
+}
+.fd-dots i {
+  width: 3.5cqw;
+  height: 3.5cqw;
+  border: 0.45cqw solid #1e1812;
   border-radius: 50%;
-  background: #1e1b19;
-  box-shadow: inset 0 1px 2px #000, 0 0 0 0.8cqw #8f8f8f;
+}
+.fd-dots i[data-on] {
+  background: #1e1812;
+}
+.fd-dots[data-unknown] i {
+  opacity: 0.45;
+}
+
+/* Суть дела: тонкая линия-заголовок, поля, залитые чёрным строки. */
+.fd-case {
+  display: block;
+  margin-top: 4.2cqw;
+}
+.fd-case-h {
+  display: flex;
+  align-items: center;
+  gap: 2.6cqw;
+  color: #3b2e1f;
+  font: 700 3.3cqw/1 Inter, ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.fd-case-h::after {
+  content: '';
+  flex: 1;
+  height: 0.35cqw;
+  background: rgba(42, 29, 18, 0.5);
+}
+.fd-case .fd-f {
+  display: block;
+  margin-top: 2.6cqw;
+}
+.fd-case .fd-v {
+  display: block;
+}
+.fd-bars {
+  display: block;
+  margin-top: 3.2cqw;
+}
+.fd-bars i {
+  display: block;
+  height: 2.5cqw;
+  background: #070504;
+  clip-path: polygon(0 14%, 100% 0, 99% 100%, 0 86%);
+}
+.fd-bars i + i {
+  width: 74%;
+  margin-top: 1.7cqw;
+}
+.fd-foot {
+  position: relative;
+  display: flex;
+  margin-top: auto;
+  padding-top: 2cqw;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+.fd-filed .fd-v {
+  font-size: 3.8cqw;
+}
+.fd-seal {
+  flex: none;
+  width: 22cqw;
+  height: 22cqw;
+  margin: -9cqw -1cqw -1.5cqw auto;
+  color: var(--stamp-red);
+  opacity: 0.88;
+  -webkit-mask-image: var(--ink-mask);
+  mask-image: var(--ink-mask);
+  transform: rotate(-9deg);
+}
+
+/* Узкая папка (телефон, два столбца): остаётся главное — номер, роль, фото, штамп, риск и печать. */
+@container (max-width: 12rem) {
+  .fd-case-h,
+  .fd-case .fd-f-case,
+  .fd-f-topic,
+  .fd-filed {
+    display: none;
+  }
+  .fd-v {
+    font-size: max(4.2cqw, 8.5px);
+  }
+  .fd-f b {
+    font-size: max(3.1cqw, 6.5px);
+  }
+  .fd-case .fd-f {
+    margin-top: 3cqw;
+  }
 }
 
 /* Обложка в окне дела: та же лицевая сторона на всю доску; раскрывается вокруг левой кромки, как папка. */
@@ -1764,22 +1841,26 @@ a.fam-ava:hover {
 .ef-cover .fd {
   perspective: none;
 }
-.ef-cover .fd-back,
 .ef-cover .fd-papers {
   display: none;
 }
+/* Доска выше карточки: фото и номер держатся вместе наверху, а лишнее место делится между нижними блоками, а не пустует одним провалом. */
+.ef-cover .fd-case {
+  margin-top: auto;
+  padding-top: 4.2cqw;
+}
+.ef-cover .fd-bars {
+  margin-top: auto;
+  padding-top: 3.2cqw;
+}
+.ef-cover .fd-foot {
+  margin-top: auto;
+}
 .ef-cover .fd-front {
-  top: 0;
   right: 0;
   --fy: 70%;
   --stx: 70%;
-  --sty: 84%;
-}
-.ef-cover .fd-tab {
-  display: none;
-}
-.ef-cover .fd-stamp {
-  top: 62cqw;
+  --sty: 48%;
 }
 
 /* --- Окно дела --- */
