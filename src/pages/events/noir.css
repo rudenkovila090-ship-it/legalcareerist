@@ -554,6 +554,33 @@
   --sf-rough-3: polygon(2% 0.3%, 14% 1%, 29% 0.2%, 44% 0.9%, 58% 0.1%, 73% 1%, 88% 0.2%, 99.5% 0.9%, 100% 16%, 99.3% 34%, 100% 52%, 99.4% 70%, 100% 85%, 99.5% 100%, 90% 99.2%, 76% 99.9%, 62% 99%, 47% 99.8%, 33% 98.9%, 18% 99.7%, 7% 99.1%, 0% 98%, 0.8% 84%, 0.1% 68%, 0.9% 50%, 0.2% 33%, 0.7% 16%, 0% 5%);
 }
 
+/* Круглые картинки партнёров: золотой контур — часть изображения; при наведении мягкое свечение. */
+.fam-ava {
+  display: block;
+  width: 9rem;
+  height: 9rem;
+  border-radius: 50%;
+  box-shadow: 0 10px 22px -10px rgba(0, 0, 0, 0.85);
+  transition: box-shadow 0.4s;
+}
+.fam-ava img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+}
+a.fam-ava:hover {
+  box-shadow: 0 0 0 4px rgba(217, 168, 92, 0.18), 0 0 26px rgba(217, 168, 92, 0.38);
+}
+@media (prefers-reduced-motion: no-preference) {
+  a.fam-ava {
+    transition: box-shadow 0.4s, transform 0.5s cubic-bezier(0.3, 1.4, 0.5, 1);
+  }
+  a.fam-ava:hover {
+    transform: scale(1.05) rotate(-1.5deg);
+  }
+}
+
 /* ===== Спикеры: папки-разделители и карточка дела ===== */
 
 .sf,

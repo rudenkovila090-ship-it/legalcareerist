@@ -9,6 +9,7 @@ import portraitBarWoman from '../assets/noir/portrait-bar-woman.webp'
 import speakerJulia from '../assets/noir/speaker-julia-mukhina.webp'
 import speakerIlya from '../assets/noir/speaker-ilya-rudenkov.webp'
 import speakerEva from '../assets/noir/speaker-eva-gerasimova.webp'
+import partnerDasha from '../assets/noir/partner-dasha-italy.webp'
 import { noirEventSlugs } from './noirEvents'
 
 // Авторское оформление и тексты отдельных мероприятий. Лежит отдельно от events.ts:
@@ -115,16 +116,25 @@ export type ProgramEntry = ProgramSlot | ProgramAct
 
 /** Партнёр вечера — «член семьи». */
 export interface EventPartner {
+  /** Подпись под картинкой. */
   name: string
   description?: string
+  /** Круглая картинка (логотип или фото); контур — часть самого изображения. */
   logo?: string
-  url?: string
+  /** Кликабельная ссылка под подписью: label — как показать, href — куда ведёт. */
+  link?: { label: string; href: string }
 }
 
-/** Блок «Члены семьи»: рассказ о партнёрах. Пока партнёры не объявлены, показывается только вводная. */
+/** Группа партнёров: «Информационные партнеры», «Генеральный партнер» и т. п. */
+export interface FamilyGroup {
+  title: string
+  members: EventPartner[]
+}
+
+/** Блок «Члены семьи»: рассказ о партнёрах по группам. Пока партнёров нет, показывается только вводная. */
 export interface EventFamily {
   intro: string
-  members: EventPartner[]
+  groups: FamilyGroup[]
 }
 
 export interface EventStory {
@@ -238,8 +248,19 @@ export const eventStories: Record<string, EventStory> = {
       { id: 'silence', short: 'Помехи', name: 'Сигнал потерян', freq: 106.2, description: 'Станция не вещает.', silent: true },
     ],
     family: {
-      intro: 'Партнеры вечера — наша семья: те, кто помогает сделать этот вечер возможным. Имена партнеров объявим позже.',
-      members: [],
+      intro: 'Партнеры вечера — наша семья: те, кто помогает сделать этот вечер возможным. Остальных партнеров объявим позже.',
+      groups: [
+        {
+          title: 'Информационные партнеры',
+          members: [
+            {
+              name: 'Даша едет в Италию 🇮🇹',
+              logo: partnerDasha,
+              link: { label: '@study_inEuropefromRussia', href: 'https://t.me/study_inEuropefromRussia' },
+            },
+          ],
+        },
+      ],
     },
     hostRole: 'Фатальная красотка',
     program: [

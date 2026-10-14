@@ -299,38 +299,47 @@ export function NoirStory({ story }: { story: EventStory }) {
 
 /** «Члены семьи» — партнёры вечера. Пока имена не объявлены, показываем вводную и ссылку на заявку о партнёрстве. */
 export function NoirFamily({ story }: { story: EventStory }) {
-  const { intro, members } = story.family
+  const { intro, groups } = story.family
   return (
     <section id="family" className="scroll-mt-24">
       <NoirHeading>Члены семьи</NoirHeading>
       <Reveal delay={90}>
         <p className="mt-3 max-w-2xl leading-relaxed text-ink/70">{intro}</p>
       </Reveal>
-      {members.length > 0 && (
-        <div className="mt-6 grid gap-5 sm:grid-cols-2">
-          {members.map((m, i) => {
-            const body = (
-              <>
-                {m.logo && <img src={m.logo} alt="" className="mb-4 h-12 w-auto max-w-full object-contain object-left" />}
-                <h3 className="font-noir text-xl font-semibold text-ink">{m.name}</h3>
-                {m.description && <p className="mt-2 text-sm leading-relaxed text-ink/65">{m.description}</p>}
-              </>
-            )
-            return (
-              <Reveal key={m.name} delay={(i % 2) * 120}>
-                {m.url ? (
-                  <a href={m.url} target="_blank" rel="noreferrer" className="glass noir-card block h-full rounded-2xl p-6">
-                    {body}
-                  </a>
-                ) : (
-                  <div className="glass noir-card h-full rounded-2xl p-6">{body}</div>
-                )}
+      {groups.map((g) => (
+        <div key={g.title} className="mt-8">
+          <Reveal>
+            <h3 className="font-noir text-xl font-semibold text-ink">{g.title}</h3>
+          </Reveal>
+          <div className="mt-5 flex flex-wrap gap-x-10 gap-y-8">
+            {g.members.map((m, i) => (
+              <Reveal key={m.name} variant="zoom" delay={i * 120}>
+                <div className="flex w-full max-w-[17rem] flex-col items-center text-center">
+                  {m.logo &&
+                    (m.link ? (
+                      // Картинка тоже ведёт по ссылке, но для клавиатуры и скринридеров ссылка одна — подпись под ней.
+                      <a href={m.link.href} target="_blank" rel="noopener noreferrer" tabIndex={-1} aria-hidden="true" className="fam-ava">
+                        <img src={m.logo} alt="" draggable={false} />
+                      </a>
+                    ) : (
+                      <span className="fam-ava">
+                        <img src={m.logo} alt={m.name} draggable={false} />
+                      </span>
+                    ))}
+                  <p className="font-noir mt-4 text-lg font-semibold leading-snug text-ink">{m.name}</p>
+                  {m.description && <p className="mt-1.5 text-sm leading-relaxed text-ink/65">{m.description}</p>}
+                  {m.link && (
+                    <a href={m.link.href} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-sm [overflow-wrap:anywhere] font-semibold text-gold underline decoration-gold/40 underline-offset-4 transition-colors hover:text-gold-light hover:decoration-gold-light">
+                      {m.link.label}
+                    </a>
+                  )}
+                </div>
               </Reveal>
-            )
-          })}
+            ))}
+          </div>
         </div>
-      )}
-      <Reveal delay={150} className="mt-5">
+      ))}
+      <Reveal delay={150} className="mt-8">
         <a href="#partner" className="inline-block rounded-full border border-ink/25 px-6 py-2.5 text-sm font-semibold text-ink/80 transition-colors hover:border-gold hover:text-gold">
           Стать партнером вечера
         </a>
