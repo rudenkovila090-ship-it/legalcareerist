@@ -503,6 +503,684 @@
   }
 }
 
+/* ===== Спикеры: папки-разделители и карточка дела ===== */
+
+.sf,
+.ef-overlay {
+  /* Зернистость бумаги: мелкий шум, зашитый в SVG, — без отдельных картинок. */
+  --noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .2 0 0 0 0 .12 0 0 0 0 .04 0 0 0 .5 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --stamp-red: #a3281b;
+  --ink-brown: #2a1d12;
+}
+
+.sf-count {
+  margin-bottom: 1.1rem;
+  font: 400 0.72rem/1 'IBM Plex Mono', ui-monospace, 'Courier New', monospace;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(234, 223, 200, 0.55);
+}
+.sf-count b {
+  font-weight: 600;
+  color: var(--color-gold);
+}
+
+.sf-grid {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.7rem 0.9rem;
+  /* Язычки выступают за правый край папки — оставляем им место. */
+  padding: 0 14px 6px 0;
+}
+@media (min-width: 640px) {
+  .sf-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 0 0.55rem;
+  }
+}
+/* Левые папки лежат выше правых, чтобы язычок накрывал соседа, а не прятался под ним. */
+.sf-slot {
+  position: relative;
+  z-index: calc(10 - var(--i));
+}
+.sf-slot:hover,
+.sf-slot:focus-within {
+  z-index: 30;
+}
+
+/* Всё внутри папки меряется в cqw — от её ширины, поэтому она выглядит одинаково и на телефоне, и на широком экране. */
+.sf-card {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 2 / 5;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #2f2113;
+  text-align: left;
+  cursor: pointer;
+  container-type: inline-size;
+  -webkit-tap-highlight-color: transparent;
+  transition: filter 0.3s;
+}
+.sf-card:hover {
+  filter: brightness(1.07);
+}
+.sf-card:focus-visible {
+  outline: 2px solid #d9a85c;
+  outline-offset: 6px;
+  border-radius: 4px;
+}
+
+.sf-paper {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow: hidden;
+  padding: 7cqw 6cqw 8cqw 8cqw;
+  border-radius: 3px;
+  background:
+    var(--noise),
+    radial-gradient(110% 55% at 18% 0%, rgba(255, 236, 190, 0.34), transparent 62%),
+    radial-gradient(90% 50% at 92% 100%, rgba(80, 45, 10, 0.3), transparent 66%),
+    linear-gradient(90deg, #b88a55, #c9a06a 7%, #c39a63 93%, #ad7f4a);
+  box-shadow:
+    inset 0 0 0 1px rgba(70, 40, 10, 0.25),
+    inset 0 0 18px rgba(80, 45, 10, 0.35),
+    6px 0 14px -6px rgba(0, 0, 0, 0.6),
+    0 14px 18px -12px rgba(0, 0, 0, 0.85);
+  transition: box-shadow 0.4s;
+}
+.sf-card:hover .sf-paper,
+.sf-card:focus-visible .sf-paper {
+  box-shadow:
+    inset 0 0 0 1px rgba(70, 40, 10, 0.25),
+    inset 0 0 18px rgba(80, 45, 10, 0.35),
+    8px 0 18px -6px rgba(0, 0, 0, 0.65),
+    0 26px 26px -14px rgba(0, 0, 0, 0.9);
+}
+
+/* Карточка-бланк сверху: «Дело / дата / № 03». */
+.sf-index {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
+  gap: 1cqw 2cqw;
+  width: 100%;
+  padding: 3cqw;
+  border: 1px solid rgba(47, 33, 19, 0.6);
+  background: rgba(255, 238, 200, 0.22);
+  font: 600 7.2cqw/1.1 'IBM Plex Mono', ui-monospace, 'Courier New', monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.sf-index em {
+  font: italic 400 8.4cqw/1 'Playfair Display', Georgia, serif;
+  letter-spacing: 0;
+  text-transform: none;
+  opacity: 0.8;
+}
+.sf-index strong {
+  grid-column: 1 / -1;
+  padding-top: 1.6cqw;
+  border-top: 1px dashed rgba(47, 33, 19, 0.45);
+  font-size: 10.5cqw;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+/* Название роли — вертикально вдоль папки, как на референсе: слова — отдельные колонки, подпись роли — последняя. */
+.sf-title {
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  min-height: 0;
+  margin-top: 7cqw;
+  writing-mode: vertical-rl;
+}
+.sf-name {
+  display: block;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  font-size: 13.5cqw;
+  font-weight: 600;
+  line-height: 1.12;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #2a1b0f;
+}
+.sf-epithet {
+  display: block;
+  margin-block-start: 3.5cqw;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: max(9px, 8.8cqw);
+  font-style: italic;
+  line-height: 1.2;
+  color: rgba(42, 27, 15, 0.78);
+}
+
+/* Язычок-индекс на правом краю: римская цифра повёрнута, как на референсе. */
+.sf-tab {
+  position: absolute;
+  top: var(--tab);
+  right: -10cqw;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 12.5cqw;
+  height: 17%;
+  border-radius: 0 3.5cqw 3.5cqw 0;
+  background: var(--noise), linear-gradient(90deg, #b88a55, #c39a63 30%, #c9a06a);
+  box-shadow:
+    inset 0 0 0 1px rgba(70, 40, 10, 0.25),
+    3px 3px 8px -3px rgba(0, 0, 0, 0.7);
+  color: #2a1b0f;
+}
+.sf-tab span {
+  writing-mode: vertical-rl;
+  font: 700 8.6cqw/1 'Playfair Display', Georgia, serif;
+  letter-spacing: 0.08em;
+}
+/* Раскрытое досье помечено красным язычком — сразу видно, чьё имя уже объявлено. */
+.sf-card:not([data-sealed]) .sf-tab {
+  background: var(--noise), linear-gradient(90deg, #8d2417, #a3281b);
+  color: #f3e6c8;
+}
+
+/* Подпись внизу: имя гостя на бумажной наклейке или чёрная полоса «имя позже». */
+.sf-tag,
+.sf-bar {
+  position: relative;
+  z-index: 3;
+  width: 100%;
+  margin-top: 5cqw;
+}
+.sf-tag {
+  padding: 3cqw 2cqw;
+  background: #efe4c8;
+  color: var(--ink-brown);
+  text-align: center;
+  font: 600 9cqw/1.25 'IBM Plex Mono', ui-monospace, 'Courier New', monospace;
+  transform: rotate(-2.5deg);
+  box-shadow: 0 3px 6px -2px rgba(0, 0, 0, 0.6);
+}
+.sf-tag::before {
+  content: '';
+  position: absolute;
+  top: -2.4cqw;
+  left: 50%;
+  width: 26cqw;
+  height: 5cqw;
+  transform: translateX(-50%) rotate(2deg);
+  background: rgba(225, 205, 150, 0.72);
+}
+.sf-bar {
+  padding: 2.6cqw 1cqw;
+  background: #0a0605;
+  color: rgba(234, 223, 200, 0.5);
+  text-align: center;
+  font: 600 7cqw/1 'IBM Plex Mono', ui-monospace, 'Courier New', monospace;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+/* Улики, торчащие из папок. */
+.sf-stamp {
+  position: absolute;
+  z-index: 3;
+  left: 50%;
+  bottom: 21%;
+  padding: 1.6cqw 3.4cqw;
+  border: 0.8cqw solid var(--stamp-red);
+  border-radius: 2cqw;
+  color: var(--stamp-red);
+  font: 800 9.4cqw/1 Inter, ui-sans-serif, sans-serif;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  mix-blend-mode: multiply;
+  opacity: 0.82;
+  pointer-events: none;
+  transform: translateX(-50%) rotate(-24deg);
+}
+.sf-torn {
+  position: absolute;
+  z-index: 1;
+  top: -3cqw;
+  right: 4cqw;
+  width: 54cqw;
+  height: 40cqw;
+  background:
+    repeating-linear-gradient(180deg, transparent 0 10px, rgba(100, 125, 160, 0.38) 10px 11px),
+    linear-gradient(160deg, #f1ead7, #dcd2b8);
+  clip-path: polygon(0 0, 100% 0, 100% 78%, 90% 86%, 82% 79%, 70% 92%, 58% 83%, 44% 96%, 30% 85%, 16% 94%, 6% 83%, 0 90%);
+  transform: rotate(7deg);
+}
+.sf-print {
+  position: absolute;
+  z-index: 1;
+  left: -5cqw;
+  bottom: 12%;
+  width: 52cqw;
+  padding: 4cqw;
+  background: linear-gradient(160deg, #f1ead7, #d9cfb4);
+  box-shadow: 0 3px 8px -2px rgba(0, 0, 0, 0.55);
+  transform: rotate(-9deg);
+}
+.sf-print svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.sf-clip {
+  position: absolute;
+  z-index: 4;
+  top: 1cqw;
+  left: 13cqw;
+  width: 13cqw;
+  transform: rotate(8deg);
+  filter: drop-shadow(1px 2px 1px rgba(0, 0, 0, 0.45));
+}
+.sf-clip svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* --- Карточка дела (модальное окно) --- */
+
+.ef-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  padding: 1.4rem 0.75rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background:
+    radial-gradient(80% 60% at 50% 40%, rgba(60, 24, 16, 0.5), transparent 70%),
+    rgba(5, 2, 2, 0.86);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+}
+.ef-board {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1.18fr) minmax(0, 1fr);
+  gap: 1rem 0.85rem;
+  align-items: start;
+  width: min(100%, 34rem);
+  margin: auto;
+  padding: 1.15rem 1.05rem 1.3rem;
+  border-radius: 14px;
+  background:
+    radial-gradient(120% 70% at 25% 0%, rgba(255, 214, 150, 0.2), transparent 60%),
+    var(--noise),
+    linear-gradient(155deg, #92734f, #6c5236 70%, #5f4730);
+  box-shadow:
+    0 0 0 3px #4a3622,
+    inset 0 0 0 1px rgba(255, 225, 170, 0.18),
+    inset 0 0 60px rgba(30, 15, 5, 0.55),
+    0 30px 70px -20px #000;
+  color: var(--ink-brown);
+  font: 400 0.74rem/1.5 'IBM Plex Mono', ui-monospace, 'Courier New', monospace;
+}
+.ef-board::before {
+  content: '';
+  position: absolute;
+  inset: 7px;
+  border: 1px solid rgba(35, 20, 8, 0.4);
+  border-radius: 9px;
+  pointer-events: none;
+}
+@media (min-width: 480px) {
+  .ef-board {
+    gap: 1.1rem 1rem;
+    padding: 1.4rem 1.3rem 1.6rem;
+    font-size: 0.8rem;
+  }
+}
+
+.ef-close {
+  position: absolute;
+  z-index: 6;
+  top: -0.6rem;
+  right: -0.4rem;
+  display: grid;
+  place-items: center;
+  width: 2.3rem;
+  height: 2.3rem;
+  border: 1px solid rgba(234, 223, 200, 0.35);
+  border-radius: 50%;
+  background: #150b08;
+  box-shadow: 0 6px 14px -4px #000;
+  color: #eadfc8;
+  font: 400 1rem/1 Inter, ui-sans-serif, sans-serif;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.ef-close:hover {
+  background: var(--noir-crimson, #a3202a);
+}
+.ef-close:focus-visible {
+  outline: 2px solid #d9a85c;
+  outline-offset: 2px;
+}
+
+:where(.ef-piece) p {
+  margin: 0;
+}
+.ef-piece {
+  position: relative;
+  background: var(--noise), linear-gradient(160deg, #ece3cb, #ddd2b4);
+  box-shadow:
+    0 9px 14px -8px rgba(0, 0, 0, 0.75),
+    inset 0 0 22px rgba(125, 90, 35, 0.22);
+  transform: rotate(var(--r, 0deg));
+}
+
+.ef-tape {
+  position: absolute;
+  z-index: 2;
+  display: block;
+  width: 2.6rem;
+  height: 0.95rem;
+  background: rgba(228, 208, 150, 0.62);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+.ef-tape-l {
+  top: -0.45rem;
+  left: -0.7rem;
+  transform: rotate(-35deg);
+}
+.ef-tape-tl {
+  top: -0.4rem;
+  left: -0.8rem;
+  transform: rotate(-38deg);
+}
+.ef-tape-br {
+  right: -0.8rem;
+  bottom: -0.4rem;
+  transform: rotate(-38deg);
+}
+
+.ef-label {
+  grid-row: 1;
+  padding: 0.6rem 0.8rem;
+  font-size: 0.78em;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.ef-label-l {
+  grid-column: 1;
+  justify-self: start;
+}
+.ef-label-r {
+  grid-column: 2;
+  text-align: right;
+}
+
+.ef-polaroid {
+  grid-column: 1;
+  grid-row: 2 / span 2;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0.8rem 0.8rem 0.5rem;
+  background: linear-gradient(160deg, #f1ead8, #e1d7bd);
+}
+.ef-photo {
+  position: relative;
+  flex: 1;
+  min-height: 13rem;
+  overflow: hidden;
+  background: radial-gradient(90% 75% at 50% 38%, #4a443d, #14100d 80%);
+  box-shadow: inset 0 0 28px rgba(0, 0, 0, 0.8);
+}
+.ef-photo img,
+.ef-sil {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.ef-sil {
+  overflow: visible;
+}
+.ef-photo img {
+  object-fit: cover;
+  filter: grayscale(0.7) sepia(0.35) contrast(1.05);
+}
+.ef-script {
+  margin: 0.55rem 0 0.15rem;
+  padding-left: 0.2rem;
+  color: var(--ink-brown);
+  font-family: 'Marck Script', 'Segoe Script', 'Brush Script MT', cursive;
+  font-size: 1.55rem;
+  line-height: 1.1;
+  transform: rotate(-2deg);
+}
+.ef-script-sm {
+  margin: 0.4rem 0 0;
+  padding: 0;
+  font-size: 1.05rem;
+  text-align: center;
+}
+
+.ef-sticky {
+  grid-column: 2;
+  grid-row: 2;
+  padding: 1rem 0.9rem 0.85rem;
+}
+.ef-k {
+  font-size: 0.72em;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #3d2d1c;
+}
+.ef-hot {
+  margin-top: 0.3rem;
+  font-size: 1.18em;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--stamp-red);
+}
+.ef-sm {
+  font-size: 0.9em;
+  color: #4a3826;
+}
+.ef-gap {
+  margin-top: 0.7rem;
+}
+
+.ef-notebook {
+  grid-column: 2;
+  grid-row: 3;
+  padding: 0.95rem 0.8rem 0.95rem 1.6rem;
+}
+.ef-notebook::before {
+  content: '';
+  position: absolute;
+  top: 0.6rem;
+  bottom: 0.6rem;
+  left: 0.18rem;
+  width: 0.8rem;
+  background: radial-gradient(circle at 50% 50%, #1f140a 0 0.2rem, rgba(60, 38, 14, 0.45) 0.24rem, transparent 0.3rem) 0 0 / 0.8rem 1.5rem no-repeat space;
+}
+.ef-h {
+  margin-bottom: 0.45rem;
+  font-size: 0.74em;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.ef-notebook ul {
+  display: grid;
+  gap: 0.3rem;
+  list-style: none;
+}
+.ef-notebook li {
+  position: relative;
+  padding-left: 0.95rem;
+  line-height: 1.35;
+}
+.ef-notebook li::before {
+  content: '–';
+  position: absolute;
+  left: 0;
+}
+
+.ef-witness {
+  grid-column: 1;
+  grid-row: 4;
+  display: grid;
+  gap: 0.55rem;
+  padding: 1.05rem 0.95rem 0.9rem;
+}
+.ef-witness .ef-h {
+  margin-bottom: 0;
+}
+.ef-topic {
+  font-size: 1.12em;
+  font-weight: 600;
+  line-height: 1.25;
+}
+.ef-by {
+  margin-top: 0.2rem;
+  font-size: 0.92em;
+  font-style: italic;
+  color: #4a3826;
+}
+.ef-redact {
+  justify-self: start;
+  padding: 0.25rem 0.5rem;
+  background: #0a0605;
+  color: rgba(234, 223, 200, 0.55);
+  font-size: 0.7em;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.ef-map {
+  grid-column: 2;
+  grid-row: 4;
+  padding: 0.45rem 0.45rem 0.55rem;
+  background: linear-gradient(160deg, #ece3cb, #d9ceb0);
+}
+.ef-mapsvg {
+  display: block;
+  width: 100%;
+  height: auto;
+  filter: sepia(0.35) contrast(1.05);
+}
+
+.ef-risk {
+  grid-column: 1;
+  grid-row: 5;
+  align-self: end;
+  padding: 0.75rem 0.85rem 0.85rem;
+}
+.ef-scale {
+  display: flex;
+  gap: 0.4rem;
+}
+.ef-scale span {
+  display: grid;
+  place-items: center;
+  width: 1.85rem;
+  height: 1.85rem;
+  border: 1.5px solid #4a3826;
+  color: #4a3826;
+  font-weight: 600;
+}
+.ef-scale span[data-on] {
+  border-color: #7a1d12;
+  background: var(--stamp-red);
+  color: #f6ead0;
+}
+.ef-scale span[data-unknown] {
+  border-style: dashed;
+  opacity: 0.55;
+}
+
+.ef-conf {
+  grid-column: 2;
+  grid-row: 5;
+  align-self: end;
+  background: none;
+  box-shadow: none;
+  filter: drop-shadow(0 8px 8px rgba(0, 0, 0, 0.55));
+}
+.ef-conf-in {
+  padding: 1.35rem 0.55rem 1.05rem;
+  background: var(--noise), linear-gradient(160deg, #eee5cc, #dbd0b1);
+  clip-path: polygon(0 5%, 6% 0, 14% 4%, 25% 0, 38% 5%, 52% 1%, 66% 5%, 79% 0, 91% 4%, 100% 1%, 99% 38%, 100% 66%, 98% 100%, 88% 95%, 74% 100%, 60% 96%, 45% 100%, 30% 95%, 15% 100%, 4% 96%, 0 100%, 1% 62%, 0 30%);
+  color: var(--stamp-red);
+  font-size: 0.86em;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: 0.08em;
+  text-align: center;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+/* Телефон: в половине ширины длинные слова («Конфиденциальность») не помещаются — блокнот и показания растягиваем. */
+@media (max-width: 479px) {
+  .ef-polaroid {
+    grid-row: 2;
+  }
+  .ef-sticky {
+    align-self: center;
+  }
+  .ef-notebook {
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
+  .ef-witness {
+    grid-column: 1 / -1;
+    grid-row: 4;
+  }
+  .ef-map {
+    grid-column: 1;
+    grid-row: 5;
+  }
+  .ef-conf {
+    grid-column: 2;
+    grid-row: 5;
+    align-self: center;
+  }
+  .ef-risk {
+    grid-column: 1 / -1;
+    grid-row: 6;
+    justify-self: start;
+  }
+}
+.ef-clip {
+  position: absolute;
+  z-index: 3;
+  top: -1.2rem;
+  left: 0.6rem;
+  width: 1.15rem;
+  transform: rotate(-10deg);
+  filter: drop-shadow(1px 2px 1px rgba(0, 0, 0, 0.45));
+}
+.ef-clip svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
 /* ===== Анимации ===== */
 
 @media (prefers-reduced-motion: no-preference) {
@@ -1023,5 +1701,74 @@
   @keyframes roman-glow {
     0%, 100% { text-shadow: 0 0 0 rgba(211, 48, 59, 0); }
     50% { text-shadow: 0 0 18px rgba(211, 48, 59, 0.55); }
+  }
+}
+
+/* Спикеры: папки выезжают по очереди и чуть «приподнимаются» при наведении; бумаги на карточке дела ложатся одна за другой. */
+@media (prefers-reduced-motion: no-preference) {
+  .sf-slot {
+    opacity: 0;
+    transform: translateY(46px) rotate(2deg);
+    transition:
+      opacity 0.7s ease calc(var(--i) * 90ms),
+      transform 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) calc(var(--i) * 90ms);
+  }
+  .rv[data-in] .sf-slot {
+    opacity: 1;
+    transform: none;
+  }
+
+  .sf-card {
+    transition:
+      transform 0.45s cubic-bezier(0.3, 1.4, 0.5, 1),
+      filter 0.3s;
+  }
+  .sf-card:focus-visible {
+    transform: translateY(-10px) rotate(var(--tilt));
+  }
+  @media (hover: hover) {
+    .sf-card:hover {
+      transform: translateY(-10px) rotate(var(--tilt));
+    }
+  }
+  .sf-card:active {
+    transform: translateY(-4px) scale(0.985);
+  }
+  .sf-torn,
+  .sf-print,
+  .sf-stamp {
+    transition: transform 0.5s cubic-bezier(0.3, 1.4, 0.5, 1);
+  }
+  .sf-card:hover .sf-torn,
+  .sf-card:focus-visible .sf-torn {
+    transform: translateY(-5px) rotate(10deg);
+  }
+  .sf-card:hover .sf-print,
+  .sf-card:focus-visible .sf-print {
+    transform: translateY(-5px) rotate(-4deg);
+  }
+  .sf-card:hover .sf-stamp,
+  .sf-card:focus-visible .sf-stamp {
+    transform: translateX(-50%) rotate(-18deg) scale(1.06);
+  }
+
+  .ef-overlay {
+    animation: ef-fade 0.3s ease both;
+  }
+  .ef-board {
+    animation: ef-open 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.05) both;
+  }
+  .ef-piece {
+    animation: ef-drop 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.12) both;
+    animation-delay: calc(var(--k) * 70ms + 140ms);
+  }
+  @keyframes ef-fade {
+    from { opacity: 0; }
+  }
+  @keyframes ef-open {
+    from { opacity: 0; transform: translateY(28px) scale(0.95) rotate(-1deg); }
+  }
+  @keyframes ef-drop {
+    from { opacity: 0; transform: translateY(-30px) rotate(calc(var(--r) + 8deg)) scale(1.08); }
   }
 }

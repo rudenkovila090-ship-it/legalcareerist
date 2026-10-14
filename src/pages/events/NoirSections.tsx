@@ -6,6 +6,7 @@ import { prefersReducedMotion } from '../../lib/motion'
 import Reveal from '../../components/noir/Reveal'
 import CaseFile from '../../components/noir/CaseFile'
 import EvidenceBoard from '../../components/noir/EvidenceBoard'
+import SpeakerFiles from '../../components/noir/SpeakerFiles'
 import { ShotFx, ShotOnView } from '../../components/noir/ShotFx'
 import { NoirDust, NoirMarquee } from '../../components/noir/NoirAmbient'
 import './noir.css'
@@ -347,6 +348,25 @@ export function NoirStory({ story }: { story: EventStory }) {
           </li>
         ))}
       </ol>
+    </section>
+  )
+}
+
+/** «Спикеры» — папки с делами гостей по ролям вечера; по клику открывается карточка дела. */
+export function NoirSpeakers({ story, event }: { story: EventStory; event: EventItem }) {
+  const when = new Date(event.dateTime)
+  const dateLabel = when.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })
+  const shortDate = when.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })
+  return (
+    <section id="speakers" className="scroll-mt-24">
+      <NoirHeading>Спикеры</NoirHeading>
+      <Reveal delay={90}>
+        <p className="mt-3 max-w-2xl leading-relaxed text-ink/70">{story.speakersIntro}</p>
+        <p className="mt-2 text-sm text-ink/55">Наведите курсор на папку и откройте дело (на телефоне — нажмите).</p>
+      </Reveal>
+      <Reveal className="mt-8">
+        <SpeakerFiles characters={story.characters} dateLabel={dateLabel} shortDate={shortDate} />
+      </Reveal>
     </section>
   )
 }

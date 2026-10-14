@@ -18,7 +18,7 @@ import { eventTimeRange } from '../../lib/eventTime'
 import HowHeardField from '../../components/HowHeardField'
 import { pluralRu } from '../../lib/plural'
 import { eventStories } from '../../data/eventStories'
-import { NoirHero, NoirIntro, NoirFacts, NoirAudience, NoirStory, NoirCharacters } from './NoirSections'
+import { NoirHero, NoirIntro, NoirFacts, NoirAudience, NoirStory, NoirCharacters, NoirSpeakers } from './NoirSections'
 import { useNoirFont } from '../../lib/useNoirFont'
 import { useNoirScroll } from '../../lib/useNoirScroll'
 import ScrollCylinder from '../../components/noir/ScrollCylinder'
@@ -432,6 +432,7 @@ export default function EventDetail() {
               <NoirAudience story={story} />
               <NoirStory story={story} />
               <NoirCharacters story={story} />
+              <NoirSpeakers story={story} event={event} />
             </div>
           )}
           {event.program.length > 0 && (
