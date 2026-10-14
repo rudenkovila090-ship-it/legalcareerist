@@ -373,14 +373,17 @@ function ClockIcon({ className = 'h-5 w-5' }: { className?: string }) {
 }
 
 /** Строка программы: часы, время, название капсом — как на референсе. */
-function ProgramRow({ time, title }: { time: string; title: string }) {
+function ProgramRow({ time, title, note }: { time: string; title: string; note?: string }) {
   return (
-    <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5">
-      <span className="flex items-center gap-2.5 text-lg text-ink sm:text-xl">
-        <ClockIcon />
-        {time}
-      </span>
-      <span className="text-lg uppercase tracking-wide text-ink sm:text-xl">{title}</span>
+    <div>
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5">
+        <span className="flex items-center gap-2.5 text-lg text-ink sm:text-xl">
+          <ClockIcon />
+          {time}
+        </span>
+        <span className="text-lg uppercase tracking-wide text-ink sm:text-xl">{title}</span>
+      </div>
+      {note && <p className="mt-2 text-sm text-ink/60 sm:pl-[1.875rem]">{note}</p>}
     </div>
   )
 }
@@ -461,13 +464,25 @@ function ProgramActView({ act, story }: { act: ProgramAct; story: EventStory }) 
 
 /** «Программа» — по референсу: строки со временем, акты и карточки выступлений. */
 export function NoirProgram({ story }: { story: EventStory }) {
+  const host = story.characters.find((c) => c.name === story.hostRole)?.speaker
   return (
     <section id="program" className="scroll-mt-24">
       <NoirHeading>Программа</NoirHeading>
+      {host && (
+        <Reveal delay={60} className="mt-5">
+          <div className="flex items-center gap-4">
+            {host.photo && <img src={host.photo} alt="" draggable={false} className="h-14 w-14 shrink-0 rounded-full border border-gold/40 object-cover object-[50%_20%]" />}
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-[0.18em] text-gold">Ведущая вечера</div>
+              <div className="font-noir text-xl font-semibold text-ink">{host.name}</div>
+            </div>
+          </div>
+        </Reveal>
+      )}
       <ol className="mt-6 border-b border-ink/10">
         {story.program.map((entry, i) => (
           <li key={entry.title} className="border-t border-ink/10 py-6 sm:py-7">
-            <Reveal delay={Math.min(i, 3) * 70}>{'slots' in entry ? <ProgramActView act={entry} story={story} /> : <ProgramRow time={entry.time} title={entry.title} />}</Reveal>
+            <Reveal delay={Math.min(i, 3) * 70}>{'slots' in entry ? <ProgramActView act={entry} story={story} /> : <ProgramRow time={entry.time} title={entry.title} note={entry.note} />}</Reveal>
           </li>
         ))}
       </ol>

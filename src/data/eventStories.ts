@@ -87,6 +87,8 @@ export interface ProgramSlot {
   time: string
   title: string
   role?: string
+  /** Короткая подпись под строкой программы. */
+  note?: string
 }
 
 /** Акт программы: заголовок и вложенные слоты; время акта считается по первому и последнему слоту. */
@@ -136,6 +138,8 @@ export interface EventStory {
   family: EventFamily
   /** Программа вечера. */
   program: ProgramEntry[]
+  /** Роль (EventCharacter.name), которую исполняет ведущая вечера, — показывается в программе. */
+  hostRole?: string
   /** Вводная к блоку «Спикеры» — папки с делами гостей. */
   speakersIntro: string
   characters: EventCharacter[]
@@ -209,9 +213,10 @@ export const eventStories: Record<string, EventStory> = {
       intro: 'Партнеры вечера — наша семья: те, кто помогает сделать этот вечер возможным. Имена партнеров объявим позже.',
       members: [],
     },
+    hostRole: 'Фатальная красотка',
     program: [
       { time: '18:00–18:30', title: 'Регистрация' },
-      { time: '18:30–18:40', title: 'Акт I' },
+      { time: '18:30–18:40', title: 'Акт I', note: 'Ведущая открывает дело.' },
       {
         title: 'Акт II',
         slots: [
@@ -285,6 +290,7 @@ export const eventStories: Record<string, EventStory> = {
           name: 'Ева Герасимова',
           photo: speakerEva,
           roleNote: 'Ведущая расследования, хранительница интриги.',
+          risk: 4,
           about:
             'О том, что за каждой карьерой скрываются амбиции, секреты и судьбоносные решения. Проведет гостей через расследование убийства Карьеры, представит подозреваемых, задаст неудобные вопросы и поможет связать все улики в единую картину.',
           testimony:
