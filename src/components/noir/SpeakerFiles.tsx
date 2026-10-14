@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useId, useRef, useState, type CSSProperties, type MouseEvent } from 'react'
 import { createPortal } from 'react-dom'
 import type { EventCharacter } from '../../data/eventStories'
+import { CharacterGlyph } from './CharacterGlyph'
 import '../../pages/events/noir.css'
 
 const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII']
@@ -59,9 +60,9 @@ function SilhouetteArt({ kind }: { kind: Silhouette }) {
         <rect x="68" y="108" width="24" height="30" rx="8" />
         {kind === 'woman' ? (
           <>
-            <ellipse cx="80" cy="76" rx="26" ry="32" />
-            <path d="M52 70c-6 30-4 62 4 86 8-14 12-34 12-56l0-30Zm56 0c6 30 4 62-4 86-8-14-12-34-12-56l0-30Z" />
-            <path d="M50 66c0-30 14-44 30-44s30 14 30 44c-6-20-18-28-30-28s-24 8-30 28Z" />
+            {/* длинные волосы одной сплошной массой — без просветов между головой и плечами */}
+            <ellipse cx="80" cy="70" rx="31" ry="38" />
+            <path d="M49 72C45 102 47 132 56 160L104 160C113 132 115 102 111 72Z" />
           </>
         ) : (
           <ellipse cx="80" cy="76" rx="25" ry="31" />
@@ -195,7 +196,6 @@ function EvidenceFile({ character, index, dateLabel, dateCode, onClose }: Eviden
   const closeRef = useRef<HTMLButtonElement>(null)
   const pressedBackdrop = useRef(false)
   const { face } = look(index)
-  const themes = speaker ? speaker.themes : character.keywords.split(' · ')
   const piece = (k: number, r: number) => ({ '--k': k, '--r': `${r}deg` }) as CSSProperties
 
   useEffect(() => {
@@ -264,17 +264,28 @@ function EvidenceFile({ character, index, dateLabel, dateCode, onClose }: Eviden
         </div>
 
         <div className="ef-piece ef-notebook" style={piece(4, -1)}>
-          <p className="ef-h">{speaker ? 'О чём расскажет' : 'Ключевые слова роли'}</p>
-          <ul>
-            {themes.map((t) => (
-              <li key={t}>{t}</li>
-            ))}
-          </ul>
+          <p className="ef-h">О чём расскажет</p>
+          {speaker ? (
+            <ul>
+              {speaker.themes.map((t) => (
+                <li key={t}>{t}</li>
+              ))}
+            </ul>
+          ) : (
+            <>
+              <div className="ef-lines" aria-hidden="true">
+                <i style={{ width: '88%' }} />
+                <i style={{ width: '64%' }} />
+                <i style={{ width: '76%' }} />
+              </div>
+              <p className="ef-sm ef-gap">тема выступления — позже</p>
+            </>
+          )}
         </div>
 
         <div className="ef-piece ef-witness" style={piece(5, 1.2)}>
           <i className="ef-tape ef-tape-tl" />
-          <p className="ef-h">{speaker ? 'Показания' : 'Роль в деле'}</p>
+          <p className="ef-h">Показания</p>
           {speaker ? (
             <>
               <p className="ef-topic">«{speaker.topic}»</p>
@@ -282,14 +293,16 @@ function EvidenceFile({ character, index, dateLabel, dateCode, onClose }: Eviden
               {speaker.questions.map((q) => (
                 <p key={q}>{q}</p>
               ))}
+              <p className="ef-by">
+                — {character.name}, {speaker.name}
+              </p>
             </>
           ) : (
             <>
-              <p>{character.text}</p>
-              <p className="ef-redact">Выступление — раскроется на вечере</p>
+              <p>Показания ещё не приобщены к делу.</p>
+              <span className="ef-redact">Выступление — раскроется на вечере</span>
             </>
           )}
-          <p className="ef-by">— {speaker ? `${character.name}, ${speaker.name}` : character.name}</p>
         </div>
 
         <div className="ef-piece ef-map" style={piece(6, -1.6)}>
@@ -297,7 +310,38 @@ function EvidenceFile({ character, index, dateLabel, dateCode, onClose }: Eviden
           <p className="ef-script ef-script-sm">{speaker ? 'Путь публикации' : 'Место происшествия'}</p>
         </div>
 
-        <div className="ef-piece ef-risk" style={piece(7, -0.8)}>
+        {/* Описание роли: то, что раньше было отдельным блоком «Персонажи и роли». */}
+        <div className="ef-piece ef-role" style={piece(7, -0.5)}>
+          <i className="ef-tape ef-tape-tr" />
+          <div className="ef-role-head">
+            <span className="ef-glyph" aria-hidden="true">
+              <CharacterGlyph icon={character.icon} />
+            </span>
+            <div>
+              <p className="ef-h">Роль в деле</p>
+              <p className="ef-k">{character.keywords}</p>
+            </div>
+          </div>
+          <p>{character.text}</p>
+          <dl className="ef-dl">
+            <div>
+              <dt className="ef-k">Мотив</dt>
+              <dd>{character.motive}</dd>
+            </div>
+            <div>
+              <dt className="ef-k">Символизирует</dt>
+              <dd>{character.symbol}</dd>
+            </div>
+            <div>
+              <dt className="ef-k">Улика</dt>
+              <dd>
+                <span className="ef-redact">Раскроется на вечере</span>
+              </dd>
+            </div>
+          </dl>
+        </div>
+
+        <div className="ef-piece ef-risk" style={piece(8, -0.8)}>
           <p className="ef-h">Уровень риска</p>
           <div className="ef-scale" role="img" aria-label={speaker ? `Уровень риска: ${speaker.risk} из 5` : 'Уровень риска пока не установлен'}>
             {[1, 2, 3, 4, 5].map((n) => (
@@ -309,7 +353,7 @@ function EvidenceFile({ character, index, dateLabel, dateCode, onClose }: Eviden
           {!speaker && <p className="ef-sm ef-gap">пока не установлен</p>}
         </div>
 
-        <div className="ef-piece ef-conf" style={piece(8, 1.5)}>
+        <div className="ef-piece ef-conf" style={piece(9, 1.5)}>
           <span className="ef-clip" aria-hidden="true">
             <Paperclip />
           </span>

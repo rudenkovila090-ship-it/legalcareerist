@@ -904,6 +904,11 @@
   left: -0.8rem;
   transform: rotate(-38deg);
 }
+.ef-tape-tr {
+  top: -0.4rem;
+  right: -0.8rem;
+  transform: rotate(38deg);
+}
 .ef-tape-br {
   right: -0.8rem;
   bottom: -0.4rem;
@@ -1044,6 +1049,8 @@
 .ef-witness {
   grid-column: 1;
   grid-row: 4;
+  align-self: stretch;
+  align-content: start;
   display: grid;
   gap: 0.55rem;
   padding: 1.05rem 0.95rem 0.9rem;
@@ -1063,6 +1070,7 @@
   color: #4a3826;
 }
 .ef-redact {
+  display: inline-block;
   justify-self: start;
   padding: 0.25rem 0.5rem;
   background: #0a0605;
@@ -1085,9 +1093,60 @@
   filter: sepia(0.35) contrast(1.05);
 }
 
+/* Описание роли — широкий лист: иконка, ключевые слова, текст, мотив, «символизирует», запечатанная улика. */
+.ef-role {
+  grid-column: 1 / -1;
+  grid-row: 5;
+  display: grid;
+  gap: 0.7rem;
+  padding: 1.1rem 1.05rem 1rem;
+}
+.ef-role-head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.ef-role-head .ef-h {
+  margin-bottom: 0.15rem;
+}
+.ef-glyph {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 1.5px solid #4a3826;
+  border-radius: 50%;
+  color: #4a3826;
+}
+.ef-dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem 1rem;
+  padding-top: 0.7rem;
+  border-top: 1px dashed rgba(42, 29, 18, 0.4);
+}
+.ef-dl dd {
+  margin-top: 0.15rem;
+}
+.ef-dl > :last-child {
+  grid-column: 1 / -1;
+}
+/* Засекреченные строки блокнота: чёрные полосы вместо тем выступления. */
+.ef-lines {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.2rem 0;
+}
+.ef-lines i {
+  display: block;
+  height: 0.8rem;
+  background: #0a0605;
+}
+
 .ef-risk {
   grid-column: 1;
-  grid-row: 5;
+  grid-row: 6;
   align-self: end;
   padding: 0.75rem 0.85rem 0.85rem;
 }
@@ -1116,7 +1175,7 @@
 
 .ef-conf {
   grid-column: 2;
-  grid-row: 5;
+  grid-row: 6;
   align-self: end;
   background: none;
   box-shadow: none;
@@ -1153,17 +1212,20 @@
   }
   .ef-map {
     grid-column: 1;
-    grid-row: 5;
+    grid-row: 6;
   }
   .ef-conf {
     grid-column: 2;
-    grid-row: 5;
+    grid-row: 6;
     align-self: center;
   }
   .ef-risk {
     grid-column: 1 / -1;
-    grid-row: 6;
+    grid-row: 7;
     justify-self: start;
+  }
+  .ef-dl {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 .ef-clip {

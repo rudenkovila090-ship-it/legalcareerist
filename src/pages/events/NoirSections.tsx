@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from 'react'
 import type { EventItem } from '../../types'
-import type { CharacterIcon, EventStory } from '../../data/eventStories'
+import type { EventStory } from '../../data/eventStories'
 import { eventTimeRange } from '../../lib/eventTime'
 import { prefersReducedMotion } from '../../lib/motion'
 import Reveal from '../../components/noir/Reveal'
@@ -18,39 +18,6 @@ import './noir.css'
 function splitTrailingNumber(text: string): [string, string] {
   const m = text.match(/^(.*?)\s+(\d+)$/)
   return m ? [m[1], m[2]] : [text, '']
-}
-
-const iconPaths: Record<CharacterIcon, ReactNode> = {
-  hat: <path d="M2.5 17.5h19M6 17.5c0-6 2-11 6-11s6 5 6 11M6.4 13.6h11.2" />,
-  glass: <path d="M4.5 5h15L12 13.5 4.5 5ZM12 13.5V20M8 20h8" />,
-  magnifier: (
-    <>
-      <circle cx="10.5" cy="10.5" r="5.8" />
-      <path d="m15 15 5.5 5.5" />
-    </>
-  ),
-  pearl: (
-    <>
-      <path d="M12 2.5v4.5" />
-      <circle cx="12" cy="13.5" r="5.2" />
-      <path d="M9.6 12.3a2.8 2.8 0 0 1 2-1.7" />
-    </>
-  ),
-  scales: <path d="M12 4v16M7 20h10M5 8h14M5 8l-2.6 6a3 3 0 0 0 5.2 0L5 8ZM19 8l-2.6 6a3 3 0 0 0 5.2 0L19 8Z" />,
-  key: (
-    <>
-      <circle cx="7.5" cy="12" r="3.5" />
-      <path d="M11 12h10M17 12v3M20 12v2.5" />
-    </>
-  ),
-}
-
-function CharacterGlyph({ icon }: { icon: CharacterIcon }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6" aria-hidden="true">
-      {iconPaths[icon]}
-    </svg>
-  )
 }
 
 /** Ромб-разделитель, как на афише: линия — ромб — линия (в шапке линии «прорисовываются»). */
@@ -367,54 +334,6 @@ export function NoirSpeakers({ story, event }: { story: EventStory; event: Event
       <Reveal className="mt-8">
         <SpeakerFiles characters={story.characters} dateLabel={dateLabel} shortDate={shortDate} />
       </Reveal>
-    </section>
-  )
-}
-
-export function NoirCharacters({ story }: { story: EventStory }) {
-  return (
-    <section>
-      <NoirHeading>Персонажи и роли</NoirHeading>
-      <Reveal delay={90}>
-        <p className="mt-3 max-w-2xl leading-relaxed text-ink/70">{story.charactersIntro}</p>
-      </Reveal>
-      <div className="mt-6 grid gap-5 md:grid-cols-2">
-        {story.characters.map((c, i) => (
-          // Внешний слой плывёт при прокрутке (колонки с разной скоростью), внутренний — выезжает при появлении.
-          <div key={c.name} data-parallax={i % 2 === 0 ? 0.028 : -0.028} data-pmax="26" className="flex">
-            <Reveal variant={i % 2 === 0 ? 'left' : 'right'} delay={(i % 2) * 140} className="flex w-full">
-              <article className="glass noir-card flex w-full flex-col rounded-2xl p-6">
-                <div className="flex items-center gap-4">
-                  <div className="noir-ico flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-gold/40 text-gold">
-                    <CharacterGlyph icon={c.icon} />
-                  </div>
-                  <div>
-                    <h3 className="font-noir text-xl font-semibold leading-tight text-ink">{c.name}</h3>
-                    <div className="text-sm text-ink/60">{c.epithet}</div>
-                  </div>
-                </div>
-                <div className="mt-4 text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-gold">{c.keywords}</div>
-                <p className="mt-3 text-sm leading-relaxed text-ink/75">{c.text}</p>
-                <div className="flex-1" />
-                <dl className="mt-4 space-y-3 border-t border-ink/10 pt-4 text-sm">
-                  <div>
-                    <dt className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-ink/45">Мотив</dt>
-                    <dd className="mt-0.5 text-ink/80">{c.motive}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-ink/45">Символизирует</dt>
-                    <dd className="mt-0.5 text-ink/80">{c.symbol}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-ink/45">Улика</dt>
-                    <dd className="mt-1"><Sealed>Раскроется на вечере</Sealed></dd>
-                  </div>
-                </dl>
-              </article>
-            </Reveal>
-          </div>
-        ))}
-      </div>
     </section>
   )
 }
