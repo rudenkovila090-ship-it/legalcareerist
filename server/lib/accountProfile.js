@@ -2,6 +2,7 @@
 import { listJoins } from './store.js'
 import { getBotUser } from './botUsers.js'
 import { TARIFFS } from './prodamus.js'
+import { getProfile } from './accountStore.js'
 
 const DAY = 24 * 3600 * 1000
 
@@ -46,5 +47,13 @@ export function accountProfile(cfg, now = Date.now()) {
     role: 'client',
     telegramLinked: Boolean(bot),
     resident: residentStatus(cfg.tgId, now),
+    privacy: { hidden: getProfile(cfg.login).privacy.hidden },
+    // Согласия: на обработку и рассылку — из карточки в боте, на профиль кабинета — из самого профиля.
+    consents: {
+      processingAt: bot?.consentAt ?? null,
+      profileAt: getProfile(cfg.login).consentAt,
+      marketing: typeof bot?.mailingConsent === 'boolean' ? bot.mailingConsent : null,
+      marketingAt: bot?.mailingAnsweredAt ?? null,
+    },
   }
 }

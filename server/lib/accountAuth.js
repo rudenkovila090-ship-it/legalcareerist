@@ -37,7 +37,7 @@ export function accountConfig(env = process.env) {
   const login = String(env.ACCOUNT_LOGIN ?? '').trim()
   const hash = String(env.ACCOUNT_PASSWORD_HASH ?? '').trim()
   if (!login || !hash) return null
-  return { login, hash, tgId: String(env.ACCOUNT_TG_ID || env.TELEGRAM_ADMIN_CHAT_ID || ''), name: String(env.ACCOUNT_NAME ?? '').trim() }
+  return { login, hash, tgId: String(env.ACCOUNT_TG_ID || env.TELEGRAM_ADMIN_CHAT_ID || ''), name: String(env.ACCOUNT_NAME ?? '').trim(), email: String(env.ACCOUNT_EMAIL ?? '').trim(), phone: String(env.ACCOUNT_PHONE ?? '').trim() }
 }
 
 function load() {

@@ -74,6 +74,8 @@ import { findPerson, describeFound, erasePerson, erasedText } from './lib/erasur
 import { planImport, applyImport, planSummary, doneSummary } from './lib/botHelpImport.js'
 import { accountConfig, login as accountLogin, sessionFor, logout as accountLogout, bearer } from './lib/accountAuth.js'
 import { accountProfile } from './lib/accountProfile.js'
+import { getProfile, saveProfile, addRequest, lastRequest, PRACTICES, LEVELS } from './lib/accountStore.js'
+import { exportPersonData, accountEvents } from './lib/accountData.js'
 import { nextTicketNumber } from './lib/ticketCounter.js'
 import { buildDailyReport, mskDayKey, parseReportPeriod } from './lib/dailyReport.js'
 import { logWebhook, lastWebhook } from './lib/webhookLog.js'
@@ -767,6 +769,86 @@ app.get('/api/account/me', (req, res) => {
 app.post('/api/account/logout', (req, res) => {
   accountLogout(bearer(req))
   res.json({ ok: true })
+})
+
+/** Вошедший в кабинет (настройки входа) или null — тогда уже отправлен ответ 401. */
+function requireAccount(req, res) {
+  const cfg = accountConfig()
+  if (!cfg || !sessionFor(bearer(req))) {
+    res.status(401).json({ ok: false, error: 'unauthorized' })
+    return null
+  }
+  res.set('Cache-Control', 'no-store')
+  return cfg
+}
+
+/** Данные для журнала согласий о вошедшем: имя, Telegram id и ник из карточки бота. */
+function accountIdentity(cfg) {
+  const bot = cfg.tgId ? getBotUser(cfg.tgId) : null
+  return { name: cfg.name || [bot?.firstName, bot?.lastName].filter(Boolean).join(' ') || cfg.login, tgId: cfg.tgId || undefined, telegram: bot?.username, phone: cfg.phone || bot?.phone, email: cfg.email || bot?.email }
+}
+
+app.get('/api/account/profile', (req, res) => {
+  const cfg = requireAccount(req, res)
+  if (!cfg) return
+  res.json({ ok: true, profile: getProfile(cfg.login) })
+})
+
+// Сохранение частей профиля (practices, experience, expectations, privacy). При первом сохранении нужны две обязательные галочки.
+app.put('/api/account/profile', (req, res) => {
+  const cfg = requireAccount(req, res)
+  if (!cfg) return
+  const r = saveProfile(cfg.login, req.body, consentGiven(req.body))
+  if (r.error) return res.status(400).json({ ok: false, error: r.error })
+  if (r.firstConsent) recordConsent({ form: 'cabinet_profile', version: consentVersion(req.body), given: true, ...marketingFields(req.body), ...accountIdentity(cfg) })
+  if (r.firstConsent && consentChoice(req.body).marketing && cfg.tgId && getBotUser(cfg.tgId)) setMailingConsent(cfg.tgId, true)
+  res.json({ ok: true, profile: r.profile })
+})
+
+// Согласие на рекламные и информационные сообщения: можно включить и отозвать в любой момент. Решение уходит в карточку бота
+// (по ней идут рассылки) и в журнал согласий.
+app.post('/api/account/marketing', (req, res) => {
+  const cfg = requireAccount(req, res)
+  if (!cfg) return
+  if (typeof req.body?.marketing !== 'boolean') return res.status(400).json({ ok: false, error: 'bad_request' })
+  const value = req.body.marketing
+  if (cfg.tgId && getBotUser(cfg.tgId)) setMailingConsent(cfg.tgId, value)
+  recordConsent({ form: 'cabinet_marketing', version: consentVersion(req.body), given: Boolean(getProfile(cfg.login).consentAt), marketing: value, marketingVersion: marketingVersion(req.body), ...accountIdentity(cfg) })
+  res.json({ ok: true, marketing: value, at: Date.now(), applied: Boolean(cfg.tgId && getBotUser(cfg.tgId)) })
+})
+
+// Скачать все свои данные одним файлом.
+app.get('/api/account/data', (req, res) => {
+  const cfg = requireAccount(req, res)
+  if (!cfg) return
+  res.set('Content-Disposition', `attachment; filename="moi-dannye-${new Date().toISOString().slice(0, 10)}.json"`)
+  res.type('application/json').send(JSON.stringify(exportPersonData(cfg), null, 2))
+})
+
+// Запрос на удаление данных: не стираем сами (в данных есть оплаты, которые закон велит хранить), а передаём админу в бота.
+app.post('/api/account/data-request', async (req, res) => {
+  const cfg = requireAccount(req, res)
+  if (!cfg) return
+  const previous = lastRequest(cfg.login, 'delete')
+  if (previous && Date.now() - previous.at < 24 * 3600 * 1000) return res.json({ ok: true, already: true, at: previous.at })
+  const request = addRequest(cfg.login, 'delete')
+  if (BOT_TOKEN && ADMIN_CHAT_ID) {
+    const who = accountIdentity(cfg)
+    await sendTelegramMessage(ADMIN_CHAT_ID, `🗑 Запрос на удаление данных из личного кабинета\n\nКто: ${who.name} (логин ${cfg.login}${cfg.tgId ? `, Telegram id ${cfg.tgId}` : ''})\n\nЧтобы выполнить: /forget ${cfg.tgId || cfg.login}\nПлатёжные сведения при этом не удаляются, а обезличиваются — закон велит хранить их дольше.`).catch(() => false)
+  }
+  res.json({ ok: true, at: request.at })
+})
+
+app.get('/api/account/events', (req, res) => {
+  const cfg = requireAccount(req, res)
+  if (!cfg) return
+  res.json({ ok: true, events: accountEvents(cfg) })
+})
+
+// Справочники профиля для формы (коды и названия практик и уровней) — чтобы не дублировать их на сайте и сервере.
+app.get('/api/account/options', (req, res) => {
+  if (!requireAccount(req, res)) return
+  res.json({ ok: true, practices: PRACTICES, levels: LEVELS })
 })
 
 // Сквозной номер заявки — растёт с 1 (Контакты, Поддержка), а не случайное
