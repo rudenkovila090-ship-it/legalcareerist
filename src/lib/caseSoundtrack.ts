@@ -98,6 +98,7 @@ export class CaseSoundtrack {
   private duck = 1
   private duckTimer: number | null = null
   private revealed = false
+  private readonly listeners = new Set<() => void>()
 
   private stemGain = {} as Record<Stem, GainNode>
   private lp!: BiquadFilterNode
@@ -125,6 +126,18 @@ export class CaseSoundtrack {
       if (document.hidden) void this.ctx.suspend()
       else if (this.isOpen) void this.ctx.resume()
     })
+  }
+
+  /** Подписка на изменения (запуск, остановка, звук включён/выключен). Возвращает функцию отписки. */
+  subscribe(listener: () => void) {
+    this.listeners.add(listener)
+    return () => {
+      this.listeners.delete(listener)
+    }
+  }
+
+  private emit() {
+    for (const l of this.listeners) l()
   }
 
   private buildGraph() {
@@ -215,9 +228,13 @@ export class CaseSoundtrack {
     }, 500)
     this.setProgress(this.progress, true)
     this.applyMaster(true)
+    this.emit()
   }
 
-  /** Запускает музыку. Вызывать синхронно из обработчика клика или касания, иначе браузер заблокирует звук. */
+  /**
+   * Запускает музыку. Браузер разрешает звук только после действия посетителя, поэтому без него метод лишь готовит звук
+   * (файлы грузятся сразу), а играть начнёт, как только open() вызовут снова из клика или касания.
+   */
   open() {
     if (this.stopTimer) {
       clearTimeout(this.stopTimer)
@@ -230,17 +247,19 @@ export class CaseSoundtrack {
       console.warn('CaseSoundtrack:', e instanceof Error ? e.message : e)
       return Promise.resolve()
     }
-    const resumed = this.ctx?.resume() // вызывается синхронно, внутри клика
+    const ctx = this.ctx
+    if (!ctx) return Promise.resolve()
+    const resumed = ctx.resume().catch(() => undefined) // вызывается синхронно, внутри клика
     if (this.playing) {
       // закрыли и сразу открыли снова
       this.applyMaster(true)
       this.setProgress(this.progress)
+      this.emit()
       return Promise.resolve()
     }
-    return Promise.resolve(resumed)
-      .then(() => this.load())
+    return Promise.all([resumed, this.load()])
       .then(() => {
-        if (!this.isOpen || this.playing) return
+        if (!this.isOpen || this.playing || ctx.state !== 'running') return
         this.startPlayback()
       })
       .catch((err) => console.warn('CaseSoundtrack:', err))
@@ -303,12 +322,14 @@ export class CaseSoundtrack {
     if (this.duckTimer) clearTimeout(this.duckTimer)
     this.stopTimer = null
     if (this.ctx) void this.ctx.suspend()
+    this.emit()
   }
 
   /** Плавное затухание и остановка. */
   close() {
     if (!this.isOpen) return
     this.isOpen = false
+    this.emit()
     if (!this.ctx || !this.playing) return
     const t = this.ctx.currentTime
     this.master.gain.cancelScheduledValues(t)
@@ -316,7 +337,8 @@ export class CaseSoundtrack {
     this.stopTimer = window.setTimeout(() => this.stop(), 1500)
   }
 
-  isPlaying() {
+  /** Музыка реально идёт (браузер дал звук), пусть и с выключенным звуком. */
+  isRunning() {
     return this.playing && this.isOpen
   }
 
@@ -329,6 +351,7 @@ export class CaseSoundtrack {
     this.muted = muted
     writeMuted(this.storageKey, muted)
     if (this.playing && this.isOpen) this.applyMaster(false)
+    this.emit()
     return this.muted
   }
 

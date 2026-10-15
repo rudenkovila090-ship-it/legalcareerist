@@ -27,14 +27,43 @@ export function startEventMusicOnClick(slug: string, e: MouseEvent) {
   orphanTimer = window.setTimeout(() => snd.close(), ORPHAN_MS)
 }
 
-/** Страница мероприятия открылась: музыка теперь «её». Возвращает функцию, которой страница отдаёт музыку при закрытии. */
+// Браузеры не дают включить звук без действия посетителя. Поэтому музыка пробует стартовать сама (получится, если посетитель
+// уже взаимодействовал с сайтом или он в списке доверенных у браузера), а если нет — стартует от первого клика, касания или нажатия клавиши.
+const GESTURES = ['pointerdown', 'pointerup', 'touchend', 'keydown', 'click'] as const
+
+function armFirstGesture(snd: CaseSoundtrack) {
+  let unsubscribe = () => {}
+  const onGesture = (e: Event) => {
+    // Клик по самой кнопке «Музыка вечера» разбирает кнопка, иначе он включил бы и тут же выключил звук.
+    if (e.target instanceof Element && e.target.closest('.noir-snd')) return
+    void snd.open()
+  }
+  const disarm = () => {
+    for (const name of GESTURES) document.removeEventListener(name, onGesture, true)
+    unsubscribe()
+  }
+  for (const name of GESTURES) document.addEventListener(name, onGesture, true)
+  unsubscribe = snd.subscribe(() => {
+    if (snd.isRunning()) disarm()
+  })
+  return disarm
+}
+
+/** Страница мероприятия открылась: музыка теперь «её», включается сама. Возвращает функцию, которой страница отдаёт музыку при закрытии. */
 export function claimEventMusic() {
   window.clearTimeout(orphanTimer)
   // Защита от двойного монтирования в dev (StrictMode): закрытие откладываем и снимаем, если страница тут же смонтировалась снова.
   window.clearTimeout(pendingClose)
   const snd = eventMusic()
   const unbind = snd.bindScroll()
+  let disarm = () => {}
+  // Кто звук выключил, тому он остаётся выключенным: файлы (почти 5 МБ) для него не грузим, пока сам не включит кнопкой.
+  if (!snd.muted) {
+    void snd.open()
+    if (!snd.isRunning()) disarm = armFirstGesture(snd)
+  }
   return () => {
+    disarm()
     unbind()
     pendingClose = window.setTimeout(() => snd.close(), 150)
   }
