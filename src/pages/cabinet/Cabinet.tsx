@@ -9,6 +9,7 @@ import { inputClass } from './shared'
 import { ExpectationsSection, PracticesSection, PrivacySection } from './ProfileSections'
 import { ConsentsSection, MyDataSection, VisibilitySection } from './DataSections'
 import { EventsSection, ResidentSection, TelegramSection } from './CommunitySections'
+import { CvSection, DocumentsSection } from './DocumentsSections'
 
 const IconOverview = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 shrink-0" aria-hidden="true">
@@ -157,6 +158,8 @@ function SectionBody({ section, user, onRefresh }: { section: CabinetSection; us
     resident: <ResidentSection user={user} />,
     events: <EventsSection />,
     telegram: <TelegramSection user={user} />,
+    cv: <CvSection />,
+    documents: <DocumentsSection />,
   }
   if (!section.ready || !body[section.id]) {
     return (

@@ -127,6 +127,30 @@ export function saveProfile(login, body, consentGiven, now = Date.now()) {
   return { profile: getProfile(login), firstConsent: !saved.consentAt }
 }
 
+/** Согласие на обработку данных в кабинете без сохранения частей профиля (например, при первой загрузке документа). */
+export function grantConsent(login, now = Date.now()) {
+  const data = readJson(PROFILE_FILE, {})
+  const saved = data[login] ?? {}
+  if (saved.consentAt) return false
+  data[login] = { ...saved, consentAt: now, updatedAt: saved.updatedAt ?? now }
+  writeJson(PROFILE_FILE, data)
+  return true
+}
+
+/** Удаляет профиль и запросы человека (при удалении данных по запросу). Возвращает, было ли что удалять. */
+export function eraseProfile(login) {
+  const data = readJson(PROFILE_FILE, {})
+  const had = Boolean(data[login])
+  if (had) {
+    delete data[login]
+    writeJson(PROFILE_FILE, data)
+  }
+  const requests = readJson(REQUESTS_FILE, [])
+  const kept = requests.filter((r) => r.login !== login)
+  if (kept.length !== requests.length) writeJson(REQUESTS_FILE, kept)
+  return had
+}
+
 /** Запрос на удаление данных: хранится, чтобы не потерять, и уходит админу в бота. */
 export function addRequest(login, kind, now = Date.now()) {
   const list = readJson(REQUESTS_FILE, [])

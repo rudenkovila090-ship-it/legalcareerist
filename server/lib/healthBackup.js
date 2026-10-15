@@ -54,11 +54,14 @@ export function healthLines({ lastWebhook, lastPollAt, pollingEnabled, errors, l
   return lines
 }
 
-/** Архив папки data (.tar.gz) в памяти. */
+/**
+ * Архив папки data (.tar.gz) в памяти. Файлы документов кабинета (account-files) не входят: они крупные и личные,
+ * а в Telegram лежит копия размером до 45 МБ — их копируют отдельно на самом сервере.
+ */
 export async function makeBackup() {
   const tmp = path.join(os.tmpdir(), `lc-backup-${Date.now()}.tar.gz`)
   try {
-    await run('tar', ['-czf', tmp, '-C', DATA_DIR, '.'])
+    await run('tar', ['-czf', tmp, '--exclude=./account-files', '-C', DATA_DIR, '.'])
     return fs.readFileSync(tmp)
   } finally {
     fs.rmSync(tmp, { force: true })

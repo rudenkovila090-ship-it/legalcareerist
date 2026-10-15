@@ -5,6 +5,7 @@ import { getBotUser } from './botUsers.js'
 import { personKeys, consentEntriesFor } from './consentLog.js'
 import { SOURCES, recordsOf } from './personData.js'
 import { getProfile } from './accountStore.js'
+import { listDocuments, DOC_TYPES } from './accountDocs.js'
 
 const DATA_DIR = path.join(import.meta.dirname, '..', 'data')
 
@@ -41,6 +42,18 @@ export function exportPersonData(cfg, now = Date.now()) {
     note: 'Все данные о вас, которые хранит сервис «Карьерный юрист» на сегодня. Платёжные сведения и журналы показаны в объёме, в котором мы их храним.',
     account: { login: cfg.login, telegramId: cfg.tgId || null },
     cabinetProfile: getProfile(cfg.login),
+    cabinetDocuments: {
+      note: 'Сами файлы скачиваются в личном кабинете, в разделах «Профиль и CV» и «Сопроводительные и тестовые».',
+      list: listDocuments(cfg.login).map((d) => ({
+        title: d.title,
+        type: DOC_TYPES[d.type] ?? d.type,
+        note: d.note || undefined,
+        target: d.target || undefined,
+        main: d.primary || undefined,
+        added: new Date(d.createdAt).toISOString(),
+        versions: d.versions.map((v) => ({ n: v.n, file: v.filename, sizeBytes: v.size, uploaded: new Date(v.uploadedAt).toISOString() })),
+      })),
+    },
     ...records,
     consentLog: consentEntriesFor(keys).map((entry) => {
       const e = { ...entry }

@@ -139,10 +139,15 @@ type ApiResult<T> = { ok: true; data: T } | { ok: false; error: string }
 
 async function api<T>(path: string, init: RequestInit = {}): Promise<ApiResult<T>> {
   try {
-    const res = await fetch(path, { ...init, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, ...(init.headers ?? {}) } })
+    // Для файлов (FormData) тип запроса ставит браузер сам, вместе с границей частей.
+    const headers: Record<string, string> = { Authorization: `Bearer ${getToken()}` }
+    if (!(init.body instanceof FormData)) headers['Content-Type'] = 'application/json'
+    const res = await fetch(path, { ...init, headers })
     const data = (await res.json().catch(() => ({}))) as T & { error?: string }
     if (res.status === 401) clearToken()
-    return res.ok ? { ok: true, data } : { ok: false, error: data.error ?? (res.status === 401 ? 'unauthorized' : 'error') }
+    // 413 без тела — отказ веб-сервера (nginx) до приложения: файл больше его предела.
+    const fallback = res.status === 401 ? 'unauthorized' : res.status === 413 ? 'file_too_large' : 'error'
+    return res.ok ? { ok: true, data } : { ok: false, error: data.error ?? fallback }
   } catch {
     return { ok: false, error: 'network' }
   }
@@ -159,17 +164,106 @@ export const saveProfile = (parts: Partial<Pick<Profile, 'practices' | 'experien
 export const setMarketing = (marketing: boolean) => api<{ marketing: boolean; at: number; applied: boolean }>('/api/account/marketing', { method: 'POST', body: JSON.stringify({ marketing }) })
 export const requestDeletion = () => api<{ already?: boolean; at: number }>('/api/account/data-request', { method: 'POST', body: '{}' })
 
+/** Сохраняет файл из памяти браузера под заданным именем (ссылка должна быть в документе, и адрес живёт ещё секунду). */
+function saveBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.style.display = 'none'
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+
 /** Скачивает файл со всеми данными человека (браузер сохранит его как moi-dannye-ДАТА.json). */
 export async function downloadMyData(): Promise<boolean> {
   try {
     const res = await fetch('/api/account/data', { headers: { Authorization: `Bearer ${getToken()}` } })
     if (!res.ok) return false
-    const url = URL.createObjectURL(await res.blob())
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `moi-dannye-${new Date().toISOString().slice(0, 10)}.json`
-    a.click()
-    URL.revokeObjectURL(url)
+    saveBlob(await res.blob(), `moi-dannye-${new Date().toISOString().slice(0, 10)}.json`)
+    return true
+  } catch {
+    return false
+  }
+}
+
+// ---- Документы: резюме, сопроводительные, тестовые ----
+
+export type DocType = 'cv' | 'cover' | 'test' | 'other'
+
+export interface DocVersion {
+  n: number
+  filename: string
+  ext: string
+  size: number
+  uploadedAt: number
+}
+
+export interface CabinetDoc {
+  id: string
+  type: DocType
+  title: string
+  note: string
+  target: string
+  /** Основное резюме: его получают в первую очередь (только у резюме). */
+  primary: boolean
+  createdAt: number
+  updatedAt: number
+  versions: DocVersion[]
+}
+
+export interface DocumentsState {
+  documents: CabinetDoc[]
+  types: Record<DocType, string>
+  extensions: string[]
+  limits: { fileBytes: number; docs: number; versions: number; totalBytes: number }
+  usedBytes: number
+  /** Когда человек дал согласие на обработку данных в кабинете; null — первая загрузка потребует галочек. */
+  consentAt: number | null
+}
+
+export interface UploadInput {
+  file: File
+  type?: DocType
+  title?: string
+  note?: string
+  target?: string
+  /** Если указан — файл добавляется новой версией этого документа. */
+  docId?: string
+  consent?: ConsentChoice
+}
+
+export const fetchDocuments = () => api<DocumentsState>('/api/account/documents')
+
+export function uploadDocument(input: UploadInput) {
+  const body = new FormData()
+  if (input.docId) body.set('docId', input.docId)
+  else {
+    body.set('type', input.type ?? 'cv')
+    body.set('title', input.title ?? '')
+    body.set('note', input.note ?? '')
+    body.set('target', input.target ?? '')
+  }
+  // Настоящее имя файла отдельным полем: в частях multipart кириллица в имени может исказиться.
+  body.set('fileName', input.file.name)
+  if (input.consent) body.set('consent', JSON.stringify(input.consent))
+  body.set('file', input.file)
+  return api<DocumentsState & { doc: CabinetDoc }>('/api/account/documents', { method: 'POST', body })
+}
+
+export const updateDocument = (id: string, patch: { title?: string; note?: string; target?: string; primary?: boolean }) =>
+  api<DocumentsState>(`/api/account/documents/${id}`, { method: 'PATCH', body: JSON.stringify(patch) })
+export const deleteDocument = (id: string) => api<DocumentsState>(`/api/account/documents/${id}`, { method: 'DELETE' })
+export const deleteDocumentVersion = (id: string, n: number) => api<DocumentsState>(`/api/account/documents/${id}/versions/${n}`, { method: 'DELETE' })
+
+/** Скачивает файл версии под его настоящим именем. */
+export async function downloadVersion(id: string, v: DocVersion): Promise<boolean> {
+  try {
+    const res = await fetch(`/api/account/documents/${id}/versions/${v.n}/file`, { headers: { Authorization: `Bearer ${getToken()}` } })
+    if (!res.ok) return false
+    saveBlob(await res.blob(), v.filename)
     return true
   } catch {
     return false

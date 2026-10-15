@@ -74,7 +74,8 @@ import { findPerson, describeFound, erasePerson, erasedText } from './lib/erasur
 import { planImport, applyImport, planSummary, doneSummary } from './lib/botHelpImport.js'
 import { accountConfig, login as accountLogin, sessionFor, logout as accountLogout, bearer } from './lib/accountAuth.js'
 import { accountProfile } from './lib/accountProfile.js'
-import { getProfile, saveProfile, addRequest, lastRequest, PRACTICES, LEVELS } from './lib/accountStore.js'
+import { getProfile, saveProfile, grantConsent, addRequest, lastRequest, PRACTICES, LEVELS } from './lib/accountStore.js'
+import { DOC_TYPES, LIMITS as DOC_LIMITS, ALLOWED_EXT, MIME as DOC_MIME, listDocuments, usedBytes as docsUsedBytes, addDocument, addVersion, updateDocument, deleteDocument, deleteVersion, versionFile } from './lib/accountDocs.js'
 import { exportPersonData, accountEvents } from './lib/accountData.js'
 import { nextTicketNumber } from './lib/ticketCounter.js'
 import { buildDailyReport, mskDayKey, parseReportPeriod } from './lib/dailyReport.js'
@@ -849,6 +850,95 @@ app.get('/api/account/events', (req, res) => {
 app.get('/api/account/options', (req, res) => {
   if (!requireAccount(req, res)) return
   res.json({ ok: true, practices: PRACTICES, levels: LEVELS })
+})
+
+// ---- Документы личного кабинета: резюме, сопроводительные, тестовые (lib/accountDocs.js) ----
+const documentsState = (cfg) => ({ ok: true, documents: listDocuments(cfg.login), types: DOC_TYPES, extensions: ALLOWED_EXT, limits: DOC_LIMITS, usedBytes: docsUsedBytes(cfg.login), consentAt: getProfile(cfg.login).consentAt })
+
+app.get('/api/account/documents', (req, res) => {
+  const cfg = requireAccount(req, res)
+  if (!cfg) return
+  res.json(documentsState(cfg))
+})
+
+const documentUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: DOC_LIMITS.fileBytes, files: 1, fields: 12, fieldSize: 4096 } }).single('file')
+const DOC_ERRORS = {
+  empty_file: [400, 'empty_file'], bad_type: [400, 'bad_type'], bad_content: [400, 'bad_content'], file_too_large: [413, 'file_too_large'],
+  bad_doc_type: [400, 'bad_doc_type'], too_many_documents: [409, 'too_many_documents'], too_many_versions: [409, 'too_many_versions'],
+  storage_full: [409, 'storage_full'], not_found: [404, 'not_found'],
+}
+const docError = (res, code) => {
+  const [status, error] = DOC_ERRORS[code] ?? [400, 'bad_request']
+  return res.status(status).json({ ok: false, error })
+}
+
+// Загрузка: новый документ или, если передан docId, новая версия существующего. Вход проверяется до разбора файла.
+app.post('/api/account/documents', (req, res, next) => (requireAccount(req, res) ? next() : undefined), (req, res) => {
+  const cfg = accountConfig()
+  documentUpload(req, res, (err) => {
+    if (err?.code === 'LIMIT_FILE_SIZE') return docError(res, 'file_too_large')
+    if (err || !req.file) return res.status(400).json({ ok: false, error: 'no_file' })
+    const b = req.body ?? {}
+    let consent
+    try {
+      consent = JSON.parse(String(b.consent ?? 'null'))
+    } catch {
+      consent = null
+    }
+    const body = { consent, consentVersion: b.consentVersion, marketingVersion: b.marketingVersion }
+    const needConsent = !getProfile(cfg.login).consentAt
+    if (needConsent && !consentGiven(body)) return res.status(400).json({ ok: false, error: 'consent_required' })
+    // multer читает имя файла как latin1, поэтому настоящее имя (UTF-8) приходит отдельным полем
+    const file = { buffer: req.file.buffer, filename: String(b.fileName || req.file.originalname || '') }
+    const r = b.docId ? addVersion(cfg.login, String(b.docId), file) : addDocument(cfg.login, { type: String(b.type ?? 'cv'), title: b.title, note: b.note, target: b.target }, file)
+    if (r.error) return docError(res, r.error)
+    if (needConsent && grantConsent(cfg.login)) {
+      recordConsent({ form: 'cabinet_documents', version: consentVersion(body), given: true, ...marketingFields(body), ...accountIdentity(cfg) })
+      if (consentChoice(body).marketing && cfg.tgId && getBotUser(cfg.tgId)) setMailingConsent(cfg.tgId, true)
+    }
+    res.json({ ...documentsState(cfg), doc: r.doc })
+  })
+})
+
+app.patch('/api/account/documents/:id', (req, res) => {
+  const cfg = requireAccount(req, res)
+  if (!cfg) return
+  const r = updateDocument(cfg.login, req.params.id, { title: req.body?.title, note: req.body?.note, target: req.body?.target, primary: req.body?.primary === true ? true : undefined })
+  if (r.error) return docError(res, r.error)
+  res.json(documentsState(cfg))
+})
+
+app.delete('/api/account/documents/:id', (req, res) => {
+  const cfg = requireAccount(req, res)
+  if (!cfg) return
+  const r = deleteDocument(cfg.login, req.params.id)
+  if (r.error) return docError(res, r.error)
+  res.json(documentsState(cfg))
+})
+
+app.delete('/api/account/documents/:id/versions/:n', (req, res) => {
+  const cfg = requireAccount(req, res)
+  if (!cfg) return
+  const r = deleteVersion(cfg.login, req.params.id, Number(req.params.n))
+  if (r.error) return docError(res, r.error)
+  res.json(documentsState(cfg))
+})
+
+// Скачивание файла версии. Файл отдаётся как вложение с запретом угадывать тип: даже если внутри окажется не то, что заявлено
+// в расширении, браузер его не выполнит.
+app.get('/api/account/documents/:id/versions/:n/file', (req, res) => {
+  const cfg = requireAccount(req, res)
+  if (!cfg) return
+  const f = versionFile(cfg.login, req.params.id, Number(req.params.n))
+  if (!f) return docError(res, 'not_found')
+  res.set({
+    'Content-Type': DOC_MIME[f.ext] ?? 'application/octet-stream',
+    'Content-Length': String(f.size),
+    'Content-Disposition': `attachment; filename="document.${f.ext}"; filename*=UTF-8''${encodeURIComponent(f.filename).replace(/['()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`)}`,
+    'X-Content-Type-Options': 'nosniff',
+    'Content-Security-Policy': "default-src 'none'; sandbox",
+  })
+  fs.createReadStream(f.path).pipe(res)
 })
 
 // Сквозной номер заявки — растёт с 1 (Контакты, Поддержка), а не случайное
