@@ -62,6 +62,11 @@ export function recordConsent({ form, version, given, marketing, marketingVersio
 
 const entryKeys = (e) => personKeys({ phone: e.phone, email: e.email, telegram: e.telegram, tgId: e.tgId })
 
+/** Записи журнала этого человека (для выгрузки его данных в личном кабинете). */
+export function consentEntriesFor(keys) {
+  return readAll().filter((e) => [...entryKeys(e)].some((k) => keys.has(k)))
+}
+
 /** Сколько записей журнала относится к этому человеку. */
 export function countConsentEntries(keys) {
   return readAll().filter((e) => [...entryKeys(e)].some((k) => keys.has(k))).length

@@ -7,6 +7,10 @@ import path from 'node:path'
 import { createJsonStore, normalizePhone } from './jsonStore.js'
 import { SOURCES, recordsOf, anonymizeRecord } from './personData.js'
 import { personKeys, countConsentEntries, pseudonymizeConsent } from './consentLog.js'
+import { accountConfig, revokeAll } from './accountAuth.js'
+import { accountKeys } from './accountData.js'
+import { eraseProfile, getProfile } from './accountStore.js'
+import { listDocuments, eraseAccountFiles } from './accountDocs.js'
 
 const DATA_DIR = path.join(import.meta.dirname, '..', 'data')
 const reviewsStore = createJsonStore('material-reviews.json')
@@ -27,6 +31,18 @@ export function parseQuery(text) {
 }
 
 const intersects = (own, keys) => [...own].some((k) => keys.has(k))
+
+// Личный кабинет на сайте хранит данные по логину, а не по контактам: считаем их данными человека, если логин или его
+// контакты (Telegram id, ник, телефон, почта из настроек и из карточки бота) совпали с запросом.
+const ACCOUNT_KEY = 'a:login'
+function accountOf(query, keys) {
+  const cfg = accountConfig()
+  if (!cfg) return null
+  const asked = String(query ?? '').trim().toLowerCase().replace(/^@/, '')
+  if (!keys.has(ACCOUNT_KEY) && asked !== cfg.login.toLowerCase() && !intersects(accountKeys(cfg), keys)) return null
+  const docs = listDocuments(cfg.login)
+  return { login: cfg.login, hasProfile: Boolean(getProfile(cfg.login).updatedAt), docs: docs.length, files: docs.reduce((n, d) => n + d.versions.length, 0) }
+}
 
 /** Короткая подпись записи для подтверждения: имя с инициалом фамилии и последние цифры телефона — чтобы админ узнал человека. */
 function label(rec) {
@@ -102,6 +118,9 @@ export function findPerson(query) {
   const reviews = reviewsStore.all().filter((r) => purchaseTokens.has(r.purchaseToken))
   const hooks = webhookLines(keys).filter((w) => w.match)
 
+  const extraKeys = keys.size - initial.size
+  const account = accountOf(query, keys)
+  if (account) keys.add(ACCOUNT_KEY)
   const matches = found.map(({ source, rec }) => ({
     source: source.id,
     title: source.title,
@@ -114,7 +133,8 @@ export function findPerson(query) {
     webhooks: hooks.length,
     reviews: reviews.length,
   }
-  return { keys: [...keys], extraKeys: keys.size - initial.size, matches, logs, empty: !matches.length && !logs.consent && !logs.webhooks && !logs.reviews }
+  const empty = !matches.length && !logs.consent && !logs.webhooks && !logs.reviews && !(account && (account.hasProfile || account.docs))
+  return { keys: [...keys], extraKeys, matches, logs, account, empty }
 }
 
 /** Текст подтверждения для админа. */
@@ -130,6 +150,9 @@ export function describeFound(res) {
     lines.push(`• ${e.title}:`)
     for (const m of e.items) lines.push(`   ${m.action === 'delete' ? 'удалить' : 'обезличить'} — ${m.label}`)
   }
+  if (res.account && (res.account.hasProfile || res.account.docs)) {
+    lines.push(`• Личный кабинет на сайте (${res.account.login}): удалить профиль${res.account.docs ? `, документов ${res.account.docs} (файлов ${res.account.files})` : ''}, закрыть вход`)
+  }
   if (res.logs.reviews) lines.push(`• Отзывы о материалах: удалить ${res.logs.reviews}`)
   if (res.logs.consent) lines.push(`• Журнал согласий: заменить имя и контакты отпечатками (${res.logs.consent})`)
   if (res.logs.webhooks) lines.push(`• Журнал платежей Prodamus: стереть имя и контакты (${res.logs.webhooks})`)
@@ -142,7 +165,7 @@ export function describeFound(res) {
 /** Выполняет удаление по ключам, найденным findPerson. Данные перечитываются заново, так что результат всегда актуален. */
 export function erasePerson(keyList) {
   const keys = new Set(keyList)
-  const done = { deleted: 0, anonymized: 0, reviews: 0, consent: 0, webhooks: 0, leadSources: 0, notices: 0 }
+  const done = { deleted: 0, anonymized: 0, reviews: 0, consent: 0, webhooks: 0, leadSources: 0, notices: 0, cabinet: 0, cabinetFiles: 0 }
   const names = new Set()
 
   const purchaseTokens = []
@@ -166,6 +189,14 @@ export function erasePerson(keyList) {
       reviewsStore.remove(r.token)
       done.reviews += 1
     }
+  }
+
+  // Личный кабинет: профиль, документы с файлами, запросы; сессии закрываются, чтобы вошедший не пересоздал данные со старого входа.
+  const cfg = accountConfig()
+  if (cfg && (keys.has(ACCOUNT_KEY) || intersects(accountKeys(cfg), keys))) {
+    done.cabinetFiles = eraseAccountFiles(cfg.login)
+    done.cabinet = eraseProfile(cfg.login) ? 1 : 0
+    revokeAll()
   }
 
   done.consent = pseudonymizeConsent(keys)
@@ -217,6 +248,7 @@ export function erasePerson(keyList) {
 export function erasedText(done) {
   const lines = ['✅ Данные удалены', '', `Записей удалено: ${done.deleted}`, `Записей обезличено: ${done.anonymized}`]
   if (done.reviews) lines.push(`Отзывов удалено: ${done.reviews}`)
+  if (done.cabinet || done.cabinetFiles) lines.push(`Личный кабинет: профиль удалён, файлов документов удалено ${done.cabinetFiles}, вход закрыт`)
   if (done.consent) lines.push(`Записей журнала согласий обезличено: ${done.consent}`)
   if (done.webhooks) lines.push(`Строк журнала платежей очищено: ${done.webhooks}`)
   if (done.leadSources) lines.push(`Строк журнала «Откуда узнали» удалено: ${done.leadSources}`)

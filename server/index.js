@@ -28,6 +28,7 @@
 //     регистрации на мероприятие (внешняя ссылка или внутренняя форма).
 // 12. /api/store/* — закрыто (410): прежнее зеркало данных кабинетов (localStorage ↔ сервер) отдавало их без
 //     авторизации; теперь данные кабинетов хранятся только в браузере посетителя.
+// 13. /api/account/* — вход в личный кабинет на сайте (логин и пароль в server/.env) и данные кабинета.
 // Токены и секретные ключи — только в server/.env, в репозиторий не попадают.
 import express from 'express'
 import cors from 'cors'
@@ -71,6 +72,11 @@ import { recordConsent } from './lib/consentLog.js'
 import { scanRetention, applyRetention, retentionReportText, retentionDoneText } from './lib/retention.js'
 import { findPerson, describeFound, erasePerson, erasedText } from './lib/erasure.js'
 import { planImport, applyImport, planSummary, doneSummary } from './lib/botHelpImport.js'
+import { accountConfig, login as accountLogin, sessionFor, logout as accountLogout, bearer } from './lib/accountAuth.js'
+import { accountProfile } from './lib/accountProfile.js'
+import { getProfile, saveProfile, grantConsent, addRequest, lastRequest, PRACTICES, LEVELS } from './lib/accountStore.js'
+import { DOC_TYPES, LIMITS as DOC_LIMITS, ALLOWED_EXT, MIME as DOC_MIME, listDocuments, usedBytes as docsUsedBytes, addDocument, addVersion, updateDocument, deleteDocument, deleteVersion, versionFile } from './lib/accountDocs.js'
+import { exportPersonData, accountEvents } from './lib/accountData.js'
 import { nextTicketNumber } from './lib/ticketCounter.js'
 import { buildDailyReport, mskDayKey, parseReportPeriod } from './lib/dailyReport.js'
 import { logWebhook, lastWebhook } from './lib/webhookLog.js'
@@ -733,6 +739,207 @@ app.post('/api/event/:slug/register', (req, res) => {
 // Бывшая синхронизация localStorage кабинетов с сервером закрыта (отдавала данные без авторизации).
 // Старые клиенты, у которых ещё открыта прежняя версия сайта, получают 410 и работают только с локальными данными.
 app.all('/api/store/*', (req, res) => res.sendStatus(410))
+
+// ---- Личный кабинет на сайте (/cabinet): вход по логину и паролю из server/.env, см. lib/accountAuth.js ----
+// Защита от перебора: не больше 20 неудачных входов за 15 минут на весь сервер (по адресу не считаем: за nginx он у всех
+// одинаковый или подделывается). Пароль длинный и случайный, scrypt медленный, так что этого с запасом.
+const loginFailures = { count: 0, resetAt: 0 }
+const LOGIN_MAX_FAILURES = 20
+const LOGIN_WINDOW_MS = 15 * 60 * 1000
+
+app.post('/api/account/login', (req, res) => {
+  const now = Date.now()
+  if (loginFailures.resetAt < now) Object.assign(loginFailures, { count: 0, resetAt: now + LOGIN_WINDOW_MS })
+  if (loginFailures.count >= LOGIN_MAX_FAILURES) return res.status(429).json({ ok: false, error: 'too_many_attempts' })
+  const r = accountLogin(req.body?.login, req.body?.password)
+  if (r.error === 'not_configured') return res.status(503).json({ ok: false, error: 'not_configured' })
+  if (r.error) {
+    loginFailures.count += 1
+    return res.status(401).json({ ok: false, error: 'bad_credentials' })
+  }
+  res.json({ ok: true, token: r.token, expiresAt: r.expiresAt })
+})
+
+app.get('/api/account/me', (req, res) => {
+  const cfg = accountConfig()
+  if (!cfg || !sessionFor(bearer(req))) return res.status(401).json({ ok: false, error: 'unauthorized' })
+  res.set('Cache-Control', 'no-store')
+  res.json({ ok: true, ...accountProfile(cfg) })
+})
+
+app.post('/api/account/logout', (req, res) => {
+  accountLogout(bearer(req))
+  res.json({ ok: true })
+})
+
+/** Вошедший в кабинет (настройки входа) или null — тогда уже отправлен ответ 401. */
+function requireAccount(req, res) {
+  const cfg = accountConfig()
+  if (!cfg || !sessionFor(bearer(req))) {
+    res.status(401).json({ ok: false, error: 'unauthorized' })
+    return null
+  }
+  res.set('Cache-Control', 'no-store')
+  return cfg
+}
+
+/** Данные для журнала согласий о вошедшем: имя, Telegram id и ник из карточки бота. */
+function accountIdentity(cfg) {
+  const bot = cfg.tgId ? getBotUser(cfg.tgId) : null
+  return { name: cfg.name || [bot?.firstName, bot?.lastName].filter(Boolean).join(' ') || cfg.login, tgId: cfg.tgId || undefined, telegram: bot?.username, phone: cfg.phone || bot?.phone, email: cfg.email || bot?.email }
+}
+
+app.get('/api/account/profile', (req, res) => {
+  const cfg = requireAccount(req, res)
+  if (!cfg) return
+  res.json({ ok: true, profile: getProfile(cfg.login) })
+})
+
+// Сохранение частей профиля (practices, experience, expectations, privacy). При первом сохранении нужны две обязательные галочки.
+app.put('/api/account/profile', (req, res) => {
+  const cfg = requireAccount(req, res)
+  if (!cfg) return
+  const r = saveProfile(cfg.login, req.body, consentGiven(req.body))
+  if (r.error) return res.status(400).json({ ok: false, error: r.error })
+  if (r.firstConsent) recordConsent({ form: 'cabinet_profile', version: consentVersion(req.body), given: true, ...marketingFields(req.body), ...accountIdentity(cfg) })
+  if (r.firstConsent && consentChoice(req.body).marketing && cfg.tgId && getBotUser(cfg.tgId)) setMailingConsent(cfg.tgId, true)
+  res.json({ ok: true, profile: r.profile })
+})
+
+// Согласие на рекламные и информационные сообщения: можно включить и отозвать в любой момент. Решение уходит в карточку бота
+// (по ней идут рассылки) и в журнал согласий.
+app.post('/api/account/marketing', (req, res) => {
+  const cfg = requireAccount(req, res)
+  if (!cfg) return
+  if (typeof req.body?.marketing !== 'boolean') return res.status(400).json({ ok: false, error: 'bad_request' })
+  const value = req.body.marketing
+  if (cfg.tgId && getBotUser(cfg.tgId)) setMailingConsent(cfg.tgId, value)
+  recordConsent({ form: 'cabinet_marketing', version: consentVersion(req.body), given: Boolean(getProfile(cfg.login).consentAt), marketing: value, marketingVersion: marketingVersion(req.body), ...accountIdentity(cfg) })
+  res.json({ ok: true, marketing: value, at: Date.now(), applied: Boolean(cfg.tgId && getBotUser(cfg.tgId)) })
+})
+
+// Скачать все свои данные одним файлом.
+app.get('/api/account/data', (req, res) => {
+  const cfg = requireAccount(req, res)
+  if (!cfg) return
+  res.set('Content-Disposition', `attachment; filename="moi-dannye-${new Date().toISOString().slice(0, 10)}.json"`)
+  res.type('application/json').send(JSON.stringify(exportPersonData(cfg), null, 2))
+})
+
+// Запрос на удаление данных: не стираем сами (в данных есть оплаты, которые закон велит хранить), а передаём админу в бота.
+app.post('/api/account/data-request', async (req, res) => {
+  const cfg = requireAccount(req, res)
+  if (!cfg) return
+  const previous = lastRequest(cfg.login, 'delete')
+  if (previous && Date.now() - previous.at < 24 * 3600 * 1000) return res.json({ ok: true, already: true, at: previous.at })
+  const request = addRequest(cfg.login, 'delete')
+  if (BOT_TOKEN && ADMIN_CHAT_ID) {
+    const who = accountIdentity(cfg)
+    await sendTelegramMessage(ADMIN_CHAT_ID, `🗑 Запрос на удаление данных из личного кабинета\n\nКто: ${who.name} (логин ${cfg.login}${cfg.tgId ? `, Telegram id ${cfg.tgId}` : ''})\n\nЧтобы выполнить: /forget ${cfg.tgId || cfg.login}\nПлатёжные сведения при этом не удаляются, а обезличиваются — закон велит хранить их дольше.`).catch(() => false)
+  }
+  res.json({ ok: true, at: request.at })
+})
+
+app.get('/api/account/events', (req, res) => {
+  const cfg = requireAccount(req, res)
+  if (!cfg) return
+  res.json({ ok: true, events: accountEvents(cfg) })
+})
+
+// Справочники профиля для формы (коды и названия практик и уровней) — чтобы не дублировать их на сайте и сервере.
+app.get('/api/account/options', (req, res) => {
+  if (!requireAccount(req, res)) return
+  res.json({ ok: true, practices: PRACTICES, levels: LEVELS })
+})
+
+// ---- Документы личного кабинета: резюме, сопроводительные, тестовые (lib/accountDocs.js) ----
+const documentsState = (cfg) => ({ ok: true, documents: listDocuments(cfg.login), types: DOC_TYPES, extensions: ALLOWED_EXT, limits: DOC_LIMITS, usedBytes: docsUsedBytes(cfg.login), consentAt: getProfile(cfg.login).consentAt })
+
+app.get('/api/account/documents', (req, res) => {
+  const cfg = requireAccount(req, res)
+  if (!cfg) return
+  res.json(documentsState(cfg))
+})
+
+const documentUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: DOC_LIMITS.fileBytes, files: 1, fields: 12, fieldSize: 4096 } }).single('file')
+const DOC_ERRORS = {
+  empty_file: [400, 'empty_file'], bad_type: [400, 'bad_type'], bad_content: [400, 'bad_content'], file_too_large: [413, 'file_too_large'],
+  bad_doc_type: [400, 'bad_doc_type'], too_many_documents: [409, 'too_many_documents'], too_many_versions: [409, 'too_many_versions'],
+  storage_full: [409, 'storage_full'], not_found: [404, 'not_found'],
+}
+const docError = (res, code) => {
+  const [status, error] = DOC_ERRORS[code] ?? [400, 'bad_request']
+  return res.status(status).json({ ok: false, error })
+}
+
+// Загрузка: новый документ или, если передан docId, новая версия существующего. Вход проверяется до разбора файла.
+app.post('/api/account/documents', (req, res, next) => (requireAccount(req, res) ? next() : undefined), (req, res) => {
+  const cfg = accountConfig()
+  documentUpload(req, res, (err) => {
+    if (err?.code === 'LIMIT_FILE_SIZE') return docError(res, 'file_too_large')
+    if (err || !req.file) return res.status(400).json({ ok: false, error: 'no_file' })
+    const b = req.body ?? {}
+    let consent
+    try {
+      consent = JSON.parse(String(b.consent ?? 'null'))
+    } catch {
+      consent = null
+    }
+    const body = { consent, consentVersion: b.consentVersion, marketingVersion: b.marketingVersion }
+    const needConsent = !getProfile(cfg.login).consentAt
+    if (needConsent && !consentGiven(body)) return res.status(400).json({ ok: false, error: 'consent_required' })
+    // multer читает имя файла как latin1, поэтому настоящее имя (UTF-8) приходит отдельным полем
+    const file = { buffer: req.file.buffer, filename: String(b.fileName || req.file.originalname || '') }
+    const r = b.docId ? addVersion(cfg.login, String(b.docId), file) : addDocument(cfg.login, { type: String(b.type ?? 'cv'), title: b.title, note: b.note, target: b.target }, file)
+    if (r.error) return docError(res, r.error)
+    if (needConsent && grantConsent(cfg.login)) {
+      recordConsent({ form: 'cabinet_documents', version: consentVersion(body), given: true, ...marketingFields(body), ...accountIdentity(cfg) })
+      if (consentChoice(body).marketing && cfg.tgId && getBotUser(cfg.tgId)) setMailingConsent(cfg.tgId, true)
+    }
+    res.json({ ...documentsState(cfg), doc: r.doc })
+  })
+})
+
+app.patch('/api/account/documents/:id', (req, res) => {
+  const cfg = requireAccount(req, res)
+  if (!cfg) return
+  const r = updateDocument(cfg.login, req.params.id, { title: req.body?.title, note: req.body?.note, target: req.body?.target, primary: req.body?.primary === true ? true : undefined })
+  if (r.error) return docError(res, r.error)
+  res.json(documentsState(cfg))
+})
+
+app.delete('/api/account/documents/:id', (req, res) => {
+  const cfg = requireAccount(req, res)
+  if (!cfg) return
+  const r = deleteDocument(cfg.login, req.params.id)
+  if (r.error) return docError(res, r.error)
+  res.json(documentsState(cfg))
+})
+
+app.delete('/api/account/documents/:id/versions/:n', (req, res) => {
+  const cfg = requireAccount(req, res)
+  if (!cfg) return
+  const r = deleteVersion(cfg.login, req.params.id, Number(req.params.n))
+  if (r.error) return docError(res, r.error)
+  res.json(documentsState(cfg))
+})
+
+// Скачивание файла версии. Файл отдаётся как вложение с запретом угадывать тип: даже если внутри окажется не то, что заявлено
+// в расширении, браузер его не выполнит.
+app.get('/api/account/documents/:id/versions/:n/file', (req, res) => {
+  const cfg = requireAccount(req, res)
+  if (!cfg) return
+  const f = versionFile(cfg.login, req.params.id, Number(req.params.n))
+  if (!f) return docError(res, 'not_found')
+  res.set({
+    'Content-Type': DOC_MIME[f.ext] ?? 'application/octet-stream',
+    'Content-Length': String(f.size),
+    'Content-Disposition': `attachment; filename="document.${f.ext}"; filename*=UTF-8''${encodeURIComponent(f.filename).replace(/['()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`)}`,
+    'X-Content-Type-Options': 'nosniff',
+    'Content-Security-Policy': "default-src 'none'; sandbox",
+  })
+  fs.createReadStream(f.path).pipe(res)
+})
 
 // Сквозной номер заявки — растёт с 1 (Контакты, Поддержка), а не случайное
 // 6-значное число, чтобы админу было проще ориентироваться в переписке.
