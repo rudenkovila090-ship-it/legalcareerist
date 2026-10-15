@@ -1,0 +1,208 @@
+from __future__ import annotations
+
+import json
+import logging
+import re
+import string
+import zlib
+from dataclasses import dataclass
+
+from .graph import MAX_DM_BYTES
+
+log = logging.getLogger(__name__)
+
+# Служебные слова («менеджер», «стоп», «меню», выбор цифрой) считаем командой, только если сообщение короткое:
+# иначе «у меня человек 5 лет в профессии» из ответа на вопрос ушло бы в обработчик «позвать человека».
+SHORT_MESSAGE_WORDS = 4
+
+REQUIRED_TEXTS = (
+    "menu_intro",
+    "menu_outro",
+    "menu_retry",
+    "handoff",
+    "done",
+    "done_followup",
+    "optout",
+    "non_text",
+)
+
+
+def normalize(text: str) -> str:
+    """Нижний регистр, ё->е, пунктуация и эмодзи -> пробелы, схлопнутые пробелы."""
+    text = text.lower().replace("ё", "е")
+    text = re.sub(r"[^\w\s]|_", " ", text)
+    return " ".join(text.split())
+
+
+class Matcher:
+    """Совпадение по целым словам/фразам. «слово*» — совпадение по началу слова («ивент*» → «ивенты»)."""
+
+    def __init__(self, keywords: list[str]) -> None:
+        self._patterns = [self._compile(k) for k in keywords]
+
+    @staticmethod
+    def _compile(keyword: str) -> re.Pattern[str]:
+        prefix = keyword.strip().endswith("*")
+        core = normalize(keyword.rstrip("*"))
+        if not core:
+            raise ValueError(f"пустое ключевое слово: {keyword!r}")
+        return re.compile(r"(?<!\w)" + re.escape(core) + ("" if prefix else r"(?!\w)"))
+
+    def search(self, normalized_text: str) -> bool:
+        return any(p.search(normalized_text) for p in self._patterns)
+
+    def search_short(self, normalized_text: str) -> bool:
+        return len(normalized_text.split()) <= SHORT_MESSAGE_WORDS and self.search(normalized_text)
+
+
+def render(template: str, links: dict[str, str]) -> str | None:
+    """Подставляет {bot_url}/{site_url}/{payment_url}. None — если нужная ссылка не задана; ValueError — если опечатка."""
+    try:
+        fields = {name for _, name, _, _ in string.Formatter().parse(template) if name}
+    except ValueError as exc:
+        raise ValueError(f"некорректные фигурные скобки в тексте {template[:40]!r}: {exc}") from None
+    unknown = fields - set(links)
+    if unknown:
+        raise ValueError(f"неизвестные плейсхолдеры {sorted(unknown)} в тексте {template[:40]!r}")
+    if any(not links[name] for name in fields):
+        return None
+    return template.format_map(links)
+
+
+@dataclass(frozen=True)
+class Segment:
+    key: str
+    label: str
+    menu_title: str
+    questions: tuple[str, ...]
+    aliases: Matcher
+
+
+@dataclass(frozen=True)
+class CommentRule:
+    id: str
+    matcher: Matcher
+    media_ids: frozenset[str]
+    dm: str  # уже с подставленными ссылками и (если нужно) первым вопросом/меню
+    dm_plain: str  # то же без вопроса/меню: для диалогов, которые сейчас ведёт менеджер
+    start: str | None  # None | "menu" | ключ сегмента
+    public_replies: tuple[str, ...]
+
+    def pick_public_reply(self, comment_id: str) -> str | None:
+        """Разные варианты публичного ответа по хешу комментария — меньше похоже на спам."""
+        if not self.public_replies:
+            return None
+        return self.public_replies[zlib.crc32(comment_id.encode()) % len(self.public_replies)]
+
+
+@dataclass(frozen=True)
+class Flows:
+    texts: dict[str, str]
+    segments: dict[str, Segment]
+    rules: tuple[CommentRule, ...]
+    handoff: Matcher
+    optout: Matcher
+    menu: Matcher
+
+    def menu_text(self) -> str:
+        options = "\n".join(f"{i} — {s.menu_title}" for i, s in enumerate(self.segments.values(), start=1))
+        return f"{self.texts['menu_intro']}\n{options}\n\n{self.texts['menu_outro']}"
+
+    def choose_segment(self, normalized_text: str) -> str | None:
+        """Выбор пункта меню: цифра или слово-синоним (в коротком сообщении)."""
+        keys = list(self.segments)
+        if normalized_text.isdigit() and 1 <= int(normalized_text) <= len(keys):
+            return keys[int(normalized_text) - 1]
+        for key, segment in self.segments.items():
+            if segment.aliases.search_short(normalized_text):
+                return key
+        return None
+
+    def match_comment(self, text: str, media_id: str | None) -> CommentRule | None:
+        norm = normalize(text)
+        for rule in self.rules:
+            if rule.media_ids and (media_id or "") not in rule.media_ids:
+                continue
+            if rule.matcher.search(norm):
+                return rule
+        return None
+
+
+def load_flows(path: str, links: dict[str, str]) -> Flows:
+    with open(path, encoding="utf-8") as fh:
+        raw = json.load(fh)
+
+    texts: dict[str, str] = {}
+    for name in REQUIRED_TEXTS:
+        if name not in raw.get("texts", {}):
+            raise ValueError(f"в {path} нет texts.{name}")
+        rendered = render(raw["texts"][name], links)
+        if rendered is None:
+            raise ValueError(f"texts.{name} использует ссылку, которая не задана в окружении (например BOT_URL)")
+        texts[name] = rendered
+
+    segments: dict[str, Segment] = {}
+    for key, seg in raw.get("segments", {}).items():
+        questions = []
+        for q in seg.get("questions", []):
+            rendered = render(q, links)
+            if rendered is None:
+                raise ValueError(f"вопрос сегмента {key!r} использует незаданную ссылку")
+            questions.append(rendered)
+        if not questions:
+            raise ValueError(f"у сегмента {key!r} нет вопросов")
+        segments[key] = Segment(
+            key=key,
+            label=seg["label"],
+            menu_title=seg.get("menu_title", seg["label"]),
+            questions=tuple(questions),
+            aliases=Matcher(seg.get("aliases", [])),
+        )
+    if not segments:
+        raise ValueError(f"в {path} нет segments")
+
+    flows_stub = Flows(texts, segments, (), Matcher([]), Matcher([]), Matcher([]))
+    rules: list[CommentRule] = []
+    for rule in raw.get("comment_rules", []):
+        rid = rule["id"]
+        dm = render(rule["dm"], links)
+        if dm is None:
+            log.warning("Правило %r отключено: в тексте нужна ссылка, которая не задана в окружении", rid)
+            continue
+        start = rule.get("start")
+        dm_plain = dm
+        if start == "menu":
+            dm = f"{dm}\n\n{flows_stub.menu_text()}"
+        elif start is not None:
+            if start not in segments:
+                raise ValueError(f"правило {rid!r}: неизвестный сегмент start={start!r}")
+            dm = f"{dm}\n\n{segments[start].questions[0]}"
+        if len(dm.encode()) > MAX_DM_BYTES:
+            raise ValueError(
+                f"правило {rid!r}: личный ответ на комментарий {len(dm.encode())} байт, лимит {MAX_DM_BYTES}. Сократите текст."
+            )
+        replies = []
+        for reply in rule.get("public_replies", []):
+            rendered = render(reply, links)
+            if rendered is not None:
+                replies.append(rendered)
+        rules.append(
+            CommentRule(
+                id=rid,
+                matcher=Matcher(rule["keywords"]),
+                media_ids=frozenset(str(m) for m in rule.get("media_ids", [])),
+                dm=dm,
+                dm_plain=dm_plain,
+                start=start,
+                public_replies=tuple(replies),
+            )
+        )
+
+    return Flows(
+        texts=texts,
+        segments=segments,
+        rules=tuple(rules),
+        handoff=Matcher(raw.get("handoff_words", [])),
+        optout=Matcher(raw.get("optout_words", [])),
+        menu=Matcher(raw.get("menu_words", [])),
+    )
