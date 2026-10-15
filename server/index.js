@@ -28,6 +28,7 @@
 //     регистрации на мероприятие (внешняя ссылка или внутренняя форма).
 // 12. /api/store/* — закрыто (410): прежнее зеркало данных кабинетов (localStorage ↔ сервер) отдавало их без
 //     авторизации; теперь данные кабинетов хранятся только в браузере посетителя.
+// 13. /api/account/* — вход в личный кабинет на сайте (логин и пароль в server/.env) и данные кабинета.
 // Токены и секретные ключи — только в server/.env, в репозиторий не попадают.
 import express from 'express'
 import cors from 'cors'
@@ -71,6 +72,8 @@ import { recordConsent } from './lib/consentLog.js'
 import { scanRetention, applyRetention, retentionReportText, retentionDoneText } from './lib/retention.js'
 import { findPerson, describeFound, erasePerson, erasedText } from './lib/erasure.js'
 import { planImport, applyImport, planSummary, doneSummary } from './lib/botHelpImport.js'
+import { accountConfig, login as accountLogin, sessionFor, logout as accountLogout, bearer } from './lib/accountAuth.js'
+import { accountProfile } from './lib/accountProfile.js'
 import { nextTicketNumber } from './lib/ticketCounter.js'
 import { buildDailyReport, mskDayKey, parseReportPeriod } from './lib/dailyReport.js'
 import { logWebhook, lastWebhook } from './lib/webhookLog.js'
@@ -733,6 +736,38 @@ app.post('/api/event/:slug/register', (req, res) => {
 // Бывшая синхронизация localStorage кабинетов с сервером закрыта (отдавала данные без авторизации).
 // Старые клиенты, у которых ещё открыта прежняя версия сайта, получают 410 и работают только с локальными данными.
 app.all('/api/store/*', (req, res) => res.sendStatus(410))
+
+// ---- Личный кабинет на сайте (/cabinet): вход по логину и паролю из server/.env, см. lib/accountAuth.js ----
+// Защита от перебора: не больше 20 неудачных входов за 15 минут на весь сервер (по адресу не считаем: за nginx он у всех
+// одинаковый или подделывается). Пароль длинный и случайный, scrypt медленный, так что этого с запасом.
+const loginFailures = { count: 0, resetAt: 0 }
+const LOGIN_MAX_FAILURES = 20
+const LOGIN_WINDOW_MS = 15 * 60 * 1000
+
+app.post('/api/account/login', (req, res) => {
+  const now = Date.now()
+  if (loginFailures.resetAt < now) Object.assign(loginFailures, { count: 0, resetAt: now + LOGIN_WINDOW_MS })
+  if (loginFailures.count >= LOGIN_MAX_FAILURES) return res.status(429).json({ ok: false, error: 'too_many_attempts' })
+  const r = accountLogin(req.body?.login, req.body?.password)
+  if (r.error === 'not_configured') return res.status(503).json({ ok: false, error: 'not_configured' })
+  if (r.error) {
+    loginFailures.count += 1
+    return res.status(401).json({ ok: false, error: 'bad_credentials' })
+  }
+  res.json({ ok: true, token: r.token, expiresAt: r.expiresAt })
+})
+
+app.get('/api/account/me', (req, res) => {
+  const cfg = accountConfig()
+  if (!cfg || !sessionFor(bearer(req))) return res.status(401).json({ ok: false, error: 'unauthorized' })
+  res.set('Cache-Control', 'no-store')
+  res.json({ ok: true, ...accountProfile(cfg) })
+})
+
+app.post('/api/account/logout', (req, res) => {
+  accountLogout(bearer(req))
+  res.json({ ok: true })
+})
 
 // Сквозной номер заявки — растёт с 1 (Контакты, Поддержка), а не случайное
 // 6-значное число, чтобы админу было проще ориентироваться в переписке.

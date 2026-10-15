@@ -1,5 +1,4 @@
-import { NavLink, useLocation } from 'react-router-dom'
-import { SHOW_PERSONAL_ACCOUNTS } from '../lib/featureFlags'
+import { NavLink } from 'react-router-dom'
 
 const nav = [
   { to: '/kadry/employers', label: 'Кадры' },
@@ -11,7 +10,7 @@ const nav = [
 
 function IconAccount() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="h-[18px] w-[18px]">
       <circle cx="12" cy="8" r="3.5" />
       <path d="M4.5 20c0-3.9 3.4-6.5 7.5-6.5s7.5 2.6 7.5 6.5" />
     </svg>
@@ -30,11 +29,6 @@ function linkClass({ isActive }: { isActive: boolean }) {
 }
 
 export default function Header() {
-  const { pathname } = useLocation()
-  const onCommunity = pathname.startsWith('/community')
-  const onMarketplace = pathname.startsWith('/marketplace')
-  const showAccountButton = SHOW_PERSONAL_ACCOUNTS && (onCommunity || onMarketplace)
-
   return (
     <header className="sticky top-0 z-40 border-b border-ink/10 bg-white/70 backdrop-blur-xl [transform:translateZ(0)] [will-change:transform]">
       <div className="container-page flex h-16 items-center justify-between">
@@ -93,18 +87,18 @@ export default function Header() {
         </nav>
 
         <div className="flex items-center gap-3">
-          {/* Всегда занимает место в разметке (invisible, а не условный рендер) —
-              иначе шапка «прыгает» при переходе на/со страницы Сообщества. */}
+          {/* Личный кабинет: значок виден всем, ведёт на /cabinet (посетителям — «раздел в разработке», вход для администратора). */}
           <NavLink
-            to="/account"
-            aria-hidden={!showAccountButton}
-            tabIndex={showAccountButton ? undefined : -1}
-            className={`flex items-center gap-2 rounded-full bg-ink px-4 py-2 text-sm font-medium text-white hover:bg-ink/90 ${
-              showAccountButton ? '' : 'invisible pointer-events-none'
-            }`}
+            to="/cabinet"
+            aria-label="Личный кабинет"
+            title="Личный кабинет"
+            className={({ isActive }) =>
+              `flex h-10 w-10 items-center justify-center rounded-full border transition-colors ${
+                isActive ? 'border-ink bg-ink text-white' : 'border-ink/15 text-ink/70 hover:border-ink/40 hover:text-ink'
+              }`
+            }
           >
             <IconAccount />
-            Личный кабинет
           </NavLink>
         </div>
       </div>

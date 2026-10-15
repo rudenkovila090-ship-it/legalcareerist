@@ -23,6 +23,7 @@ const Materials = lazy(() => import('./pages/events/Materials'))
 const MaterialDetail = lazy(() => import('./pages/events/MaterialDetail'))
 const MaterialThanks = lazy(() => import('./pages/materials/MaterialThanks'))
 const AccountGate = lazy(() => import('./pages/account/AccountGate'))
+const Cabinet = lazy(() => import('./pages/cabinet/Cabinet'))
 const CandidateAccount = lazy(() => import('./pages/account/CandidateAccount'))
 const EmployerAccount = lazy(() => import('./pages/account/EmployerAccount'))
 const ModeratorAccount = lazy(() => import('./pages/account/ModeratorAccount'))
@@ -117,6 +118,8 @@ export default function App() {
 
           {/* Личный кабинет — разделен на соискателя и работодателя (два
               разных демо-входа без пароля, см. AccountGate.tsx). */}
+          <Route path="/cabinet" element={<Cabinet />} />
+          <Route path="/cabinet/:section" element={<Cabinet />} />
           <Route path="/account" element={<AccountGate />} />
           <Route path="/account/candidate" element={<CandidateAccount />} />
           <Route path="/account/candidate/resume/new" element={<ResumeBuilder />} />
