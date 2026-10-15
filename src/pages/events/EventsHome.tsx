@@ -10,6 +10,7 @@ import { INDUSTRIES, type EventItem, type Industry, type AudienceLevel } from '.
 import { SHOW_CREATE_EVENT, SHOW_EVENTS_ACCOUNT } from '../../lib/featureFlags'
 import HowHeardField from '../../components/HowHeardField'
 import { eventTimeRange } from '../../lib/eventTime'
+import { startEventMusicOnClick } from '../../lib/eventMusic'
 import { eventStories } from '../../data/eventStories'
 import { useNoirFont } from '../../lib/useNoirFont'
 import { pluralRu } from '../../lib/plural'
@@ -241,7 +242,7 @@ function FeaturedEventCard({ e, image }: { e: EventItem; image: string }) {
   const date = new Date(e.dateTime).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })
   const [ru, en] = e.title.split(' / ')
   return (
-    <Link to={`/events/${e.slug}`} className="group relative block min-h-[22rem] overflow-hidden rounded-2xl bg-[#0b0506] text-[#eadfc8] sm:col-span-2 lg:col-span-3 sm:min-h-[26rem]">
+    <Link to={`/events/${e.slug}`} onClick={(ev) => startEventMusicOnClick(e.slug, ev)} className="group relative block min-h-[22rem] overflow-hidden rounded-2xl bg-[#0b0506] text-[#eadfc8] sm:col-span-2 lg:col-span-3 sm:min-h-[26rem]">
       <img src={image} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover object-[50%_35%] transition-transform sm:object-[50%_26%] duration-700 group-hover:scale-[1.03]" />
       <div className="absolute inset-0 bg-[#0b0506]/35 sm:bg-transparent" aria-hidden="true" />
       <div className="absolute inset-0 bg-gradient-to-r from-[#0b0506]/90 via-[#0b0506]/45 to-transparent" aria-hidden="true" />

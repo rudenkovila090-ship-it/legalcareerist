@@ -22,6 +22,7 @@ import { NoirHero, NoirIntro, NoirFacts, NoirAudience, NoirStory, NoirFamily, No
 import { useNoirFont } from '../../lib/useNoirFont'
 import { useNoirScroll } from '../../lib/useNoirScroll'
 import ScrollCylinder from '../../components/noir/ScrollCylinder'
+import SoundToggle from '../../components/noir/SoundToggle'
 import CityMap from '../../components/noir/CityMap'
 import { NoirGrain } from '../../components/noir/NoirAmbient'
 import ConsentCheck from '../../components/ConsentCheck'
@@ -323,6 +324,7 @@ export default function EventDetail() {
             <CityMap />
             <NoirGrain />
             <ScrollCylinder />
+            <SoundToggle />
           </>
         )}
       <div className="container-page pt-8">

@@ -2979,3 +2979,99 @@ a.fam-ava:hover {
   }
 }
 
+/* ===== Кнопка «Музыка вечера» =====
+   В углу страницы; музыка включается кликом по карточке в афише или этой кнопкой. Планки — эквалайзер: играет — пляшут, нет — замерли. */
+.noir-snd {
+  position: fixed;
+  bottom: 0.9rem;
+  left: 0.9rem;
+  z-index: 45;
+  display: inline-flex;
+  min-height: 2.75rem;
+  padding: 0 1.05rem 0 0.9rem;
+  align-items: center;
+  gap: 0.6rem;
+  border: 1px solid rgba(217, 168, 92, 0.45);
+  border-radius: 999px;
+  background: rgba(11, 5, 6, 0.86);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 8px 22px -8px rgba(0, 0, 0, 0.8);
+  color: #eadfc8;
+  font: 600 0.8rem/1 Inter, ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+.noir-snd:hover {
+  border-color: rgba(217, 168, 92, 0.9);
+  background: rgba(24, 10, 12, 0.92);
+}
+.noir-snd:focus-visible {
+  outline: 2px solid #d9a85c;
+  outline-offset: 3px;
+}
+.noir-snd-eq {
+  position: relative;
+  display: inline-flex;
+  height: 1.05rem;
+  align-items: flex-end;
+  gap: 2px;
+}
+.noir-snd-eq i {
+  display: block;
+  width: 3px;
+  height: 100%;
+  background: #d9a85c;
+  transform: scaleY(0.38);
+  transform-origin: 50% 100%;
+}
+.noir-snd-eq i:nth-child(2) {
+  transform: scaleY(0.7);
+}
+.noir-snd-eq i:nth-child(4) {
+  transform: scaleY(0.55);
+}
+.noir-snd:not([data-state='on']) .noir-snd-eq i {
+  opacity: 0.6;
+}
+/* Звук выключен: планки зачёркнуты красной чертой. */
+.noir-snd[data-state='muted'] .noir-snd-eq::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: -3px;
+  left: -3px;
+  height: 1.5px;
+  background: #d3303b;
+  transform: rotate(-35deg);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .noir-snd[data-state='on'] .noir-snd-eq i {
+    animation: snd-eq 0.9s ease-in-out infinite alternate;
+  }
+  .noir-snd[data-state='on'] .noir-snd-eq i:nth-child(2) {
+    animation-duration: 0.65s;
+    animation-delay: -0.3s;
+  }
+  .noir-snd[data-state='on'] .noir-snd-eq i:nth-child(3) {
+    animation-duration: 1.1s;
+    animation-delay: -0.6s;
+  }
+  .noir-snd[data-state='on'] .noir-snd-eq i:nth-child(4) {
+    animation-duration: 0.78s;
+    animation-delay: -0.15s;
+  }
+  /* Музыка ещё не включена: кнопка слегка «дышит», чтобы её заметили. */
+  .noir-snd[data-state='off'] {
+    animation: snd-call 2.8s ease-out 3s infinite;
+  }
+  @keyframes snd-eq {
+    from { transform: scaleY(0.25); }
+    to { transform: scaleY(1); }
+  }
+  @keyframes snd-call {
+    0% { box-shadow: 0 8px 22px -8px rgba(0, 0, 0, 0.8), 0 0 0 0 rgba(217, 168, 92, 0.5); }
+    60%, 100% { box-shadow: 0 8px 22px -8px rgba(0, 0, 0, 0.8), 0 0 0 0.9rem rgba(217, 168, 92, 0); }
+  }
+}

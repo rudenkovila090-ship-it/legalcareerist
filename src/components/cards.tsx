@@ -5,6 +5,7 @@ import { useArticleViewCount } from '../lib/useArticleViews'
 import { useNewsViewCount } from '../lib/useNewsViews'
 import { materialKindLabel } from '../lib/materialLabels'
 import { pluralRu } from '../lib/plural'
+import { startEventMusicOnClick } from '../lib/eventMusic'
 
 const money = new Intl.NumberFormat('ru-RU')
 
@@ -90,7 +91,7 @@ const eventTypeLabel: Record<EventItem['type'], string> = {
 export function EventCard({ e }: { e: EventItem }) {
   const date = new Date(e.dateTime)
   return (
-    <Link to={`/events/${e.slug}`} className="glass block rounded-xl p-5">
+    <Link to={`/events/${e.slug}`} onClick={(ev) => startEventMusicOnClick(e.slug, ev)} className="glass block rounded-xl p-5">
       <div className="flex items-center justify-between">
         <span className="text-xs font-medium uppercase tracking-wide text-gold">{eventTypeLabel[e.type]}</span>
         <span className="text-xs text-ink/50">{e.status === 'completed' ? 'Завершено' : 'Идет набор'}</span>
