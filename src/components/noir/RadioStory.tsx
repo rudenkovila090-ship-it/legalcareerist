@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
 import type { EventAct, RadioStation } from '../../data/eventStories'
 import { prefersReducedMotion } from '../../lib/motion'
+import { getRadioPanel, prefetchRadioAudio, type RadioPanel } from '../../lib/radioFx'
 import { ShotOnView } from './ShotFx'
 import '../../pages/events/noir.css'
 
@@ -36,13 +37,18 @@ function buildStations(acts: EventAct[], extras: RadioStation[]): Station[] {
   return list.sort((a, b) => a.freq - b.freq)
 }
 
-/** Плавно «едет» к нужной частоте: цифры на шкале пролистываются, стрелка идёт по ней и чуть перескакивает цель. */
-function useDialFreq(target: number, reduced: boolean) {
+/**
+ * Плавно «едет» к нужной частоте: цифры на шкале пролистываются, стрелка идёт по ней и чуть перескакивает цель.
+ * На каждом кадре сообщает положение стрелки звуку радио (шум, свист и музыка считаются по нему), так что слышно ровно то, что видно.
+ */
+function useDialFreq(target: number, reduced: boolean, panel: RadioPanel) {
   const [freq, setFreq] = useState(target)
   const cur = useRef(target)
+  const { fx } = panel
   useEffect(() => {
     if (reduced) {
       cur.current = target
+      fx.jump(target)
       return
     }
     const from = cur.current
@@ -59,15 +65,17 @@ function useDialFreq(target: number, reduced: boolean) {
       const v = from + (target - from) * e
       cur.current = v
       setFreq(v)
+      fx.setDial(v, undefined, panel.mode)
       if (t < 1) raf = requestAnimationFrame(step)
       else {
         cur.current = target
         setFreq(target)
+        fx.setDial(target, undefined, panel.mode)
       }
     }
     raf = requestAnimationFrame(step)
     return () => cancelAnimationFrame(raf)
-  }, [target, reduced])
+  }, [target, reduced, fx, panel])
   return reduced ? target : freq
 }
 
@@ -78,18 +86,61 @@ export default function RadioStory({ acts, extras }: { acts: EventAct[]; extras:
   const [idx, setIdx] = useState(() => Math.max(0, stations.findIndex((s) => s.kind === 'act')))
   const reduced = prefersReducedMotion()
   const st = stations[idx]
-  const freq = useDialFreq(st.freq, reduced)
+  // Звук радио: музыка играет на волнах актов, на остальных слышны шум и свист; щёлкают клавиши, кнопки поиска и ручка.
+  const panel = useMemo(() => getRadioPanel({ acts: acts.map((a) => a.freq), carriers: extras.filter((e) => !e.silent).map((e) => e.freq), range: [MIN, MAX] }), [acts, extras])
+  const { fx } = panel
+  const freq = useDialFreq(st.freq, reduced, panel)
   const tuning = !reduced && Math.abs(freq - st.freq) > 0.04
   const n = stations.length
+  const rootRef = useRef<HTMLDivElement>(null)
+  const startIdx = useRef(idx)
 
-  const tune = (i: number) => setIdx(((i % n) + n) % n)
+  useEffect(() => {
+    fx.jump(stations[startIdx.current].freq)
+  }, [fx, stations])
+
+  // Радио включается первым нажатием на его органы (браузер не даёт звук раньше) и играет, пока оно на экране.
+  useEffect(() => {
+    const el = rootRef.current
+    if (!el) return
+    const near = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting) prefetchRadioAudio()
+    }, { rootMargin: '700px 0px' })
+    const view = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting) panel.resume()
+      else fx.close()
+    }, { threshold: 0.1 })
+    near.observe(el)
+    view.observe(el)
+    return () => {
+      near.disconnect()
+      view.disconnect()
+      fx.close()
+    }
+  }, [fx, panel])
+
+  const tune = (i: number) => {
+    const next = ((i % n) + n) % n
+    setIdx(next)
+    // Волна «Помехи»: несколько секунд сплошных помех, потом шум стихает.
+    if (stations[next].silent) fx.interferenceBurst(4000)
+  }
+
+  /** Переключение с щелчком клавиши (kind) или без него — когда крутят ручку. Любое нажатие включает радио. */
+  const go = (i: number, mode: 'motor' | 'knob', kind?: 'preset' | 'key' | 'seek') => {
+    panel.press(mode, kind)
+    tune(i)
+  }
+
+  const bind = (action: () => void) => panel.bind(action)
+
   const onKnobKey = (e: KeyboardEvent<HTMLButtonElement>) => {
     if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
       e.preventDefault()
-      tune(idx + 1)
+      go(idx + 1, 'knob')
     } else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
       e.preventDefault()
-      tune(idx - 1)
+      go(idx - 1, 'knob')
     }
   }
 
@@ -100,15 +151,15 @@ export default function RadioStory({ acts, extras }: { acts: EventAct[]; extras:
   const level = st.silent ? 1 : st.kind === 'act' ? 5 : 4
 
   return (
-    <div className="rd" data-silent={st.silent ? '' : undefined} data-tuning={tuning ? '' : undefined}>
+    <div className="rd" ref={rootRef} data-silent={st.silent ? '' : undefined} data-tuning={tuning ? '' : undefined}>
       <div className="rd-face">
         <i className="rd-led" aria-hidden="true" />
 
         <div className="rd-seek">
-          <button type="button" className="rd-seek-btn" onClick={() => tune(idx - 1)} aria-label="Предыдущая волна">
+          <button type="button" className="rd-seek-btn" {...bind(() => go(idx - 1, 'motor', 'seek'))} aria-label="Предыдущая волна">
             ◄◄
           </button>
-          <button type="button" className="rd-seek-btn" onClick={() => tune(idx + 1)} aria-label="Следующая волна">
+          <button type="button" className="rd-seek-btn" {...bind(() => go(idx + 1, 'motor', 'seek'))} aria-label="Следующая волна">
             ►►
           </button>
           <span className="rd-cap">Поиск</span>
@@ -188,14 +239,14 @@ export default function RadioStory({ acts, extras }: { acts: EventAct[]; extras:
         </div>
 
         <div className="rd-tune">
-          <button type="button" className="rd-knob" style={{ '--rot': `${rot}deg` } as CSSProperties} onClick={() => tune(idx + 1)} onKeyDown={onKnobKey} aria-label={`Ручка настройки. Сейчас: ${st.name}, ${st.freq.toFixed(1)} мегагерц. Нажмите, чтобы переключить на следующую волну`} />
+          <button type="button" className="rd-knob" style={{ '--rot': `${rot}deg` } as CSSProperties} {...bind(() => go(idx + 1, 'knob'))} onKeyDown={onKnobKey} aria-label={`Ручка настройки. Сейчас: ${st.name}, ${st.freq.toFixed(1)} мегагерц. Нажмите, чтобы переключить на следующую волну`} />
           <span className="rd-cap">Настройка</span>
         </div>
 
         <div className="rd-keys">
           <div className="rd-acts">
             {actKeys.map(({ s, i }) => (
-              <button key={s.id} type="button" className="rd-key rd-key-act" aria-pressed={i === idx} aria-label={`${s.name}: ${s.title}, ${s.freq.toFixed(1)} мегагерц`} onClick={() => tune(i)}>
+              <button key={s.id} type="button" className="rd-key rd-key-act" aria-pressed={i === idx} aria-label={`${s.name}: ${s.title}, ${s.freq.toFixed(1)} мегагерц`} {...bind(() => go(i, 'motor', 'preset'))}>
                 <span className="rd-key-n">{s.key}</span>
                 <span className="rd-key-l">{s.freq.toFixed(1)}</span>
               </button>
@@ -203,7 +254,7 @@ export default function RadioStory({ acts, extras }: { acts: EventAct[]; extras:
           </div>
           <div className="rd-extra">
             {extraKeys.map(({ s, i }, k) => (
-              <button key={s.id} type="button" className="rd-key" aria-pressed={i === idx} aria-label={`${s.name}, ${s.freq.toFixed(1)} мегагерц`} onClick={() => tune(i)}>
+              <button key={s.id} type="button" className="rd-key" aria-pressed={i === idx} aria-label={`${s.name}, ${s.freq.toFixed(1)} мегагерц`} {...bind(() => go(i, 'motor', 'key'))}>
                 <span className="rd-key-n">{k + 1}</span>
                 <span className="rd-key-l">{s.key}</span>
               </button>
