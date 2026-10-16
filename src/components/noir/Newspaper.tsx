@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import type { EventPaper, NewsPage } from '../../data/eventStories'
+import Wordsearch from './Wordsearch'
 import '../../pages/events/noir.css'
 
 // «Новости бара» — газета, которая лежит на столе. Страницы листаются по клику (как лист в папке);
-// пока страница одна — главная, остальные добавляются в данные (paper.pages) по мере появления материалов.
+// страницы лежат в данных (paper.pages): главная статья, головоломка и те, что добавятся по мере появления материалов.
 
 /** Всё, что газета берёт из самого мероприятия: так дата, место и цена не расходятся с остальной страницей. */
 export interface PaperFacts {
@@ -40,67 +41,71 @@ function Page({ page, facts, paper }: { page: NewsPage; facts: PaperFacts; paper
         {page.subhead && <p className="np-subhead">{page.subhead}</p>}
       </div>
 
-      <div className="np-grid">
-        <div className="np-main">
-          {page.photo && (
-            <figure className="np-photo">
-              <div className="np-photo-in">
-                <img src={facts.photo} alt="" draggable={false} />
-              </div>
-              <figcaption>{page.photo.caption}</figcaption>
-            </figure>
-          )}
-          {page.lead && <p className="np-lead">{page.lead}</p>}
-          {page.paragraphs?.map((p) => (
-            <p key={p} className="np-p">
-              {p}
-            </p>
-          ))}
+      {page.puzzle ? (
+        <Wordsearch puzzle={page.puzzle} />
+      ) : (
+        <div className="np-grid">
+          <div className="np-main">
+            {page.photo && (
+              <figure className="np-photo">
+                <div className="np-photo-in">
+                  <img src={facts.photo} alt="" draggable={false} />
+                </div>
+                <figcaption>{page.photo.caption}</figcaption>
+              </figure>
+            )}
+            {page.lead && <p className="np-lead">{page.lead}</p>}
+            {page.paragraphs?.map((p) => (
+              <p key={p} className="np-p">
+                {p}
+              </p>
+            ))}
+          </div>
+
+          <aside className="np-side">
+            {page.announce && (
+              <>
+                <section className="np-box" aria-label="Анонс">
+                  <h5>Анонс</h5>
+                  <dl>
+                    <div>
+                      <dt>Когда</dt>
+                      <dd>
+                        {facts.date}, {facts.time}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Где</dt>
+                      <dd>{[facts.city, facts.venue].filter(Boolean).join(', ')}</dd>
+                    </div>
+                    <div>
+                      <dt>Вход</dt>
+                      <dd>{facts.price}</dd>
+                    </div>
+                  </dl>
+                </section>
+
+                <div className="np-coupon">
+                  <span className="np-scissors" aria-hidden="true">
+                    ✂
+                  </span>
+                  <p>Билет на вечер</p>
+                  <a href="#register" onClick={(e) => e.stopPropagation()}>
+                    Приобрести билет — {facts.price}
+                  </a>
+                </div>
+              </>
+            )}
+
+            {page.quote && (
+              <blockquote className="np-quote">
+                <p className="np-quote-l">{page.quote.label}</p>
+                <p className="np-quote-t">«{page.quote.text ?? facts.question}»</p>
+              </blockquote>
+            )}
+          </aside>
         </div>
-
-        <aside className="np-side">
-          {page.announce && (
-            <>
-              <section className="np-box" aria-label="Анонс">
-                <h5>Анонс</h5>
-                <dl>
-                  <div>
-                    <dt>Когда</dt>
-                    <dd>
-                      {facts.date}, {facts.time}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>Где</dt>
-                    <dd>{[facts.city, facts.venue].filter(Boolean).join(', ')}</dd>
-                  </div>
-                  <div>
-                    <dt>Вход</dt>
-                    <dd>{facts.price}</dd>
-                  </div>
-                </dl>
-              </section>
-
-              <div className="np-coupon">
-                <span className="np-scissors" aria-hidden="true">
-                  ✂
-                </span>
-                <p>Билет на вечер</p>
-                <a href="#register" onClick={(e) => e.stopPropagation()}>
-                  Приобрести билет — {facts.price}
-                </a>
-              </div>
-            </>
-          )}
-
-          {page.quote && (
-            <blockquote className="np-quote">
-              <p className="np-quote-l">{page.quote.label}</p>
-              <p className="np-quote-t">«{page.quote.text ?? facts.question}»</p>
-            </blockquote>
-          )}
-        </aside>
-      </div>
+      )}
     </>
   )
 }

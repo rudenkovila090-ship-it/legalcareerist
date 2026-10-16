@@ -1445,6 +1445,165 @@ a.fam-ava:hover {
   }
 }
 
+/* --- Страница с головоломкой: филворд. Только чёрное, серое и белое. --- */
+.np-ws-grid {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(var(--cols), 1fr);
+  grid-template-rows: repeat(var(--rows), 1fr);
+  aspect-ratio: var(--cols) / var(--rows);
+  container-type: inline-size;
+  border: 2px solid #0c0c0c;
+  outline: 1px solid #0c0c0c;
+  outline-offset: 3px;
+  background: rgba(255, 255, 255, 0.4);
+  cursor: crosshair;
+  user-select: none;
+  -webkit-user-select: none;
+  /* Вертикально страницу можно листать пальцем, горизонтально — вести по буквам. */
+  touch-action: pan-y;
+}
+.np-ws-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: 600 4.5cqw/1 'Playfair Display', 'Times New Roman', Georgia, serif;
+  text-transform: uppercase;
+}
+.np-ws-cell[data-found] {
+  font-weight: 800;
+}
+.np-ws-cell[data-pick] {
+  background: rgba(12, 12, 12, 0.16);
+}
+.np-ws-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+.np-ws-cap[data-kind='found'] {
+  fill: none;
+  stroke: #0c0c0c;
+  stroke-width: 0.075;
+}
+.np-ws-cap[data-kind='hint'] {
+  fill: none;
+  stroke: #0c0c0c;
+  stroke-width: 0.06;
+  stroke-dasharray: 0.22 0.16;
+}
+.np-ws-cap[data-kind='pick'] {
+  fill: rgba(12, 12, 12, 0.14);
+  stroke: none;
+}
+.np-ws-hint {
+  margin-top: 0.7rem;
+  font: 500 0.78rem/1.4 Inter, ui-sans-serif, system-ui, sans-serif;
+  color: #5a5a57;
+}
+.np-ws-h {
+  margin-bottom: 0.6rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid #0c0c0c;
+  font: 800 0.8rem/1 Inter, ui-sans-serif, sans-serif;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+.np-words {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.15rem 1rem;
+  list-style: none;
+}
+@media (min-width: 720px) {
+  .np-words {
+    grid-template-columns: 1fr;
+  }
+}
+.np-words li {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font: 700 0.8rem/1.9 Inter, ui-sans-serif, sans-serif;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.np-words li::before {
+  content: '';
+  flex: none;
+  width: 5px;
+  height: 5px;
+  background: #0c0c0c;
+}
+.np-words li[data-found] {
+  color: #8a8a87;
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+}
+.np-words li[data-found]::before {
+  background: #8a8a87;
+}
+.np-ws-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem 1rem;
+  margin-top: 1rem;
+}
+.np-ws-count {
+  font: 800 0.7rem/1.2 Inter, ui-sans-serif, sans-serif;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.np-ws-done {
+  margin-top: 0.7rem;
+  padding: 0.5rem;
+  border: 3px double #0c0c0c;
+  font: 800 0.78rem/1.2 Inter, ui-sans-serif, sans-serif;
+  letter-spacing: 0.22em;
+  text-align: center;
+  text-transform: uppercase;
+  transform: rotate(-3deg);
+}
+.np-ws-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.np-btn {
+  padding: 0.55rem 0.8rem;
+  border: 1.5px solid #0c0c0c;
+  background: transparent;
+  color: #0c0c0c;
+  font: 800 0.66rem/1 Inter, ui-sans-serif, sans-serif;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.np-btn:hover,
+.np-btn[aria-pressed='true'] {
+  background: #0c0c0c;
+  color: #f6f6f4;
+}
+.np-btn:focus-visible {
+  outline: 2px solid #0c0c0c;
+  outline-offset: 2px;
+}
+.np-ws-motto {
+  grid-column: 1 / -1;
+  padding-top: 0.6rem;
+  border-top: 1px solid #0c0c0c;
+  font: 600 0.82rem/1.3 Inter, ui-sans-serif, sans-serif;
+  letter-spacing: 0.06em;
+  color: #3a3a38;
+  text-align: center;
+}
+
 /* Единый шрифтовой язык страницы: только Playfair Display (заголовки) и Inter (всё остальное), без наклона. */
 .theme-noir *,
 .ef-overlay * {
