@@ -58,7 +58,7 @@ Instagram (комментарии, личные сообщения)
 ```bash
 python -m venv .venv && . .venv/bin/activate
 pip install -r requirements-dev.txt
-pytest                      # 48 тестов, без доступа к Meta
+pytest                      # 57 тестов, без доступа к Meta
 cp .env.example .env        # заполните значения
 set -a; . ./.env; set +a
 uvicorn bridge.app:create_app_from_env --factory --port 8000
@@ -71,9 +71,25 @@ docker build -t legalcareerist-bridge .
 docker run -d --restart=always -p 8000:8000 -v bridge-data:/data --env-file .env legalcareerist-bridge
 ```
 
+**Где хостить.** Сервис сам обращается к `graph.instagram.com` и `api.telegram.org`. Из РФ первый адрес, скорее всего, недоступен, поэтому берите сервер за её пределами.
+
 Обязательно: переменные из `.env.example`, **постоянный диск на `/data`** (иначе после перезапуска потеряются состояния диалогов и продлённый токен), HTTPS перед сервисом. Проверка: `https://<ваш-домен>/health` отвечает `{"ok":true,…}`.
 
 Ссылки в текстах: `BOT_URL` (по умолчанию `https://t.me/LegalcareeristBot`), `SITE_URL`, `PAYMENT_URL`. Правила, которым нужна незаданная ссылка (`оплата`, `сайт`), отключаются автоматически, и в логах будет предупреждение.
+
+## Самопроверка настройки (запускайте после шагов 2–5)
+
+Скрипт сам ходит в Instagram и Telegram и печатает отчёт. Секреты в отчёт не попадают, его можно присылать целиком.
+
+```bash
+set -a; . ./.env; set +a                       # переменные из .env
+python -m bridge.doctor                        # токен, ID аккаунта, тип аккаунта, Telegram, сценарии
+python -m bridge.doctor --telegram-test        # + тестовое сообщение в чат менеджеров
+python -m bridge.doctor --subscribe            # + подписать приложение на comments и messages
+python -m bridge.doctor --url https://<ваш-домен>   # + проверить, что сервер доступен и verify token совпадает
+```
+
+Что он ловит: токен не принят; `IG_ACCOUNT_ID` не тот, что у токена; аккаунт не профессиональный; нет подписки на вебхуки; бот не добавлен в чат менеджеров; на сервере другой `IG_VERIFY_TOKEN`.
 
 ## Шаг 5. Вебхуки
 
@@ -139,7 +155,7 @@ curl -X POST "https://graph.instagram.com/v23.0/me/subscribed_apps" \
 
 Проверено автотестами и запуском сервера: подпись и verify-token вебхука, разбор комментариев и сообщений, сценарии диалога, формат запросов к Graph API, продление токена, экранирование текста в карточках Telegram.
 
-**Не проверено вживую**: реальные вызовы Meta и Telegram. Их можно сделать только с вашими токенами. Поэтому первый прогон на шаге 6 обязателен. Версия API (`GRAPH_API_VERSION`, по умолчанию `v23.0`) и названия кнопок в панели Meta со временем меняются: сверяйтесь с [документацией Instagram Platform](https://developers.facebook.com/docs/instagram-platform).
+**Не проверено вживую**: реальные вызовы Meta и Telegram. Их можно сделать только с вашими токенами. Поэтому запустите самопроверку (`python -m bridge.doctor`), а первый прогон на шаге 6 обязателен. Версия API (`GRAPH_API_VERSION`, по умолчанию `v23.0`) и названия кнопок в панели Meta со временем меняются: сверяйтесь с [документацией Instagram Platform](https://developers.facebook.com/docs/instagram-platform).
 
 ## Что можно добавить дальше
 
