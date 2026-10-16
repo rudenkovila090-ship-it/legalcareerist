@@ -1,27 +1,32 @@
 # Карьерный юрист
 
-Воронка заявок: **Instagram даёт трафик, @LegalcareeristBot принимает заявки в Telegram**.
+Бот принимает заявки там, где пишет клиент: **в Instagram** (комментарии и директ) и **в Telegram**. Заявки приходят менеджерам в Telegram, менеджер отвечает на карточку, и ответ уходит клиенту в тот канал, откуда он пришёл.
 
-## Telegram-бот приёма заявок (основной путь)
+## Бот в Instagram (официальный API Meta)
 
-Бот ведёт клиента по меню и вопросам, спрашивает согласие на обработку данных, запоминает источник (метка в ссылке `?start=…`) и присылает менеджерам карточку заявки. Менеджер отвечает на карточку, и ответ уходит клиенту. Есть выгрузка заявок в CSV.
+Ответ на комментарии с ключевыми словами, диалог и квалификация в директе, передача менеджеру. Приложение Meta создаётся от аккаунта разработчика, мост запускается на сервере.
 
-**Запуск и настройка:** [docs/TELEGRAM_BOT.md](docs/TELEGRAM_BOT.md)
+**Подключение и запуск:** [docs/INSTAGRAM_SETUP.md](docs/INSTAGRAM_SETUP.md)
 
 ```bash
-pip install -r requirements.txt
+cp .env.example .env && nano .env         # секреты Meta, Telegram, DOMAIN
+docker compose up -d --build              # мост + HTTPS (Caddy)
+python -m bridge.doctor --url https://<DOMAIN>   # самопроверка
+```
+
+## Telegram-бот приёма заявок
+
+Тот же сценарий в Telegram: меню кнопками, вопросы, согласие на обработку данных, источник лида из ссылки (`?start=…`), карточка менеджерам, ответ менеджера клиенту, `/leads` и `/export` (CSV). Работает и отдельно, без Instagram: [docs/TELEGRAM_BOT.md](docs/TELEGRAM_BOT.md)
+
+```bash
 python -m bridge.tgbot --find-chat        # узнать ID группы менеджеров
 python -m bridge.tgbot --check            # проверить настройку
 python -m bridge.tgbot                    # запустить
 ```
-
-## Instagram-мост (запасной путь, нужен собственный Instagram API)
-
-Автоответ на комментарии с ключевыми словами и в Instagram DM через официальный API Meta. Требует приложения Meta, аккаунта разработчика и App Review: [docs/INSTAGRAM_SETUP.md](docs/INSTAGRAM_SETUP.md). Код готов и протестирован, но не подключён.
 
 | Что | Где |
 |---|---|
 | Тексты, ключевые слова, вопросы | `config/flows.json` |
 | Переменные окружения | `.env.example` |
 | Код | `bridge/` |
-| Тесты (90) | `tests/`: `pip install -r requirements-dev.txt && pytest` |
+| Тесты (97) | `tests/`: `pip install -r requirements-dev.txt && pytest` |

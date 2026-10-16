@@ -22,8 +22,13 @@ class FakeIG:
         self.calls: list[tuple] = []
         self.usernames: dict[str, str] = {}
         self.fail_private_reply = False
+        self.fail_dm = False
 
     async def send_dm(self, igsid, text):
+        from bridge.graph import GraphError
+
+        if self.fail_dm:
+            raise GraphError("This message is sent outside of allowed window", 400, 10)
         self.calls.append(("dm", igsid, text))
 
     async def private_reply(self, comment_id, text):
@@ -49,7 +54,7 @@ class FakeTG:
 
     async def send(self, html_text, attempts=3):
         self.sent.append(html_text)
-        return True
+        return 500 + len(self.sent)  # message_id карточки: 501, 502, …
 
 
 class Clock:

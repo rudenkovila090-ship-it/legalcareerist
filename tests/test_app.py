@@ -85,6 +85,14 @@ def test_dm_flow_end_to_end_ends_with_card_in_telegram(env):
     assert 'href="https://instagram.com/ivan_lawyer"' in card  # username подтянут по ID
 
 
+def test_cards_are_remembered_so_manager_replies_reach_the_right_client(env, store, settings):
+    client, ig, tg = env
+    for i, text in enumerate(["привет", "1", "Брак", "Москва", "здесь"], start=1):
+        post(client, dm_payload(text, f"mm{i}"))
+    assert len(tg.sent) == 1
+    assert store.client_for_card(settings.telegram_manager_chat_id, 501) == "222"
+
+
 def test_user_text_is_html_escaped_in_manager_card(env):
     client, ig, tg = env
     post(client, comment_payload("вакансии"))

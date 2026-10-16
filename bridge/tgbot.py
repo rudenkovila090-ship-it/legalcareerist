@@ -28,6 +28,7 @@ from .config import TelegramSettings
 from .doctor import FAIL, OK, WARN
 from .engine import Action, Engine
 from .flows import Flows, load_flows
+from .graph import GraphError
 from .logging_setup import setup_logging
 from .store import Conversation, Store
 from .webhook import DmEvent
@@ -194,8 +195,10 @@ class LeadBot:
         flows: Flows,
         store: Store,
         clock=time.time,
+        ig: Any = None,
     ) -> None:
         self.s, self.api, self.engine, self.flows, self.store, self._clock = settings, api, engine, flows, store, clock
+        self.ig = ig  # InstagramClient: нужен, чтобы ответ менеджера из Telegram уходил клиенту в Instagram DM
 
     # ------------------------------------------------------------------ маршрутизация
     async def handle_update(self, update: dict) -> None:
@@ -294,16 +297,27 @@ class LeadBot:
         client_id = self.store.client_for_card(chat_id, msg["reply_to_message"]["message_id"])
         if client_id is None:
             return  # ответ на сообщение, не связанное с клиентом
+        reply_to = msg["message_id"]
         if channel_of(client_id) != "Telegram":
-            await self.api.send_message(
-                chat_id, "Это клиент из Instagram: ответьте ему в самом Instagram.", reply_to=msg["message_id"]
-            )
-            return
-        try:
-            await self.api.copy_message(client_id.removeprefix("tg:"), chat_id, msg["message_id"])
-        except TelegramError as exc:
-            await self.api.send_message(chat_id, f"❌ Не доставлено клиенту: {exc}", reply_to=msg["message_id"])
-            return
+            if self.ig is None:
+                await self.api.send_message(chat_id, "Это клиент из Instagram: ответьте ему в самом Instagram.", reply_to=reply_to)
+                return
+            text = msg.get("text")
+            if not text:
+                await self.api.send_message(chat_id, "В Instagram отсюда можно отправить только текст.", reply_to=reply_to)
+                return
+            try:
+                await self.ig.send_dm(client_id, text)
+            except GraphError as exc:
+                hint = " Instagram разрешает писать только в течение 24 часов после последнего сообщения клиента." if exc.code in (10, 100, 200) else ""
+                await self.api.send_message(chat_id, f"❌ Не доставлено в Instagram: {exc}.{hint}", reply_to=reply_to)
+                return
+        else:
+            try:
+                await self.api.copy_message(client_id.removeprefix("tg:"), chat_id, msg["message_id"])
+            except TelegramError as exc:
+                await self.api.send_message(chat_id, f"❌ Не доставлено клиенту: {exc}", reply_to=reply_to)
+                return
         conv = self.store.get_conv(client_id) or Conversation(client_id)
         if conv.state != "optout":  # менеджер ответил лично: бот не вмешивается, пока диалог ведёт человек
             conv.state = "human"

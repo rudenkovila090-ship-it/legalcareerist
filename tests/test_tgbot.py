@@ -274,6 +274,51 @@ def test_csv_export_neutralizes_formula_injection(flows):
     assert row[7] == "Тема: =1+1"  # ячейка начинается с текста вопроса, формулой в Excel не станет
 
 
+# ---------------------------------------------------------------- ответ менеджера клиенту в Instagram
+@pytest.fixture
+def ig_bot(clock):
+    from conftest import FakeIG
+
+    settings = make_settings()
+    flows = load_flows(settings.flows_path, settings.links, with_comment_rules=False)
+    store = Store(":memory:")
+    engine = Engine(flows, store, self_id="111", clock=clock)
+    api, ig = FakeAPI(), FakeIG()
+    store.add_card_message(MANAGERS, 900, "222")  # карточка Instagram-клиента 222
+    return LeadBot(settings, api, engine, flows, store, clock, ig=ig), api, ig, store
+
+
+def test_manager_reply_to_instagram_card_is_sent_as_instagram_dm(ig_bot, clock):
+    bot, api, ig, store = ig_bot
+    run(bot, from_managers("Здравствуйте! Когда вам удобно созвониться?", reply_to=900))
+    assert ig.calls == [("dm", "222", "Здравствуйте! Когда вам удобно созвониться?")]
+    assert "✅ Отправлено клиенту" in api.sent_to(MANAGERS)[-1][2]
+    conv = store.get_conv("222")
+    assert conv.state == "human" and conv.human_until > clock.now
+
+
+def test_instagram_reply_failure_explains_the_24h_window(ig_bot):
+    bot, api, ig, store = ig_bot
+    ig.fail_dm = True
+    run(bot, from_managers("Добрый день", reply_to=900))
+    text = api.sent_to(MANAGERS)[-1][2]
+    assert "❌ Не доставлено в Instagram" in text and "24 часов" in text
+    assert store.get_conv("222") is None  # состояние диалога не тронуто
+
+
+def test_instagram_reply_accepts_text_only(ig_bot):
+    bot, api, ig, _ = ig_bot
+    run(bot, from_managers(None, reply_to=900, photo=[{"file_id": "x"}]))
+    assert ig.calls == [] and "только текст" in api.sent_to(MANAGERS)[-1][2]
+
+
+def test_instagram_card_without_instagram_client_gives_hint(bot_env):
+    bot, api, store = bot_env
+    store.add_card_message(MANAGERS, 901, "222")
+    run(bot, from_managers("Здравствуйте", reply_to=901))
+    assert "ответьте ему в самом Instagram" in api.sent_to(MANAGERS)[-1][2]
+
+
 # ---------------------------------------------------------------- запуск и безопасность
 def test_find_chats_lists_groups_first_and_does_not_acknowledge_updates():
     from bridge.tgbot import find_chats

@@ -47,6 +47,7 @@ class Settings:
     privacy_url: str = ""
     human_mode_hours: int = 12
     notify_comment_leads: bool = False
+    telegram_polling: bool = True  # опрос Telegram: ответы менеджеров из Telegram уходят клиентам в Instagram
     log_level: str = "INFO"
 
     @property
@@ -80,6 +81,7 @@ class Settings:
             privacy_url=get("PRIVACY_URL"),
             human_mode_hours=int(get("HUMAN_MODE_HOURS", str(cls.human_mode_hours))),
             notify_comment_leads=get("NOTIFY_COMMENT_LEADS").lower() in {"1", "true", "yes", "on"},
+            telegram_polling=get("TELEGRAM_POLLING", "1").lower() not in {"0", "false", "no", "off"},
             log_level=get("LOG_LEVEL", cls.log_level).upper(),
         )
 

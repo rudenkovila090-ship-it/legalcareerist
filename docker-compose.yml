@@ -1,0 +1,35 @@
+# Запуск: docker compose up -d --build
+# Нужен файл .env рядом (см. .env.example) и переменная DOMAIN: адрес, по которому сервер виден из интернета.
+# Caddy сам получает и продлевает сертификат HTTPS (порты 80 и 443 должны быть открыты).
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DB_PATH: /data/bridge.db
+    volumes:
+      - bridge-data:/data
+    command: ["uvicorn", "bridge.app:create_app_from_env", "--factory", "--host", "0.0.0.0", "--port", "8000"]
+    expose:
+      - "8000"
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:?задайте DOMAIN в .env, например bridge.example.com}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  bridge-data:
+  caddy-data:
+  caddy-config:

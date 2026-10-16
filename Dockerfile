@@ -13,6 +13,7 @@ COPY config ./config
 ENV DB_PATH=/data/bridge.db
 VOLUME /data
 
-# По умолчанию запускается Telegram-бот приёма заявок (порты не нужны, он сам опрашивает Telegram).
-# Instagram-мост (webhook-сервер): docker run … legalcareerist-bot sh -c "uvicorn bridge.app:create_app_from_env --factory --host 0.0.0.0 --port 8000"
-CMD ["python", "-m", "bridge.tgbot"]
+# По умолчанию: Instagram-мост (вебхуки) вместе с опросом Telegram (ответы менеджеров клиентам).
+# Только Telegram-бот без Instagram: docker run … legalcareerist-bot python -m bridge.tgbot
+EXPOSE 8000
+CMD ["uvicorn", "bridge.app:create_app_from_env", "--factory", "--host", "0.0.0.0", "--port", "8000"]

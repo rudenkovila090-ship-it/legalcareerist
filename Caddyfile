@@ -1,0 +1,12 @@
+# Снаружи открыт только путь вебхука Instagram и /health; остальное закрыто.
+{$DOMAIN} {
+	encode gzip
+
+	@public path /webhook/instagram /health
+	handle @public {
+		reverse_proxy app:8000
+	}
+	handle {
+		respond "Not found" 404
+	}
+}

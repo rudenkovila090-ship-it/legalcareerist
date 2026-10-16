@@ -12,13 +12,14 @@ from fastapi import BackgroundTasks, FastAPI, HTTPException, Query, Request
 from fastapi.responses import PlainTextResponse
 
 from .cards import format_card
-from .config import Settings
+from .config import Settings, TelegramSettings
 from .engine import Action, Engine
 from .flows import load_flows
 from .graph import GraphError, InstagramClient, TokenManager
 from .logging_setup import setup_logging
 from .store import Store
 from .telegram import TelegramNotifier
+from .tgbot import LeadBot, TelegramAPI, TelegramError
 from .webhook import parse_events, verify_signature
 
 log = logging.getLogger("bridge")
@@ -31,8 +32,8 @@ TOKEN_ALERT_EVERY = 86400
 class Dispatcher:
     """Выполняет действия движка: сообщения в Instagram и карточки менеджеру в Telegram."""
 
-    def __init__(self, ig: InstagramClient, tg: TelegramNotifier, store: Store) -> None:
-        self._ig, self._tg, self._store = ig, tg, store
+    def __init__(self, ig: InstagramClient, tg: TelegramNotifier, store: Store, manager_chat_id: str = "") -> None:
+        self._ig, self._tg, self._store, self._chat_id = ig, tg, store, manager_chat_id
 
     async def run(self, actions: list[Action]) -> None:
         reply_sent = True  # публичное «ответили в директ» только если личное сообщение реально ушло
@@ -60,7 +61,37 @@ class Dispatcher:
             if username:
                 card = {**card, "username": username}
                 self._store.set_username(card["igsid"], username)
-        await self._tg.send(format_card(card))
+        message_id = await self._tg.send(format_card(card))
+        if message_id and card.get("igsid"):
+            # запоминаем карточку: ответ менеджера на неё уйдёт этому клиенту (см. LeadBot._forward_reply)
+            self._store.add_card_message(self._chat_id, message_id, card["igsid"])
+
+
+async def telegram_polling(
+    settings: Settings, http: httpx.AsyncClient, engine: Engine, flows, store: Store, ig: InstagramClient
+) -> None:
+    """Опрос Telegram рядом с вебхуками Instagram: ответы менеджеров на карточки уходят клиентам в Instagram,
+    а Telegram-бот параллельно принимает заявки. Не стартует, если у бота включён чужой webhook."""
+    api = TelegramAPI(settings.telegram_bot_token, http)
+    tg_settings = TelegramSettings(
+        bot_token=settings.telegram_bot_token,
+        manager_chat_id=settings.telegram_manager_chat_id,
+        human_mode_hours=settings.human_mode_hours,
+    )
+    while True:
+        try:
+            info = await api.get_webhook_info()
+        except TelegramError as exc:
+            log.warning("Telegram недоступен, повтор через минуту: %s", exc)
+            await asyncio.sleep(60)
+            continue
+        if info.get("url"):
+            log.error(
+                "У бота включён webhook (токен использует другой процесс): ответы менеджеров из Telegram в Instagram "
+                "не будут работать. Отключите чужой процесс или задайте TELEGRAM_POLLING=0."
+            )
+            return
+        await LeadBot(tg_settings, api, engine, flows, store, ig=ig).run()
 
 
 async def token_loop(tokens: TokenManager, tg: TelegramNotifier) -> None:
@@ -104,16 +135,25 @@ def create_app(
         human_mode_hours=settings.human_mode_hours,
         notify_comment_leads=settings.notify_comment_leads,
     )
-    dispatcher = Dispatcher(ig, tg, store)
-    run_token_loop = isinstance(ig, InstagramClient)  # в тестах подставляются заглушки — продление не нужно
+    dispatcher = Dispatcher(ig, tg, store, settings.telegram_manager_chat_id)
+    run_background = isinstance(ig, InstagramClient)  # в тестах подставляются заглушки: фоновые задачи не нужны
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):
         store.purge_seen()
-        task = asyncio.create_task(token_loop(tokens, tg)) if run_token_loop else None
-        log.info("Мост запущен: правил комментариев=%d, сегментов=%d", len(flows.rules), len(flows.segments))
+        tasks: list[asyncio.Task] = []
+        if run_background:
+            tasks.append(asyncio.create_task(token_loop(tokens, tg)))
+            if settings.telegram_polling:
+                tasks.append(asyncio.create_task(telegram_polling(settings, http, engine, flows, store, ig)))
+        log.info(
+            "Мост запущен: правил комментариев=%d, сегментов=%d, опрос Telegram=%s",
+            len(flows.rules),
+            len(flows.segments),
+            "вкл" if run_background and settings.telegram_polling else "выкл",
+        )
         yield
-        if task:
+        for task in tasks:
             task.cancel()
         await http.aclose()
 
