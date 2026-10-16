@@ -1,18 +1,57 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import '../../pages/events/noir.css'
 
 interface CasePage {
   label: string
   /** Сплошной текст страницы. */
   text?: string
-  /** Либо список пунктов «заголовок — пояснение» (например, «Польза»). */
+  /** Либо список пунктов «заголовок — пояснение» (например, «Выгода»): видны заголовки, пояснение — по наведению. */
   items?: { title: string; text: string }[]
+}
+
+/** Пункты страницы: видны заголовки, пояснение выбранного — под ними. Выбор — по наведению, фокусу или нажатию (на телефоне). */
+function Perks({ items }: { items: { title: string; text: string }[] }) {
+  const [active, setActive] = useState(0)
+  const detailId = useId()
+  return (
+    <div className="cf-perks">
+      <ul className="cf-chips">
+        {items.map((it, i) => (
+          <li key={it.title}>
+            <button
+              type="button"
+              className="cf-chip"
+              data-active={i === active ? '' : undefined}
+              aria-controls={detailId}
+              onMouseEnter={() => setActive(i)}
+              onFocus={() => setActive(i)}
+              // Нажатие не должно переворачивать страницу: листается только кликом по свободному месту и стрелками.
+              onClick={(e) => {
+                e.stopPropagation()
+                setActive(i)
+              }}
+            >
+              {it.title}
+            </button>
+          </li>
+        ))}
+      </ul>
+      {/* Все пояснения лежат в одной ячейке, видно одно: высота равна самому длинному тексту, и страница не прыгает. */}
+      <div id={detailId} className="cf-perk-detail" aria-live="polite">
+        {items.map((it, i) => (
+          <p key={it.title} data-active={i === active ? '' : undefined}>
+            {it.text}
+          </p>
+        ))}
+      </div>
+    </div>
+  )
 }
 
 /**
  * Папка с делом: вкладки сверху, страницы-карточки внутри. При переключении страница
- * переворачивается, как лист в папке. Стрелки и клик по странице — вперёд/назад. Высота папки равна высоте открытого листа:
- * короткая страница («Жанр») не растягивается под длинную («Польза»).
+ * переворачивается, как лист в папке. Стрелки и клик по странице — вперёд/назад. Все листы одной высоты (по самому
+ * высокому), поэтому папка при переворачивании не прыгает; пункты «Выгоды» свёрнуты до заголовков, чтобы листы были компактными.
  */
 export default function CaseFile({ pages }: { pages: CasePage[] }) {
   const [cur, setCur] = useState(0)
@@ -35,6 +74,7 @@ export default function CaseFile({ pages }: { pages: CasePage[] }) {
               key={p.label}
               role="tabpanel"
               aria-hidden={i !== cur}
+              inert={i !== cur}
               data-flipped={i < cur ? '' : undefined}
               data-current={i === cur ? '' : undefined}
               className="cf-page"
@@ -46,16 +86,7 @@ export default function CaseFile({ pages }: { pages: CasePage[] }) {
                 <span className="cf-stamp">Конфиденциально</span>
               </div>
               {p.text && <p className="cf-text">{p.text}</p>}
-              {p.items && (
-                <ul className="cf-list">
-                  {p.items.map((it) => (
-                    <li key={it.title}>
-                      <b className="cf-item-t">{it.title}</b>
-                      <span className="cf-item-x">{it.text}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
+              {p.items && <Perks items={p.items} />}
               <div className="cf-foot">
                 Стр. {i + 1} из {pages.length}
               </div>

@@ -254,13 +254,13 @@
 }
 .cf-stage {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   perspective: 1800px;
 }
 .cf-page {
   grid-area: 1 / 1;
   position: relative;
-  min-height: 15rem;
-  padding: 24px 26px 44px;
+  padding: 22px 26px 40px;
   background-color: #d9cca9;
   background-image:
     linear-gradient(rgba(60, 40, 20, 0.1) 1px, transparent 1px),
@@ -332,40 +332,76 @@
   font-weight: 500;
   line-height: 28px;
 }
-/* Список пунктов («Польза»): каждая строка стоит на линейке листа (шаг 30px), заголовок — красной строкой над пояснением. */
-.cf-list {
-  margin-top: 0.8rem;
+/* Пункты («Выгода»): метки-заголовки, а пояснение выбранной метки — строками листа под ними. */
+.cf-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 1rem;
   list-style: none;
 }
-.cf-list li {
-  position: relative;
-  padding-left: 1.15rem;
-}
-.cf-list li::before {
-  content: '';
-  position: absolute;
-  top: 10px;
-  left: 0.1rem;
-  width: 7px;
-  height: 7px;
-  background: #a02a33;
-  transform: rotate(45deg);
-}
-.cf-item-t {
-  display: block;
+.cf-chip {
+  padding: 0.42rem 0.75rem;
+  border: 1px solid rgba(42, 22, 13, 0.5);
+  background: rgba(255, 250, 236, 0.3);
   color: #7a1219;
   font-family: Inter, ui-sans-serif, system-ui, sans-serif;
-  font-size: 0.74rem;
+  font-size: 0.72rem;
   font-weight: 800;
-  letter-spacing: 0.12em;
-  line-height: 28px;
+  line-height: 1.2;
+  letter-spacing: 0.1em;
+  text-align: left;
   text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
 }
-.cf-item-x {
-  display: block;
+.cf-chip:hover,
+.cf-chip:focus-visible {
+  border-color: #7a1219;
+}
+.cf-chip[data-active] {
+  border-color: #7a1219;
+  background: #7a1219;
+  color: #f3e8cf;
+}
+.cf-chip:focus-visible {
+  outline: 2px solid #2a160d;
+  outline-offset: 2px;
+}
+/* Телефон: метки идут одной строкой, которую можно пролистать пальцем, — так лист не вырастает вдвое. */
+@media (max-width: 639px) {
+  .cf-chips {
+    flex-wrap: nowrap;
+    margin-inline: -26px;
+    padding-inline: 26px;
+    padding-bottom: 4px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .cf-chips::-webkit-scrollbar {
+    display: none;
+  }
+  .cf-chip {
+    flex: none;
+    white-space: nowrap;
+  }
+}
+.cf-perk-detail {
+  display: grid;
+  margin-top: 0.7rem;
+}
+.cf-perk-detail p {
+  grid-area: 1 / 1;
   font-size: 0.9rem;
   font-weight: 500;
   line-height: 28px;
+  visibility: hidden;
+}
+.cf-perk-detail p::first-letter {
+  text-transform: uppercase;
+}
+.cf-perk-detail p[data-active] {
+  visibility: visible;
 }
 .cf-foot {
   position: absolute;

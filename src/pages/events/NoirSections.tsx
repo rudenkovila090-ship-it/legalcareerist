@@ -282,9 +282,6 @@ export function NoirAudience({ story }: { story: EventStory }) {
   return (
     <section>
       <NoirHeading>Для кого этот вечер</NoirHeading>
-      <Reveal delay={90}>
-        <p className="mt-2 text-sm text-ink/55">Наведите курсор на фото (на телефоне — нажмите).</p>
-      </Reveal>
       <Reveal variant="zoom" className="mt-5">
         <EvidenceBoard people={story.audience} />
       </Reveal>
@@ -298,8 +295,7 @@ export function NoirStory({ story }: { story: EventStory }) {
     <section id="story" className="scroll-mt-24">
       <NoirHeading>Сюжет вечера</NoirHeading>
       <Reveal delay={80}>
-        <p className="mt-2 text-sm text-ink/55">Три акта расследования</p>
-        <p className="mt-1 text-sm text-ink/55">Покрутите ручку настройки или нажмите клавишу: на каждой волне свой эфир.</p>
+        <p className="mt-2 text-xs text-ink/40">Три акта расследования. Покрутите ручку настройки или нажмите клавишу: на каждой волне свой эфир.</p>
       </Reveal>
       <Reveal className="mt-6">
         <RadioStory acts={story.acts} extras={story.radio} />
@@ -310,13 +306,10 @@ export function NoirStory({ story }: { story: EventStory }) {
 
 /** «Члены семьи» — партнёры вечера. Пока имена не объявлены, показываем вводную и ссылку на заявку о партнёрстве. */
 export function NoirFamily({ story }: { story: EventStory }) {
-  const { intro, groups } = story.family
+  const { groups } = story.family
   return (
     <section id="family" className="scroll-mt-24">
       <NoirHeading>Члены семьи</NoirHeading>
-      <Reveal delay={90}>
-        <p className="mt-3 max-w-2xl leading-relaxed text-ink/70">{intro}</p>
-      </Reveal>
       {groups.map((g) => (
         <div key={g.title} className="mt-6">
           <Reveal>
