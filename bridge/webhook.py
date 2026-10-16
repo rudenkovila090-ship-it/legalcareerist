@@ -26,11 +26,18 @@ class DmEvent:
 
 
 def verify_signature(app_secret: str, body: bytes, header: str | None) -> bool:
-    """Проверка X-Hub-Signature-256: HMAC-SHA256 от сырого тела запроса секретом приложения Meta."""
+    """Проверка X-Hub-Signature-256: HMAC-SHA256 от сырого тела запроса секретом приложения Meta.
+
+    app_secret может содержать несколько секретов через запятую: у приложения Meta есть «секрет приложения»
+    и отдельный «секрет Instagram-приложения»; подходит любой из них."""
     if not header or not header.startswith("sha256="):
         return False
-    expected = hmac.new(app_secret.encode(), body, hashlib.sha256).hexdigest()
-    return hmac.compare_digest(expected, header[len("sha256=") :])
+    received = header[len("sha256=") :]
+    secrets = [s.strip() for s in app_secret.split(",") if s.strip()]
+    return any(
+        hmac.compare_digest(hmac.new(secret.encode(), body, hashlib.sha256).hexdigest(), received)
+        for secret in secrets
+    )
 
 
 def _dm_from(item: dict) -> DmEvent | None:

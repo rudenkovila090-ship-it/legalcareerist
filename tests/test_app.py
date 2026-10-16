@@ -45,6 +45,16 @@ def test_unsigned_or_badly_signed_requests_are_rejected(env, signature):
     assert ig.calls == [] and tg.sent == []
 
 
+def test_signature_accepts_any_of_several_comma_separated_secrets():
+    from bridge.webhook import verify_signature
+
+    body = b'{"object":"instagram"}'
+    header = sign(body, "second-secret")
+    assert verify_signature("first-secret, second-secret", body, header)
+    assert not verify_signature("first-secret,third-secret", body, header)
+    assert not verify_signature("", body, header)  # пустой секрет не должен принимать ничего
+
+
 def test_keyword_comment_end_to_end(env):
     client, ig, tg = env
     assert post(client, comment_payload("Консультация")).status_code == 200
