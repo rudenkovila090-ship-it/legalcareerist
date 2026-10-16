@@ -10,17 +10,18 @@ from dataclasses import dataclass, field
 
 @dataclass
 class Conversation:
-    igsid: str
-    state: str = "idle"  # idle | menu | question | done | human | optout
+    igsid: str  # id клиента: Instagram-scoped ID или "tg:<user_id>" для Telegram
+    state: str = "idle"  # idle | menu | consent | question | done | human | optout
     segment: str | None = None
     step: int = 0
     answers: list[str] = field(default_factory=list)
     username: str | None = None
     human_until: float = 0.0
+    source: str | None = None  # откуда пришёл клиент (start-параметр ссылки на бота)
 
 
 class Store:
-    """SQLite: состояние диалогов, дедупликация событий, заявки и служебные значения (токен)."""
+    """SQLite: состояние диалогов, дедупликация событий, заявки и служебные значения."""
 
     def __init__(self, path: str) -> None:
         if path != ":memory:":
@@ -50,10 +51,19 @@ class Store:
                     created_at REAL NOT NULL
                 );
                 CREATE TABLE IF NOT EXISTS kv (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS card_messages (
+                    chat_id TEXT NOT NULL,
+                    message_id INTEGER NOT NULL,
+                    client_id TEXT NOT NULL,
+                    PRIMARY KEY (chat_id, message_id)
+                );
                 """
             )
+            columns = {row[1] for row in self._db.execute("PRAGMA table_info(conversations)")}
+            if "source" not in columns:  # миграция БД, созданной до появления Telegram-бота
+                self._db.execute("ALTER TABLE conversations ADD COLUMN source TEXT")
 
-    # --- дедупликация (Meta может повторно доставлять вебхуки) ---
+    # --- дедупликация (повторные доставки вебхуков/обновлений) ---
     def seen(self, key: str) -> bool:
         """True, если событие уже обрабатывалось; иначе запоминает его и возвращает False."""
         with self._lock, self._db:
@@ -70,22 +80,23 @@ class Store:
     def get_conv(self, igsid: str) -> Conversation | None:
         with self._lock:
             row = self._db.execute(
-                "SELECT igsid, state, segment, step, answers, username, human_until "
+                "SELECT igsid, state, segment, step, answers, username, human_until, source "
                 "FROM conversations WHERE igsid = ?",
                 (igsid,),
             ).fetchone()
         if row is None:
             return None
-        return Conversation(row[0], row[1], row[2], row[3], json.loads(row[4]), row[5], row[6])
+        return Conversation(row[0], row[1], row[2], row[3], json.loads(row[4]), row[5], row[6], row[7])
 
     def save_conv(self, conv: Conversation) -> None:
         with self._lock, self._db:
             self._db.execute(
-                "INSERT INTO conversations (igsid, state, segment, step, answers, username, human_until, updated_at) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?) "
+                "INSERT INTO conversations "
+                "(igsid, state, segment, step, answers, username, human_until, source, updated_at) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) "
                 "ON CONFLICT(igsid) DO UPDATE SET state=excluded.state, segment=excluded.segment, "
                 "step=excluded.step, answers=excluded.answers, username=excluded.username, "
-                "human_until=excluded.human_until, updated_at=excluded.updated_at",
+                "human_until=excluded.human_until, source=excluded.source, updated_at=excluded.updated_at",
                 (
                     conv.igsid,
                     conv.state,
@@ -94,6 +105,7 @@ class Store:
                     json.dumps(conv.answers, ensure_ascii=False),
                     conv.username,
                     conv.human_until,
+                    conv.source,
                     time.time(),
                 ),
             )
@@ -102,7 +114,7 @@ class Store:
         with self._lock, self._db:
             self._db.execute("UPDATE conversations SET username = ? WHERE igsid = ?", (username, igsid))
 
-    # --- заявки (резервная копия на случай сбоя Telegram) ---
+    # --- заявки ---
     def add_lead(self, igsid: str, username: str | None, segment: str | None, data: dict) -> None:
         with self._lock, self._db:
             self._db.execute(
@@ -113,6 +125,36 @@ class Store:
     def count_leads(self) -> int:
         with self._lock:
             return self._db.execute("SELECT COUNT(*) FROM leads").fetchone()[0]
+
+    def leads(self, limit: int | None = None) -> list[dict]:
+        """Заявки от новых к старым."""
+        query = "SELECT id, igsid, username, segment, data, created_at FROM leads ORDER BY id DESC"
+        params: tuple = ()
+        if limit is not None:
+            query += " LIMIT ?"
+            params = (limit,)
+        with self._lock:
+            rows = self._db.execute(query, params).fetchall()
+        return [
+            {"id": r[0], "client_id": r[1], "username": r[2], "segment": r[3], "data": json.loads(r[4]), "created_at": r[5]}
+            for r in rows
+        ]
+
+    # --- карточки менеджеру: чтобы ответ на карточку уходил нужному клиенту ---
+    def add_card_message(self, chat_id: str, message_id: int, client_id: str) -> None:
+        with self._lock, self._db:
+            self._db.execute(
+                "INSERT OR REPLACE INTO card_messages (chat_id, message_id, client_id) VALUES (?, ?, ?)",
+                (str(chat_id), message_id, client_id),
+            )
+
+    def client_for_card(self, chat_id: str, message_id: int) -> str | None:
+        with self._lock:
+            row = self._db.execute(
+                "SELECT client_id FROM card_messages WHERE chat_id = ? AND message_id = ?",
+                (str(chat_id), message_id),
+            ).fetchone()
+        return row[0] if row else None
 
     # --- служебные значения ---
     def kv_get(self, key: str) -> str | None:

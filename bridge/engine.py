@@ -4,7 +4,6 @@ import time
 from dataclasses import dataclass
 from typing import Callable
 
-from .config import Settings
 from .flows import Flows, normalize
 from .store import Conversation, Store
 from .webhook import CommentEvent, DmEvent
@@ -13,27 +12,40 @@ from .webhook import CommentEvent, DmEvent
 @dataclass
 class Action:
     kind: str  # dm | private_reply | public_reply | notify
-    to: str = ""  # igsid (dm) или comment_id (private_reply / public_reply)
+    to: str = ""  # id клиента (dm) или comment_id (private_reply / public_reply)
     text: str = ""
     card: dict | None = None  # для notify
+    options: list[str] | None = None  # быстрые кнопки ответа (только Telegram; Instagram их игнорирует)
 
 
 class Engine:
-    """Чистая логика: вебхук-событие -> новое состояние диалога + список действий.
+    """Чистая логика: событие -> новое состояние диалога + список действий.
 
+    Одна и та же логика обслуживает и Telegram-бота, и Instagram-мост.
     Состояние сохраняется до отправки сообщений, а сама отправка (сеть) выполняется диспетчером.
-    Метод синхронный и без await, поэтому два одновременных вебхука одного пользователя не перемешают шаги.
+    Метод синхронный и без await, поэтому два одновременных события одного пользователя не перемешают шаги.
     """
 
-    def __init__(self, flows: Flows, store: Store, settings: Settings, clock: Callable[[], float] = time.time) -> None:
+    def __init__(
+        self,
+        flows: Flows,
+        store: Store,
+        *,
+        self_id: str = "",
+        human_mode_hours: int = 12,
+        notify_comment_leads: bool = False,
+        clock: Callable[[], float] = time.time,
+    ) -> None:
         self._flows = flows
         self._store = store
-        self._settings = settings
+        self._self_id = self_id  # наш собственный Instagram-аккаунт: его сообщения и комментарии игнорируем
+        self._human_mode_hours = human_mode_hours
+        self.notify_comment_leads = notify_comment_leads
         self._clock = clock
 
-    # ------------------------------------------------------------------ комментарии
+    # ------------------------------------------------------------------ комментарии (Instagram)
     def on_comment(self, ev: CommentEvent) -> list[Action]:
-        if ev.parent_id or ev.from_id == self._settings.ig_account_id:
+        if ev.parent_id or (self._self_id and ev.from_id == self._self_id):
             return []  # ответы в ветках и наши собственные комментарии игнорируем (защита от петель)
         if self._store.seen(f"c:{ev.id}"):
             return []
@@ -50,14 +62,15 @@ class Engine:
         elif rule.start == "menu":
             conv.state, conv.segment, conv.step, conv.answers = "menu", None, 0, []
         elif rule.start is not None:
-            conv.state, conv.segment, conv.step, conv.answers = "question", rule.start, 0, []
+            first = "consent" if self._flows.consent else "question"
+            conv.state, conv.segment, conv.step, conv.answers = first, rule.start, 0, []
         self._store.save_conv(conv)
 
         actions = [Action("private_reply", ev.id, dm)]
         public = rule.pick_public_reply(ev.id)
         if public:
             actions.append(Action("public_reply", ev.id, public))
-        if self._settings.notify_comment_leads:
+        if self.notify_comment_leads:
             actions.append(
                 Action(
                     "notify",
@@ -74,7 +87,7 @@ class Engine:
 
     # ------------------------------------------------------------------ личные сообщения
     def on_dm(self, ev: DmEvent) -> list[Action]:
-        if ev.sender_id == self._settings.ig_account_id:
+        if self._self_id and ev.sender_id == self._self_id:
             return []
         if ev.mid and self._store.seen(f"m:{ev.mid}"):
             return []
@@ -82,11 +95,14 @@ class Engine:
         flows, texts = self._flows, self._flows.texts
         now = self._clock()
         conv = self._store.get_conv(ev.sender_id) or Conversation(ev.sender_id)
+        if ev.username:
+            conv.username = ev.username
         text = (ev.text or "").strip()
         norm = normalize(text)
+        no_text = "[вложение без текста]"
 
-        def reply(msg: str) -> Action:
-            return Action("dm", ev.sender_id, msg)
+        def reply(msg: str, options: list[str] | None = None) -> Action:
+            return Action("dm", ev.sender_id, msg, options=options)
 
         def save_and(*actions: Action) -> list[Action]:
             self._store.save_conv(conv)
@@ -95,8 +111,21 @@ class Engine:
         def card(kind: str, **extra) -> Action:
             return Action(
                 "notify",
-                card={"type": kind, "igsid": conv.igsid, "username": conv.username, **extra},
+                card={
+                    "type": kind,
+                    "igsid": conv.igsid,
+                    "username": conv.username,
+                    "name": ev.name,
+                    "source": conv.source,
+                    **extra,
+                },
             )
+
+        def reset(state: str, segment: str | None = None) -> None:
+            conv.state, conv.segment, conv.step, conv.answers = state, segment, 0, []
+
+        def menu() -> Action:
+            return reply(flows.menu_text(), options=flows.menu_options())
 
         if conv.state == "human" and now >= conv.human_until:
             conv.state = "idle"  # режим «ведёт менеджер» истёк
@@ -104,8 +133,8 @@ class Engine:
         # --- «стоп»: полностью отключаем автоматику
         if conv.state == "optout":
             if flows.menu.search_short(norm):
-                conv.state, conv.segment, conv.step, conv.answers = "menu", None, 0, []
-                return save_and(reply(flows.menu_text()))
+                reset("menu")
+                return save_and(menu())
             return []
         if flows.optout.search_short(norm):
             conv.state = "optout"
@@ -113,12 +142,13 @@ class Engine:
 
         # --- менеджер ведёт диалог: бот молчит, а сообщения клиента пересылаем в Telegram
         if conv.state == "human":
-            return [card("message", text=text or "[вложение без текста]")]
+            self._store.save_conv(conv)
+            return [card("message", text=text or no_text)]
 
         # --- «позовите человека» из любого шага
         if flows.handoff.search_short(norm):
             qa = self._qa(conv)
-            conv.state, conv.human_until = "human", now + self._settings.human_mode_hours * 3600
+            conv.state, conv.human_until = "human", now + self._human_mode_hours * 3600
             return save_and(
                 reply(texts["handoff"]),
                 card("handoff", segment=self._segment_label(conv), qa=qa, text=text),
@@ -126,11 +156,24 @@ class Engine:
 
         # --- «меню»: начать сначала
         if flows.menu.search_short(norm):
-            conv.state, conv.segment, conv.step, conv.answers = "menu", None, 0, []
-            return save_and(reply(flows.menu_text()))
+            reset("menu")
+            return save_and(menu())
 
         if conv.state == "done":
-            return [reply(texts["done_followup"]), card("message", segment=self._segment_label(conv), text=text or "[вложение без текста]")]
+            return [
+                reply(texts["done_followup"]),
+                card("message", segment=self._segment_label(conv), text=text or no_text),
+            ]
+
+        if conv.state == "consent":
+            if flows.no.search_short(norm):
+                reset("idle")
+                return save_and(reply(flows.consent_declined or texts["optout"]))
+            if flows.yes.search_short(norm):
+                segment = flows.segments[conv.segment]  # type: ignore[index]
+                conv.state, conv.step, conv.answers = "question", 0, []
+                return save_and(reply(segment.questions[0]))
+            return save_and(reply(flows.consent or "", options=list(flows.consent_buttons)))
 
         if conv.state == "question":
             if not text:
@@ -142,7 +185,7 @@ class Engine:
                 return save_and(reply(segment.questions[conv.step]))
             conv.state = "done"
             qa = self._qa(conv)
-            self._store.add_lead(conv.igsid, conv.username, conv.segment, {"qa": qa})
+            self._store.add_lead(conv.igsid, conv.username, conv.segment, {"qa": qa, "source": conv.source})
             return save_and(
                 reply(texts["done"]),
                 card("lead", segment=segment.label, qa=qa),
@@ -151,13 +194,18 @@ class Engine:
         if conv.state == "menu":
             choice = flows.choose_segment(norm)
             if choice is None:
-                return save_and(reply(f"{texts['menu_retry']}\n\n{flows.menu_text()}"))
-            conv.state, conv.segment, conv.step, conv.answers = "question", choice, 0, []
+                return save_and(
+                    reply(f"{texts['menu_retry']}\n\n{flows.menu_text()}", options=flows.menu_options())
+                )
+            if flows.consent:
+                reset("consent", choice)
+                return save_and(reply(flows.consent, options=list(flows.consent_buttons)))
+            reset("question", choice)
             return save_and(reply(flows.segments[choice].questions[0]))
 
         # idle (первое сообщение / состояние сброшено)
-        conv.state, conv.segment, conv.step, conv.answers = "menu", None, 0, []
-        return save_and(reply(flows.menu_text()))
+        reset("menu")
+        return save_and(menu())
 
     # ------------------------------------------------------------------ вспомогательное
     def _human_active(self, conv: Conversation) -> bool:

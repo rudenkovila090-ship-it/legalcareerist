@@ -1,5 +1,8 @@
 # Подключение Instagram к @LegalcareeristBot
 
+> **Это запасной путь.** Основная воронка работает без API Meta: Instagram даёт трафик, бот принимает заявки в Telegram ([TELEGRAM_BOT.md](TELEGRAM_BOT.md)). Этот документ нужен, только если вы решите подключить автоответ в Instagram через собственное приложение Meta.
+> Для этого необходим аккаунт разработчика Meta. По нашим проверкам, вход через Instagram-аккаунт без Facebook-профиля сайт разработчиков не принимает.
+
 ## Что получится
 
 ```
@@ -58,7 +61,7 @@ Instagram (комментарии, личные сообщения)
 ```bash
 python -m venv .venv && . .venv/bin/activate
 pip install -r requirements-dev.txt
-pytest                      # 57 тестов, без доступа к Meta
+pytest                      # 90 тестов, без доступа к Meta
 cp .env.example .env        # заполните значения
 set -a; . ./.env; set +a
 uvicorn bridge.app:create_app_from_env --factory --port 8000

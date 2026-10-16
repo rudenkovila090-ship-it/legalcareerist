@@ -16,6 +16,7 @@ from .config import Settings
 from .engine import Action, Engine
 from .flows import load_flows
 from .graph import GraphError, InstagramClient, TokenManager
+from .logging_setup import setup_logging
 from .store import Store
 from .telegram import TelegramNotifier
 from .webhook import parse_events, verify_signature
@@ -96,7 +97,13 @@ def create_app(
     ig = ig or InstagramClient(settings, tokens, http)
     tg = tg or TelegramNotifier(settings.telegram_bot_token, settings.telegram_manager_chat_id, http)
     flows = load_flows(settings.flows_path, settings.links)
-    engine = Engine(flows, store, settings)
+    engine = Engine(
+        flows,
+        store,
+        self_id=settings.ig_account_id,
+        human_mode_hours=settings.human_mode_hours,
+        notify_comment_leads=settings.notify_comment_leads,
+    )
     dispatcher = Dispatcher(ig, tg, store)
     run_token_loop = isinstance(ig, InstagramClient)  # в тестах подставляются заглушки — продление не нужно
 
@@ -151,5 +158,5 @@ def create_app(
 
 def create_app_from_env() -> FastAPI:
     settings = Settings.from_env()
-    logging.basicConfig(level=settings.log_level, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    setup_logging(settings.log_level)
     return create_app(settings)

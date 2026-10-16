@@ -93,7 +93,13 @@ def clock() -> Clock:
 
 @pytest.fixture
 def engine(flows, store, settings, clock) -> Engine:
-    return Engine(flows, store, settings, clock)
+    return Engine(
+        flows,
+        store,
+        self_id=settings.ig_account_id,
+        human_mode_hours=settings.human_mode_hours,
+        clock=clock,
+    )
 
 
 def sign(body: bytes, secret: str = APP_SECRET) -> str:

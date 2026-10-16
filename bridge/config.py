@@ -12,10 +12,26 @@ REQUIRED = (
     "TELEGRAM_BOT_TOKEN",
     "TELEGRAM_MANAGER_CHAT_ID",
 )
+TELEGRAM_REQUIRED = ("TELEGRAM_BOT_TOKEN", "TELEGRAM_MANAGER_CHAT_ID")
+
+
+def _getter(env: Mapping[str, str]):
+    def get(name: str, default: str = "") -> str:
+        return env.get(name, default).strip() or default
+
+    return get
+
+
+def _require(env: Mapping[str, str], names: tuple[str, ...]) -> None:
+    missing = [name for name in names if not env.get(name, "").strip()]
+    if missing:
+        raise RuntimeError("Не заданы переменные окружения: " + ", ".join(missing))
 
 
 @dataclass(frozen=True)
 class Settings:
+    """Мост Instagram -> Telegram (нужен только для официального Instagram API)."""
+
     ig_account_id: str
     ig_access_token: str
     ig_app_secret: str
@@ -28,29 +44,26 @@ class Settings:
     bot_url: str = "https://t.me/LegalcareeristBot"
     site_url: str = ""
     payment_url: str = ""
+    privacy_url: str = ""
     human_mode_hours: int = 12
     notify_comment_leads: bool = False
     log_level: str = "INFO"
 
     @property
     def links(self) -> dict[str, str]:
-        """Значения для плейсхолдеров {bot_url}, {site_url}, {payment_url} в config/flows.json."""
+        """Значения для плейсхолдеров в config/flows.json."""
         return {
             "bot_url": self.bot_url,
             "site_url": self.site_url,
             "payment_url": self.payment_url,
+            "privacy_url": self.privacy_url,
         }
 
     @classmethod
     def from_env(cls, env: Mapping[str, str] | None = None) -> "Settings":
         env = os.environ if env is None else env
-        missing = [name for name in REQUIRED if not env.get(name, "").strip()]
-        if missing:
-            raise RuntimeError("Не заданы переменные окружения: " + ", ".join(missing))
-
-        def get(name: str, default: str = "") -> str:
-            return env.get(name, default).strip() or default
-
+        _require(env, REQUIRED)
+        get = _getter(env)
         return cls(
             ig_account_id=get("IG_ACCOUNT_ID"),
             ig_access_token=get("IG_ACCESS_TOKEN"),
@@ -64,7 +77,56 @@ class Settings:
             bot_url=get("BOT_URL", cls.bot_url),
             site_url=get("SITE_URL"),
             payment_url=get("PAYMENT_URL"),
+            privacy_url=get("PRIVACY_URL"),
             human_mode_hours=int(get("HUMAN_MODE_HOURS", str(cls.human_mode_hours))),
             notify_comment_leads=get("NOTIFY_COMMENT_LEADS").lower() in {"1", "true", "yes", "on"},
+            log_level=get("LOG_LEVEL", cls.log_level).upper(),
+        )
+
+
+@dataclass(frozen=True)
+class TelegramSettings:
+    """Telegram-бот, который сам принимает заявки (не требует ни Instagram, ни Meta)."""
+
+    bot_token: str
+    manager_chat_id: str
+    db_path: str = "data/bridge.db"
+    flows_path: str = "config/flows.json"
+    bot_url: str = "https://t.me/LegalcareeristBot"
+    site_url: str = ""
+    payment_url: str = ""
+    privacy_url: str = ""
+    human_mode_hours: int = 12
+    force_polling: bool = False
+    api_base: str = "https://api.telegram.org"  # другой адрес нужен только для локального Bot API сервера и тестов
+    log_level: str = "INFO"
+
+    @property
+    def links(self) -> dict[str, str]:
+        return {
+            "bot_url": self.bot_url,
+            "site_url": self.site_url,
+            "payment_url": self.payment_url,
+            "privacy_url": self.privacy_url,
+        }
+
+    @classmethod
+    def from_env(cls, env: Mapping[str, str] | None = None, *, require_chat: bool = True) -> "TelegramSettings":
+        """require_chat=False — для режима --find-chat, когда ID чата менеджеров ещё неизвестен."""
+        env = os.environ if env is None else env
+        _require(env, TELEGRAM_REQUIRED if require_chat else TELEGRAM_REQUIRED[:1])
+        get = _getter(env)
+        return cls(
+            bot_token=get("TELEGRAM_BOT_TOKEN"),
+            manager_chat_id=get("TELEGRAM_MANAGER_CHAT_ID"),
+            db_path=get("DB_PATH", cls.db_path),
+            flows_path=get("FLOWS_PATH", cls.flows_path),
+            bot_url=get("BOT_URL", cls.bot_url),
+            site_url=get("SITE_URL"),
+            payment_url=get("PAYMENT_URL"),
+            privacy_url=get("PRIVACY_URL"),
+            human_mode_hours=int(get("HUMAN_MODE_HOURS", str(cls.human_mode_hours))),
+            force_polling=get("TG_FORCE_POLLING").lower() in {"1", "true", "yes", "on"},
+            api_base=get("TELEGRAM_API_BASE", cls.api_base).rstrip("/"),
             log_level=get("LOG_LEVEL", cls.log_level).upper(),
         )

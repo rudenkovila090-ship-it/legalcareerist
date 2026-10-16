@@ -56,7 +56,8 @@ class Matcher:
 
 
 def render(template: str, links: dict[str, str]) -> str | None:
-    """Подставляет {bot_url}/{site_url}/{payment_url}. None — если нужная ссылка не задана; ValueError — если опечатка."""
+    """Подставляет {bot_url}/{site_url}/{payment_url}/{privacy_url}. None — если нужная ссылка не задана;
+    ValueError — если опечатка в имени плейсхолдера."""
     try:
         fields = {name for _, name, _, _ in string.Formatter().parse(template) if name}
     except ValueError as exc:
@@ -83,7 +84,7 @@ class CommentRule:
     id: str
     matcher: Matcher
     media_ids: frozenset[str]
-    dm: str  # уже с подставленными ссылками и (если нужно) первым вопросом/меню
+    dm: str  # уже с подставленными ссылками и (если нужно) первым вопросом/согласием/меню
     dm_plain: str  # то же без вопроса/меню: для диалогов, которые сейчас ведёт менеджер
     start: str | None  # None | "menu" | ключ сегмента
     public_replies: tuple[str, ...]
@@ -103,16 +104,28 @@ class Flows:
     handoff: Matcher
     optout: Matcher
     menu: Matcher
+    yes: Matcher
+    no: Matcher
+    consent: str | None = None  # None — согласие не запрашиваем (нет PRIVACY_URL)
+    consent_declined: str | None = None
+    consent_buttons: tuple[str, str] = ("Да, согласен(а)", "Нет")
 
     def menu_text(self) -> str:
         options = "\n".join(f"{i} — {s.menu_title}" for i, s in enumerate(self.segments.values(), start=1))
         return f"{self.texts['menu_intro']}\n{options}\n\n{self.texts['menu_outro']}"
 
+    def menu_options(self) -> list[str]:
+        """Подписи кнопок меню (для Telegram)."""
+        return [s.menu_title for s in self.segments.values()]
+
     def choose_segment(self, normalized_text: str) -> str | None:
-        """Выбор пункта меню: цифра или слово-синоним (в коротком сообщении)."""
+        """Выбор пункта меню: цифра, точное название кнопки или слово-синоним (в коротком сообщении)."""
         keys = list(self.segments)
         if normalized_text.isdigit() and 1 <= int(normalized_text) <= len(keys):
             return keys[int(normalized_text) - 1]
+        for key, segment in self.segments.items():
+            if normalized_text and normalized_text == normalize(segment.menu_title):
+                return key
         for key, segment in self.segments.items():
             if segment.aliases.search_short(normalized_text):
                 return key
@@ -128,7 +141,7 @@ class Flows:
         return None
 
 
-def load_flows(path: str, links: dict[str, str]) -> Flows:
+def load_flows(path: str, links: dict[str, str], *, with_comment_rules: bool = True) -> Flows:
     with open(path, encoding="utf-8") as fh:
         raw = json.load(fh)
 
@@ -140,6 +153,21 @@ def load_flows(path: str, links: dict[str, str]) -> Flows:
         if rendered is None:
             raise ValueError(f"texts.{name} использует ссылку, которая не задана в окружении (например BOT_URL)")
         texts[name] = rendered
+
+    # Согласие на обработку персональных данных: включается, только когда задан PRIVACY_URL.
+    consent = consent_declined = None
+    if raw["texts"].get("consent"):
+        consent = render(raw["texts"]["consent"], links)
+        if consent is None:
+            log.warning("Запрос согласия на обработку данных отключён: не задан PRIVACY_URL")
+        else:
+            if "consent_declined" not in raw["texts"]:
+                raise ValueError(f"в {path} нет texts.consent_declined")
+            consent_declined = raw["texts"]["consent_declined"]
+    buttons = (
+        raw["texts"].get("consent_yes_button", "Да, согласен(а)"),
+        raw["texts"].get("consent_no_button", "Нет"),
+    )
 
     segments: dict[str, Segment] = {}
     for key, seg in raw.get("segments", {}).items():
@@ -161,9 +189,9 @@ def load_flows(path: str, links: dict[str, str]) -> Flows:
     if not segments:
         raise ValueError(f"в {path} нет segments")
 
-    flows_stub = Flows(texts, segments, (), Matcher([]), Matcher([]), Matcher([]))
+    flows_stub = Flows(texts, segments, (), Matcher([]), Matcher([]), Matcher([]), Matcher([]), Matcher([]))
     rules: list[CommentRule] = []
-    for rule in raw.get("comment_rules", []):
+    for rule in raw.get("comment_rules", []) if with_comment_rules else []:
         rid = rule["id"]
         dm = render(rule["dm"], links)
         if dm is None:
@@ -176,7 +204,7 @@ def load_flows(path: str, links: dict[str, str]) -> Flows:
         elif start is not None:
             if start not in segments:
                 raise ValueError(f"правило {rid!r}: неизвестный сегмент start={start!r}")
-            dm = f"{dm}\n\n{segments[start].questions[0]}"
+            dm = f"{dm}\n\n{consent or segments[start].questions[0]}"
         if len(dm.encode()) > MAX_DM_BYTES:
             raise ValueError(
                 f"правило {rid!r}: личный ответ на комментарий {len(dm.encode())} байт, лимит {MAX_DM_BYTES}. Сократите текст."
@@ -205,4 +233,9 @@ def load_flows(path: str, links: dict[str, str]) -> Flows:
         handoff=Matcher(raw.get("handoff_words", [])),
         optout=Matcher(raw.get("optout_words", [])),
         menu=Matcher(raw.get("menu_words", [])),
+        yes=Matcher(raw.get("consent_yes_words", ["да", "согласен*", "согласна", "ок", "окей", "yes"])),
+        no=Matcher(raw.get("consent_no_words", ["нет", "не согласен*", "не согласна", "отказ*", "no"])),
+        consent=consent,
+        consent_declined=consent_declined,
+        consent_buttons=buttons,
     )

@@ -21,6 +21,8 @@ class DmEvent:
     mid: str | None
     text: str | None
     has_attachment: bool
+    username: str | None = None  # Telegram: известен сразу; Instagram: подтягивается по ID при отправке карточки
+    name: str | None = None
 
 
 def verify_signature(app_secret: str, body: bytes, header: str | None) -> bool:

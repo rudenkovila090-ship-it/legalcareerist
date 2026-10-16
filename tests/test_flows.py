@@ -57,7 +57,7 @@ def test_rule_over_byte_limit_is_rejected(tmp_path):
     path = tmp_path / "flows.json"
     path.write_text(json.dumps(raw, ensure_ascii=False), encoding="utf-8")
     with pytest.raises(ValueError, match="лимит"):
-        load_flows(str(path), {"bot_url": "https://t.me/x", "site_url": "", "payment_url": ""})
+        load_flows(str(path), {"bot_url": "https://t.me/x", "site_url": "", "payment_url": "", "privacy_url": ""})
 
 
 def test_match_comment_respects_media_filter(flows):

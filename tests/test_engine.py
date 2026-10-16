@@ -17,7 +17,7 @@ def kinds(actions):
 def test_keyword_comment_sends_private_reply_with_first_question_and_public_reply(engine, store):
     actions = engine.on_comment(comment("Консультация!!!"))
     assert kinds(actions) == ["private_reply", "public_reply"]
-    assert actions[0].to == "c1" and "Коротко опишите ситуацию" in actions[0].text
+    assert actions[0].to == "c1" and "Какая тема" in actions[0].text
     conv = store.get_conv("222")
     assert (conv.state, conv.segment, conv.step, conv.username) == ("question", "client", 0, "ivan")
 
@@ -42,9 +42,9 @@ def test_pay_rule_sends_link_without_changing_state(engine, store):
     assert store.get_conv("222").state == "idle"
 
 
-def test_comment_lead_notification_is_optional(engine, settings):
+def test_comment_lead_notification_is_optional(engine):
     assert "notify" not in kinds(engine.on_comment(comment(cid="c10")))
-    object.__setattr__(settings, "notify_comment_leads", True)
+    engine.notify_comment_leads = True
     notify = engine.on_comment(comment(cid="c11"))[-1]
     assert notify.kind == "notify" and notify.card["rule"] == "client"
 
