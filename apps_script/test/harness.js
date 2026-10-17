@@ -189,7 +189,8 @@ function makeEnv(opts = {}) {
     },
   };
   const ctx = vm.createContext(sandbox);
-  vm.runInContext(CODE, ctx, { filename: 'Code.gs' });
+  const code = CODE.replace(/^const SIMPLE = (true|false);/m, 'const SIMPLE = ' + !!opts.simple + ';');
+  vm.runInContext(code, ctx, { filename: 'Code.gs' });
 
   const env = {
     ctx, tg, book, sheets, props, triggers, ui, clock, logs,

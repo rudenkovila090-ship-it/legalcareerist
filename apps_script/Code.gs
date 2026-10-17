@@ -23,6 +23,11 @@ const SETTINGS = {
   lagThreshold: 0.85,    // ниже этой доли от нормы показатель считается отстающим
 };
 
+// Простой режим: только напоминания (люди и задачи на сегодня), галочка ✅, отчёт и «Человек».
+// Планы на год/месяц/неделю, итоги, цели и продажи выключены. Поставьте false, чтобы вернуть всё.
+const SIMPLE = true;
+const SNAP_PARTS_ = SIMPLE ? ['contacts', 'tasks'] : ['contacts', 'tasks', 'summary'];
+
 const SHEET_ACTIONS = 'Действия', SHEET_CONTACTS = 'Обращения', SHEET_SALES = 'Продажи';
 const SHEET_PLANS = 'Планы', SHEET_SUMMARY = 'Сводка', SHEET_TASKS = 'Задачи', SHEET_GOALS = 'План года';
 
@@ -627,6 +632,10 @@ function splitMessage_(text, limit) {
 function btn_(text, data) { return { text: text, callback_data: data }; }
 function inline_(rows) { return { inline_keyboard: rows }; }
 function mainKb_() {
+  if (SIMPLE) {
+    return { keyboard: [[{ text: '📋 Сегодня' }, { text: '➕ Задача' }], [{ text: '✍️ Отчёт' }, { text: '👤 Человек' }]],
+      resize_keyboard: true, is_persistent: true };
+  }
   return { keyboard: [
     [{ text: '📋 Сегодня' }, { text: '✍️ Отчёт' }],
     [{ text: '➕ Задача' }, { text: '👤 Человек' }, { text: '💰 Продажа' }],
@@ -791,7 +800,7 @@ function morningMessage_(snap) {
   if (!items.count) out.push('', 'На сегодня срочных шагов нет. Хороший день для новых касаний и контента.');
   if (b.tomorrow.length) out.push('', 'Завтра в очереди: ' + b.tomorrow.length + ' — ' + b.tomorrow.slice(0, 4).map(function (c) { return esc_(cut_(c.name, 30)); }).join(', '));
   if (b.noStep.length) out.push('', '<b>❓ Нет следующего шага (' + b.noStep.length + ')</b>', b.noStep.slice(0, 6).map(function (c) { return esc_(cut_(c.name, 30)); }).join(', '));
-  const lag = laggingRows_(snap.summary);
+  const lag = SIMPLE ? [] : laggingRows_(snap.summary);
   if (lag.length) {
     out.push('', '<b>📊 Темп месяца: отстаём</b>');
     lag.slice(0, 6).forEach(function (r) { out.push(metricLine_(r)); });
@@ -810,6 +819,12 @@ function eveningMessage_(snap) {
       NUMBER_ROWS_.some(function (p) { return r.label.trim().indexOf(p) === 0; });
   });
   const out = ['<b>🌙 Вечер, ' + ru_(t) + '. Подведём день</b>', ''];
+  if (SIMPLE) {
+    const bs = buckets_(snap), its = renderItems_(snap, bs);
+    if (!its.count) return { text: out.join('\n') + 'Всё закрыто 👍 Хорошего вечера.', kb: inline_([[btn_('✍️ Записать, что сделал', 'rp:go'), btn_('➕ Задача', 'tk:add')]]) };
+    return { text: out.join('\n') + '<b>Не закрыто:</b>' + its.lines.join('\n').replace(/^\n/, '\n'),
+      kb: inline_(its.rows.concat([[btn_('✍️ Записать, что сделал', 'rp:go')]])) };
+  }
   out.push(done.length ? 'В журнале за сегодня: ' + done.map(function (r) { return esc_(r.label.trim()) + ' — ' + esc_(r.today); }).join('; ')
     : 'За сегодня в журнале пока пусто.');
   const b = buckets_(snap);
@@ -838,11 +853,11 @@ function statsMessage_(snap) {
 }
 
 function tasksMessage_(snap) {
-  const end = addDays_(mondayOf_(snap.today), 6);
+  const end = SIMPLE ? '2999-12-31' : addDays_(mondayOf_(snap.today), 6);
   const mine = snap.tasks.filter(function (t) { return taskOpen_(t) && t.due && t.due <= end; })
     .sort(function (a, b) { return a.due < b.due ? -1 : a.due > b.due ? 1 : a.id - b.id; });
-  if (!mine.length) return { text: 'Открытых задач на эту неделю нет. «🗓 Неделя» составит план, «➕ Задача» добавит свою.', kb: null };
-  const out = ['<b>🗓 Задачи до конца недели (' + mine.length + ')</b>'], rows = [];
+  if (!mine.length) return { text: SIMPLE ? 'Открытых задач нет. Кнопка «➕ Задача» добавит новую.' : 'Открытых задач на эту неделю нет. «🗓 Неделя» составит план, «➕ Задача» добавит свою.', kb: null };
+  const out = ['<b>' + (SIMPLE ? '📋 Открытые задачи (' : '🗓 Задачи до конца недели (') + mine.length + ')</b>'], rows = [];
   let cur = null;
   mine.forEach(function (t, i) {
     if (t.due !== cur) {
@@ -1045,7 +1060,7 @@ function reviewMessage_(kind) {
   return out.join('\n');
 }
 
-const HELP_ = '<b>Я — личный ассистент «Карьерного юриста».</b>\n\n' +
+const HELP_FULL_ = '<b>Я — личный ассистент «Карьерного юриста».</b>\n\n' +
   '<b>Утром</b> пришлю, кому и по какому вопросу писать, задачи дня и что отстаёт. Нажми ✅ у сделанного.\n' +
   '<b>Вечером</b> напомню про отчёт и незакрытое.\n' +
   '<b>В понедельник</b> соберу план недели из целей года, <b>в воскресенье</b> пришлю итоги недели.\n\n' +
@@ -1057,13 +1072,22 @@ const HELP_ = '<b>Я — личный ассистент «Карьерного 
   '<b>Продажа:</b> кнопка «💰 Продажа».\n\n' +
   '/today список на сегодня · /week план недели · /review итоги недели · /month итоги месяца · /stats сводка · /status состояние бота · /cancel отмена';
 
+const HELP_SIMPLE_ = '<b>Я напоминаю, что сделать сегодня.</b>\n\n' +
+  '<b>Утром</b> пришлю: кому написать и по какому вопросу, и задачи на сегодня. Сделал, нажми ✅.\n' +
+  '<b>Вечером</b> напомню, что осталось не закрыто.\n\n' +
+  '<b>Добавить задачу:</b> кнопка «➕ Задача» или сообщение <code>+ завтра позвонить в Сбер</code>. Выполнено: <code>готово 12</code>.\n' +
+  '<b>Человек:</b> кнопка «👤 Человек» или строка <code>Иван | работодатель | вакансия юриста | созвониться в пятницу</code>.\n' +
+  '<b>Отчёт:</b> кнопка «✍️ Отчёт» или <code>написал 15, ответили 3, созвон 1</code>.\n\n' +
+  '/today список на сегодня · /tasks все задачи · /cancel отмена';
+const HELP_ = SIMPLE ? HELP_SIMPLE_ : HELP_FULL_;
+
 // ============================================================================
 // 8. ДЕЙСТВИЯ: что делают кнопки и команды
 // ============================================================================
 function heat_(minutes) { setProp_('HOT_UNTIL', nowDate_().getTime() + minutes * 60000); }
 
 function showToday_() {
-  const snap = loadSnap_(['contacts', 'tasks', 'summary']);
+  const snap = loadSnap_(SNAP_PARTS_);
   try { syncOverdue_(snap.contacts, snap.today); } catch (e) { /* пометки не критичны */ }
   const m = morningMessage_(snap);
   const sent = send_(m.text, m.kb);
@@ -1089,7 +1113,15 @@ function makeWeekPlan_() {
   const m = weekPlanMessage_(snap, made);
   send_(m.text, m.kb);
 }
-function showHelp_() { send_(HELP_, mainKb_()); }
+function setCommands_() {
+  const all = [{ command: 'today', description: 'Список на сегодня' }, { command: 'task', description: 'Новая задача' },
+    { command: 'tasks', description: 'Все открытые задачи' }, { command: 'report', description: 'Отчёт за день' },
+    { command: 'help', description: 'Что я умею' }];
+  const full = all.concat([{ command: 'week', description: 'План недели' }, { command: 'review', description: 'Итоги недели' },
+    { command: 'month', description: 'Итоги месяца' }, { command: 'stats', description: 'Сводка и светофор' }]);
+  try { tg_('setMyCommands', { commands: SIMPLE ? all : full }); } catch (e) { /* подсказки не критичны */ }
+}
+function showHelp_() { setCommands_(); send_(HELP_, mainKb_()); }
 function cancelFlow_() { clearState_(); send_('Отменил. Что дальше?', mainKb_()); }
 
 /** Освежает отправленные списки (после нажатия ✅), чтобы сделанное исчезало. */
@@ -1099,7 +1131,7 @@ function refreshBriefs_(extraId) {
   const kinds = jprop_('MSGKIND', {});
   const todo = ids.filter(function (id) { return kinds[id]; });
   if (!todo.length) return;
-  const snap = loadSnap_(['contacts', 'tasks', 'summary']);
+  const snap = loadSnap_(SNAP_PARTS_);
   todo.forEach(function (id) {
     const m = kinds[id] === 'e' ? eveningMessage_(snap) : morningMessage_(snap);
     try { edit_(id, m.text, m.kb); } catch (e) { /* сообщение могли удалить */ }
@@ -1351,11 +1383,15 @@ function weekListFromText_(text) {
 // ============================================================================
 // 9. РАЗБОР СООБЩЕНИЙ И КНОПОК
 // ============================================================================
-const MENU_ = {
+const MENU_ = SIMPLE ? { '📋 Сегодня': showToday_, '➕ Задача': startTask_, '✍️ Отчёт': startReport_, '👤 Человек': startPerson_ } : {
   '📋 Сегодня': showToday_, '✍️ Отчёт': startReport_, '➕ Задача': startTask_, '👤 Человек': startPerson_,
   '💰 Продажа': startSale_, '🗓 Неделя': showWeek_, '📊 Итоги': showReviewMenu_, '🎯 Цели': showGoals_,
 };
-const COMMANDS_ = {
+const OLD_MENU_ = ['💰 Продажа', '🗓 Неделя', '📊 Итоги', '🎯 Цели'];
+const COMMANDS_ = SIMPLE ? {
+  start: showHelp_, help: showHelp_, menu: showHelp_, today: showToday_, report: startReport_, task: startTask_,
+  tasks: showTasks_, person: startPerson_, status: showStatus_, cancel: cancelFlow_,
+} : {
   start: showHelp_, help: showHelp_, menu: showHelp_, today: showToday_, report: startReport_, task: startTask_,
   tasks: showTasks_, person: startPerson_, sale: startSale_, week: showWeek_, plan: makeWeekPlan_, review: function () { send_(reviewMessage_('week')); },
   month: function () { send_(reviewMessage_('month')); }, stats: showStats_, goals: showGoals_, status: showStatus_, cancel: cancelFlow_,
@@ -1375,6 +1411,7 @@ function onText_(text) {
     return f(cmd[2] || '');
   }
   if (MENU_[text]) { clearState_(); return MENU_[text](); }
+  if (SIMPLE && OLD_MENU_.indexOf(text) >= 0) { clearState_(); return showHelp_(); } // старые кнопки: обновляем меню
   if (/^(отмена|отменить|cancel)$/i.test(text)) return cancelFlow_();
   const st = getState_();
   if (st) return flowText_(st, text);
@@ -1547,7 +1584,7 @@ function choiceCallback_(p, st, mid) {
 // ============================================================================
 function pushMorning_() { showToday_(); heat_(3); }
 function pushEvening_() {
-  const snap = loadSnap_(['contacts', 'tasks', 'summary']);
+  const snap = loadSnap_(SNAP_PARTS_);
   const m = eveningMessage_(snap);
   const sent = send_(m.text, m.kb);
   rememberMsg_(sent.message_id, 'e');
@@ -1572,7 +1609,7 @@ const PUSHES_ = [
   { key: 'evening', at: function () { return SETTINGS.evening; }, ok: function () { return true; }, run: pushEvening_ },
   { key: 'weekreview', at: function () { return SETTINGS.weekReview; }, ok: function (i) { return weekdayIdx_(i.iso) === 6; }, run: pushWeekReview_ },
   { key: 'monthreview', at: function () { return SETTINGS.monthReview; }, ok: function (i) { return i.iso === monthEnd_(i.iso); }, run: pushMonthReview_ },
-];
+].filter(function (p) { return !SIMPLE || p.key === 'morning' || p.key === 'evening'; });
 
 /** Отправляет плановые сообщения, время которых наступило (и не позже lateHours часов назад). */
 function duePushes_() {
@@ -1719,13 +1756,7 @@ function setupBot() {
   try { tg_('deleteWebhook', { drop_pending_updates: false }); } catch (e) { /* вебхука не было */ }
   ensureSheets_();
   installTrigger_();
-  try {
-    tg_('setMyCommands', { commands: [
-      { command: 'today', description: 'Список на сегодня' }, { command: 'report', description: 'Отчёт за день' },
-      { command: 'task', description: 'Новая задача' }, { command: 'week', description: 'План недели' },
-      { command: 'review', description: 'Итоги недели' }, { command: 'month', description: 'Итоги месяца' },
-      { command: 'stats', description: 'Сводка и светофор' }, { command: 'help', description: 'Что я умею' } ] });
-  } catch (e) { /* подсказки команд не критичны */ }
+  setCommands_();
   try { send_(HELP_, mainKb_()); }
   catch (e) {
     ui.alert('Бот не смог вам написать. Откройте в Telegram @' + me.username + ', нажмите Start и запустите настройку ещё раз.');
