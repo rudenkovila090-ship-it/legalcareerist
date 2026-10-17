@@ -58,7 +58,7 @@
 
 ### 3. Ключ Claude
 
-[console.anthropic.com](https://console.anthropic.com) → API keys → создать. Сразу поставьте лимит расходов в настройках.
+[platform.claude.com](https://platform.claude.com) → пополните баланс (Billing) → раздел [API keys](https://platform.claude.com/settings/keys) → **Create key**. Ключ (`sk-ant-…`) показывается один раз: сохраните его сразу. Автопополнение лучше выключить, чтобы расходы не превысили положенную сумму.
 
 ### 4. Проверка на своём компьютере
 
