@@ -53,7 +53,7 @@ export function mailingScreen(siteUrl, user) {
   return {
     text: 'Я хотел бы присылать тебе сообщения о новых активностях, мероприятиях и полезных материалах. Для этого мне нужно твое согласие на получение таких сообщений. Ты можешь в любой момент отказаться от рассылки.',
     keyboard: [
-      [{ text: 'Согласие на рассылку', url: `${siteUrl}/legal/consent` }],
+      [{ text: 'Согласие на рассылку', url: `${siteUrl}/legal/marketing-consent` }],
       [{ text: `${gv(user, 'Не согласен', 'Не согласна', 'Не согласен(на)')} ❌`, callback_data: 'u:mail0' }, { text: `${gv(user, 'Согласен', 'Согласна', 'Согласен(на)')} ✅`, callback_data: 'u:mail1' }],
     ],
   }
