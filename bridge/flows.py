@@ -55,19 +55,65 @@ class Matcher:
         return len(normalized_text.split()) <= SHORT_MESSAGE_WORDS and self.search(normalized_text)
 
 
+# {first_name} подставляется при отправке конкретному человеку, поэтому здесь остаётся как есть.
+RUNTIME_PLACEHOLDERS = {"first_name"}
+
+
 def render(template: str, links: dict[str, str]) -> str | None:
-    """Подставляет {bot_url}/{site_url}/{payment_url}/{privacy_url}. None — если нужная ссылка не задана;
-    ValueError — если опечатка в имени плейсхолдера."""
+    """Подставляет {bot_url}/{site_url}/{payment_url}/{privacy_url}/{channel_url}. None — если нужная ссылка не задана;
+    ValueError — если опечатка в имени плейсхолдера. {first_name} не трогает."""
     try:
         fields = {name for _, name, _, _ in string.Formatter().parse(template) if name}
     except ValueError as exc:
         raise ValueError(f"некорректные фигурные скобки в тексте {template[:40]!r}: {exc}") from None
-    unknown = fields - set(links)
+    unknown = fields - set(links) - RUNTIME_PLACEHOLDERS
     if unknown:
         raise ValueError(f"неизвестные плейсхолдеры {sorted(unknown)} в тексте {template[:40]!r}")
-    if any(not links[name] for name in fields):
+    if any(not links[name] for name in fields - RUNTIME_PLACEHOLDERS):
         return None
-    return template.format_map(links)
+    return template.format_map({**links, "first_name": "{first_name}"})
+
+
+def fill_name(text: str, first_name: str | None) -> str:
+    """Подставляет имя клиента. Если имени нет, «Здравствуйте, {first_name}!» превращается в «Здравствуйте!»."""
+    if first_name:
+        return text.replace("{first_name}", first_name)
+    cleaned = re.sub(r"\{first_name\},\s*", "", text)  # «{first_name}, перед записью…» → «перед записью…»
+    cleaned = re.sub(r",?\s*\{first_name\}", "", cleaned)  # «Привет, {first_name}!» → «Привет!»
+    if cleaned != text and cleaned[:1].islower():
+        cleaned = cleaned[:1].upper() + cleaned[1:]
+    return cleaned
+
+
+def parse_phone(text: str) -> str | None:
+    """Телефон в свободной записи → нормализованный вид; None, если на телефон не похоже."""
+    stripped = text.strip()
+    if not re.fullmatch(r"\+?[\d\s\-().]{10,25}", stripped):
+        return None
+    digits = re.sub(r"\D", "", stripped)
+    if not 10 <= len(digits) <= 15:
+        return None
+    if len(digits) == 11 and digits[0] in "78":
+        return "+7" + digits[1:]
+    if len(digits) == 10 and digits[0] == "9":
+        return "+7" + digits
+    return ("+" if stripped.startswith("+") else "") + digits
+
+
+DEFAULT_INVALID = {
+    "choice": "Выберите, пожалуйста, один из вариантов кнопкой ниже.",
+    "phone": "Это не похоже на номер телефона. Введите его ещё раз, например +7 900 123-45-67.",
+}
+
+
+@dataclass(frozen=True)
+class Question:
+    """Тип вопроса: text (любой ответ), choice (только из кнопок), phone (номер телефона с проверкой)."""
+
+    text: str
+    kind: str = "text"
+    options: tuple[str, ...] = ()
+    invalid: str = ""
 
 
 @dataclass(frozen=True)
@@ -77,6 +123,8 @@ class Segment:
     menu_title: str
     questions: tuple[str, ...]
     aliases: Matcher
+    specs: tuple[Question, ...] = ()
+    hidden: bool = False  # скрытый сегмент не виден в меню: запускается воронкой или диплинком
 
 
 @dataclass(frozen=True)
@@ -110,23 +158,27 @@ class Flows:
     consent_declined: str | None = None
     consent_buttons: tuple[str, str] = ("Да, согласен(а)", "Нет")
 
+    def visible(self) -> dict[str, "Segment"]:
+        return {k: s for k, s in self.segments.items() if not s.hidden}
+
     def menu_text(self) -> str:
-        options = "\n".join(f"{i} — {s.menu_title}" for i, s in enumerate(self.segments.values(), start=1))
+        options = "\n".join(f"{i} — {s.menu_title}" for i, s in enumerate(self.visible().values(), start=1))
         return f"{self.texts['menu_intro']}\n{options}\n\n{self.texts['menu_outro']}"
 
     def menu_options(self) -> list[str]:
         """Подписи кнопок меню (для Telegram)."""
-        return [s.menu_title for s in self.segments.values()]
+        return [s.menu_title for s in self.visible().values()]
 
     def choose_segment(self, normalized_text: str) -> str | None:
         """Выбор пункта меню: цифра, точное название кнопки или слово-синоним (в коротком сообщении)."""
-        keys = list(self.segments)
+        visible = self.visible()
+        keys = list(visible)
         if normalized_text.isdigit() and 1 <= int(normalized_text) <= len(keys):
             return keys[int(normalized_text) - 1]
-        for key, segment in self.segments.items():
+        for key, segment in visible.items():
             if normalized_text and normalized_text == normalize(segment.menu_title):
                 return key
-        for key, segment in self.segments.items():
+        for key, segment in visible.items():
             if segment.aliases.search_short(normalized_text):
                 return key
         return None
@@ -171,12 +223,21 @@ def load_flows(path: str, links: dict[str, str], *, with_comment_rules: bool = T
 
     segments: dict[str, Segment] = {}
     for key, seg in raw.get("segments", {}).items():
-        questions = []
+        questions: list[str] = []
+        specs: list[Question] = []
         for q in seg.get("questions", []):
-            rendered = render(q, links)
+            spec_raw = q if isinstance(q, dict) else {"text": q}
+            rendered = render(spec_raw["text"], links)
             if rendered is None:
                 raise ValueError(f"вопрос сегмента {key!r} использует незаданную ссылку")
+            kind = spec_raw.get("type", "text")
+            if kind not in ("text", "choice", "phone"):
+                raise ValueError(f"вопрос сегмента {key!r}: неизвестный тип {kind!r}")
+            options = tuple(spec_raw.get("options", ()))
+            if kind == "choice" and not 2 <= len(options) <= 12:
+                raise ValueError(f"вопрос сегмента {key!r}: для типа choice нужно от 2 до 12 вариантов")
             questions.append(rendered)
+            specs.append(Question(rendered, kind, options, spec_raw.get("invalid", DEFAULT_INVALID.get(kind, ""))))
         if not questions:
             raise ValueError(f"у сегмента {key!r} нет вопросов")
         segments[key] = Segment(
@@ -185,9 +246,13 @@ def load_flows(path: str, links: dict[str, str], *, with_comment_rules: bool = T
             menu_title=seg.get("menu_title", seg["label"]),
             questions=tuple(questions),
             aliases=Matcher(seg.get("aliases", [])),
+            specs=tuple(specs),
+            hidden=bool(seg.get("hidden", False)),
         )
     if not segments:
         raise ValueError(f"в {path} нет segments")
+    if not any(not s.hidden for s in segments.values()):
+        raise ValueError(f"в {path} все сегменты скрыты: в меню нечего показывать")
 
     flows_stub = Flows(texts, segments, (), Matcher([]), Matcher([]), Matcher([]), Matcher([]), Matcher([]))
     rules: list[CommentRule] = []

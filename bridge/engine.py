@@ -4,18 +4,20 @@ import time
 from dataclasses import dataclass
 from typing import Callable
 
-from .flows import Flows, normalize
+from .flows import Flows, Segment, normalize, parse_phone
 from .store import Conversation, Store
 from .webhook import CommentEvent, DmEvent
 
 
 @dataclass
 class Action:
-    kind: str  # dm | private_reply | public_reply | notify
+    kind: str  # dm | document | private_reply | public_reply | notify
     to: str = ""  # id клиента (dm) или comment_id (private_reply / public_reply)
     text: str = ""
     card: dict | None = None  # для notify
     options: list[str] | None = None  # быстрые кнопки ответа (только Telegram; Instagram их игнорирует)
+    buttons: list[list[dict]] | None = None  # кнопки под сообщением: ссылки и переходы (только Telegram)
+    url: str | None = None  # для document: адрес файла
 
 
 class Engine:
@@ -127,6 +129,12 @@ class Engine:
         def menu() -> Action:
             return reply(flows.menu_text(), options=flows.menu_options())
 
+        def ask(segment: Segment, step: int, prefix: str = "") -> Action:
+            spec = segment.specs[step] if step < len(segment.specs) else None
+            options = list(spec.options) if spec and spec.kind == "choice" else None
+            question = segment.questions[step]
+            return reply(f"{prefix}\n\n{question}" if prefix else question, options=options)
+
         if conv.state == "human" and now >= conv.human_until:
             conv.state = "idle"  # режим «ведёт менеджер» истёк
 
@@ -172,17 +180,29 @@ class Engine:
             if flows.yes.search_short(norm):
                 segment = flows.segments[conv.segment]  # type: ignore[index]
                 conv.state, conv.step, conv.answers = "question", 0, []
-                return save_and(reply(segment.questions[0]))
+                return save_and(ask(segment, 0))
             return save_and(reply(flows.consent or "", options=list(flows.consent_buttons)))
 
         if conv.state == "question":
             if not text:
                 return [reply(texts["non_text"])]
             segment = flows.segments[conv.segment]  # type: ignore[index]
-            conv.answers.append(text[:1000])
+            spec = segment.specs[conv.step] if conv.step < len(segment.specs) else None
+            answer = text[:1000]
+            if spec and spec.kind == "choice":
+                chosen = next((o for o in spec.options if normalize(o) == norm), None)
+                if chosen is None:  # ответ не из списка: повторяем вопрос с кнопками, шаг не засчитываем
+                    return [ask(segment, conv.step, prefix=spec.invalid)]
+                answer = chosen
+            elif spec and spec.kind == "phone":
+                phone = parse_phone(text)
+                if phone is None:
+                    return [reply(spec.invalid)]
+                answer = phone
+            conv.answers.append(answer)
             conv.step += 1
             if conv.step < len(segment.questions):
-                return save_and(reply(segment.questions[conv.step]))
+                return save_and(ask(segment, conv.step))
             conv.state = "done"
             qa = self._qa(conv)
             self._store.add_lead(conv.igsid, conv.username, conv.segment, {"qa": qa, "source": conv.source})
@@ -201,11 +221,27 @@ class Engine:
                 reset("consent", choice)
                 return save_and(reply(flows.consent, options=list(flows.consent_buttons)))
             reset("question", choice)
-            return save_and(reply(flows.segments[choice].questions[0]))
+            return save_and(ask(flows.segments[choice], 0))
 
         # idle (первое сообщение / состояние сброшено)
         reset("menu")
         return save_and(menu())
+
+    def start_segment(self, client_id: str, segment: str, username: str | None = None) -> list[Action]:
+        """Запускает квалификацию по сегменту (например, после кодового слова «консультация»)."""
+        conv = self._store.get_conv(client_id) or Conversation(client_id)
+        if username:
+            conv.username = username
+        if self._human_active(conv):
+            return []  # менеджер ведёт диалог: бот не перебивает
+        first = "consent" if self._flows.consent else "question"
+        conv.state, conv.segment, conv.step, conv.answers = first, segment, 0, []
+        self._store.save_conv(conv)
+        if first == "consent":
+            return [Action("dm", client_id, self._flows.consent or "", options=list(self._flows.consent_buttons))]
+        seg = self._flows.segments[segment]
+        options = list(seg.specs[0].options) if seg.specs and seg.specs[0].kind == "choice" else None
+        return [Action("dm", client_id, seg.questions[0], options=options)]
 
     # ------------------------------------------------------------------ вспомогательное
     def _human_active(self, conv: Conversation) -> bool:

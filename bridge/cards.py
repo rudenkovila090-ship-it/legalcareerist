@@ -37,6 +37,8 @@ def format_card(card: dict) -> str:
     else:
         lines.append(f"Instagram ID: <code>{escape(client_id)}</code> (username недоступен)")
 
+    if card.get("tags"):
+        lines.append("Метки: " + ", ".join(f"<code>{escape(t)}</code>" for t in card["tags"]))
     if card.get("rule"):
         lines.append(f"Правило: <code>{escape(card['rule'])}</code>")
     if card.get("text"):

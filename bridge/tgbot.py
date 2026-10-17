@@ -4,10 +4,12 @@
     python -m bridge.tgbot --check          # проверить настройку, ничего не запуская
     python -m bridge.tgbot --check --test-message   # + тестовое сообщение в чат менеджеров
     python -m bridge.tgbot --find-chat      # узнать ID группы менеджеров (до первого запуска)
+    python -m bridge.tgbot --links          # готовые диплинки для Instagram, QR и рекламы
 
-Клиент пишет боту (например, по ссылке из Instagram t.me/LegalcareeristBot?start=post_oct17),
-проходит меню и вопросы, заявка приходит карточкой в чат менеджеров. Менеджер отвечает на карточку,
-и ответ уходит клиенту. Команды в чате менеджеров: /leads, /export. В любом чате: /chatid.
+Клиент пишет боту (например, по ссылке из Instagram t.me/LegalcareeristBot?start=guide__ig_story),
+получает приветствие, материал по кодовому слову (воронки из config/funnels.json) или проходит анкету,
+заявка приходит карточкой в чат менеджеров. Менеджер отвечает на карточку, и ответ уходит клиенту.
+Команды в чате менеджеров: /leads, /export, /contacts, /stats. В любом чате: /chatid.
 """
 from __future__ import annotations
 
@@ -19,6 +21,7 @@ import logging
 import re
 import sys
 import time
+from dataclasses import replace
 from typing import Any
 
 import httpx
@@ -27,7 +30,8 @@ from .cards import channel_of, format_card
 from .config import TelegramSettings
 from .doctor import FAIL, OK, WARN
 from .engine import Action, Engine
-from .flows import Flows, load_flows
+from .flows import Flows, fill_name, load_flows, normalize
+from .funnels import FunnelEngine, Plan, load_funnels
 from .graph import GraphError
 from .logging_setup import setup_logging
 from .store import Conversation, Store
@@ -45,6 +49,8 @@ MANAGER_HELP = (
     "• Ответьте (reply) на карточку клиента: ваш ответ уйдёт ему от имени бота. Можно слать текст, фото, файлы, голосовые.\n"
     "• /leads: последние 10 заявок\n"
     "• /export: все заявки файлом CSV (открывается в Excel и Google Таблицах)\n"
+    "• /contacts: все, кто писал боту, с метками и источниками (CSV)\n"
+    "• /stats: статистика воронок (запуски, подписки, выдачи, отказы)\n"
     "• /chatid: узнать ID чата"
 )
 
@@ -110,10 +116,20 @@ class TelegramAPI:
     async def get_updates(self, offset: int, timeout: int = 25) -> list[dict]:
         return await self.call(
             "getUpdates",
-            {"offset": offset, "timeout": timeout, "allowed_updates": ["message"]},
+            {"offset": offset, "timeout": timeout, "allowed_updates": ["message", "callback_query"]},
             timeout=timeout + 10,
             attempts=1,
         )
+
+    async def get_chat_member(self, chat_id: str, user_id: int) -> dict:
+        return await self.call("getChatMember", {"chat_id": chat_id, "user_id": user_id})
+
+    async def answer_callback_query(self, callback_query_id: str) -> None:
+        await self.call("answerCallbackQuery", {"callback_query_id": callback_query_id}, attempts=1)
+
+    async def send_document_url(self, chat_id: str, url: str, caption: str = "") -> dict:
+        """Файл по ссылке: Telegram скачивает его сам (до 20 МБ)."""
+        return await self.call("sendDocument", {"chat_id": chat_id, "document": url, "caption": caption}, timeout=60)
 
     async def send_message(
         self,
@@ -186,6 +202,35 @@ def leads_csv(leads: list[dict], flows: Flows) -> bytes:
     return ("﻿" + buf.getvalue()).encode("utf-8")  # BOM, чтобы Excel не ломал кириллицу
 
 
+def contacts_csv(contacts: list[dict], store: Store) -> bytes:
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(["Дата первого обращения (UTC)", "Username", "Имя", "ID", "Источник", "Метки"])
+    for c in contacts:
+        writer.writerow(
+            [
+                _date(c["first_seen"]),
+                _safe_cell(c["username"]),
+                _safe_cell(c["name"]),
+                c["user_id"].removeprefix("tg:"),
+                _safe_cell(c["source"]),
+                _safe_cell(", ".join(store.tags(c["user_id"]))),
+            ]
+        )
+    return ("﻿" + buf.getvalue()).encode("utf-8")
+
+
+def build_funnels(settings, flows: Flows, store: Store, clock=time.time) -> FunnelEngine:
+    config = load_funnels(settings.funnels_path, settings.links, set(flows.segments))
+    return FunnelEngine(
+        config,
+        store,
+        channel=settings.subscribe_channel,
+        channel_url=settings.links["channel_url"],
+        clock=clock,
+    )
+
+
 class LeadBot:
     def __init__(
         self,
@@ -196,12 +241,18 @@ class LeadBot:
         store: Store,
         clock=time.time,
         ig: Any = None,
+        funnels: FunnelEngine | None = None,
     ) -> None:
         self.s, self.api, self.engine, self.flows, self.store, self._clock = settings, api, engine, flows, store, clock
         self.ig = ig  # InstagramClient: нужен, чтобы ответ менеджера из Telegram уходил клиенту в Instagram DM
+        self.funnels = funnels  # воронки выдачи материалов; None — только анкеты
+        self._gate_problem_reported = False
 
     # ------------------------------------------------------------------ маршрутизация
     async def handle_update(self, update: dict) -> None:
+        if update.get("callback_query"):
+            await self._callback(update["callback_query"])
+            return
         msg = update.get("message")
         if not msg or "chat" not in msg:
             return
@@ -225,17 +276,42 @@ class LeadBot:
         if user.get("is_bot") or "id" not in user:
             return
         client_id = f"tg:{user['id']}"
+        chat_id = str(msg["chat"]["id"])
         text = msg.get("text") or msg.get("caption")
+        name = " ".join(p for p in (user.get("first_name"), user.get("last_name")) if p) or None
+        is_new = self.store.touch_contact(client_id, user.get("username"), name, user.get("first_name"))
+
         if cmd == "start":
-            source = UNSAFE_SOURCE.sub("", arg)[:SOURCE_MAX] or None
+            payload = UNSAFE_SOURCE.sub("", arg)[:SOURCE_MAX]
+            head, _, rest = payload.partition("__")
+            hit = self.funnels.by_payload(payload) if self.funnels and payload else None
+            segment = head[4:] if head.startswith("seg_") and head[4:] in self.flows.segments else None
+            known = bool(hit or segment or head in ("hello", "menu"))
+            source = (rest if known else payload) or None  # «guide__ig_story»: воронка guide, источник ig_story
             if source:
                 conv = self.store.get_conv(client_id) or Conversation(client_id)
                 conv.source = source
                 self.store.save_conv(conv)
+                self.store.touch_contact(client_id, None, None, None, source)
+            if hit:
+                await self._start_funnel(hit[0], client_id, chat_id, user)
+                return
+            if segment:
+                await self._run(self.engine.start_segment(client_id, segment, user.get("username")), chat_id, client_id)
+                return
+            welcome = self.funnels.welcome(is_new) if self.funnels and head != "menu" else None
+            if welcome and not self._human_active(client_id):
+                self._reset_state(client_id)
+                await self._run([replace(welcome, to=client_id)], chat_id, client_id)
+                return
             text = "/start"  # payload не передаём движку: длинный параметр не должен сорвать распознавание команды
         elif "contact" in msg:
             text = msg["contact"].get("phone_number") or ""
-        name = " ".join(p for p in (user.get("first_name"), user.get("last_name")) if p) or None
+        elif text and self.funnels and self.funnels.enabled:
+            funnel = self._keyword_funnel(client_id, text)
+            if funnel:
+                await self._start_funnel(funnel, client_id, chat_id, user)
+                return
         event = DmEvent(
             sender_id=client_id,
             mid=f"tg{update_id}",
@@ -244,15 +320,137 @@ class LeadBot:
             username=user.get("username"),
             name=name,
         )
-        await self._run(self.engine.on_dm(event), chat_id=str(msg["chat"]["id"]))
+        await self._run(self.engine.on_dm(event), chat_id, client_id)
 
-    async def _run(self, actions: list[Action], chat_id: str) -> None:
+    def _human_active(self, client_id: str) -> bool:
+        conv = self.store.get_conv(client_id)
+        return bool(conv and conv.state == "human" and conv.human_until > self._clock())
+
+    def _reset_state(self, client_id: str) -> None:
+        """«/start» начинает сначала: анкета, согласие и отказ от рассылки сбрасываются."""
+        conv = self.store.get_conv(client_id)
+        if conv and conv.state != "idle":
+            conv.state, conv.segment, conv.step, conv.answers = "idle", None, 0, []
+            self.store.save_conv(conv)
+
+    def _keyword_funnel(self, client_id: str, text: str):
+        """Кодовое слово запускает воронку, но не перехватывает ответы на вопросы анкеты и диалог с менеджером."""
+        conv = self.store.get_conv(client_id)
+        if conv:
+            if conv.state in ("question", "consent", "optout"):
+                return None
+            if conv.state == "human" and conv.human_until > self._clock():
+                return None
+            if conv.state == "menu" and self.flows.choose_segment(normalize(text)):
+                return None  # человек выбирает пункт меню, а не вводит кодовое слово
+        return self.funnels.match(text)
+
+    # ------------------------------------------------------------------ воронки
+    async def _subscribed(self, user_id: int) -> bool | None:
+        """True/False — подписан или нет; None — проверить не удалось (бот не администратор канала и т.п.)."""
+        try:
+            member = await self.api.get_chat_member(self.funnels.channel, user_id)
+        except TelegramError as exc:
+            log.error("Проверка подписки не удалась (бот должен быть администратором канала): %s", exc)
+            if not self._gate_problem_reported:
+                self._gate_problem_reported = True
+                try:
+                    await self.api.send_message(
+                        self.s.manager_chat_id,
+                        "⚠️ Не удаётся проверить подписку на канал: бот должен быть администратором канала. "
+                        "Пока это не исправлено, материалы выдаются без проверки.",
+                    )
+                except TelegramError:
+                    pass
+            return None
+        status = member.get("status")
+        return status in ("creator", "administrator", "member") or (status == "restricted" and bool(member.get("is_member")))
+
+    async def _start_funnel(self, f, client_id: str, chat_id: str, user: dict) -> None:
+        subscribed = await self._subscribed(user["id"]) if self.funnels.gated(f) else None
+        await self._apply(self.funnels.on_start(f, client_id, subscribed), client_id, chat_id, user.get("username"))
+
+    async def _apply(self, plan: Plan, client_id: str, chat_id: str, username: str | None = None) -> None:
+        await self._run(plan.actions, chat_id, client_id)
+        for kind, minutes in plan.jobs:
+            self.store.add_job(client_id, chat_id, plan.funnel_id, kind, self._clock() + minutes * 60)
+        if plan.then_segment:
+            await self._run(self.engine.start_segment(client_id, plan.then_segment, username), chat_id, client_id)
+
+    async def _callback(self, cq: dict) -> None:
+        try:
+            await self.api.answer_callback_query(cq["id"])  # убираем «часики» на кнопке
+        except TelegramError:
+            pass
+        user = cq.get("from") or {}
+        chat = (cq.get("message") or {}).get("chat") or {}
+        if user.get("is_bot") or "id" not in user or chat.get("type") != "private":
+            return
+        client_id, chat_id, data = f"tg:{user['id']}", str(chat["id"]), cq.get("data") or ""
+        name = " ".join(p for p in (user.get("first_name"), user.get("last_name")) if p) or None
+        self.store.touch_contact(client_id, user.get("username"), name, user.get("first_name"))
+
+        if data == "m:menu":  # «Другой вопрос»: обычное меню анкет
+            self._reset_state(client_id)
+            event = DmEvent(client_id, f"cq{cq['id']}", "меню", False, user.get("username"), name)
+            await self._run(self.engine.on_dm(event), chat_id, client_id)
+            return
+        parts = data.split(":")
+        if len(parts) < 3 or parts[0] != "f" or not self.funnels:
+            return
+        f = self.funnels.get(parts[1])
+        if f is None:
+            return
+        action, args = parts[2], parts[3:]
+        gated = self.funnels.gated(f)
+        if action == "go":
+            await self._start_funnel(f, client_id, chat_id, user)
+        elif action == "chk":
+            subscribed = await self._subscribed(user["id"]) if gated else None
+            await self._apply(self.funnels.check(f, client_id, subscribed), client_id, chat_id, user.get("username"))
+        elif action == "no":
+            await self._apply(self.funnels.decline(f, client_id), client_id, chat_id)
+        elif action == "sv" and len(args) == 1 and args[0].isdigit():
+            await self._apply(self.funnels.survey_answer(f, client_id, int(args[0])), client_id, chat_id)
+        elif action == "q" and len(args) == 2 and all(a.isdigit() for a in args):
+            n, i = int(args[0]), int(args[1])
+            subscribed = await self._subscribed(user["id"]) if gated and n + 1 >= len(f.quiz) else None
+            await self._apply(self.funnels.quiz_answer(f, client_id, n, i, subscribed), client_id, chat_id, user.get("username"))
+
+    async def _run_due_jobs(self) -> None:
+        """Отложенные сообщения: напоминание неподписавшимся, дожим после выдачи. Каждая задача выполняется не более раза."""
+        if not self.funnels:
+            return
+        for job in self.store.due_jobs(self._clock()):
+            self.store.finish_job(job["id"])
+            f = self.funnels.get(job["funnel_id"])
+            if f is None:
+                continue
+            subscribed = None
+            if job["kind"] == "reminder" and self.funnels.gated(f):
+                subscribed = await self._subscribed(int(job["user_id"].removeprefix("tg:")))
+            await self._apply(self.funnels.run_job(job, f, subscribed), job["user_id"], job["chat_id"])
+
+    async def _scheduler(self) -> None:
+        while True:
+            try:
+                await self._run_due_jobs()
+            except Exception:
+                log.exception("Сбой планировщика напоминаний")
+            await asyncio.sleep(15)
+
+    async def _run(self, actions: list[Action], chat_id: str, client_id: str | None = None) -> None:
+        first_name = self.store.first_name(client_id) if client_id else None
         for action in actions:
             try:
                 if action.kind == "dm":
-                    await self.api.send_message(chat_id, action.text, reply_markup=keyboard(action.options))
+                    markup = {"inline_keyboard": action.buttons} if action.buttons else keyboard(action.options)
+                    await self.api.send_message(chat_id, fill_name(action.text, first_name), reply_markup=markup)
+                elif action.kind == "document":
+                    await self.api.send_document_url(chat_id, action.url or "")
                 elif action.kind == "notify":
-                    card = action.card or {}
+                    card = {**(action.card or {})}
+                    card["tags"] = self.store.tags(card.get("igsid", ""))
                     sent = await self.api.send_message(self.s.manager_chat_id, format_card(card), html=True)
                     self.store.add_card_message(self.s.manager_chat_id, sent["message_id"], card["igsid"])
             except TelegramError as exc:
@@ -263,7 +461,7 @@ class LeadBot:
                         exc,
                     )
                 else:
-                    log.warning("Сообщение клиенту не отправлено: %s", exc)
+                    log.warning("Сообщение клиенту не отправлено (%s): %s", action.kind, exc)
 
     # ------------------------------------------------------------------ менеджеры
     async def _manager(self, msg: dict, cmd: str | None) -> None:
@@ -275,10 +473,36 @@ class LeadBot:
             await self.api.send_document(
                 chat_id, "leads.csv", leads_csv(leads, self.flows), caption=f"Заявок: {len(leads)}"
             )
+        elif cmd == "contacts":
+            contacts = self.store.contacts()
+            await self.api.send_document(
+                chat_id, "contacts.csv", contacts_csv(contacts, self.store), caption=f"Контактов: {len(contacts)}"
+            )
+        elif cmd == "stats":
+            await self.api.send_message(chat_id, self._stats_text())
         elif cmd in ("start", "help"):
             await self.api.send_message(chat_id, MANAGER_HELP)
         elif cmd is None and msg.get("reply_to_message"):
             await self._forward_reply(msg, chat_id)
+
+    def _stats_text(self) -> str:
+        contacts = len(self.store.contacts())
+        if not self.funnels or not (self.funnels.config.funnels or self.funnels.config.disabled):
+            return f"Воронки не настроены. Контактов: {contacts}, заявок: {self.store.count_leads()}."
+        stats = self.store.funnel_stats()
+        lines = [f"Контактов: {contacts}, заявок: {self.store.count_leads()}", ""]
+        for f in self.funnels.config.funnels.values():
+            s = stats.get(f.id, {})
+            line = f"• {f.title}: запусков {s.get('start', 0)}, выдано {s.get('delivered', 0)}"
+            if self.funnels.gated(f):
+                line += (
+                    f", подписались {s.get('subscribed', 0)}, не прошли проверку {s.get('not_subscribed', 0)},"
+                    f" напоминаний {s.get('reminder_sent', 0)}, отказались {s.get('declined', 0)}"
+                )
+            lines.append(line)
+        for fid, reason in self.funnels.config.disabled.items():
+            lines.append(f"• {fid}: ОТКЛЮЧЕНА, {reason}")
+        return "\n".join(lines)
 
     async def _send_leads(self, chat_id: str) -> None:
         leads = self.store.leads(limit=10)
@@ -330,33 +554,39 @@ class LeadBot:
     async def run(self) -> None:
         offset = int(self.store.kv_get("tg_offset") or 0)
         failures = 0
-        while True:
-            try:
-                updates = await self.api.get_updates(offset)
-            except TelegramError as exc:
-                failures += 1
-                conflict = "Conflict" in str(exc)
-                log.error(
-                    "getUpdates: %s%s",
-                    exc,
-                    " (токен бота уже использует другой процесс или webhook)" if conflict else "",
-                )
-                await asyncio.sleep(30 if conflict else min(5 * failures, 60))
-                continue
-            failures = 0
-            for update in updates:
+        scheduler = asyncio.create_task(self._scheduler())
+        try:
+            while True:
                 try:
-                    await self.handle_update(update)
-                except Exception:
-                    log.exception("Сбой обработки обновления %s", update.get("update_id"))
-                offset = update["update_id"] + 1
-                self.store.kv_set("tg_offset", str(offset))
+                    updates = await self.api.get_updates(offset)
+                except TelegramError as exc:
+                    failures += 1
+                    conflict = "Conflict" in str(exc)
+                    log.error(
+                        "getUpdates: %s%s",
+                        exc,
+                        " (токен бота уже использует другой процесс или webhook)" if conflict else "",
+                    )
+                    await asyncio.sleep(30 if conflict else min(5 * failures, 60))
+                    continue
+                failures = 0
+                for update in updates:
+                    try:
+                        await self.handle_update(update)
+                    except Exception:
+                        log.exception("Сбой обработки обновления %s", update.get("update_id"))
+                    offset = update["update_id"] + 1
+                    self.store.kv_set("tg_offset", str(offset))
+        finally:
+            scheduler.cancel()
 
 
 Line = tuple[str, str]
 
 
-async def preflight(settings: TelegramSettings, api: TelegramAPI, flows: Flows) -> list[Line]:
+async def preflight(
+    settings: TelegramSettings, api: TelegramAPI, flows: Flows, funnels: FunnelEngine | None = None
+) -> list[Line]:
     """Проверки перед запуском. Любой FAIL означает, что бот не стартует."""
     lines: list[Line] = []
     try:
@@ -393,6 +623,23 @@ async def preflight(settings: TelegramSettings, api: TelegramAPI, flows: Flows) 
         lines.append((WARN, "PRIVACY_URL не задан: согласие на обработку персональных данных не запрашивается"))
     else:
         lines.append((OK, "согласие на обработку персональных данных запрашивается"))
+
+    if funnels is not None and (funnels.config.funnels or funnels.config.disabled):
+        if funnels.config.funnels:
+            lines.append((OK, "воронки работают: " + ", ".join(funnels.config.funnels)))
+        for fid, reason in funnels.config.disabled.items():
+            lines.append((WARN, f"воронка {fid!r} отключена: {reason}"))
+        if not funnels.channel:
+            lines.append((WARN, "SUBSCRIBE_CHANNEL не задан: подписку на канал не проверяем, материалы выдаются сразу"))
+        else:
+            try:
+                member = await api.get_chat_member(funnels.channel, me["id"])
+                if member.get("status") in ("administrator", "creator"):
+                    lines.append((OK, f"бот администратор канала {funnels.channel}: проверка подписки работает"))
+                else:
+                    lines.append((FAIL, f"бот не администратор канала {funnels.channel}: без этого проверка подписки не работает"))
+            except TelegramError as exc:
+                lines.append((FAIL, f"канал {funnels.channel} недоступен боту (добавьте бота администратором канала): {exc}"))
     return lines
 
 
@@ -444,9 +691,12 @@ async def _amain(settings: TelegramSettings, args: argparse.Namespace) -> int:
     flows = load_flows(settings.flows_path, settings.links, with_comment_rules=False)
     store = Store(settings.db_path)
     engine = Engine(flows, store, human_mode_hours=settings.human_mode_hours)
+    funnels = build_funnels(settings, flows, store)
+    if args.links:
+        return print_links(settings, flows, funnels)
     async with httpx.AsyncClient() as http:
         api = TelegramAPI(settings.bot_token, http, settings.api_base)
-        lines = await preflight(settings, api, flows)
+        lines = await preflight(settings, api, flows, funnels)
         for icon, text in lines:
             print(f"{icon} {text}")
         if any(icon == FAIL for icon, _ in lines):
@@ -458,7 +708,21 @@ async def _amain(settings: TelegramSettings, args: argparse.Namespace) -> int:
             return 0
         store.purge_seen()
         log.info("Бот запущен: сегментов %d, заявок в базе %d", len(flows.segments), store.count_leads())
-        await LeadBot(settings, api, engine, flows, store).run()
+        await LeadBot(settings, api, engine, flows, store, funnels=funnels).run()
+    return 0
+
+
+def print_links(settings: TelegramSettings, flows: Flows, funnels: FunnelEngine) -> int:
+    """Готовые диплинки: вставляются в Instagram (автоответ, шапка, сторис), QR-коды, рекламу."""
+    base = settings.bot_url.rstrip("/")
+    print(f"Диплинки бота (кликабельны и в Instagram). Суффикс «__метка» записывает источник, например guide__ig_story:\n")
+    print(f"• Приветствие: {base}?start=hello__ig_bio")
+    for f in funnels.config.funnels.values():
+        print(f"• {f.title}: {base}?start={f.id}__ig_dm   (кодовые слова в чате: {', '.join(f.keywords)})")
+    for key, seg in flows.segments.items():
+        print(f"• Анкета «{seg.label}»: {base}?start=seg_{key}__ig_dm")
+    for fid, reason in funnels.config.disabled.items():
+        print(f"• {fid}: заработает после заполнения ссылок ({reason})")
     return 0
 
 
@@ -467,6 +731,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--check", action="store_true", help="проверить настройку и выйти")
     parser.add_argument("--test-message", action="store_true", help="с --check: отправить тестовое сообщение менеджерам")
     parser.add_argument("--find-chat", action="store_true", help="узнать ID группы менеджеров (бот должен быть в ней)")
+    parser.add_argument("--links", action="store_true", help="показать готовые диплинки для Instagram, QR и рекламы")
     args = parser.parse_args(argv)
     try:
         settings = TelegramSettings.from_env(require_chat=not args.find_chat)

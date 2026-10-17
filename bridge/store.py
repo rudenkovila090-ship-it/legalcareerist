@@ -57,6 +57,39 @@ class Store:
                     client_id TEXT NOT NULL,
                     PRIMARY KEY (chat_id, message_id)
                 );
+                CREATE TABLE IF NOT EXISTS user_tags (
+                    user_id TEXT NOT NULL,
+                    tag TEXT NOT NULL,
+                    created_at REAL NOT NULL,
+                    PRIMARY KEY (user_id, tag)
+                );
+                CREATE TABLE IF NOT EXISTS funnel_events (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id TEXT NOT NULL,
+                    funnel_id TEXT NOT NULL,
+                    event TEXT NOT NULL,
+                    created_at REAL NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS idx_funnel_events ON funnel_events (user_id, funnel_id, event);
+                CREATE TABLE IF NOT EXISTS jobs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id TEXT NOT NULL,
+                    chat_id TEXT NOT NULL,
+                    funnel_id TEXT NOT NULL,
+                    kind TEXT NOT NULL,
+                    run_at REAL NOT NULL,
+                    done INTEGER NOT NULL DEFAULT 0
+                );
+                CREATE INDEX IF NOT EXISTS idx_jobs_due ON jobs (done, run_at);
+                CREATE TABLE IF NOT EXISTS contacts (
+                    user_id TEXT PRIMARY KEY,
+                    username TEXT,
+                    name TEXT,
+                    first_name TEXT,
+                    source TEXT,
+                    first_seen REAL NOT NULL,
+                    last_seen REAL NOT NULL
+                );
                 """
             )
             columns = {row[1] for row in self._db.execute("PRAGMA table_info(conversations)")}
@@ -155,6 +188,122 @@ class Store:
                 (str(chat_id), message_id),
             ).fetchone()
         return row[0] if row else None
+
+    # --- метки клиентов (как «Новый подписчик» в конструкторах чат-ботов) ---
+    def add_tag(self, user_id: str, tag: str) -> None:
+        with self._lock, self._db:
+            self._db.execute(
+                "INSERT OR IGNORE INTO user_tags (user_id, tag, created_at) VALUES (?, ?, ?)",
+                (user_id, tag[:100], time.time()),
+            )
+
+    def tags(self, user_id: str) -> list[str]:
+        with self._lock:
+            rows = self._db.execute(
+                "SELECT tag FROM user_tags WHERE user_id = ? ORDER BY created_at, rowid", (user_id,)
+            ).fetchall()
+        return [r[0] for r in rows]
+
+    # --- события воронок (для статистики и защиты от повторных напоминаний) ---
+    def log_event(self, user_id: str, funnel_id: str, event: str) -> None:
+        with self._lock, self._db:
+            self._db.execute(
+                "INSERT INTO funnel_events (user_id, funnel_id, event, created_at) VALUES (?, ?, ?, ?)",
+                (user_id, funnel_id, event, time.time()),
+            )
+
+    def has_event(self, user_id: str, funnel_id: str, event: str) -> bool:
+        with self._lock:
+            return (
+                self._db.execute(
+                    "SELECT 1 FROM funnel_events WHERE user_id = ? AND funnel_id = ? AND event = ? LIMIT 1",
+                    (user_id, funnel_id, event),
+                ).fetchone()
+                is not None
+            )
+
+    def funnel_stats(self) -> dict[str, dict[str, int]]:
+        """{воронка: {событие: число разных людей}}."""
+        with self._lock:
+            rows = self._db.execute(
+                "SELECT funnel_id, event, COUNT(DISTINCT user_id) FROM funnel_events GROUP BY funnel_id, event"
+            ).fetchall()
+        stats: dict[str, dict[str, int]] = {}
+        for funnel_id, event, count in rows:
+            stats.setdefault(funnel_id, {})[event] = count
+        return stats
+
+    # --- отложенные сообщения (напоминания, дожим) ---
+    def add_job(self, user_id: str, chat_id: str, funnel_id: str, kind: str, run_at: float) -> None:
+        """Одна ожидающая задача такого вида на человека и воронку: повторный запуск воронки её не дублирует."""
+        with self._lock, self._db:
+            pending = self._db.execute(
+                "SELECT 1 FROM jobs WHERE user_id = ? AND funnel_id = ? AND kind = ? AND done = 0",
+                (user_id, funnel_id, kind),
+            ).fetchone()
+            if pending is None:
+                self._db.execute(
+                    "INSERT INTO jobs (user_id, chat_id, funnel_id, kind, run_at) VALUES (?, ?, ?, ?, ?)",
+                    (user_id, chat_id, funnel_id, kind, run_at),
+                )
+
+    def due_jobs(self, now: float) -> list[dict]:
+        with self._lock:
+            rows = self._db.execute(
+                "SELECT id, user_id, chat_id, funnel_id, kind FROM jobs WHERE done = 0 AND run_at <= ? ORDER BY run_at, id",
+                (now,),
+            ).fetchall()
+        return [{"id": r[0], "user_id": r[1], "chat_id": r[2], "funnel_id": r[3], "kind": r[4]} for r in rows]
+
+    def finish_job(self, job_id: int) -> None:
+        with self._lock, self._db:
+            self._db.execute("UPDATE jobs SET done = 1 WHERE id = ?", (job_id,))
+
+    def cancel_jobs(self, user_id: str, funnel_id: str, kinds: tuple[str, ...]) -> None:
+        with self._lock, self._db:
+            for kind in kinds:
+                self._db.execute(
+                    "UPDATE jobs SET done = 1 WHERE user_id = ? AND funnel_id = ? AND kind = ? AND done = 0",
+                    (user_id, funnel_id, kind),
+                )
+
+    # --- контакты: все, кто писал боту ---
+    def touch_contact(
+        self,
+        user_id: str,
+        username: str | None,
+        name: str | None,
+        first_name: str | None = None,
+        source: str | None = None,
+    ) -> bool:
+        """Обновляет карточку контакта. Возвращает True, если человек написал боту впервые."""
+        now = time.time()
+        with self._lock, self._db:
+            is_new = self._db.execute("SELECT 1 FROM contacts WHERE user_id = ?", (user_id,)).fetchone() is None
+            self._db.execute(
+                "INSERT INTO contacts (user_id, username, name, first_name, source, first_seen, last_seen) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?) "
+                "ON CONFLICT(user_id) DO UPDATE SET username=COALESCE(excluded.username, username), "
+                "name=COALESCE(excluded.name, name), first_name=COALESCE(excluded.first_name, first_name), "
+                "source=COALESCE(source, excluded.source), last_seen=excluded.last_seen",
+                (user_id, username, name, first_name, source, now, now),
+            )
+        return is_new
+
+    def first_name(self, user_id: str) -> str | None:
+        with self._lock:
+            row = self._db.execute("SELECT first_name FROM contacts WHERE user_id = ?", (user_id,)).fetchone()
+        return row[0] if row else None
+
+    def contacts(self) -> list[dict]:
+        with self._lock:
+            rows = self._db.execute(
+                "SELECT user_id, username, name, source, first_seen, last_seen FROM contacts ORDER BY first_seen"
+            ).fetchall()
+        return [
+            {"user_id": r[0], "username": r[1], "name": r[2], "source": r[3], "first_seen": r[4], "last_seen": r[5]}
+            for r in rows
+        ]
 
     # --- служебные значения ---
     def kv_get(self, key: str) -> str | None:

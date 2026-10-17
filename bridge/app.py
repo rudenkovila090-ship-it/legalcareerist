@@ -19,7 +19,7 @@ from .graph import GraphError, InstagramClient, TokenManager
 from .logging_setup import setup_logging
 from .store import Store
 from .telegram import TelegramNotifier
-from .tgbot import LeadBot, TelegramAPI, TelegramError
+from .tgbot import LeadBot, TelegramAPI, TelegramError, build_funnels
 from .webhook import parse_events, verify_signature
 
 log = logging.getLogger("bridge")
@@ -91,7 +91,8 @@ async def telegram_polling(
                 "не будут работать. Отключите чужой процесс или задайте TELEGRAM_POLLING=0."
             )
             return
-        await LeadBot(tg_settings, api, engine, flows, store, ig=ig).run()
+        funnels = build_funnels(settings, flows, store)
+        await LeadBot(tg_settings, api, engine, flows, store, ig=ig, funnels=funnels).run()
 
 
 async def token_loop(tokens: TokenManager, tg: TelegramNotifier) -> None:

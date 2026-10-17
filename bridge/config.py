@@ -22,6 +22,13 @@ def _getter(env: Mapping[str, str]):
     return get
 
 
+def channel_link(channel: str, explicit: str = "") -> str:
+    """Ссылка на канал для кнопки «Подписаться»: явная CHANNEL_URL или https://t.me/<имя>, если канал задан как @имя."""
+    if explicit:
+        return explicit
+    return f"https://t.me/{channel[1:]}" if channel.startswith("@") and len(channel) > 1 else ""
+
+
 def _require(env: Mapping[str, str], names: tuple[str, ...]) -> None:
     missing = [name for name in names if not env.get(name, "").strip()]
     if missing:
@@ -45,6 +52,9 @@ class Settings:
     site_url: str = ""
     payment_url: str = ""
     privacy_url: str = ""
+    subscribe_channel: str = ""  # «@имя» канала для проверки подписки в воронках; пусто — подписку не проверяем
+    channel_url: str = ""
+    funnels_path: str = "config/funnels.json"
     human_mode_hours: int = 12
     notify_comment_leads: bool = False
     telegram_polling: bool = True  # опрос Telegram: ответы менеджеров из Telegram уходят клиентам в Instagram
@@ -58,6 +68,7 @@ class Settings:
             "site_url": self.site_url,
             "payment_url": self.payment_url,
             "privacy_url": self.privacy_url,
+            "channel_url": channel_link(self.subscribe_channel, self.channel_url),
         }
 
     @classmethod
@@ -79,6 +90,9 @@ class Settings:
             site_url=get("SITE_URL"),
             payment_url=get("PAYMENT_URL"),
             privacy_url=get("PRIVACY_URL"),
+            subscribe_channel=get("SUBSCRIBE_CHANNEL"),
+            channel_url=get("CHANNEL_URL"),
+            funnels_path=get("FUNNELS_PATH", cls.funnels_path),
             human_mode_hours=int(get("HUMAN_MODE_HOURS", str(cls.human_mode_hours))),
             notify_comment_leads=get("NOTIFY_COMMENT_LEADS").lower() in {"1", "true", "yes", "on"},
             telegram_polling=get("TELEGRAM_POLLING", "1").lower() not in {"0", "false", "no", "off"},
@@ -98,6 +112,9 @@ class TelegramSettings:
     site_url: str = ""
     payment_url: str = ""
     privacy_url: str = ""
+    subscribe_channel: str = ""
+    channel_url: str = ""
+    funnels_path: str = "config/funnels.json"
     human_mode_hours: int = 12
     force_polling: bool = False
     api_base: str = "https://api.telegram.org"  # другой адрес нужен только для локального Bot API сервера и тестов
@@ -110,6 +127,7 @@ class TelegramSettings:
             "site_url": self.site_url,
             "payment_url": self.payment_url,
             "privacy_url": self.privacy_url,
+            "channel_url": channel_link(self.subscribe_channel, self.channel_url),
         }
 
     @classmethod
@@ -127,6 +145,9 @@ class TelegramSettings:
             site_url=get("SITE_URL"),
             payment_url=get("PAYMENT_URL"),
             privacy_url=get("PRIVACY_URL"),
+            subscribe_channel=get("SUBSCRIBE_CHANNEL"),
+            channel_url=get("CHANNEL_URL"),
+            funnels_path=get("FUNNELS_PATH", cls.funnels_path),
             human_mode_hours=int(get("HUMAN_MODE_HOURS", str(cls.human_mode_hours))),
             force_polling=get("TG_FORCE_POLLING").lower() in {"1", "true", "yes", "on"},
             api_base=get("TELEGRAM_API_BASE", cls.api_base).rstrip("/"),
