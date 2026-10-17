@@ -2591,6 +2591,17 @@ async function handleTelegramUpdate(update) {
     await startFlow(chatId, message.from)
     return
   }
+  // Отказ от рекламной рассылки командой: этот способ назван в тексте согласия на рекламу (/legal/marketing-consent), п. 3.2.
+  if (chatId && text === '/stop_newsletter') {
+    const user = setMailingConsent(chatId, false)
+    if (user) {
+      const screen = unsubscribedScreen(user)
+      await sendTelegramMessage(chatId, screen.text, screen.keyboard)
+    } else {
+      await sendTelegramMessage(chatId, 'Рекламную рассылку вам и так не отправляем: вы на неё не подписаны.')
+    }
+    return
+  }
   if (chatId && text && !text.startsWith('/') && text.toLowerCase().includes('личный кабинет')) {
     const resident = residentByTelegramId(chatId)
     if (resident) {
