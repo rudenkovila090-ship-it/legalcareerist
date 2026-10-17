@@ -7,10 +7,10 @@ import { useDocumentTitle } from '../../lib/useDocumentTitle'
 // заставит браузеры забрать новый файл, а не показать старую копию из кэша.
 const POLICY = {
   file: '/documents/politika-obrabotki-personalnykh-dannykh.pdf',
-  version: '2026-10-17',
+  version: '2026-10-17-2',
   date: '17.10.2026',
   pages: 21,
-  sizeKb: 463,
+  sizeKb: 461,
 }
 const url = `${POLICY.file}?v=${POLICY.version}`
 
