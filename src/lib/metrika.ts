@@ -124,6 +124,11 @@ export function trackHit(url: string, referer: string) {
   w().ym?.(METRIKA_ID, 'hit', url, { title: document.title, referer })
 }
 
+/** Достижение цели «JavaScript-событие» (идентификатор цели в Метрике = name). Без согласия на cookie ничего не отправляется. */
+export function reachGoal(name: string) {
+  if (started) w().ym?.(METRIKA_ID, 'reachGoal', name)
+}
+
 /** Удаляет cookie Метрики (_ym_*, _ymex и т. п.) этого сайта — при отказе после согласия. */
 export function clearMetrikaCookies() {
   const host = window.location.hostname
