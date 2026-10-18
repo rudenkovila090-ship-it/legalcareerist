@@ -2140,7 +2140,10 @@ function typing(chatId) {
   telegramFetch('sendChatAction', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: chatId, action: 'typing' }) }).catch(() => null)
 }
 
-/** Материалы для бота: цена и название — из серверного списка (источник истины), описание — из каталога сайта. */
+/**
+ * Материалы для бота: цена и название — из серверного списка (источник истины), описание и ссылка на оферту — из каталога сайта.
+ * Материалы, которые ещё в разработке (в продаже их нет), берутся целиком из каталога сайта и идут в конце списка.
+ */
 function materialList() {
   let catalog = []
   try {
@@ -2148,10 +2151,14 @@ function materialList() {
   } catch {
     // каталог ещё не выгружен — карточки будут без описания
   }
-  return Object.entries(MATERIALS).map(([slug, m]) => {
+  const live = Object.entries(MATERIALS).map(([slug, m]) => {
     const c = catalog.find((x) => x.slug === slug)
-    return { slug, title: m.title, price: m.price, accessUrl: m.accessUrl, description: c?.description ?? '', forWhom: c?.forWhom ?? '' }
+    return { slug, title: m.title, price: m.price, accessUrl: m.accessUrl, description: c?.description ?? '', forWhom: c?.forWhom ?? '', offerPath: c?.offerPath }
   })
+  const upcoming = catalog
+    .filter((c) => c.inDevelopment && !MATERIALS[c.slug])
+    .map((c) => ({ slug: c.slug, title: c.title, price: c.price, description: c.description ?? '', forWhom: c.forWhom ?? '', offerPath: c.offerPath, inDevelopment: true }))
+  return [...live, ...upcoming]
 }
 
 /** Выдача материала после оплаты: файл (если админ его загрузил), иначе ссылка, иначе — передаём поддержке. Затем просьба об отзыве. */
@@ -2336,14 +2343,15 @@ async function handleUserCallback(query) {
     case 'mats':
       return reply(materialsListScreen(materials))
     case 'mat':
-      return material ? reply(materialCard(material, user)) : reply(marketScreen())
+      return material ? reply(materialCard(material, user, SITE_URL)) : reply(marketScreen())
     case 'buy': {
       if (!material) return reply(marketScreen())
+      if (material.inDevelopment) return reply(materialCard(material, user, SITE_URL))
       typing(chatId)
       try {
         const token = createPendingPurchase({ materialSlug: material.slug, name: user.firstName, tgUserId: chatId })
         const url = await createProductPaymentLink({ materialSlug: material.slug, tgUserId: String(chatId), urlSuccess: `${SITE_URL}/materials/thanks?token=${token}` })
-        return reply(payLinkScreen(material, url, user))
+        return reply(payLinkScreen(material, url, user, SITE_URL))
       } catch (err) {
         console.error('[bot] ошибка ссылки на оплату материала:', err)
         return sendTelegramMessage(chatId, `Не получилось создать ссылку на оплату. Напиши в поддержку — ${SUPPORT_HANDLE}, поможем.`)
@@ -2351,6 +2359,7 @@ async function handleUserCallback(query) {
     }
     case 'paid': {
       if (!material) return reply(marketScreen())
+      if (material.inDevelopment) return reply(materialCard(material, user, SITE_URL))
       if (findPaidPurchase(chatId, material.slug)) return deliverMaterial(chatId, material.slug)
       return reply(paymentNotFoundScreen(material.slug, SUPPORT_HANDLE))
     }

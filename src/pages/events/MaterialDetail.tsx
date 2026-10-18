@@ -131,7 +131,7 @@ export default function MaterialDetail() {
           <p className="mt-6 whitespace-pre-line leading-relaxed text-ink/80">{material.description}</p>
           <div className="mt-2 text-sm text-ink/50">Для кого: {material.forWhom}</div>
 
-          <MaterialReviews slug={material.slug} />
+          {!material.inDevelopment && <MaterialReviews slug={material.slug} />}
 
           <RelatedContentBlock items={related} />
         </div>
@@ -139,7 +139,20 @@ export default function MaterialDetail() {
         {/* Блок приобретения — справа, закреплен при скролле */}
         <aside className="lg:sticky lg:top-24 lg:self-start">
           <div className="glass rounded-xl p-6">
-            {purchased ? (
+            {material.inDevelopment ? (
+              <>
+                <div className="text-2xl font-semibold">{money.format(material.price)} ₽</div>
+                <span className="mt-3 inline-block rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">В разработке</span>
+                <p className="mt-3 text-sm leading-relaxed text-ink/70">
+                  Материал ещё готовится, оплата откроется, когда он будет готов. Условия доступа уже опубликованы в оферте.
+                </p>
+                {material.offerPath && (
+                  <Link to={material.offerPath} className="mt-4 block w-full rounded-full border border-ink/15 px-6 py-2.5 text-center text-sm font-semibold text-ink/70 hover:text-ink">
+                    Читать оферту
+                  </Link>
+                )}
+              </>
+            ) : purchased ? (
               <div className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">
                 Доступ открыт — ссылка отправлена на email.
               </div>
@@ -224,6 +237,12 @@ export default function MaterialDetail() {
               <HowHeardField value={purchaseForm.howHeard} onChange={(v) => setPurchaseForm((f) => ({ ...f, howHeard: v }))} className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none" />
               {purchaseError && (
                 <p className="text-sm text-red-600">Не получилось перейти к оплате — попробуйте еще раз через минуту.</p>
+              )}
+              {material.offerPath && (
+                <p className="text-xs leading-relaxed text-ink/60">
+                  Нажимая «Перейти к оплате», вы принимаете условия{' '}
+                  <Link to={material.offerPath} target="_blank" className="underline hover:text-ink">оферты</Link>.
+                </p>
               )}
               <ConsentCheck />
               <button

@@ -7,6 +7,8 @@ const legalDocs = [
   { to: '/legal/consent', title: 'Согласие на обработку персональных данных' },
   { to: '/legal/consent-publication', title: 'Согласие на распространение персональных данных (публикация отзыва)' },
   { to: '/legal/marketing-consent', title: 'Согласие на получение рекламных и информационных материалов' },
+  { to: '/legal/offer', title: 'Оферта на Лонглист «Студенческие юридические мероприятия»' },
+  { to: '/legal/offer-longlist-yuridicheskie-meropriyatiya', title: 'Оферта на Лонглист «Юридические мероприятия»' },
 ]
 
 export default function Documents({

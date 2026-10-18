@@ -113,7 +113,10 @@ export function MaterialCard({ m }: { m: MaterialItem }) {
       </span>
       <h3 className="mt-1 font-semibold leading-snug">{m.title}</h3>
       <p className="mt-2 text-sm text-ink/60">{m.description}</p>
-      <div className="mt-2 text-sm font-medium">{m.price === 0 ? 'Бесплатно' : `${money.format(m.price)} ₽`}</div>
+      <div className="mt-2 flex flex-wrap items-center gap-2 text-sm font-medium">
+        <span>{m.price === 0 ? 'Бесплатно' : `${money.format(m.price)} ₽`}</span>
+        {m.inDevelopment && <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-800">В разработке</span>}
+      </div>
     </Link>
   )
 }

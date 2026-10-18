@@ -37,6 +37,8 @@ const Privacy = lazy(() => import('./pages/legal/Privacy'))
 const Consent = lazy(() => import('./pages/legal/Consent'))
 const ConsentPublication = lazy(() => import('./pages/legal/ConsentPublication'))
 const MarketingConsent = lazy(() => import('./pages/legal/MarketingConsent'))
+const Offer = lazy(() => import('./pages/legal/Offer'))
+const OfferLawyers = lazy(() => import('./pages/legal/OfferLawyers'))
 const About = lazy(() => import('./pages/About'))
 const News = lazy(() => import('./pages/News'))
 const NewsDetail = lazy(() => import('./pages/NewsDetail'))
@@ -144,7 +146,8 @@ export default function App() {
           <Route path="/legal/privacy" element={<Privacy />} />
           <Route path="/legal/consent" element={<Consent />} />
           <Route path="/legal/consent-publication" element={<ConsentPublication />} />
-          <Route path="/legal/offer" element={<Placeholder eyebrow="Юридический блок" title="Оферта" />} />
+          <Route path="/legal/offer" element={<Offer />} />
+          <Route path="/legal/offer-longlist-yuridicheskie-meropriyatiya" element={<OfferLawyers />} />
           <Route path="/legal/marketing-consent" element={<MarketingConsent />} />
 
           <Route path="*" element={<NotFound />} />

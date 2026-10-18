@@ -35,6 +35,7 @@ const staticPaths = [
   '/legal/privacy',
   '/legal/consent',
   '/legal/offer',
+  '/legal/offer-longlist-yuridicheskie-meropriyatiya',
 ]
 
 function extractSlugs(file) {
