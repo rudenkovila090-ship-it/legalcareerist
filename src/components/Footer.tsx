@@ -1,3 +1,4 @@
+import { openCookieSettings } from '../lib/metrika'
 import { Link } from 'react-router-dom'
 
 // Единый футер по всему сайту (раздел 5 карты сайта). Визуально построен по
@@ -126,6 +127,7 @@ export default function Footer() {
             <li><Link className="hover:text-white" to="/legal/offer-gaid-kariera-yurista-v-notariate">Оферта на Гайд «Карьера юриста в нотариате»</Link></li>
             <li><Link className="hover:text-white" to="/legal/offer-gaid-stipendii-i-granty">Оферта на Гайд «Стипендии и гранты»</Link></li>
             <li><Link className="hover:text-white" to="/legal/offer-legal-night-jazz-2">Оферта мероприятия «Джазовый вечер для юристов 2»</Link></li>
+            <li><button type="button" onClick={openCookieSettings} className="hover:text-white">Настройки cookie</button></li>
           </ul>
         </div>
 
