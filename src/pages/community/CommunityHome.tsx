@@ -16,6 +16,7 @@ import { validateJoinContacts } from '../../lib/joinValidation'
 import { SHOW_AMBASSADORS } from '../../lib/featureFlags'
 import ConsentCheck from '../../components/ConsentCheck'
 import { consentOf } from '../../lib/consent'
+import { goal } from '../../lib/metrika'
 
 const railItems = [
   { id: 'hero', label: 'Обзор' },
@@ -297,7 +298,8 @@ export default function CommunityHome() {
       })
       const data = await res.json()
       if (!res.ok || !data.url) throw new Error('subscribe_failed')
-      window.location.assign(data.url)
+      // Цель «заявка в сообщество» — после ответа сервера; переход на оплату ждёт, пока Метрика примет цель.
+      goal('lead_community', undefined, () => window.location.assign(data.url))
     } catch {
       setSubmitting(false)
       setSubmitError(true)

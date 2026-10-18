@@ -1,6 +1,7 @@
 import { Link, useSearchParams } from 'react-router-dom'
 import PageHero from '../../components/PageHero'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
+import { usePaymentGoal } from '../../lib/paymentGoal'
 
 const BOT_USERNAME = 'legalcareerist_bot'
 
@@ -11,6 +12,7 @@ export default function MaterialThanks() {
   useDocumentTitle('Оплата получена')
   const [params] = useSearchParams()
   const token = params.get('token') ?? ''
+  usePaymentGoal('product', token)
   const telegramUrl = /^[0-9a-f]{8,64}$/i.test(token) ? `https://t.me/${BOT_USERNAME}?start=mat_${token}` : null
 
   return (

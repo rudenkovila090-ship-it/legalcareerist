@@ -1,9 +1,12 @@
 // Яндекс Метрика (счётчик 113667773). Загружается только после согласия посетителя на cookie (баннер: src/components/CookieBanner.tsx),
 // отправку просмотров при переходах по сайту делает src/components/MetrikaTracker.tsx.
-// Отличия от кода из кабинета Метрики: вебвизор выключен (он записывает действия на экране, в том числе на страницах с формами),
-// в Метрику уходят только адреса без служебных параметров (token, paid и т. п.; остаются utm-метки и yclid), закрытый раздел
-// /cabinet не учитывается, а пиксель <noscript> не ставится (он считал бы посетителей без согласия).
+// Отличия от кода из кабинета Метрики: вебвизор включён, но только после согласия посетителя, а то, что люди вводят в поля, и
+// содержимое личного кабинета в запись не попадают (см. protectPrivacy); в Метрику уходят только адреса без служебных параметров
+// (token, paid и т. п.; остаются utm-метки и yclid), закрытый раздел /cabinet в просмотры не отправляется, а пиксель <noscript>
+// не ставится (он считал бы посетителей без согласия). Персональные данные в целях и параметрах не передаются никогда.
 export const METRIKA_ID = 113667773
+/** Вебвизор (запись действий посетителей). Выключить — false: на работу счётчика и целей это не влияет. */
+const WEBVISOR = true
 
 export type CookieChoice = 'accepted' | 'declined'
 const KEY = 'ky_cookie_consent'
@@ -101,9 +104,10 @@ export function startMetrika(hit: boolean) {
     script.src = src
     document.head.appendChild(script)
   }
+  protectPrivacy()
   win.ym(METRIKA_ID, 'init', {
     ssr: true,
-    webvisor: false,
+    webvisor: WEBVISOR,
     clickmap: true,
     ecommerce: 'dataLayer',
     referrer: referrerForMetrika(),
@@ -124,9 +128,54 @@ export function trackHit(url: string, referer: string) {
   w().ym?.(METRIKA_ID, 'hit', url, { title: document.title, referer })
 }
 
-/** Достижение цели «JavaScript-событие» (идентификатор цели в Метрике = name). Без согласия на cookie ничего не отправляется. */
-export function reachGoal(name: string) {
-  if (started) w().ym?.(METRIKA_ID, 'reachGoal', name)
+export type GoalParams = Record<string, string | number | boolean>
+
+/**
+ * Достижение цели «JavaScript-событие» (идентификатор цели в Метрике = name; для оплат в params передаются order_price и currency).
+ * Без согласия на cookie счётчик не запущен, и цель не отправляется (возвращает false). callback вызывается, когда Метрика приняла цель,
+ * либо через 0,8 с, либо сразу, если цель не отправлена — им удобно откладывать переход на другую страницу, чтобы цель не потерялась.
+ * В name и params нельзя передавать персональные данные (имена, телефоны, почту).
+ */
+export function goal(name: string, params?: GoalParams, callback?: () => void): boolean {
+  const ym = w().ym
+  if (!started || typeof ym !== 'function') {
+    callback?.()
+    return false
+  }
+  let called = false
+  const done = () => {
+    if (called) return
+    called = true
+    callback?.()
+  }
+  if (callback) window.setTimeout(done, 800)
+  ym(METRIKA_ID, 'reachGoal', name, params, done)
+  return true
+}
+
+/** Имя цели для клика по кнопке: id «btn-employer-submit» → «click_employer_submit». */
+export const clickGoalName = (id: string) => `click_${id.replace(/^btn-/, '').replace(/-/g, '_')}`
+
+/**
+ * Защита личного при записи вебвизора: набираемый в полях текст не записывается (класс ym-disable-keys на всех полях и на корне),
+ * а содержимое личного кабинета скрывается (ym-hide-content ставится на его контейнер, см. Cabinet.tsx).
+ */
+export function protectPrivacy() {
+  const mark = (root: ParentNode) => {
+    root.querySelectorAll?.('input, textarea, select').forEach((el) => el.classList.add('ym-disable-keys'))
+  }
+  document.documentElement.classList.add('ym-disable-keys')
+  document.getElementById('root')?.classList.add('ym-disable-keys')
+  mark(document)
+  new MutationObserver((records) => {
+    for (const r of records) {
+      r.addedNodes.forEach((n) => {
+        if (!(n instanceof Element)) return
+        if (n.matches('input, textarea, select')) n.classList.add('ym-disable-keys')
+        mark(n)
+      })
+    }
+  }).observe(document.body, { childList: true, subtree: true })
 }
 
 /** Удаляет cookie Метрики (_ym_*, _ymex и т. п.) этого сайта — при отказе после согласия. */

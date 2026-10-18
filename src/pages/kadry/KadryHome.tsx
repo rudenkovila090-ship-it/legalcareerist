@@ -372,6 +372,7 @@ export default function KadryHome() {
     submitLead({
       sourceBlock: 'kadry',
       formType: 'service_order',
+      goal: 'lead_employer',
       name: serviceForm.fio,
       contact: [serviceForm.phone, serviceForm.email, serviceForm.telegram].filter(Boolean).join(' / '),
       phone: serviceForm.phone || undefined,
@@ -401,6 +402,7 @@ export default function KadryHome() {
     submitLead({
       sourceBlock: 'kadry',
       formType: 'employer_request',
+      goal: 'lead_employer',
       name: form.fio,
       contact: [form.phone, form.email, form.telegram].filter(Boolean).join(' / '),
       phone: form.phone || undefined,
@@ -491,6 +493,7 @@ export default function KadryHome() {
     submitLead({
       sourceBlock: 'kadry',
       formType: 'candidates_selection_request',
+      goal: 'lead_employer',
       name: requestForm.contact,
       contact: [requestForm.phone, requestForm.email, requestForm.telegram].filter(Boolean).join(' / '),
       phone: requestForm.phone || undefined,

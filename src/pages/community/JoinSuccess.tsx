@@ -2,6 +2,7 @@ import { useSearchParams } from 'react-router-dom'
 import PageHero from '../../components/PageHero'
 import { openTelegramBot } from '../../lib/telegram'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
+import { usePaymentGoal } from '../../lib/paymentGoal'
 
 // Страница, на которую Prodamus возвращает человека после успешной оплаты
 // подписки (urlSuccess в server/lib/prodamus.js). Токен связывает оплату
@@ -11,6 +12,7 @@ export default function JoinSuccess() {
   useDocumentTitle('Оплата прошла успешно')
   const [params] = useSearchParams()
   const token = params.get('token')
+  usePaymentGoal('community', token)
 
   function handleContinue() {
     if (token) openTelegramBot(`access_${token}`)

@@ -67,7 +67,8 @@ export default function Cabinet() {
   }
 
   return (
-    <div>
+    // ym-hide-content: содержимое кабинета (профиль, документы, согласия) не попадает в запись вебвизора Яндекс Метрики.
+    <div className="ym-hide-content">
       <PageHero eyebrow="Личный кабинет" title={current ? current.title : `Здравствуйте, ${user.name.split(' ')[0]}`} description={current?.lead} />
       <div className="container-page grid gap-8 py-10 lg:grid-cols-[17rem_1fr]">
         <aside className="min-w-0 lg:sticky lg:top-24 lg:self-start">

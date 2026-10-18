@@ -101,6 +101,7 @@ export default function LeadForm({
     submitLead({
       sourceBlock,
       formType,
+      goal: formType === 'vacancy_application' ? 'lead_vacancy' : undefined,
       name,
       contact: [contact, phone, telegram].filter(Boolean).join(' / '),
       phone: phone || undefined,

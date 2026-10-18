@@ -1,6 +1,6 @@
 import { useEffect, useRef, useSyncExternalStore } from 'react'
 import { useLocation } from 'react-router-dom'
-import { clearMetrikaCookies, getCookieChoice, isExcludedPath, metrikaStarted, reachGoal, safeUrl, startMetrika, subscribeCookies, trackHit } from '../lib/metrika'
+import { clearMetrikaCookies, getCookieChoice, isExcludedPath, clickGoalName, goal, metrikaStarted, safeUrl, startMetrika, subscribeCookies, trackHit } from '../lib/metrika'
 
 /**
  * Подключает Яндекс Метрику после согласия на cookie и отправляет просмотры при переходах по сайту (сайт — одностраничное
@@ -37,13 +37,13 @@ export default function MetrikaTracker() {
     return () => window.clearTimeout(timer)
   }, [choice, pathname, search])
 
-  // Клики по ключевым кнопкам (у них id вида btn-…, см. docs/metrika.md): в Метрику уходит событие с тем же именем.
-  // В Метрике на каждую такую кнопку заводится цель типа «JavaScript-событие» с идентификатором = id кнопки.
+  // Клики по ключевым кнопкам (у них id вида btn-…, см. docs/metrika.md): в Метрику уходит цель click_<имя>, например click_employer_submit.
+  // В Метрике на каждую такую кнопку заводится цель типа «JavaScript-событие» с этим идентификатором.
   useEffect(() => {
     if (choice !== 'accepted') return
     const onClick = (e: MouseEvent) => {
       const button = e.target instanceof Element ? e.target.closest('[id^="btn-"]') : null
-      if (button) reachGoal(button.id)
+      if (button) goal(clickGoalName(button.id))
     }
     document.addEventListener('click', onClick, true)
     return () => document.removeEventListener('click', onClick, true)

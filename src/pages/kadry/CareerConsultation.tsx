@@ -281,6 +281,7 @@ export default function CareerConsultation({ embedded = false }: { embedded?: bo
     submitLead({
       sourceBlock: 'kadry',
       formType: 'consultation_order',
+      goal: 'lead_consult',
       name: form.name,
       contact: [form.email, form.telegram, form.phone].filter(Boolean).join(' / '),
       phone: form.phone || undefined,

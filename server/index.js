@@ -1192,6 +1192,32 @@ app.post('/api/community/subscribe', async (req, res) => {
   }
 })
 
+// Подтверждение оплаты для страниц успеха (подписка, билет, материал): сайт отправляет в Яндекс Метрику цель pay_* только когда
+// оплата подтверждена подписанным вебхуком Prodamus. Отдаём только факт оплаты, сумму и обезличенный номер заказа — без контактов.
+const PAY_TOKEN_RE = /^[0-9a-f]{8,64}$/i
+const orderRef = (kind, token) => `${kind}-${crypto.createHash('sha256').update(token).digest('hex').slice(0, 10)}`
+app.get('/api/payment/status', (req, res) => {
+  res.set('Cache-Control', 'no-store')
+  const kind = String(req.query.kind ?? '')
+  const token = String(req.query.token ?? '')
+  const none = { ok: true, paid: false }
+  if (!PAY_TOKEN_RE.test(token)) return res.json(none)
+  if (kind === 'community') {
+    const join = getJoin(token)
+    const first = (join?.payments ?? []).find((p) => Number(p.amount) > 0)
+    return res.json(join?.paid && first ? { ok: true, paid: true, amount: Number(first.amount), order: orderRef(kind, token) } : none)
+  }
+  if (kind === 'ticket') {
+    const lead = listEventLeads().find((l) => l.token === token && l.kind === 'registration')
+    return res.json(lead && (lead.status === 'paid' || lead.status === 'attended') && Number(lead.amount) > 0 ? { ok: true, paid: true, amount: Number(lead.amount), order: `ev-${lead.number}` } : none)
+  }
+  if (kind === 'product') {
+    const purchase = getPurchase(token)
+    return res.json(purchase?.paid && Number(purchase.amount) > 0 ? { ok: true, paid: true, amount: Number(purchase.amount), order: orderRef(kind, token) } : none)
+  }
+  res.json(none)
+})
+
 // Покупка материала маркетплейса → ссылка на разовую оплату Prodamus.
 app.post('/api/marketplace/purchase', async (req, res) => {
   const { materialSlug, name, phone, email } = req.body ?? {}
@@ -1344,7 +1370,7 @@ app.post('/api/event/:slug/checkout', async (req, res) => {
       setEventLeadField(lead.number, 'discount', ticket.discount)
     }
     const orderId = `ev-${lead.number}`
-    const urlSuccess = `${SITE_URL}/events/${event.slug}?paid=1`
+    const urlSuccess = `${SITE_URL}/events/${event.slug}?paid=1&t=${lead.token}`
     const url = await createEventPaymentLink({ title: `${event.title} — ${tariff.name}`, price: ticket.price, orderId, phone, email: EMAIL_RE.test(email) ? email : '', urlSuccess, name })
     if (BOT_TOKEN && ADMIN_CHAT_ID && getAdminSettings().unpaidNotices) {
       // Не шлём сразу: если человек оплатит в ближайшие минуты, придёт одно сообщение «Билет оплачен», а это — только если не оплатил.

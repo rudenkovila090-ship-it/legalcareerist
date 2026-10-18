@@ -99,6 +99,7 @@ export default function CareerReserve({ embedded = false }: { embedded?: boolean
     submitLead({
       sourceBlock: 'kadry',
       formType: 'candidate_application',
+      goal: 'lead_reserve',
       name: form.name,
       contact: [form.email, form.phone, form.telegram].filter(Boolean).join(' / '),
       phone: form.phone || undefined,
@@ -128,6 +129,7 @@ export default function CareerReserve({ embedded = false }: { embedded?: boolean
     submitLead({
       sourceBlock: 'kadry',
       formType: 'reserve_join_request',
+      goal: 'lead_reserve',
       name: priorityForm.name,
       contact: [priorityForm.phone, priorityForm.email, priorityForm.telegram].filter(Boolean).join(' / '),
       phone: priorityForm.phone || undefined,

@@ -25,6 +25,7 @@ import ScrollCylinder from '../../components/noir/ScrollCylinder'
 import SoundToggle from '../../components/noir/SoundToggle'
 import CityMap from '../../components/noir/CityMap'
 import { NoirGrain } from '../../components/noir/NoirAmbient'
+import { usePaymentGoal } from '../../lib/paymentGoal'
 import ConsentCheck from '../../components/ConsentCheck'
 import { consentOf } from '../../lib/consent'
 
@@ -187,6 +188,8 @@ export default function EventDetail() {
   // Prodamus возвращает сюда после оплаты (urlSuccess ?paid=1) — показываем подтверждение.
   const [searchParams] = useSearchParams()
   const justPaid = searchParams.get('paid') === '1'
+  // Токен заказа из ссылки возврата: по нему сервер подтверждает оплату, и тогда уходит цель pay_ticket (src/lib/paymentGoal.ts).
+  usePaymentGoal('ticket', justPaid ? searchParams.get('t') : null)
   // Вернулись с оплаты — показываем блок с подтверждением (на телефоне он внизу страницы, иначе его не заметить).
   useEffect(() => {
     if (!justPaid) return
