@@ -318,6 +318,7 @@ export default function CareerReserve({ embedded = false }: { embedded?: boolean
                 </div>
                 <ConsentCheck tone="dark" className="col-span-full" />
                 <button
+                  id="btn-reserve-submit"
                   type="submit"
                   className="col-span-full rounded-full bg-gold-light py-3 text-sm font-semibold text-ink transition-colors hover:bg-white"
                 >
@@ -422,6 +423,7 @@ export default function CareerReserve({ embedded = false }: { embedded?: boolean
                 </div>
                 <ConsentCheck tone="dark" className="col-span-full" />
                 <button
+                  id="btn-reserve-request-submit"
                   type="submit"
                   className="col-span-full rounded-lg bg-gold-light py-3 text-sm font-semibold text-ink transition-colors hover:bg-white"
                 >

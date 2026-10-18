@@ -732,6 +732,7 @@ export default function CommunityHome() {
                 )}
                 <ConsentCheck />
                 <button
+                  id="btn-community-join"
                   type="submit"
                   disabled={submitting}
                   className="rounded-full bg-ink py-3 text-sm font-semibold text-white transition-colors hover:bg-ink/90 disabled:opacity-60"

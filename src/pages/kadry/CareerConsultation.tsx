@@ -605,6 +605,7 @@ export default function CareerConsultation({ embedded = false }: { embedded?: bo
               <HowHeardField value={helpForm.howHeard} onChange={(v) => setHelpForm((f) => ({ ...f, howHeard: v }))} className="rounded-lg border border-white/15 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none" />
               <ConsentCheck tone="dark" />
               <button
+                id="btn-consult-question-submit"
                 type="submit"
                 className="rounded-full bg-gold-light py-3 text-sm font-semibold text-ink transition-colors hover:bg-white"
               >
@@ -753,7 +754,7 @@ export default function CareerConsultation({ embedded = false }: { embedded?: bo
                   </div>
                   <HowHeardField value={form.howHeard} onChange={(v) => setForm((f) => ({ ...f, howHeard: v }))} className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none" />
                   <ConsentCheck />
-                  <button type="submit" className="rounded-full bg-ink py-3 text-sm font-semibold text-white transition-colors hover:bg-ink/90">
+                  <button id="btn-consult-submit" type="submit" className="rounded-full bg-ink py-3 text-sm font-semibold text-white transition-colors hover:bg-ink/90">
                     Заказать
                   </button>
                 </form>

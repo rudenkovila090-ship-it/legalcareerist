@@ -192,7 +192,7 @@ export default function MaterialDetail() {
                 </div>
                 {material.realPurchase ? (
                   <form onSubmit={handlePurchaseStart} className="mt-4 grid gap-3">
-                    <button type="submit" className="w-full rounded-lg bg-ink px-6 py-2.5 text-sm font-semibold text-white hover:bg-ink/90">
+                    <button id="btn-product-buy" type="submit" className="w-full rounded-lg bg-ink px-6 py-2.5 text-sm font-semibold text-white hover:bg-ink/90">
                       Оплатить и получить доступ
                     </button>
                     <ConsentCheck />
@@ -205,6 +205,7 @@ export default function MaterialDetail() {
                   </form>
                 ) : (
                   <button
+                    id="btn-product-buy"
                     onClick={() => openGate(material.title)}
                     className="mt-4 w-full rounded-lg bg-ink px-6 py-2.5 text-sm font-semibold text-white hover:bg-ink/90"
                   >
@@ -261,6 +262,7 @@ export default function MaterialDetail() {
                 <p className="text-sm text-red-600">Не получилось перейти к оплате — попробуйте еще раз через минуту.</p>
               )}
               <button
+                id="btn-product-pay"
                 type="submit"
                 disabled={purchasing}
                 className="rounded-full bg-ink py-3 text-sm font-semibold text-white transition-colors hover:bg-ink/90 disabled:opacity-60"
