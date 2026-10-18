@@ -104,6 +104,9 @@ export function legalScreen(siteUrl) {
       [{ text: 'Согласие на обработку персональных данных', url: `${siteUrl}/legal/consent` }],
       [{ text: 'Оферта: Лонглист «Студенческие юридические мероприятия»', url: `${siteUrl}/legal/offer` }],
       [{ text: 'Оферта: Лонглист «Юридические мероприятия»', url: `${siteUrl}/legal/offer-longlist-yuridicheskie-meropriyatiya` }],
+      [{ text: 'Оферта: Гайд «Карьера юриста в нотариате»', url: `${siteUrl}/legal/offer-gaid-kariera-yurista-v-notariate` }],
+      [{ text: 'Оферта: Гайд «Стипендии и гранты»', url: `${siteUrl}/legal/offer-gaid-stipendii-i-granty` }],
+      [{ text: 'Оферта: Джазовый вечер для юристов 2', url: `${siteUrl}/legal/offer-legal-night-jazz-2` }],
       [{ text: 'Главное меню', callback_data: 'u:menu' }],
     ],
   }

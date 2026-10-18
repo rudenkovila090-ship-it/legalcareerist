@@ -13,6 +13,7 @@ export const events: EventItem[] = [
     city: 'Санкт-Петербург',
     dateTime: '2026-11-28T18:00:00+03:00',
     endDateTime: '2026-11-28T22:00:00+03:00',
+    offerPath: '/legal/offer-legal-night-jazz-2',
     price: 2490,
     status: 'open',
     specialization: [],

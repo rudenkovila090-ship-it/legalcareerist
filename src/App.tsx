@@ -39,6 +39,9 @@ const ConsentPublication = lazy(() => import('./pages/legal/ConsentPublication')
 const MarketingConsent = lazy(() => import('./pages/legal/MarketingConsent'))
 const Offer = lazy(() => import('./pages/legal/Offer'))
 const OfferLawyers = lazy(() => import('./pages/legal/OfferLawyers'))
+const OfferGuideNotary = lazy(() => import('./pages/legal/OfferGuideNotary'))
+const OfferGuideScholarships = lazy(() => import('./pages/legal/OfferGuideScholarships'))
+const OfferEventJazz2 = lazy(() => import('./pages/legal/OfferEventJazz2'))
 const About = lazy(() => import('./pages/About'))
 const News = lazy(() => import('./pages/News'))
 const NewsDetail = lazy(() => import('./pages/NewsDetail'))
@@ -148,6 +151,9 @@ export default function App() {
           <Route path="/legal/consent-publication" element={<ConsentPublication />} />
           <Route path="/legal/offer" element={<Offer />} />
           <Route path="/legal/offer-longlist-yuridicheskie-meropriyatiya" element={<OfferLawyers />} />
+          <Route path="/legal/offer-gaid-kariera-yurista-v-notariate" element={<OfferGuideNotary />} />
+          <Route path="/legal/offer-gaid-stipendii-i-granty" element={<OfferGuideScholarships />} />
+          <Route path="/legal/offer-legal-night-jazz-2" element={<OfferEventJazz2 />} />
           <Route path="/legal/marketing-consent" element={<MarketingConsent />} />
 
           <Route path="*" element={<NotFound />} />

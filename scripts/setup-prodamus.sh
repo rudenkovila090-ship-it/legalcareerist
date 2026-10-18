@@ -7,9 +7,10 @@ set -uo pipefail
 cd "$(dirname "$0")/../server" || exit 1
 
 KIND="${1:-materials}"
+DEFAULT_DOMAIN=""
 case "$KIND" in
   materials) PREFIX=PRODAMUS_MATERIALS; TITLE="полезных материалов" ;;
-  events) PREFIX=PRODAMUS_EVENTS; TITLE="мероприятий" ;;
+  events) PREFIX=PRODAMUS_EVENTS; TITLE="мероприятий"; DEFAULT_DOMAIN="legalcareeristevent.payform.ru" ;;
   *) echo "Использование: bash setup-prodamus.sh materials  (или events)"; exit 1 ;;
 esac
 
@@ -17,7 +18,12 @@ esac
 printf '\033[?2004l'
 clean() { printf '%s' "$1" | sed $'s/\x1b\\[20[01]~//g' | tr -d '[:cntrl:][:space:]'; }
 
-read -r -p "Домен платёжной страницы для $TITLE (например material.payform.ru): " DOMAIN
+if [[ -n "$DEFAULT_DOMAIN" ]]; then
+  read -r -p "Домен платёжной страницы для $TITLE [Enter — $DEFAULT_DOMAIN]: " DOMAIN
+  DOMAIN="${DOMAIN:-$DEFAULT_DOMAIN}"
+else
+  read -r -p "Домен платёжной страницы для $TITLE (например material.payform.ru): " DOMAIN
+fi
 read -r -s -p "Секретный ключ этой платёжной страницы (при вводе ничего не видно, после вставки нажмите Enter): " KEY
 echo
 DOMAIN=$(clean "$DOMAIN" | sed -E 's#^https?://##; s#/.*$##')

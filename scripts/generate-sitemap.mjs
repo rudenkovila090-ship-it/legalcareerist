@@ -36,6 +36,9 @@ const staticPaths = [
   '/legal/consent',
   '/legal/offer',
   '/legal/offer-longlist-yuridicheskie-meropriyatiya',
+  '/legal/offer-gaid-kariera-yurista-v-notariate',
+  '/legal/offer-gaid-stipendii-i-granty',
+  '/legal/offer-legal-night-jazz-2',
 ]
 
 function extractSlugs(file) {

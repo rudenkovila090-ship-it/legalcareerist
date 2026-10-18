@@ -124,6 +124,7 @@ export default function EventsFooter() {
           <ul className="space-y-1.5 text-xs">
             <li><Link className="hover:text-white" to="/legal/privacy">Политика обработки персональных данных</Link></li>
             <li><Link className="hover:text-white" to="/legal/consent">Согласие на обработку персональных данных</Link></li>
+            <li><Link className="hover:text-white" to="/legal/offer-legal-night-jazz-2">Оферта мероприятия «Джазовый вечер для юристов 2»</Link></li>
           </ul>
         </div>
         {/* Соцсети — тот же flex-item в общей строке, не отдельная секция с

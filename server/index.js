@@ -484,6 +484,11 @@ function buildTicketPaidNotification({ lead, amount, paidAt, mail, warning }) {
 
 /** Оплата материала маркетплейса. */
 function buildMaterialPaidNotification({ purchase, material, phone, amount, paidAt, mail, telegramStatus, test }) {
+  // Согласие на рекламу: покупатель с сайта отмечает его галочкой, покупатель из бота — отвечает на вопрос в боте (карточка).
+  const card = purchase.tgUserId ? getBotUser(purchase.tgUserId) : null
+  const marketing = purchase.consentAt
+    ? `✉️ Реклама и рассылки: ${purchase.marketingAt ? 'согласен(на)' : 'не выбрано'}`
+    : card?.mailingConsent === true ? '✉️ Реклама и рассылки: согласен(на) (в боте)' : card?.mailingConsent === false ? '✉️ Реклама и рассылки: отказ (в боте)' : null
   return [
     test ? '🧪 ТЕСТ: имитация оплаты материала (в финансы не идёт)' : '💳 Материал оплачен',
     '',
@@ -493,6 +498,7 @@ function buildMaterialPaidNotification({ purchase, material, phone, amount, paid
     '',
     ...contactLines({ name: purchase.name, phone: phone || purchase.phone, email: purchase.email }),
     purchase.howHeard ? `🗣 Откуда узнали: ${purchase.howHeard}` : null,
+    marketing,
     '',
     `💰 Сумма: ${formatRub(amount)}`,
     mailStatusLine(mail),
@@ -2670,6 +2676,8 @@ async function handleMaterialStart(chatId, from, token) {
   }
   setPurchaseTg(token, chatId)
   addTag(chatId, PAID_TAGS[purchase.materialSlug] ?? `оплатил_${purchase.materialSlug}`)
+  // Покупатель отметил на сайте согласие на рекламу: переносим его в карточку бота, чтобы рассылка шла и туда (метка в карточке).
+  if (purchase.marketingAt) setMailingConsent(chatId, true)
   await deliverMaterial(chatId, purchase.materialSlug)
 }
 

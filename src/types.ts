@@ -473,6 +473,8 @@ export interface EventItem extends Tagged {
   dateTime: string
   /** Окончание (ISO): если задано, время показывается диапазоном «18:00–22:00». */
   endDateTime?: string
+  /** Страница с публичной офертой мероприятия: ссылка стоит под кнопкой покупки билета. */
+  offerPath?: string
   city?: string
   price: number
   promoCode?: string

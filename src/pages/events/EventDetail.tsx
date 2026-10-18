@@ -731,6 +731,12 @@ export default function EventDetail() {
                     <button type="submit" disabled={paying} className="mt-1 rounded-lg bg-ink py-2.5 text-sm font-semibold text-white hover:bg-ink/90 disabled:opacity-60">
                       {paying ? 'Переходим к оплате…' : tariff.price === 0 ? 'Приобрести билет' : `Приобрести билет — ${(promo?.price ?? tariff.price).toLocaleString('ru-RU')} ₽`}
                     </button>
+                    {event.offerPath && (
+                      <p className="text-xs leading-relaxed text-ink/60">
+                        Нажимая «Приобрести билет», вы принимаете условия{' '}
+                        <Link to={event.offerPath} target="_blank" className="underline hover:text-ink">публичной оферты мероприятия</Link>.
+                      </p>
+                    )}
                   </form>
                 )}
               </>

@@ -12,7 +12,7 @@ import MaterialReviews from '../../components/MaterialReviews'
 import { Stars } from '../../components/MaterialRating'
 import { combineRating, reviewsWord, useMaterialRatings } from '../../lib/materialReviews'
 import ConsentCheck from '../../components/ConsentCheck'
-import { consentOf } from '../../lib/consent'
+import { consentOf, type ConsentChoice } from '../../lib/consent'
 
 const money = new Intl.NumberFormat('ru-RU')
 
@@ -33,6 +33,8 @@ export default function MaterialDetail() {
   const [accountCreated, setAccountCreated] = useState(false)
 
   const [purchaseForm, setPurchaseForm] = useState({ name: '', phone: '', email: '', howHeard: '' })
+  // Галочки под кнопкой оплаты: что человек отметил, уходит на сервер вместе с формой (ФИО, телефон, почта).
+  const [consent, setConsent] = useState<ConsentChoice | null>(null)
   const [purchasing, setPurchasing] = useState(false)
   const [purchaseError, setPurchaseError] = useState(false)
 
@@ -78,10 +80,15 @@ export default function MaterialDetail() {
     setPurchased(true)
   }
 
+  function handlePurchaseStart(e: FormEvent) {
+    e.preventDefault()
+    setConsent(consentOf(e))
+    setGateOpen(true)
+  }
+
   async function handlePurchaseSubmit(e: FormEvent) {
     e.preventDefault()
-    const consent = consentOf(e)
-    if (!purchaseForm.name.trim() || !purchaseForm.phone.trim()) return
+    if (!consent || !purchaseForm.name.trim() || !purchaseForm.phone.trim()) return
     setPurchasing(true)
     setPurchaseError(false)
     try {
@@ -183,12 +190,27 @@ export default function MaterialDetail() {
                 <div className="text-2xl font-semibold">
                   {material.price === 0 ? 'Бесплатно' : `${money.format(material.price)} ₽`}
                 </div>
-                <button
-                  onClick={() => (material.realPurchase ? setGateOpen(true) : openGate(material.title))}
-                  className="mt-4 w-full rounded-lg bg-ink px-6 py-2.5 text-sm font-semibold text-white hover:bg-ink/90"
-                >
-                  {material.price === 0 ? 'Получить бесплатно' : 'Оплатить и получить доступ'}
-                </button>
+                {material.realPurchase ? (
+                  <form onSubmit={handlePurchaseStart} className="mt-4 grid gap-3">
+                    <button type="submit" className="w-full rounded-lg bg-ink px-6 py-2.5 text-sm font-semibold text-white hover:bg-ink/90">
+                      Оплатить и получить доступ
+                    </button>
+                    <ConsentCheck />
+                    {material.offerPath && (
+                      <p className="text-xs leading-relaxed text-ink/60">
+                        Нажимая «Оплатить и получить доступ», вы принимаете условия{' '}
+                        <Link to={material.offerPath} target="_blank" className="underline hover:text-ink">оферты</Link>.
+                      </p>
+                    )}
+                  </form>
+                ) : (
+                  <button
+                    onClick={() => openGate(material.title)}
+                    className="mt-4 w-full rounded-lg bg-ink px-6 py-2.5 text-sm font-semibold text-white hover:bg-ink/90"
+                  >
+                    {material.price === 0 ? 'Получить бесплатно' : 'Оплатить и получить доступ'}
+                  </button>
+                )}
               </>
             )}
           </div>
@@ -238,13 +260,6 @@ export default function MaterialDetail() {
               {purchaseError && (
                 <p className="text-sm text-red-600">Не получилось перейти к оплате — попробуйте еще раз через минуту.</p>
               )}
-              {material.offerPath && (
-                <p className="text-xs leading-relaxed text-ink/60">
-                  Нажимая «Перейти к оплате», вы принимаете условия{' '}
-                  <Link to={material.offerPath} target="_blank" className="underline hover:text-ink">оферты</Link>.
-                </p>
-              )}
-              <ConsentCheck />
               <button
                 type="submit"
                 disabled={purchasing}

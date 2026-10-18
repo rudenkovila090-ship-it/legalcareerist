@@ -12,5 +12,10 @@ const OFFER: PdfFile = {
 }
 
 export default function OfferLawyers() {
-  return <OfferPage doc={OFFER} heading="Оферта на доступ к Лонглисту «Юридические мероприятия»" date="18.10.2026" />
+  return <OfferPage
+      doc={OFFER}
+      heading="Оферта на доступ к Лонглисту «Юридические мероприятия»"
+      title="Оферта на оказание информационных услуг по предоставлению доступа к Лонглисту «Юридические мероприятия»"
+      date="18.10.2026"
+    />
 }

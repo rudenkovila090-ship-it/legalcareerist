@@ -50,6 +50,7 @@ export const materials: MaterialItem[] = [
     forWhom: 'Студентам и юристам, которые рассматривают нотариат',
     purchases: 0,
     realPurchase: true,
+    offerPath: '/legal/offer-gaid-kariera-yurista-v-notariate',
   },
   {
     id: 'm17',
@@ -65,5 +66,6 @@ export const materials: MaterialItem[] = [
     forWhom: 'Студентам-юристам, которые хотят получать дополнительную поддержку во время учебы',
     purchases: 0,
     realPurchase: true,
+    offerPath: '/legal/offer-gaid-stipendii-i-granty',
   },
 ]
