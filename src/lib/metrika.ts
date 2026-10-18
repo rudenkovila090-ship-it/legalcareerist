@@ -64,7 +64,10 @@ const KEEP_PARAMS = /^(utm_[a-z]+|yclid|ysclid)$/i
 export function safeUrl(href: string): string {
   try {
     const u = new URL(href, window.location.origin)
-    const keep = [...u.searchParams].filter(([k]) => KEEP_PARAMS.test(k))
+    // utm-значения в нижнем регистре (как в ky_utm), yclid/ysclid — как пришли: они чувствительны к регистру
+    const keep = [...u.searchParams]
+      .filter(([k]) => KEEP_PARAMS.test(k))
+      .map(([k, v]): [string, string] => [k, /^utm_/i.test(k) ? v.trim().toLowerCase() : v])
     const query = keep.length ? `?${new URLSearchParams(keep).toString()}` : ''
     return `${u.origin}${u.pathname}${query}`
   } catch {
