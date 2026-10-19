@@ -1218,6 +1218,29 @@ app.get('/api/payment/status', (req, res) => {
   res.json(none)
 })
 
+// Чек об оплате билета для страницы возврата с оплаты: сайт показывает «печатающийся» чек с именем гостя, билетом и номером.
+// Токен — из ссылки возврата (urlSuccess), её получает только заплативший. Отдаём ровно то, что напечатано на чеке: без почты и телефона.
+// known=false — такого заказа нет (чек показывать не нужно); paid=false при known=true — оплата ещё не подтверждена вебхуком Prodamus.
+app.get('/api/ticket/receipt', (req, res) => {
+  res.set('Cache-Control', 'no-store')
+  const token = String(req.query.token ?? '')
+  if (!PAY_TOKEN_RE.test(token)) return res.json({ ok: true, known: false, paid: false })
+  const lead = listEventLeads().find((l) => l.token === token && l.kind === 'registration')
+  if (!lead) return res.json({ ok: true, known: false, paid: false })
+  if (lead.status !== 'paid' && lead.status !== 'attended') return res.json({ ok: true, known: true, paid: false })
+  res.json({
+    ok: true,
+    known: true,
+    paid: true,
+    name: lead.name ?? '',
+    tariff: lead.tariff ?? '',
+    amount: Number(lead.amount) || Number(lead.price) || 0,
+    number: lead.number,
+    eventSlug: lead.eventSlug ?? '',
+    paidAt: lead.paidAt ?? null,
+  })
+})
+
 // Покупка материала маркетплейса → ссылка на разовую оплату Prodamus.
 app.post('/api/marketplace/purchase', async (req, res) => {
   const { materialSlug, name, phone, email } = req.body ?? {}

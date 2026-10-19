@@ -23,8 +23,10 @@ import { useNoirFont } from '../../lib/useNoirFont'
 import { useNoirScroll } from '../../lib/useNoirScroll'
 import ScrollCylinder from '../../components/noir/ScrollCylinder'
 import SoundToggle from '../../components/noir/SoundToggle'
+import TicketReceipt from '../../components/noir/TicketReceipt'
 import CityMap from '../../components/noir/CityMap'
 import { NoirGrain } from '../../components/noir/NoirAmbient'
+import { useTicketReceipt } from '../../lib/useTicketReceipt'
 import { usePaymentGoal } from '../../lib/paymentGoal'
 import ConsentCheck from '../../components/ConsentCheck'
 import { consentOf } from '../../lib/consent'
@@ -190,6 +192,17 @@ export default function EventDetail() {
   const justPaid = searchParams.get('paid') === '1'
   // Токен заказа из ссылки возврата: по нему сервер подтверждает оплату, и тогда уходит цель pay_ticket (src/lib/paymentGoal.ts).
   usePaymentGoal('ticket', justPaid ? searchParams.get('t') : null)
+  // Оформление вечера с «печатающимся» чеком: показываем его, как только сервер подтвердит оплату (по тому же токену).
+  const receipt = useTicketReceipt(story && justPaid ? searchParams.get('t') : null)
+  const [receiptOpen, setReceiptOpen] = useState(true)
+  const receiptEvent = event && story ? {
+    title: event.title,
+    tagline: story.tagline,
+    dateText: new Date(event.dateTime).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Moscow' }).replace(/\s*г\.$/, ''),
+    timeText: eventTimeRange(event),
+    place: [event.city, story.venue].filter(Boolean).join(', '),
+    chat: story.participantsChat,
+  } : null
   // Вернулись с оплаты — показываем блок с подтверждением (на телефоне он внизу страницы, иначе его не заметить).
   useEffect(() => {
     if (!justPaid) return
@@ -328,6 +341,9 @@ export default function EventDetail() {
             <NoirGrain />
             <ScrollCylinder />
             <SoundToggle />
+            {receiptOpen && receiptEvent && (receipt.state === 'checking' || receipt.state === 'timeout' || receipt.state === 'paid') && (
+              <TicketReceipt state={receipt.state} ticket={receipt.ticket} event={receiptEvent} onClose={() => setReceiptOpen(false)} />
+            )}
           </>
         )}
       <div className="container-page pt-8">
@@ -665,7 +681,14 @@ export default function EventDetail() {
                 )}
 
                 {justPaid && (
-                  <div className="mt-4 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">Оплата получена — вы зарегистрированы. Подтверждение придет на почту, за день до мероприятия — напоминание.</div>
+                  <div className="mt-4 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">
+                    Оплата получена — вы зарегистрированы. Подтверждение придет на почту, за день до мероприятия — напоминание.
+                    {receipt.state === 'paid' && !receiptOpen && (
+                      <button type="button" onClick={() => setReceiptOpen(true)} className="mt-2 block font-semibold underline">
+                        Показать чек
+                      </button>
+                    )}
+                  </div>
                 )}
                 {registered ? (
                   <div className="mt-4 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">Вы зарегистрированы. Напоминание придет заранее.</div>

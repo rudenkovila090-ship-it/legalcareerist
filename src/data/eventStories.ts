@@ -189,6 +189,8 @@ export interface EventFamily {
 export interface EventStory {
   /** Адрес площадки без города (город берется из мероприятия): показывается в верхней строке страницы. */
   venue?: string
+  /** Открытый чат участников вечера в Telegram: ссылка печатается на чеке об оплате и в письме. */
+  participantsChat?: string
   /** Вопрос вечера. */
   tagline: string
   /** Картинки: сцена для шапки и портрет для блока «О вечере». */
@@ -230,6 +232,7 @@ const JAZZ_VENUE = 'м. Балтийская, Набережная Обводн�
 export const eventStories: Record<string, EventStory> = {
   [jazzSlug]: {
     venue: JAZZ_VENUE,
+    participantsChat: 'https://t.me/+ufLOqdG-OSFlMGVi',
     tagline: 'Кто убил карьеру?',
     heroImage: barScene,
     portraitImage: loungeScene,
