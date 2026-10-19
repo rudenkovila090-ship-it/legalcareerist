@@ -13,13 +13,16 @@ export interface ConsentChoice {
 }
 
 /** Версия текста согласия на странице /legal/consent — меняйте, когда меняется текст, чтобы в журнале было видно, с какой редакцией согласились. */
-export const CONSENT_VERSION = '2025-09-01'
+export const CONSENT_VERSION = '2026-10-17'
 
 /** Редакция отдельного согласия на публикацию отзыва (/legal/consent-publication). */
 export const PUBLICATION_CONSENT_VERSION = '2026-10-14'
 
-/** Редакция согласия на рекламные и информационные сообщения (/legal/marketing-consent). */
-export const MARKETING_CONSENT_VERSION = '2026-10-14'
+/**
+ * Редакция согласия на рекламные и информационные сообщения (/legal/marketing-consent): дата выкладки файла на сайт.
+ * В самом документе указана своя дата (01.09.2025).
+ */
+export const MARKETING_CONSENT_VERSION = '2026-10-17'
 
 const checked = (form: HTMLFormElement, name: string) => {
   const field = form.elements.namedItem(name)

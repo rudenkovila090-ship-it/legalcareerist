@@ -99,6 +99,7 @@ export default function CareerReserve({ embedded = false }: { embedded?: boolean
     submitLead({
       sourceBlock: 'kadry',
       formType: 'candidate_application',
+      goal: 'lead_reserve',
       name: form.name,
       contact: [form.email, form.phone, form.telegram].filter(Boolean).join(' / '),
       phone: form.phone || undefined,
@@ -128,6 +129,7 @@ export default function CareerReserve({ embedded = false }: { embedded?: boolean
     submitLead({
       sourceBlock: 'kadry',
       formType: 'reserve_join_request',
+      goal: 'lead_reserve',
       name: priorityForm.name,
       contact: [priorityForm.phone, priorityForm.email, priorityForm.telegram].filter(Boolean).join(' / '),
       phone: priorityForm.phone || undefined,
@@ -318,6 +320,7 @@ export default function CareerReserve({ embedded = false }: { embedded?: boolean
                 </div>
                 <ConsentCheck tone="dark" className="col-span-full" />
                 <button
+                  id="btn-reserve-submit"
                   type="submit"
                   className="col-span-full rounded-full bg-gold-light py-3 text-sm font-semibold text-ink transition-colors hover:bg-white"
                 >
@@ -422,6 +425,7 @@ export default function CareerReserve({ embedded = false }: { embedded?: boolean
                 </div>
                 <ConsentCheck tone="dark" className="col-span-full" />
                 <button
+                  id="btn-reserve-request-submit"
                   type="submit"
                   className="col-span-full rounded-lg bg-gold-light py-3 text-sm font-semibold text-ink transition-colors hover:bg-white"
                 >

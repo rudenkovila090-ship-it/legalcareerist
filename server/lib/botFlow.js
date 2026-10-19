@@ -53,7 +53,7 @@ export function mailingScreen(siteUrl, user) {
   return {
     text: 'Я хотел бы присылать тебе сообщения о новых активностях, мероприятиях и полезных материалах. Для этого мне нужно твое согласие на получение таких сообщений. Ты можешь в любой момент отказаться от рассылки.',
     keyboard: [
-      [{ text: 'Согласие на рассылку', url: `${siteUrl}/legal/consent` }],
+      [{ text: 'Согласие на рассылку', url: `${siteUrl}/legal/marketing-consent` }],
       [{ text: `${gv(user, 'Не согласен', 'Не согласна', 'Не согласен(на)')} ❌`, callback_data: 'u:mail0' }, { text: `${gv(user, 'Согласен', 'Согласна', 'Согласен(на)')} ✅`, callback_data: 'u:mail1' }],
     ],
   }
@@ -102,7 +102,11 @@ export function legalScreen(siteUrl) {
     keyboard: [
       [{ text: 'Политика обработки персональных данных', url: `${siteUrl}/legal/privacy` }],
       [{ text: 'Согласие на обработку персональных данных', url: `${siteUrl}/legal/consent` }],
-      [{ text: 'Публичная оферта', url: `${siteUrl}/legal/offer` }],
+      [{ text: 'Оферта: Лонглист «Студенческие юридические мероприятия»', url: `${siteUrl}/legal/offer` }],
+      [{ text: 'Оферта: Лонглист «Юридические мероприятия»', url: `${siteUrl}/legal/offer-longlist-yuridicheskie-meropriyatiya` }],
+      [{ text: 'Оферта: Гайд «Карьера юриста в нотариате»', url: `${siteUrl}/legal/offer-gaid-kariera-yurista-v-notariate` }],
+      [{ text: 'Оферта: Гайд «Стипендии и гранты»', url: `${siteUrl}/legal/offer-gaid-stipendii-i-granty` }],
+      [{ text: 'Оферта: Джазовый вечер для юристов 2', url: `${siteUrl}/legal/offer-legal-night-jazz-2` }],
       [{ text: 'Главное меню', callback_data: 'u:menu' }],
     ],
   }
@@ -179,7 +183,8 @@ export function marketScreen() {
 }
 
 const MATERIAL_BUTTONS = {
-  'longlist-studencheskie-yuridicheskie-meropriyatiya': 'Лонглист · Юридические мероприятия',
+  'longlist-studencheskie-yuridicheskie-meropriyatiya': 'Лонглист · Студенческие юридические мероприятия',
+  'longlist-yuridicheskie-meropriyatiya': 'Лонглист · Юридические мероприятия (в разработке)',
   'gaid-kariera-yurista-v-notariate': 'Гайд · Карьера юриста в нотариате',
   'gaid-stipendii-i-granty': 'Гайд · Стипендии и гранты',
 }
@@ -209,22 +214,34 @@ export function materialsListScreen(materials) {
 }
 
 /** Карточка материала: название и описание — ровно как на сайте (src/data/materials.ts → каталог для бота). */
-export function materialCard(material, user) {
+/** Кнопка «Оферта» для материала, на который есть оферта (страница на сайте, см. MaterialItem.offerPath). */
+const offerRow = (material, siteUrl) => (material.offerPath && siteUrl ? [[{ text: 'Оферта', url: `${siteUrl}${material.offerPath}` }]] : [])
+
+export function materialCard(material, user, siteUrl) {
   const text = [material.title, '', material.description, material.forWhom ? `\nДля кого: ${material.forWhom}` : ''].join('\n').trim()
+  // Материал ещё не готов: покупки нет, только цена и оферта.
+  if (material.inDevelopment) {
+    return {
+      text: `${text}\n\nСтоимость: ${material.price} ₽\n🛠 В разработке. Оплата откроется, когда материал будет готов. Оферта уже опубликована — её можно прочитать по кнопке ниже.`,
+      keyboard: [...offerRow(material, siteUrl), [{ text: 'Назад', callback_data: 'u:mats' }, { text: 'Главное меню', callback_data: 'u:menu' }]],
+    }
+  }
   return {
     text,
     keyboard: [
       [{ text: `Купить за ${material.price} ₽`, callback_data: `u:buy:${material.slug}` }],
+      ...offerRow(material, siteUrl),
       [{ text: gv(user, 'Уже приобрел', 'Уже приобрела', 'Уже приобрёл(а)'), callback_data: `u:paid:${material.slug}` }],
       [{ text: 'Назад', callback_data: 'u:mats' }, { text: 'Главное меню', callback_data: 'u:menu' }],
     ],
   }
 }
 
-export function payLinkScreen(material, url, user) {
+export function payLinkScreen(material, url, user, siteUrl) {
+  const offer = material.offerPath && siteUrl ? '\n\nНажимая «Оплатить», ты принимаешь условия оферты.' : ''
   return {
-    text: `${material.title}\n\nОплата ${material.price} ₽ — по кнопке ниже. Материал придёт сюда сразу после оплаты.`,
-    keyboard: [[{ text: `Оплатить ${material.price} ₽`, url }], [{ text: gv(user, 'Уже приобрел', 'Уже приобрела', 'Уже приобрёл(а)'), callback_data: `u:paid:${material.slug}` }], [{ text: 'Назад', callback_data: `u:mat:${material.slug}` }, { text: 'Главное меню', callback_data: 'u:menu' }]],
+    text: `${material.title}\n\nОплата ${material.price} ₽ — по кнопке ниже. Материал придёт сюда сразу после оплаты.${offer}`,
+    keyboard: [[{ text: `Оплатить ${material.price} ₽`, url }], ...offerRow(material, siteUrl), [{ text: gv(user, 'Уже приобрел', 'Уже приобрела', 'Уже приобрёл(а)'), callback_data: `u:paid:${material.slug}` }], [{ text: 'Назад', callback_data: `u:mat:${material.slug}` }, { text: 'Главное меню', callback_data: 'u:menu' }]],
   }
 }
 

@@ -111,6 +111,7 @@ export default function VacancyDetail() {
             <LeadForm
               sourceBlock="kadry"
               formType="vacancy_application"
+              submitId="btn-vacancy-apply"
               title="Откликнуться на вакансию"
               description={`«${vacancy.title}»`}
               contactLabel="Почта"

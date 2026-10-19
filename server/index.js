@@ -484,6 +484,11 @@ function buildTicketPaidNotification({ lead, amount, paidAt, mail, warning }) {
 
 /** Оплата материала маркетплейса. */
 function buildMaterialPaidNotification({ purchase, material, phone, amount, paidAt, mail, telegramStatus, test }) {
+  // Согласие на рекламу: покупатель с сайта отмечает его галочкой, покупатель из бота — отвечает на вопрос в боте (карточка).
+  const card = purchase.tgUserId ? getBotUser(purchase.tgUserId) : null
+  const marketing = purchase.consentAt
+    ? `✉️ Реклама и рассылки: ${purchase.marketingAt ? 'согласен(на)' : 'не выбрано'}`
+    : card?.mailingConsent === true ? '✉️ Реклама и рассылки: согласен(на) (в боте)' : card?.mailingConsent === false ? '✉️ Реклама и рассылки: отказ (в боте)' : null
   return [
     test ? '🧪 ТЕСТ: имитация оплаты материала (в финансы не идёт)' : '💳 Материал оплачен',
     '',
@@ -493,6 +498,7 @@ function buildMaterialPaidNotification({ purchase, material, phone, amount, paid
     '',
     ...contactLines({ name: purchase.name, phone: phone || purchase.phone, email: purchase.email }),
     purchase.howHeard ? `🗣 Откуда узнали: ${purchase.howHeard}` : null,
+    marketing,
     '',
     `💰 Сумма: ${formatRub(amount)}`,
     mailStatusLine(mail),
@@ -1186,6 +1192,32 @@ app.post('/api/community/subscribe', async (req, res) => {
   }
 })
 
+// Подтверждение оплаты для страниц успеха (подписка, билет, материал): сайт отправляет в Яндекс Метрику цель pay_* только когда
+// оплата подтверждена подписанным вебхуком Prodamus. Отдаём только факт оплаты, сумму и обезличенный номер заказа — без контактов.
+const PAY_TOKEN_RE = /^[0-9a-f]{8,64}$/i
+const orderRef = (kind, token) => `${kind}-${crypto.createHash('sha256').update(token).digest('hex').slice(0, 10)}`
+app.get('/api/payment/status', (req, res) => {
+  res.set('Cache-Control', 'no-store')
+  const kind = String(req.query.kind ?? '')
+  const token = String(req.query.token ?? '')
+  const none = { ok: true, paid: false }
+  if (!PAY_TOKEN_RE.test(token)) return res.json(none)
+  if (kind === 'community') {
+    const join = getJoin(token)
+    const first = (join?.payments ?? []).find((p) => Number(p.amount) > 0)
+    return res.json(join?.paid && first ? { ok: true, paid: true, amount: Number(first.amount), order: orderRef(kind, token) } : none)
+  }
+  if (kind === 'ticket') {
+    const lead = listEventLeads().find((l) => l.token === token && l.kind === 'registration')
+    return res.json(lead && (lead.status === 'paid' || lead.status === 'attended') && Number(lead.amount) > 0 ? { ok: true, paid: true, amount: Number(lead.amount), order: `ev-${lead.number}` } : none)
+  }
+  if (kind === 'product') {
+    const purchase = getPurchase(token)
+    return res.json(purchase?.paid && Number(purchase.amount) > 0 ? { ok: true, paid: true, amount: Number(purchase.amount), order: orderRef(kind, token) } : none)
+  }
+  res.json(none)
+})
+
 // Покупка материала маркетплейса → ссылка на разовую оплату Prodamus.
 app.post('/api/marketplace/purchase', async (req, res) => {
   const { materialSlug, name, phone, email } = req.body ?? {}
@@ -1338,7 +1370,7 @@ app.post('/api/event/:slug/checkout', async (req, res) => {
       setEventLeadField(lead.number, 'discount', ticket.discount)
     }
     const orderId = `ev-${lead.number}`
-    const urlSuccess = `${SITE_URL}/events/${event.slug}?paid=1`
+    const urlSuccess = `${SITE_URL}/events/${event.slug}?paid=1&t=${lead.token}`
     const url = await createEventPaymentLink({ title: `${event.title} — ${tariff.name}`, price: ticket.price, orderId, phone, email: EMAIL_RE.test(email) ? email : '', urlSuccess, name })
     if (BOT_TOKEN && ADMIN_CHAT_ID && getAdminSettings().unpaidNotices) {
       // Не шлём сразу: если человек оплатит в ближайшие минуты, придёт одно сообщение «Билет оплачен», а это — только если не оплатил.
@@ -2140,7 +2172,10 @@ function typing(chatId) {
   telegramFetch('sendChatAction', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: chatId, action: 'typing' }) }).catch(() => null)
 }
 
-/** Материалы для бота: цена и название — из серверного списка (источник истины), описание — из каталога сайта. */
+/**
+ * Материалы для бота: цена и название — из серверного списка (источник истины), описание и ссылка на оферту — из каталога сайта.
+ * Материалы, которые ещё в разработке (в продаже их нет), берутся целиком из каталога сайта и идут в конце списка.
+ */
 function materialList() {
   let catalog = []
   try {
@@ -2148,10 +2183,14 @@ function materialList() {
   } catch {
     // каталог ещё не выгружен — карточки будут без описания
   }
-  return Object.entries(MATERIALS).map(([slug, m]) => {
+  const live = Object.entries(MATERIALS).map(([slug, m]) => {
     const c = catalog.find((x) => x.slug === slug)
-    return { slug, title: m.title, price: m.price, accessUrl: m.accessUrl, description: c?.description ?? '', forWhom: c?.forWhom ?? '' }
+    return { slug, title: m.title, price: m.price, accessUrl: m.accessUrl, description: c?.description ?? '', forWhom: c?.forWhom ?? '', offerPath: c?.offerPath }
   })
+  const upcoming = catalog
+    .filter((c) => c.inDevelopment && !MATERIALS[c.slug])
+    .map((c) => ({ slug: c.slug, title: c.title, price: c.price, description: c.description ?? '', forWhom: c.forWhom ?? '', offerPath: c.offerPath, inDevelopment: true }))
+  return [...live, ...upcoming]
 }
 
 /** Выдача материала после оплаты: файл (если админ его загрузил), иначе ссылка, иначе — передаём поддержке. Затем просьба об отзыве. */
@@ -2336,14 +2375,15 @@ async function handleUserCallback(query) {
     case 'mats':
       return reply(materialsListScreen(materials))
     case 'mat':
-      return material ? reply(materialCard(material, user)) : reply(marketScreen())
+      return material ? reply(materialCard(material, user, SITE_URL)) : reply(marketScreen())
     case 'buy': {
       if (!material) return reply(marketScreen())
+      if (material.inDevelopment) return reply(materialCard(material, user, SITE_URL))
       typing(chatId)
       try {
         const token = createPendingPurchase({ materialSlug: material.slug, name: user.firstName, tgUserId: chatId })
         const url = await createProductPaymentLink({ materialSlug: material.slug, tgUserId: String(chatId), urlSuccess: `${SITE_URL}/materials/thanks?token=${token}` })
-        return reply(payLinkScreen(material, url, user))
+        return reply(payLinkScreen(material, url, user, SITE_URL))
       } catch (err) {
         console.error('[bot] ошибка ссылки на оплату материала:', err)
         return sendTelegramMessage(chatId, `Не получилось создать ссылку на оплату. Напиши в поддержку — ${SUPPORT_HANDLE}, поможем.`)
@@ -2351,6 +2391,7 @@ async function handleUserCallback(query) {
     }
     case 'paid': {
       if (!material) return reply(marketScreen())
+      if (material.inDevelopment) return reply(materialCard(material, user, SITE_URL))
       if (findPaidPurchase(chatId, material.slug)) return deliverMaterial(chatId, material.slug)
       return reply(paymentNotFoundScreen(material.slug, SUPPORT_HANDLE))
     }
@@ -2591,6 +2632,17 @@ async function handleTelegramUpdate(update) {
     await startFlow(chatId, message.from)
     return
   }
+  // Отказ от рекламной рассылки командой: этот способ назван в тексте согласия на рекламу (/legal/marketing-consent), п. 3.2.
+  if (chatId && text === '/stop_newsletter') {
+    const user = setMailingConsent(chatId, false)
+    if (user) {
+      const screen = unsubscribedScreen(user)
+      await sendTelegramMessage(chatId, screen.text, screen.keyboard)
+    } else {
+      await sendTelegramMessage(chatId, 'Рекламную рассылку вам и так не отправляем: вы на неё не подписаны.')
+    }
+    return
+  }
   if (chatId && text && !text.startsWith('/') && text.toLowerCase().includes('личный кабинет')) {
     const resident = residentByTelegramId(chatId)
     if (resident) {
@@ -2650,6 +2702,8 @@ async function handleMaterialStart(chatId, from, token) {
   }
   setPurchaseTg(token, chatId)
   addTag(chatId, PAID_TAGS[purchase.materialSlug] ?? `оплатил_${purchase.materialSlug}`)
+  // Покупатель отметил на сайте согласие на рекламу: переносим его в карточку бота, чтобы рассылка шла и туда (метка в карточке).
+  if (purchase.marketingAt) setMailingConsent(chatId, true)
   await deliverMaterial(chatId, purchase.materialSlug)
 }
 

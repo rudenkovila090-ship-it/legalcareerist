@@ -6,6 +6,7 @@ import PhoneInput from './PhoneInput'
 import { validateJoinContacts } from '../lib/joinValidation'
 import ConsentCheck from './ConsentCheck'
 import { consentOf } from '../lib/consent'
+import { goal } from '../lib/metrika'
 
 /**
  * Виджет выбора и оплаты тарифа сообщества — та же логика и тот же бэкенд
@@ -88,7 +89,8 @@ export default function TariffJoinBlock() {
       })
       const data = await res.json()
       if (!res.ok || !data.url) throw new Error('subscribe_failed')
-      window.location.assign(data.url)
+      // Цель «заявка в сообщество» — после ответа сервера; переход на оплату ждёт, пока Метрика примет цель.
+      goal('lead_community', undefined, () => window.location.assign(data.url))
     } catch {
       setSubmitting(false)
       setSubmitError(true)
@@ -199,6 +201,7 @@ export default function TariffJoinBlock() {
               )}
               <ConsentCheck />
               <button
+                id="btn-community-join"
                 type="submit"
                 disabled={submitting}
                 className="rounded-full bg-ink py-3 text-sm font-semibold text-white transition-colors hover:bg-ink/90 disabled:opacity-60"

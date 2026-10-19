@@ -372,6 +372,7 @@ export default function KadryHome() {
     submitLead({
       sourceBlock: 'kadry',
       formType: 'service_order',
+      goal: 'lead_employer',
       name: serviceForm.fio,
       contact: [serviceForm.phone, serviceForm.email, serviceForm.telegram].filter(Boolean).join(' / '),
       phone: serviceForm.phone || undefined,
@@ -401,6 +402,7 @@ export default function KadryHome() {
     submitLead({
       sourceBlock: 'kadry',
       formType: 'employer_request',
+      goal: 'lead_employer',
       name: form.fio,
       contact: [form.phone, form.email, form.telegram].filter(Boolean).join(' / '),
       phone: form.phone || undefined,
@@ -491,6 +493,7 @@ export default function KadryHome() {
     submitLead({
       sourceBlock: 'kadry',
       formType: 'candidates_selection_request',
+      goal: 'lead_employer',
       name: requestForm.contact,
       contact: [requestForm.phone, requestForm.email, requestForm.telegram].filter(Boolean).join(' / '),
       phone: requestForm.phone || undefined,
@@ -882,7 +885,7 @@ export default function KadryHome() {
                   />
                   <HowHeardField value={requestForm.howHeard} onChange={(v) => setRequestForm((f) => ({ ...f, howHeard: v }))} className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none" />
                   <ConsentCheck />
-                  <button type="submit" className="rounded-full bg-ink py-3 text-sm font-semibold text-white transition-colors hover:bg-ink/90">
+                  <button id="btn-employer-candidates-submit" type="submit" className="rounded-full bg-ink py-3 text-sm font-semibold text-white transition-colors hover:bg-ink/90">
                     Оставить заявку
                   </button>
                 </form>
@@ -1437,6 +1440,7 @@ export default function KadryHome() {
                 <HowHeardField value={form.howHeard} onChange={(v) => setForm((f) => ({ ...f, howHeard: v }))} className="rounded-lg border border-white/15 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/40 focus:border-white/40" />
                 <ConsentCheck tone="dark" />
                 <button
+                  id="btn-employer-submit"
                   type="submit"
                   className="rounded-lg bg-gold-light py-3.5 text-sm font-semibold text-ink hover:opacity-90"
                 >
@@ -1523,7 +1527,7 @@ export default function KadryHome() {
                   />
                   <HowHeardField value={serviceForm.howHeard} onChange={(v) => setServiceForm((f) => ({ ...f, howHeard: v }))} className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none" />
                   <ConsentCheck />
-                  <button type="submit" className="rounded-full bg-ink py-3 text-sm font-semibold text-white transition-colors hover:bg-ink/90">
+                  <button id="btn-employer-order-submit" type="submit" className="rounded-full bg-ink py-3 text-sm font-semibold text-white transition-colors hover:bg-ink/90">
                     Отправить заявку
                   </button>
                 </form>

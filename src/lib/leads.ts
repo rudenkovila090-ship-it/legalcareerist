@@ -8,6 +8,7 @@
 import type { Lead, LeadSourceBlock } from '../types'
 import { getUtm } from './utm'
 import { CONSENT_VERSION, MARKETING_CONSENT_VERSION, type ConsentChoice } from './consent'
+import { goal } from './metrika'
 
 const LEADS_KEY = 'ky_leads'
 
@@ -116,6 +117,8 @@ export interface LeadInput {
   eventSlug?: string
   /** Что отметил человек под формой: Политика, обработка данных, реклама (consentOf(e) в src/lib/consent.ts). */
   consent?: ConsentChoice
+  /** Цель Яндекс Метрики (lead_employer и т. п.): отправляется только после успешного ответа сервера на заявку, не по клику. */
+  goal?: string
 }
 
 // Номер заявки — короткий, читаемый на слух номер для клиента (не технический
@@ -158,7 +161,7 @@ export function submitLead(input: LeadInput): Lead {
   localStorage.setItem(LEADS_KEY, JSON.stringify(all))
 
   trackEvent('lead_submit', { source: input.sourceBlock, form: input.formType })
-  notifyTelegram(lead, input.vacancySlug, input.eventSlug, input.consent)
+  notifyTelegram(lead, input.vacancySlug, input.eventSlug, input.consent, input.goal)
 
   return lead
 }
@@ -166,7 +169,7 @@ export function submitLead(input: LeadInput): Lead {
 /** Уведомление админу в Telegram — не блокирует отправку формы при ошибке/недоступности бэкенда.
  *  vacancySlug/eventSlug (если есть) заодно учитываются бэкендом в реальном счетчике
  *  откликов вакансии / переходов к регистрации на мероприятие. */
-function notifyTelegram(lead: Lead, vacancySlug?: string, eventSlug?: string, consent?: ConsentChoice) {
+function notifyTelegram(lead: Lead, vacancySlug?: string, eventSlug?: string, consent?: ConsentChoice, goalName?: string) {
   if (typeof fetch === 'undefined') return
   const template = richTemplate(lead.sourceBlock, lead.formType)
   const direction =
@@ -200,6 +203,9 @@ function notifyTelegram(lead: Lead, vacancySlug?: string, eventSlug?: string, co
       marketingVersion: MARKETING_CONSENT_VERSION,
       utm: getUtm(),
     }),
+  }).then((res) => {
+    // Цель Метрики — только когда сервер принял заявку; в параметрах лишь тип формы, без имён и контактов.
+    if (res.ok && goalName) goal(goalName, { form: lead.formType })
   }).catch(() => {
     // Бэкенд недоступен/не настроен — заявка все равно сохранена в localStorage, не мешаем пользователю.
   })

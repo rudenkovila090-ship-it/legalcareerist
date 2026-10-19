@@ -1,6 +1,8 @@
 import { lazy, Suspense } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import Layout from './components/Layout'
+import CookieBanner from './components/CookieBanner'
+import MetrikaTracker from './components/MetrikaTracker'
 
 // Каждая страница — отдельный чанк, подгружается только при переходе на нее.
 // Экономит первый экран: раньше весь сайт грузился одним файлом ~650 КБ.
@@ -37,6 +39,11 @@ const Privacy = lazy(() => import('./pages/legal/Privacy'))
 const Consent = lazy(() => import('./pages/legal/Consent'))
 const ConsentPublication = lazy(() => import('./pages/legal/ConsentPublication'))
 const MarketingConsent = lazy(() => import('./pages/legal/MarketingConsent'))
+const Offer = lazy(() => import('./pages/legal/Offer'))
+const OfferLawyers = lazy(() => import('./pages/legal/OfferLawyers'))
+const OfferGuideNotary = lazy(() => import('./pages/legal/OfferGuideNotary'))
+const OfferGuideScholarships = lazy(() => import('./pages/legal/OfferGuideScholarships'))
+const OfferEventJazz2 = lazy(() => import('./pages/legal/OfferEventJazz2'))
 const About = lazy(() => import('./pages/About'))
 const News = lazy(() => import('./pages/News'))
 const NewsDetail = lazy(() => import('./pages/NewsDetail'))
@@ -46,110 +53,118 @@ const NotFound = lazy(() => import('./pages/NotFound'))
 
 export default function App() {
   return (
-    <Suspense fallback={null}>
-      <Routes>
-        <Route element={<Layout />}>
-          <Route path="/" element={<Home />} />
+    <>
+      <MetrikaTracker />
+      <CookieBanner />
+      <Suspense fallback={null}>
+        <Routes>
+          <Route element={<Layout />}>
+            <Route path="/" element={<Home />} />
 
-          {/* Кадры */}
-          <Route path="/kadry" element={<KadryHome />} />
-          <Route path="/kadry/employers" element={<KadryHome />} />
-          <Route path="/kadry/candidates" element={<Candidates />} />
-          <Route path="/kadry/candidates/reserve" element={<CareerReserve />} />
-          <Route path="/kadry/candidates/consultation" element={<CareerConsultation />} />
-          <Route path="/kadry/vacancies" element={<Vacancies />} />
-          <Route path="/kadry/salary" element={<Salary />} />
-          <Route
-            path="/kadry/knowledge"
-            element={
-              <KnowledgeList
-                audience="candidates"
-                eyebrow="Кадры · База знаний"
-                title="База знаний для соискателей и работодателей"
-                description="Статьи, FAQ, глоссарий и чек-листы по подбору на юридическом рынке."
-              />
-            }
-          />
-          <Route path="/kadry/contacts" element={<Contacts eyebrow="Кадры" sourceBlock="kadry" />} />
-          <Route path="/kadry/documents" element={<Documents eyebrow="Кадры" description="Договоры, политики и другие документы раздела «Кадры»." />} />
-          <Route path="/vacancies/:slug" element={<VacancyDetail />} />
+            {/* Кадры */}
+            <Route path="/kadry" element={<KadryHome />} />
+            <Route path="/kadry/employers" element={<KadryHome />} />
+            <Route path="/kadry/candidates" element={<Candidates />} />
+            <Route path="/kadry/candidates/reserve" element={<CareerReserve />} />
+            <Route path="/kadry/candidates/consultation" element={<CareerConsultation />} />
+            <Route path="/kadry/vacancies" element={<Vacancies />} />
+            <Route path="/kadry/salary" element={<Salary />} />
+            <Route
+              path="/kadry/knowledge"
+              element={
+                <KnowledgeList
+                  audience="candidates"
+                  eyebrow="Кадры · База знаний"
+                  title="База знаний для соискателей и работодателей"
+                  description="Статьи, FAQ, глоссарий и чек-листы по подбору на юридическом рынке."
+                />
+              }
+            />
+            <Route path="/kadry/contacts" element={<Contacts eyebrow="Кадры" sourceBlock="kadry" />} />
+            <Route path="/kadry/documents" element={<Documents eyebrow="Кадры" description="Договоры, политики и другие документы раздела «Кадры»." />} />
+            <Route path="/vacancies/:slug" element={<VacancyDetail />} />
 
-          {/* Сообщество */}
-          <Route path="/community" element={<CommunityHome />} />
-          <Route path="/community/success" element={<JoinSuccess />} />
-          <Route path="/community/clubs/:slug" element={<ClubDetail />} />
-          <Route path="/community/contacts" element={<Contacts eyebrow="Сообщество" sourceBlock="community" />} />
-          <Route path="/community/documents" element={<Documents eyebrow="Сообщество" description="Юридические документы сообщества." legalLinks />} />
+            {/* Сообщество */}
+            <Route path="/community" element={<CommunityHome />} />
+            <Route path="/community/success" element={<JoinSuccess />} />
+            <Route path="/community/clubs/:slug" element={<ClubDetail />} />
+            <Route path="/community/contacts" element={<Contacts eyebrow="Сообщество" sourceBlock="community" />} />
+            <Route path="/community/documents" element={<Documents eyebrow="Сообщество" description="Юридические документы сообщества." legalLinks />} />
 
-          {/* Мероприятия */}
-          <Route path="/events" element={<EventsHome />} />
-          {/* Мероприятие переименовано — прежняя ссылка ведёт на новую. */}
-          <Route path="/events/yuridicheskaya-noch-dzhaza-2" element={<Navigate to="/events/dzhazovyy-vecher-dlya-yuristov-2" replace />} />
-          <Route path="/events/:slug" element={<EventDetail />} />
-          <Route
-            path="/events/knowledge"
-            element={
-              <KnowledgeList
-                audience="events"
-                eyebrow="Мероприятия · База знаний"
-                title="Отчеты и гайды по мероприятиям"
-              />
-            }
-          />
-          <Route path="/events/materials" element={<Materials />} />
-          <Route path="/materials/thanks" element={<MaterialThanks />} />
-          <Route path="/materials/cabinet" element={<MaterialThanks />} />
-          <Route path="/materials/:slug" element={<MaterialDetail />} />
-          <Route path="/events/contacts" element={<Contacts eyebrow="Мероприятия" sourceBlock="events" />} />
-          <Route path="/events/documents" element={<Documents />} />
-          <Route path="/events/ticket-refund" element={<Placeholder eyebrow="Афиша" title="Возврат билета" />} />
-          <Route path="/events/research" element={<Placeholder eyebrow="Афиша" title="Участие в исследованиях" />} />
-          <Route path="/events/ticketing" element={<Placeholder eyebrow="Афиша" title="Билетная система" />} />
-          <Route path="/events/opportunities" element={<Placeholder eyebrow="Организаторам" title="Возможности" />} />
-          <Route path="/events/advertising" element={<Placeholder eyebrow="Организаторам" title="Реклама" />} />
+            {/* Мероприятия */}
+            <Route path="/events" element={<EventsHome />} />
+            {/* Мероприятие переименовано — прежняя ссылка ведёт на новую. */}
+            <Route path="/events/yuridicheskaya-noch-dzhaza-2" element={<Navigate to="/events/dzhazovyy-vecher-dlya-yuristov-2" replace />} />
+            <Route path="/events/:slug" element={<EventDetail />} />
+            <Route
+              path="/events/knowledge"
+              element={
+                <KnowledgeList
+                  audience="events"
+                  eyebrow="Мероприятия · База знаний"
+                  title="Отчеты и гайды по мероприятиям"
+                />
+              }
+            />
+            <Route path="/events/materials" element={<Materials />} />
+            <Route path="/materials/thanks" element={<MaterialThanks />} />
+            <Route path="/materials/cabinet" element={<MaterialThanks />} />
+            <Route path="/materials/:slug" element={<MaterialDetail />} />
+            <Route path="/events/contacts" element={<Contacts eyebrow="Мероприятия" sourceBlock="events" />} />
+            <Route path="/events/documents" element={<Documents />} />
+            <Route path="/events/ticket-refund" element={<Placeholder eyebrow="Афиша" title="Возврат билета" />} />
+            <Route path="/events/research" element={<Placeholder eyebrow="Афиша" title="Участие в исследованиях" />} />
+            <Route path="/events/ticketing" element={<Placeholder eyebrow="Афиша" title="Билетная система" />} />
+            <Route path="/events/opportunities" element={<Placeholder eyebrow="Организаторам" title="Возможности" />} />
+            <Route path="/events/advertising" element={<Placeholder eyebrow="Организаторам" title="Реклама" />} />
 
-          {/* Общие информационные страницы */}
-          <Route path="/about" element={<About />} />
-          <Route path="/news" element={<News />} />
-          <Route path="/news/:slug" element={<NewsDetail />} />
+            {/* Общие информационные страницы */}
+            <Route path="/about" element={<About />} />
+            <Route path="/news" element={<News />} />
+            <Route path="/news/:slug" element={<NewsDetail />} />
 
-          {/* Общая статья Базы знаний (единая сущность для всех трех разделов) */}
-          <Route path="/knowledge/:slug" element={<ArticleDetail />} />
+            {/* Общая статья Базы знаний (единая сущность для всех трех разделов) */}
+            <Route path="/knowledge/:slug" element={<ArticleDetail />} />
 
-          {/* Личный кабинет — разделен на соискателя и работодателя (два
-              разных демо-входа без пароля, см. AccountGate.tsx). */}
-          <Route path="/cabinet" element={<Cabinet />} />
-          <Route path="/cabinet/:section" element={<Cabinet />} />
-          <Route path="/account" element={<AccountGate />} />
-          <Route path="/account/candidate" element={<CandidateAccount />} />
-          <Route path="/account/candidate/resume/new" element={<ResumeBuilder />} />
-          <Route path="/account/candidate/resume/:id/edit" element={<ResumeBuilder />} />
-          <Route path="/account/candidate/resume/:id" element={<ResumeView />} />
-          <Route path="/account/employer" element={<EmployerAccount />} />
-          <Route path="/account/moderator" element={<ModeratorAccount />} />
-          <Route path="/account/employer/vacancy/new" element={<VacancyBuilder />} />
-          <Route path="/account/employer/vacancy/:id/edit" element={<VacancyBuilder />} />
+            {/* Личный кабинет — разделен на соискателя и работодателя (два
+                разных демо-входа без пароля, см. AccountGate.tsx). */}
+            <Route path="/cabinet" element={<Cabinet />} />
+            <Route path="/cabinet/:section" element={<Cabinet />} />
+            <Route path="/account" element={<AccountGate />} />
+            <Route path="/account/candidate" element={<CandidateAccount />} />
+            <Route path="/account/candidate/resume/new" element={<ResumeBuilder />} />
+            <Route path="/account/candidate/resume/:id/edit" element={<ResumeBuilder />} />
+            <Route path="/account/candidate/resume/:id" element={<ResumeView />} />
+            <Route path="/account/employer" element={<EmployerAccount />} />
+            <Route path="/account/moderator" element={<ModeratorAccount />} />
+            <Route path="/account/employer/vacancy/new" element={<VacancyBuilder />} />
+            <Route path="/account/employer/vacancy/:id/edit" element={<VacancyBuilder />} />
 
-          {/* Marketplace */}
-          <Route path="/marketplace" element={<MarketplaceHome />} />
-          <Route path="/marketplace/contacts" element={<Contacts eyebrow="Маркетплейс" sourceBlock="marketplace" />} />
+            {/* Marketplace */}
+            <Route path="/marketplace" element={<MarketplaceHome />} />
+            <Route path="/marketplace/contacts" element={<Contacts eyebrow="Маркетплейс" sourceBlock="marketplace" />} />
 
-          {/* Блог */}
-          <Route path="/blog" element={<BlogHome />} />
+            {/* Блог */}
+            <Route path="/blog" element={<BlogHome />} />
 
-          {/* Общая поддержка (ссылка "Поддержка" в общем подвале сайта) */}
-          <Route path="/contacts" element={<Contacts eyebrow="Карьерный Юрист" sourceBlock="home" />} />
+            {/* Общая поддержка (ссылка "Поддержка" в общем подвале сайта) */}
+            <Route path="/contacts" element={<Contacts eyebrow="Карьерный Юрист" sourceBlock="home" />} />
 
-          {/* Юридические документы */}
-          <Route path="/legal/privacy" element={<Privacy />} />
-          <Route path="/legal/consent" element={<Consent />} />
-          <Route path="/legal/consent-publication" element={<ConsentPublication />} />
-          <Route path="/legal/offer" element={<Placeholder eyebrow="Юридический блок" title="Оферта" />} />
-          <Route path="/legal/marketing-consent" element={<MarketingConsent />} />
+            {/* Юридические документы */}
+            <Route path="/legal/privacy" element={<Privacy />} />
+            <Route path="/legal/consent" element={<Consent />} />
+            <Route path="/legal/consent-publication" element={<ConsentPublication />} />
+            <Route path="/legal/offer" element={<Offer />} />
+            <Route path="/legal/offer-longlist-yuridicheskie-meropriyatiya" element={<OfferLawyers />} />
+            <Route path="/legal/offer-gaid-kariera-yurista-v-notariate" element={<OfferGuideNotary />} />
+            <Route path="/legal/offer-gaid-stipendii-i-granty" element={<OfferGuideScholarships />} />
+            <Route path="/legal/offer-legal-night-jazz-2" element={<OfferEventJazz2 />} />
+            <Route path="/legal/marketing-consent" element={<MarketingConsent />} />
 
-          <Route path="*" element={<NotFound />} />
-        </Route>
-      </Routes>
-    </Suspense>
+            <Route path="*" element={<NotFound />} />
+          </Route>
+        </Routes>
+      </Suspense>
+    </>
   )
 }

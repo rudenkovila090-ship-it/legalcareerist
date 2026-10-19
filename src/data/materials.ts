@@ -20,6 +20,21 @@ export const materials: MaterialItem[] = [
     reviewsCount: 14,
     qnaCount: 3,
     realPurchase: true,
+    offerPath: '/legal/offer',
+  },
+  {
+    id: 'm18',
+    slug: 'longlist-yuridicheskie-meropriyatiya',
+    title: 'Лонглист «Юридические мероприятия»',
+    kind: 'longlist',
+    direction: ['career', 'events'],
+    price: 990,
+    specialization: [],
+    industry: [],
+    description: 'Лонглист в формате PDF с перечнем юридических мероприятий для юристов.\n\nМатериал в разработке: оплата откроется, когда он будет готов. Оферта на доступ к лонглисту уже опубликована.',
+    forWhom: 'Юристам, которые хотят участвовать в профильных мероприятиях',
+    inDevelopment: true,
+    offerPath: '/legal/offer-longlist-yuridicheskie-meropriyatiya',
   },
   {
     id: 'm16',
@@ -35,6 +50,7 @@ export const materials: MaterialItem[] = [
     forWhom: 'Студентам и юристам, которые рассматривают нотариат',
     purchases: 0,
     realPurchase: true,
+    offerPath: '/legal/offer-gaid-kariera-yurista-v-notariate',
   },
   {
     id: 'm17',
@@ -50,5 +66,6 @@ export const materials: MaterialItem[] = [
     forWhom: 'Студентам-юристам, которые хотят получать дополнительную поддержку во время учебы',
     purchases: 0,
     realPurchase: true,
+    offerPath: '/legal/offer-gaid-stipendii-i-granty',
   },
 ]

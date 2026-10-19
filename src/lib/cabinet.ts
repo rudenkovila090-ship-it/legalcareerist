@@ -1,6 +1,6 @@
 // Личный кабинет на сайте (/cabinet): вход по логину и паролю, данные берём у сервера (server/lib/accountAuth.js).
 // Токен сессии лежит в localStorage этого браузера; на сервере по нему находится сессия на 30 дней.
-import type { ConsentChoice } from './consent'
+import { CONSENT_VERSION, MARKETING_CONSENT_VERSION, type ConsentChoice } from './consent'
 
 const KEY = 'ky_cabinet_token'
 
@@ -159,9 +159,9 @@ export const fetchEvents = () => api<{ events: CabinetEvent[] }>('/api/account/e
 
 /** Сохранение частей профиля. consent — галочки (нужны только при первом сохранении). */
 export const saveProfile = (parts: Partial<Pick<Profile, 'practices' | 'experience' | 'expectations' | 'privacy'>>, consent?: ConsentChoice) =>
-  api<{ profile: Profile }>('/api/account/profile', { method: 'PUT', body: JSON.stringify({ ...parts, ...(consent ? { consent } : {}) }) })
+  api<{ profile: Profile }>('/api/account/profile', { method: 'PUT', body: JSON.stringify({ ...parts, ...(consent ? { consent, consentVersion: CONSENT_VERSION, marketingVersion: MARKETING_CONSENT_VERSION } : {}) }) })
 
-export const setMarketing = (marketing: boolean) => api<{ marketing: boolean; at: number; applied: boolean }>('/api/account/marketing', { method: 'POST', body: JSON.stringify({ marketing }) })
+export const setMarketing = (marketing: boolean) => api<{ marketing: boolean; at: number; applied: boolean }>('/api/account/marketing', { method: 'POST', body: JSON.stringify({ marketing, consentVersion: CONSENT_VERSION, marketingVersion: MARKETING_CONSENT_VERSION }) })
 export const requestDeletion = () => api<{ already?: boolean; at: number }>('/api/account/data-request', { method: 'POST', body: '{}' })
 
 /** Сохраняет файл из памяти браузера под заданным именем (ссылка должна быть в документе, и адрес живёт ещё секунду). */
@@ -248,7 +248,11 @@ export function uploadDocument(input: UploadInput) {
   }
   // Настоящее имя файла отдельным полем: в частях multipart кириллица в имени может исказиться.
   body.set('fileName', input.file.name)
-  if (input.consent) body.set('consent', JSON.stringify(input.consent))
+  if (input.consent) {
+    body.set('consent', JSON.stringify(input.consent))
+    body.set('consentVersion', CONSENT_VERSION)
+    body.set('marketingVersion', MARKETING_CONSENT_VERSION)
+  }
   body.set('file', input.file)
   return api<DocumentsState & { doc: CabinetDoc }>('/api/account/documents', { method: 'POST', body })
 }

@@ -7,6 +7,11 @@ const legalDocs = [
   { to: '/legal/consent', title: 'Согласие на обработку персональных данных' },
   { to: '/legal/consent-publication', title: 'Согласие на распространение персональных данных (публикация отзыва)' },
   { to: '/legal/marketing-consent', title: 'Согласие на получение рекламных и информационных материалов' },
+  { to: '/legal/offer', title: 'Оферта на Лонглист «Студенческие юридические мероприятия»' },
+  { to: '/legal/offer-longlist-yuridicheskie-meropriyatiya', title: 'Оферта на Лонглист «Юридические мероприятия»' },
+  { to: '/legal/offer-gaid-kariera-yurista-v-notariate', title: 'Оферта на Гайд «Карьера юриста в нотариате»' },
+  { to: '/legal/offer-gaid-stipendii-i-granty', title: 'Оферта на Гайд «Стипендии и гранты»' },
+  { to: '/legal/offer-legal-night-jazz-2', title: 'Оферта мероприятия «Джазовый вечер для юристов 2»' },
 ]
 
 export default function Documents({

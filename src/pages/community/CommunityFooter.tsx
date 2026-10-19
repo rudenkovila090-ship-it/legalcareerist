@@ -1,3 +1,4 @@
+import { openCookieSettings } from '../../lib/metrika'
 import { Link } from 'react-router-dom'
 import { SHOW_AMBASSADORS } from '../../lib/featureFlags'
 
@@ -104,7 +105,11 @@ export default function CommunityFooter() {
             <li><Link className="hover:text-white" to="/legal/privacy">Политика обработки персональных данных</Link></li>
             <li><Link className="hover:text-white" to="/legal/consent">Согласие на обработку персональных данных</Link></li>
             <li><Link className="hover:text-white" to="/legal/marketing-consent">Согласие на получение рекламных и информационных материалов</Link></li>
-            <li><Link className="hover:text-white" to="/legal/offer">Оферта</Link></li>
+            <li><Link className="hover:text-white" to="/legal/offer">Оферта на Лонглист «Студенческие юридические мероприятия»</Link></li>
+            <li><Link className="hover:text-white" to="/legal/offer-longlist-yuridicheskie-meropriyatiya">Оферта на Лонглист «Юридические мероприятия»</Link></li>
+            <li><Link className="hover:text-white" to="/legal/offer-gaid-kariera-yurista-v-notariate">Оферта на Гайд «Карьера юриста в нотариате»</Link></li>
+            <li><Link className="hover:text-white" to="/legal/offer-gaid-stipendii-i-granty">Оферта на Гайд «Стипендии и гранты»</Link></li>
+            <li><button type="button" onClick={openCookieSettings} className="hover:text-white">Настройки cookie</button></li>
           </ul>
         </div>
         {/* Соцсети — тот же flex-item в общей строке, не отдельная секция с

@@ -25,6 +25,7 @@ import ScrollCylinder from '../../components/noir/ScrollCylinder'
 import SoundToggle from '../../components/noir/SoundToggle'
 import CityMap from '../../components/noir/CityMap'
 import { NoirGrain } from '../../components/noir/NoirAmbient'
+import { usePaymentGoal } from '../../lib/paymentGoal'
 import ConsentCheck from '../../components/ConsentCheck'
 import { consentOf } from '../../lib/consent'
 
@@ -187,6 +188,8 @@ export default function EventDetail() {
   // Prodamus возвращает сюда после оплаты (urlSuccess ?paid=1) — показываем подтверждение.
   const [searchParams] = useSearchParams()
   const justPaid = searchParams.get('paid') === '1'
+  // Токен заказа из ссылки возврата: по нему сервер подтверждает оплату, и тогда уходит цель pay_ticket (src/lib/paymentGoal.ts).
+  usePaymentGoal('ticket', justPaid ? searchParams.get('t') : null)
   // Вернулись с оплаты — показываем блок с подтверждением (на телефоне он внизу страницы, иначе его не заметить).
   useEffect(() => {
     if (!justPaid) return
@@ -728,9 +731,15 @@ export default function EventDetail() {
                     {!story && <HowHeardField value={form.howHeard} onChange={(v) => setForm((f) => ({ ...f, howHeard: v }))} className="rounded-lg border border-ink/15 px-3.5 py-2.5 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40" />}
                     {payError && <div className="text-xs text-red-600">Не получилось перейти к оплате. Попробуйте еще раз или напишите нам.</div>}
                     <ConsentCheck />
-                    <button type="submit" disabled={paying} className="mt-1 rounded-lg bg-ink py-2.5 text-sm font-semibold text-white hover:bg-ink/90 disabled:opacity-60">
+                    <button id="btn-ticket-buy" type="submit" disabled={paying} className="mt-1 rounded-lg bg-ink py-2.5 text-sm font-semibold text-white hover:bg-ink/90 disabled:opacity-60">
                       {paying ? 'Переходим к оплате…' : tariff.price === 0 ? 'Приобрести билет' : `Приобрести билет — ${(promo?.price ?? tariff.price).toLocaleString('ru-RU')} ₽`}
                     </button>
+                    {event.offerPath && (
+                      <p className="text-xs leading-relaxed text-ink/60">
+                        Нажимая «Приобрести билет», вы принимаете условия{' '}
+                        <Link to={event.offerPath} target="_blank" className="underline hover:text-ink">публичной оферты мероприятия</Link>.
+                      </p>
+                    )}
                   </form>
                 )}
               </>

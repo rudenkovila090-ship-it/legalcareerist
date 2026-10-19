@@ -112,9 +112,15 @@ function ProductCard({ m }: { m: MaterialItem }) {
 
         <div className="flex-1" />
 
-        <span className="mt-4 rounded-full bg-ink py-2.5 text-center text-sm font-semibold text-white hover:bg-ink/90">
-          {free || m.freePreview ? 'Посмотреть бесплатно' : `Купить за ${money.format(fromPrice)} ₽`}
-        </span>
+        {m.inDevelopment ? (
+          <span className="mt-4 rounded-full border border-ink/15 py-2.5 text-center text-sm font-semibold text-ink/70">
+            В разработке · {money.format(fromPrice)} ₽
+          </span>
+        ) : (
+          <span className="mt-4 rounded-full bg-ink py-2.5 text-center text-sm font-semibold text-white hover:bg-ink/90">
+            {free || m.freePreview ? 'Посмотреть бесплатно' : `Купить за ${money.format(fromPrice)} ₽`}
+          </span>
+        )}
       </div>
     </Link>
   )

@@ -32,6 +32,8 @@ interface LeadFormProps {
   vacancySlug?: string
   /** Название и номер вакансии — попадают в «Услугу» уведомления админу вместо общей подписи формы. */
   vacancyTitle?: string
+  /** id кнопки отправки — для целей Яндекс Метрики «клик по кнопке» (селектор #id). */
+  submitId?: string
   vacancyNumber?: number
 }
 
@@ -55,6 +57,7 @@ export default function LeadForm({
   vacancySlug,
   vacancyTitle,
   vacancyNumber,
+  submitId,
 }: LeadFormProps) {
   const [name, setName] = useState('')
   const [contact, setContact] = useState('')
@@ -98,6 +101,7 @@ export default function LeadForm({
     submitLead({
       sourceBlock,
       formType,
+      goal: formType === 'vacancy_application' ? 'lead_vacancy' : undefined,
       name,
       contact: [contact, phone, telegram].filter(Boolean).join(' / '),
       phone: phone || undefined,
@@ -218,6 +222,7 @@ export default function LeadForm({
       <ConsentCheck className="mt-3" />
 
       <button
+        id={submitId}
         type="submit"
         className="mt-4 w-full rounded-lg bg-ink py-2.5 text-sm font-semibold text-white hover:bg-ink/90"
       >

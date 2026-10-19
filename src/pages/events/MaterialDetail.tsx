@@ -12,7 +12,7 @@ import MaterialReviews from '../../components/MaterialReviews'
 import { Stars } from '../../components/MaterialRating'
 import { combineRating, reviewsWord, useMaterialRatings } from '../../lib/materialReviews'
 import ConsentCheck from '../../components/ConsentCheck'
-import { consentOf } from '../../lib/consent'
+import { consentOf, type ConsentChoice } from '../../lib/consent'
 
 const money = new Intl.NumberFormat('ru-RU')
 
@@ -33,6 +33,8 @@ export default function MaterialDetail() {
   const [accountCreated, setAccountCreated] = useState(false)
 
   const [purchaseForm, setPurchaseForm] = useState({ name: '', phone: '', email: '', howHeard: '' })
+  // Галочки под кнопкой оплаты: что человек отметил, уходит на сервер вместе с формой (ФИО, телефон, почта).
+  const [consent, setConsent] = useState<ConsentChoice | null>(null)
   const [purchasing, setPurchasing] = useState(false)
   const [purchaseError, setPurchaseError] = useState(false)
 
@@ -78,10 +80,15 @@ export default function MaterialDetail() {
     setPurchased(true)
   }
 
+  function handlePurchaseStart(e: FormEvent) {
+    e.preventDefault()
+    setConsent(consentOf(e))
+    setGateOpen(true)
+  }
+
   async function handlePurchaseSubmit(e: FormEvent) {
     e.preventDefault()
-    const consent = consentOf(e)
-    if (!purchaseForm.name.trim() || !purchaseForm.phone.trim()) return
+    if (!consent || !purchaseForm.name.trim() || !purchaseForm.phone.trim()) return
     setPurchasing(true)
     setPurchaseError(false)
     try {
@@ -131,7 +138,7 @@ export default function MaterialDetail() {
           <p className="mt-6 whitespace-pre-line leading-relaxed text-ink/80">{material.description}</p>
           <div className="mt-2 text-sm text-ink/50">Для кого: {material.forWhom}</div>
 
-          <MaterialReviews slug={material.slug} />
+          {!material.inDevelopment && <MaterialReviews slug={material.slug} />}
 
           <RelatedContentBlock items={related} />
         </div>
@@ -139,7 +146,20 @@ export default function MaterialDetail() {
         {/* Блок приобретения — справа, закреплен при скролле */}
         <aside className="lg:sticky lg:top-24 lg:self-start">
           <div className="glass rounded-xl p-6">
-            {purchased ? (
+            {material.inDevelopment ? (
+              <>
+                <div className="text-2xl font-semibold">{money.format(material.price)} ₽</div>
+                <span className="mt-3 inline-block rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">В разработке</span>
+                <p className="mt-3 text-sm leading-relaxed text-ink/70">
+                  Материал ещё готовится, оплата откроется, когда он будет готов. Условия доступа уже опубликованы в оферте.
+                </p>
+                {material.offerPath && (
+                  <Link to={material.offerPath} className="mt-4 block w-full rounded-full border border-ink/15 px-6 py-2.5 text-center text-sm font-semibold text-ink/70 hover:text-ink">
+                    Читать оферту
+                  </Link>
+                )}
+              </>
+            ) : purchased ? (
               <div className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">
                 Доступ открыт — ссылка отправлена на email.
               </div>
@@ -170,12 +190,28 @@ export default function MaterialDetail() {
                 <div className="text-2xl font-semibold">
                   {material.price === 0 ? 'Бесплатно' : `${money.format(material.price)} ₽`}
                 </div>
-                <button
-                  onClick={() => (material.realPurchase ? setGateOpen(true) : openGate(material.title))}
-                  className="mt-4 w-full rounded-lg bg-ink px-6 py-2.5 text-sm font-semibold text-white hover:bg-ink/90"
-                >
-                  {material.price === 0 ? 'Получить бесплатно' : 'Оплатить и получить доступ'}
-                </button>
+                {material.realPurchase ? (
+                  <form onSubmit={handlePurchaseStart} className="mt-4 grid gap-3">
+                    <button id="btn-product-buy" type="submit" className="w-full rounded-lg bg-ink px-6 py-2.5 text-sm font-semibold text-white hover:bg-ink/90">
+                      Оплатить и получить доступ
+                    </button>
+                    <ConsentCheck />
+                    {material.offerPath && (
+                      <p className="text-xs leading-relaxed text-ink/60">
+                        Нажимая «Оплатить и получить доступ», вы принимаете условия{' '}
+                        <Link to={material.offerPath} target="_blank" className="underline hover:text-ink">оферты</Link>.
+                      </p>
+                    )}
+                  </form>
+                ) : (
+                  <button
+                    id="btn-product-buy"
+                    onClick={() => openGate(material.title)}
+                    className="mt-4 w-full rounded-lg bg-ink px-6 py-2.5 text-sm font-semibold text-white hover:bg-ink/90"
+                  >
+                    {material.price === 0 ? 'Получить бесплатно' : 'Оплатить и получить доступ'}
+                  </button>
+                )}
               </>
             )}
           </div>
@@ -225,8 +261,8 @@ export default function MaterialDetail() {
               {purchaseError && (
                 <p className="text-sm text-red-600">Не получилось перейти к оплате — попробуйте еще раз через минуту.</p>
               )}
-              <ConsentCheck />
               <button
+                id="btn-product-pay"
                 type="submit"
                 disabled={purchasing}
                 className="rounded-full bg-ink py-3 text-sm font-semibold text-white transition-colors hover:bg-ink/90 disabled:opacity-60"

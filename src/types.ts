@@ -473,6 +473,8 @@ export interface EventItem extends Tagged {
   dateTime: string
   /** Окончание (ISO): если задано, время показывается диапазоном «18:00–22:00». */
   endDateTime?: string
+  /** Страница с публичной офертой мероприятия: ссылка стоит под кнопкой покупки билета. */
+  offerPath?: string
   city?: string
   price: number
   promoCode?: string
@@ -559,6 +561,10 @@ export interface MaterialItem extends Tagged {
   sale?: { recording?: number; materials?: number; bundle?: number }
   /** Настоящая оплата через Prodamus вместо демо-гейта (см. server/lib/prodamus.js MATERIALS). */
   realPurchase?: boolean
+  /** Страница с офертой на этот материал: ссылка стоит в форме покупки (сайт) и в карточке материала (бот). */
+  offerPath?: string
+  /** Материал ещё не готов: карточка есть, оплаты нет (показывается «В разработке» и оферта). Убрать флаг, когда файл будет готов, и добавить материал в MATERIALS (server/lib/prodamus.js). */
+  inDevelopment?: boolean
 }
 
 export interface MaterialPurchase {

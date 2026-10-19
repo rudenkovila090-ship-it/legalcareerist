@@ -16,7 +16,8 @@ export function captureUtm(): void {
     const found: Utm = {}
     for (const f of FIELDS) {
       const v = params.get(f)
-      if (v) found[f] = v.slice(0, 100)
+      // регистр приводим к нижнему: «Telegram» и «telegram» иначе считались бы разными источниками
+      if (v) found[f] = v.trim().toLowerCase().slice(0, 100)
     }
     if (Object.keys(found).length) localStorage.setItem(KEY, JSON.stringify({ ...found, at: Date.now() }))
   } catch {
