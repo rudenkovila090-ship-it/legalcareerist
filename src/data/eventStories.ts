@@ -12,6 +12,7 @@ import speakerEva from '../assets/noir/speaker-eva-gerasimova.webp'
 import partnerDasha from '../assets/noir/partner-dasha-italy.webp'
 import partnerCareerLawyer from '../assets/noir/partner-career-lawyer.webp'
 import partnerWeb2b from '../assets/noir/partner-web2b.webp'
+import partnerYulia from '../assets/noir/partner-yulia-grebenshchikova.webp'
 import { noirEventSlugs } from './noirEvents'
 
 // Авторское оформление и тексты отдельных мероприятий. Лежит отдельно от events.ts:
@@ -383,6 +384,11 @@ export const eventStories: Record<string, EventStory> = {
               name: 'Юридическая фирма WEB2B.LAW',
               logo: partnerWeb2b,
               link: { label: 'web2b.law', href: 'https://web2b.law/' },
+            },
+            {
+              name: 'Юлия Гребенщикова',
+              logo: partnerYulia,
+              link: { label: '@yugrbbb', href: 'https://t.me/yugrbbb' },
             },
           ],
         },
