@@ -3347,57 +3347,95 @@ a.fam-ava:hover {
   flex-direction: column;
 }
 
-/* Аппарат: корпус с табличкой, огоньком и щелью, из которой выезжает бумага. */
+/* Аппарат: старая касса — тёмно-бордовая эмаль, латунная табличка, лампа в латунном ободке, винты по углам и латунная кромка у щели. */
 .rc-printer {
   position: relative;
   z-index: 3;
-  height: 3.7rem;
-  margin: 0 -0.2rem;
-  border-radius: 1.1rem 1.1rem 0.9rem 0.9rem;
-  background: linear-gradient(180deg, #9a9aa0 0%, #66666c 16%, #3d3d42 58%, #26262a 100%);
+  height: 4rem;
+  margin: 0 -0.3rem;
+  border-radius: 0.55rem 0.55rem 0.4rem 0.4rem;
+  background:
+    var(--grain-soft),
+    linear-gradient(180deg, rgba(255, 220, 170, 0.24) 0 2px, transparent 2px),
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.13) 0 1px, transparent 1px 5px),
+    linear-gradient(180deg, #6e3025 0%, #4c201a 52%, #2f110d 100%);
   box-shadow:
-    0 12px 26px -8px rgba(0, 0, 0, 0.85),
-    inset 0 1px 0 rgba(255, 255, 255, 0.4),
-    inset 0 -4px 8px rgba(0, 0, 0, 0.55);
+    0 14px 26px -8px rgba(0, 0, 0, 0.9),
+    inset 0 0 0 1.5px rgba(20, 6, 4, 0.85),
+    inset 0 0 0 3px rgba(214, 170, 98, 0.28),
+    inset 0 -5px 8px rgba(0, 0, 0, 0.55);
+}
+.rc-printer::before,
+.rc-printer::after {
+  content: '';
+  position: absolute;
+  top: 0.62rem;
+  width: 0.46rem;
+  height: 0.46rem;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #f3d891, #a77f3a 60%, #5b4420);
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.7);
+}
+.rc-printer::before {
+  left: 0.6rem;
+}
+.rc-printer::after {
+  right: 0.6rem;
 }
 .rc-plate {
   position: absolute;
-  top: 0.95rem;
-  left: 1.3rem;
-  color: rgba(255, 255, 255, 0.55);
-  font: 800 0.6rem/1 Inter, ui-sans-serif, system-ui, sans-serif;
-  letter-spacing: 0.22em;
+  top: 0.5rem;
+  left: 1.6rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 0.12rem;
+  background: linear-gradient(#e6c984, #b99048 55%, #8f6c2f);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 244, 205, 0.75),
+    0 1px 2px rgba(0, 0, 0, 0.6);
+  color: #3a2410;
+  font: 800 0.56rem/1 Inter, ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
 }
 .rc-led {
   position: absolute;
-  top: 0.85rem;
-  right: 1.3rem;
-  width: 0.55rem;
-  height: 0.55rem;
+  top: 0.5rem;
+  right: 1.7rem;
+  width: 0.8rem;
+  height: 0.8rem;
   border-radius: 50%;
-  background: #5b5b60;
+  background: #3a2a20;
+  box-shadow:
+    0 0 0 0.16rem #b78f46,
+    0 0 0 0.24rem #4a3517,
+    inset 0 1px 2px rgba(0, 0, 0, 0.7);
   transition: background 0.4s, box-shadow 0.4s;
 }
 .rc-led[data-state='busy'] {
-  background: #f0a63a;
-  box-shadow: 0 0 9px #f0a63a;
+  background: radial-gradient(circle at 40% 35%, #ffe0a0, #ffa51f 65%);
+  box-shadow:
+    0 0 0 0.16rem #b78f46,
+    0 0 0 0.24rem #4a3517,
+    0 0 12px 2px rgba(255, 165, 31, 0.8);
 }
 .rc-led[data-state='ready'] {
-  background: #4fd27b;
-  box-shadow: 0 0 9px #4fd27b;
+  background: radial-gradient(circle at 40% 35%, #d8ffd0, #5fcf6e 65%);
+  box-shadow:
+    0 0 0 0.16rem #b78f46,
+    0 0 0 0.24rem #4a3517,
+    0 0 12px 2px rgba(95, 207, 110, 0.65);
 }
 .rc-slot {
   position: absolute;
-  right: 1rem;
+  right: 0.9rem;
   bottom: 0;
-  left: 1rem;
-  height: 0.62rem;
-  border-radius: 0 0 0.5rem 0.5rem;
-  background: #040405;
+  left: 0.9rem;
+  height: 0.66rem;
+  background: #050302;
   box-shadow:
     inset 0 4px 6px #000,
-    0 1px 0 rgba(255, 255, 255, 0.12);
+    0 -0.17rem 0 #c9a45a,
+    0 -0.26rem 0 #4a3517;
 }
 
 /* Подпись, пока ждём подтверждение банка (или оно не пришло). */
@@ -3441,11 +3479,15 @@ a.fam-ava:hover {
 .rc-paper {
   position: relative;
   padding-bottom: 8cqw;
+  /* Выцветшая, чуть пожелтевшая бумага: зерно, тёмные края и пара тёплых пятен — под стать бумаге досье и газеты. */
   background:
     var(--grain-soft),
-    radial-gradient(70% 30% at 8% 3%, rgba(255, 255, 255, 0.7), transparent 70%),
-    linear-gradient(#f5eee1, #ebe2d1);
-  color: #1d1916;
+    radial-gradient(45% 9% at 84% 58%, rgba(132, 88, 34, 0.16), transparent 72%),
+    radial-gradient(40% 7% at 12% 82%, rgba(132, 88, 34, 0.14), transparent 72%),
+    radial-gradient(70% 30% at 8% 3%, rgba(255, 252, 238, 0.5), transparent 70%),
+    linear-gradient(#ebdfc2, #ddcea8);
+  box-shadow: inset 0 0 14cqw rgba(120, 82, 32, 0.28);
+  color: #2a1d12;
   font-family: Inter, ui-sans-serif, system-ui, sans-serif;
   font-variant-numeric: tabular-nums;
 }
@@ -3467,7 +3509,7 @@ a.fam-ava:hover {
   display: flex;
   padding: 4.2cqw 6cqw;
   justify-content: space-between;
-  background: #cf2c36;
+  background: #8e1d26;
   color: #fff;
   font: 800 4.2cqw/1 Inter, ui-sans-serif, system-ui, sans-serif;
   letter-spacing: 0.12em;
@@ -3478,7 +3520,7 @@ a.fam-ava:hover {
   text-align: center;
 }
 .rc-logo {
-  color: #c8242e;
+  color: #8b1b24;
   font: 700 9.2cqw/1 'Playfair Display', 'Times New Roman', Georgia, serif;
   white-space: nowrap;
 }
@@ -3490,7 +3532,7 @@ a.fam-ava:hover {
 .rc-dash {
   margin: 2.6cqw 6cqw;
   border: 0;
-  border-top: 0.55cqw dashed #1d1916;
+  border-top: 0.55cqw dashed #2a1d12;
 }
 .rc-when {
   margin-top: 3cqw;
@@ -3501,7 +3543,7 @@ a.fam-ava:hover {
   text-transform: uppercase;
 }
 .rc-when span {
-  color: #6d655b;
+  color: #7b6a54;
 }
 .rc-welcome {
   margin: 3cqw 6cqw 0;
@@ -3515,7 +3557,7 @@ a.fam-ava:hover {
 }
 .rc-guest span {
   display: block;
-  color: #6d655b;
+  color: #7b6a54;
   font: 700 2.8cqw/1 Inter, ui-sans-serif, sans-serif;
   letter-spacing: 0.22em;
   text-transform: uppercase;
@@ -3534,11 +3576,13 @@ a.fam-ava:hover {
   position: relative;
   margin: 4cqw 5cqw 0;
   padding: 2cqw 1cqw;
-  color: #a81f28;
+  color: #7d1720;
   font: 800 2.9cqw/1.3 Inter, ui-sans-serif, sans-serif;
   letter-spacing: 0.04em;
   text-align: center;
   text-transform: uppercase;
+  /* Текст стоит под тем же углом, что и штамп-рамка: он «пропечатан» вместе с ней. */
+  transform: rotate(-1.6deg);
 }
 .rc-status i {
   display: inline-block;
@@ -3546,8 +3590,8 @@ a.fam-ava:hover {
   height: 4.6cqw;
   margin-right: 1.4cqw;
   border-radius: 50%;
-  background: #a81f28;
-  color: #f5eee1;
+  background: #7d1720;
+  color: #f1e6cb;
   font-size: 3cqw;
   line-height: 4.6cqw;
   text-align: center;
@@ -3557,9 +3601,8 @@ a.fam-ava:hover {
   content: '';
   position: absolute;
   inset: 0;
-  border: 0.7cqw solid #b3222c;
+  border: 0.7cqw solid #7d1720;
   opacity: 0.9;
-  transform: rotate(-1.6deg);
   -webkit-mask-image: var(--ink-mask);
   mask-image: var(--ink-mask);
   pointer-events: none;
@@ -3570,7 +3613,7 @@ a.fam-ava:hover {
   padding: 0 6cqw;
 }
 .rc-lines dt {
-  color: #6d655b;
+  color: #7b6a54;
   font: 700 2.9cqw/1.2 Inter, ui-sans-serif, sans-serif;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -3589,14 +3632,14 @@ a.fam-ava:hover {
   flex: 1;
   align-items: baseline;
   gap: 2cqw;
-  color: #1d1916;
+  color: #2a1d12;
   font-size: 3.3cqw;
   letter-spacing: 0.1em;
 }
 .rc-row dt::after {
   content: '';
   flex: 1;
-  border-bottom: 0.6cqw dotted #1d1916;
+  border-bottom: 0.6cqw dotted #2a1d12;
   transform: translateY(-0.7cqw);
 }
 .rc-row dd {
@@ -3620,7 +3663,7 @@ a.fam-ava:hover {
   display: block;
   width: 100%;
   height: 11cqw;
-  fill: #1d1916;
+  fill: #2a1d12;
 }
 .rc-code span {
   display: block;
@@ -3633,17 +3676,17 @@ a.fam-ava:hover {
   display: block;
   margin: 3.6cqw 6cqw 0;
   padding: 2.4cqw 3cqw 2.6cqw;
-  background: #1d1916;
-  color: #f5eee1;
+  background: #2a1d12;
+  color: #f1e6cb;
   text-align: center;
   text-decoration: none;
   transition: background 0.2s;
 }
 .rc-chat:hover {
-  background: #b3222c;
+  background: #7d1720;
 }
 .rc-chat:focus-visible {
-  outline: 2px solid #1d1916;
+  outline: 2px solid #2a1d12;
   outline-offset: 2px;
 }
 .rc-chat span {
@@ -3664,13 +3707,13 @@ a.fam-ava:hover {
 }
 .rc-thanks {
   margin-top: 3.4cqw;
-  color: #c8242e;
+  color: #8b1b24;
   font: 700 9.5cqw/1 'Playfair Display', 'Times New Roman', Georgia, serif;
   text-align: center;
 }
 .rc-foot {
   margin: 2cqw 6cqw 0;
-  color: #6d655b;
+  color: #7b6a54;
   font: 600 2.7cqw/1.4 Inter, ui-sans-serif, sans-serif;
   letter-spacing: 0.06em;
   text-align: center;
@@ -3715,7 +3758,8 @@ a.fam-ava:hover {
     transform: translateY(-100%);
   }
   .rc-sheet[data-phase='feeding'] .rc-status {
-    color: #1d1916;
+    color: #2a1d12;
+    transform: none;
   }
   .rc-sheet[data-phase='feeding'] .rc-status::after {
     opacity: 0;
@@ -3773,13 +3817,13 @@ a.fam-ava:hover {
     100% { transform: rotate(0); }
   }
   @keyframes rc-ink {
-    from { color: #1d1916; }
-    to { color: #a81f28; }
+    from { color: #2a1d12; transform: none; }
+    to { color: #7d1720; transform: rotate(-1.6deg); }
   }
   @keyframes rc-slam {
-    0% { opacity: 0; transform: scale(2.1) rotate(-14deg); }
+    0% { opacity: 0; transform: scale(2.1) rotate(-12deg); }
     60% { opacity: 1; }
-    100% { opacity: 0.9; transform: scale(1) rotate(-1.6deg); }
+    100% { opacity: 0.9; transform: scale(1) rotate(0); }
   }
   @keyframes rc-scan {
     from { clip-path: inset(0 100% 0 0); }
@@ -3790,7 +3834,7 @@ a.fam-ava:hover {
     to { opacity: 1; transform: none; }
   }
   @keyframes rc-pulse {
-    0%, 100% { background: #1d1916; }
-    50% { background: #5a1a20; }
+    0%, 100% { background: #2a1d12; }
+    50% { background: #4a1519; }
   }
 }
