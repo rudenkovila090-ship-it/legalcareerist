@@ -21,6 +21,7 @@ import logging
 import re
 import sys
 import time
+from collections import Counter
 from dataclasses import replace
 from typing import Any
 
@@ -30,6 +31,7 @@ from .cards import channel_of, format_card
 from .config import TelegramSettings
 from .doctor import FAIL, OK, WARN
 from .engine import Action, Engine
+from .exitflow import ExitFlow, load_exit
 from .flows import Flows, fill_name, load_flows, normalize
 from .funnels import FunnelEngine, Plan, load_funnels
 from .graph import GraphError
@@ -50,7 +52,8 @@ MANAGER_HELP = (
     "• /leads: последние 10 заявок\n"
     "• /export: все заявки файлом CSV (открывается в Excel и Google Таблицах)\n"
     "• /contacts: все, кто писал боту, с метками и источниками (CSV)\n"
-    "• /stats: статистика воронок (запуски, подписки, выдачи, отказы)\n"
+    "• /stats: статистика воронок и причины ухода из сообщества\n"
+    "• /exits: ответы тех, кто хотел уйти из сообщества, файлом CSV\n"
     "• /chatid: узнать ID чата"
 )
 
@@ -124,8 +127,25 @@ class TelegramAPI:
     async def get_chat_member(self, chat_id: str, user_id: int) -> dict:
         return await self.call("getChatMember", {"chat_id": chat_id, "user_id": user_id})
 
-    async def answer_callback_query(self, callback_query_id: str) -> None:
-        await self.call("answerCallbackQuery", {"callback_query_id": callback_query_id}, attempts=1)
+    async def answer_callback_query(self, callback_query_id: str, text: str | None = None, alert: bool = False) -> None:
+        payload: dict[str, Any] = {"callback_query_id": callback_query_id}
+        if text:
+            payload.update({"text": text[:200], "show_alert": alert})
+        await self.call("answerCallbackQuery", payload, attempts=1)
+
+    async def edit_message_reply_markup(self, chat_id: str, message_id: int, rows: list[list[dict]]) -> None:
+        await self.call(
+            "editMessageReplyMarkup",
+            {"chat_id": chat_id, "message_id": message_id, "reply_markup": {"inline_keyboard": rows}},
+            attempts=1,
+        )
+
+    async def ban_chat_member(self, chat_id: str, user_id: int) -> None:
+        await self.call("banChatMember", {"chat_id": chat_id, "user_id": user_id})
+
+    async def unban_chat_member(self, chat_id: str, user_id: int) -> None:
+        """Снимает бан сразу после удаления: человек не заблокирован навсегда и сможет вернуться по ссылке."""
+        await self.call("unbanChatMember", {"chat_id": chat_id, "user_id": user_id, "only_if_banned": True})
 
     async def send_document_url(self, chat_id: str, url: str, caption: str = "") -> dict:
         """Файл по ссылке: Telegram скачивает его сам (до 20 МБ)."""
@@ -220,6 +240,30 @@ def contacts_csv(contacts: list[dict], store: Store) -> bytes:
     return ("﻿" + buf.getvalue()).encode("utf-8")
 
 
+def exits_csv(rows: list[dict], store: Store) -> bytes:
+    usernames = {c["user_id"]: c["username"] for c in store.contacts()}
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(["Дата (UTC)", "Username", "ID", "Решение", "Причины", "Другое (текст клиента)"])
+    for r in rows:
+        writer.writerow(
+            [
+                _date(r["created_at"]),
+                _safe_cell(usernames.get(r["user_id"])),
+                r["user_id"].removeprefix("tg:"),
+                "отписался" if r["decision"] == "left" else "остался",
+                _safe_cell(" | ".join(r["reasons"])),
+                _safe_cell(r["other_text"]),
+            ]
+        )
+    return ("﻿" + buf.getvalue()).encode("utf-8")
+
+
+def build_exit(settings) -> ExitFlow | None:
+    config = load_exit(settings.exit_survey_path)
+    return ExitFlow(config) if config else None
+
+
 def build_funnels(settings, flows: Flows, store: Store, clock=time.time) -> FunnelEngine:
     config = load_funnels(settings.funnels_path, settings.links, set(flows.segments))
     return FunnelEngine(
@@ -242,10 +286,12 @@ class LeadBot:
         clock=time.time,
         ig: Any = None,
         funnels: FunnelEngine | None = None,
+        exit_flow: ExitFlow | None = None,
     ) -> None:
         self.s, self.api, self.engine, self.flows, self.store, self._clock = settings, api, engine, flows, store, clock
         self.ig = ig  # InstagramClient: нужен, чтобы ответ менеджера из Telegram уходил клиенту в Instagram DM
         self.funnels = funnels  # воронки выдачи материалов; None — только анкеты
+        self.exit = exit_flow  # путь выхода из сообщества; None — выключен
         self._gate_problem_reported = False
 
     # ------------------------------------------------------------------ маршрутизация
@@ -281,9 +327,21 @@ class LeadBot:
         name = " ".join(p for p in (user.get("first_name"), user.get("last_name")) if p) or None
         is_new = self.store.touch_contact(client_id, user.get("username"), name, user.get("first_name"))
 
+        if self.exit and cmd is None and text:  # человек выбрал «Другое» и пишет причину своими словами
+            state = self.store.exit_get(client_id)
+            if state and state["awaiting_other"]:
+                await self._exit_other_text(client_id, chat_id, text, state)
+                return
+        if self.exit and cmd == "unsubscribe":
+            await self._exit_start(client_id, chat_id)
+            return
+
         if cmd == "start":
             payload = UNSAFE_SOURCE.sub("", arg)[:SOURCE_MAX]
             head, _, rest = payload.partition("__")
+            if self.exit and head == "unsub":
+                await self._exit_start(client_id, chat_id)
+                return
             hit = self.funnels.by_payload(payload) if self.funnels and payload else None
             segment = head[4:] if head.startswith("seg_") and head[4:] in self.flows.segments else None
             known = bool(hit or segment or head in ("hello", "menu"))
@@ -345,6 +403,123 @@ class LeadBot:
                 return None  # человек выбирает пункт меню, а не вводит кодовое слово
         return self.funnels.match(text)
 
+    # ------------------------------------------------------------------ выход из сообщества
+    async def _edit_keyboard(self, chat_id: str, message_id: int | None, rows: list[list[dict]]) -> None:
+        if not message_id:
+            return
+        try:
+            await self.api.edit_message_reply_markup(chat_id, message_id, rows)
+        except TelegramError as exc:  # «message is not modified», сообщение удалено и т.п.: не критично
+            log.info("Не удалось обновить кнопки: %s", exc)
+
+    async def _exit_start(self, client_id: str, chat_id: str) -> None:
+        old = self.store.exit_get(client_id)
+        if old:  # прошлую анкету закрываем, чтобы кнопки в старом сообщении не путали
+            await self._edit_keyboard(chat_id, old["message_id"], [])
+        try:
+            sent = await self.api.send_message(
+                chat_id, self.exit.text(), reply_markup={"inline_keyboard": self.exit.keyboard([])}
+            )
+        except TelegramError as exc:
+            log.warning("Анкета ухода не отправлена: %s", exc)
+            return
+        self.store.exit_save(client_id, [], None, False, sent["message_id"])
+
+    async def _exit_other_text(self, client_id: str, chat_id: str, text: str, state: dict) -> None:
+        other = text.strip()[:1000]
+        sent = await self.api.send_message(
+            chat_id, self.exit.cfg.other_saved, reply_markup={"inline_keyboard": self.exit.keyboard(state["selected"])}
+        )
+        self.store.exit_save(client_id, state["selected"], other, False, sent["message_id"])
+
+    async def _exit_callback(self, cq: dict) -> None:
+        user = cq.get("from") or {}
+        message = cq.get("message") or {}
+        chat = message.get("chat") or {}
+        if self.exit is None or user.get("is_bot") or "id" not in user or chat.get("type") != "private":
+            await self._answer(cq["id"])
+            return
+        cfg = self.exit.cfg
+        client_id, chat_id = f"tg:{user['id']}", str(chat["id"])
+        name = " ".join(p for p in (user.get("first_name"), user.get("last_name")) if p) or None
+        self.store.touch_contact(client_id, user.get("username"), name, user.get("first_name"))
+        parts = (cq.get("data") or "").split(":")
+        action = parts[1] if len(parts) > 1 else ""
+        state = self.store.exit_get(client_id)
+        message_id = message.get("message_id") or (state or {}).get("message_id")
+
+        well_formed_toggle = action == "t" and len(parts) == 3 and parts[2].isdigit()
+        if action == "start" or (state is None and (action == "c" or well_formed_toggle)):
+            await self._answer(cq["id"])
+            await self._exit_start(client_id, chat_id)
+            return
+        if state is None:  # «Отписаться»/«Остаться» повторно: уже обработано
+            await self._answer(cq["id"])
+            return
+
+        selected = set(state["selected"])
+        if action == "t" and len(parts) == 3 and parts[2].isdigit():
+            if int(parts[2]) < len(cfg.reasons):
+                selected ^= {int(parts[2])}
+            keep_other = cfg.other_index in selected
+            self.store.exit_save(
+                client_id, sorted(selected), state["other_text"] if keep_other else None,
+                state["awaiting_other"] and keep_other, message_id,
+            )
+            await self._answer(cq["id"])
+            await self._edit_keyboard(chat_id, message_id, self.exit.keyboard(sorted(selected)))
+        elif action == "c":
+            if not selected:
+                await self._answer(cq["id"], cfg.need_one, alert=True)
+                return
+            await self._answer(cq["id"])
+            if cfg.other_index in selected and not state["other_text"]:
+                self.store.exit_save(client_id, sorted(selected), None, True, message_id)
+                await self.api.send_message(chat_id, cfg.other_prompt)
+                return
+            await self._edit_keyboard(chat_id, message_id, [])  # причины зафиксированы, кнопки убираем
+            await self.api.send_message(chat_id, cfg.final, reply_markup={"inline_keyboard": self.exit.final_keyboard()})
+        elif action in ("u", "s"):
+            await self._answer(cq["id"])
+            if not selected:  # защита: финал возможен только после выбора причин
+                await self._exit_start(client_id, chat_id)
+                return
+            await self._exit_finish(client_id, chat_id, user, name, "left" if action == "u" else "stayed", state)
+        else:
+            await self._answer(cq["id"])
+
+    async def _exit_finish(self, client_id: str, chat_id: str, user: dict, name: str | None, decision: str, state: dict) -> None:
+        cfg = self.exit.cfg
+        reasons = self.exit.reasons_of(state["selected"])
+        other = state["other_text"] if cfg.other_index in state["selected"] else None
+        self.store.exit_log_add(client_id, reasons, other, decision)
+        self.store.exit_clear(client_id)
+        self.store.add_tag(client_id, f"exit:{decision}")
+
+        note = cfg.leave_note if decision == "left" else ""
+        if decision == "left" and self.s.community_chat_id:
+            try:
+                await self.api.ban_chat_member(self.s.community_chat_id, user["id"])
+                await self.api.unban_chat_member(self.s.community_chat_id, user["id"])
+                result = "Бот удалил клиента из чата сообщества."
+            except TelegramError as exc:
+                log.error("Не удалось удалить %s из чата сообщества: %s", client_id, exc)
+                result = "Не удалось удалить клиента из чата сообщества (бот должен быть администратором): сделайте это вручную."
+            note = f"{note} {result}".strip()
+        qa = [["Причины", "\n".join(f"• {r}" for r in reasons)]]
+        if other:
+            qa.append(["Другое: ответ клиента", other])
+        card = {
+            "type": "exit_leave" if decision == "left" else "exit_stay",
+            "igsid": client_id,
+            "username": user.get("username"),
+            "name": name,
+            "qa": qa,
+            "note": note,
+        }
+        await self._run([Action("dm", client_id, cfg.done_text if decision == "left" else cfg.stay_text)], chat_id, client_id)
+        await self._run([Action("notify", card=card)], chat_id, client_id)
+
     # ------------------------------------------------------------------ воронки
     async def _subscribed(self, user_id: int) -> bool | None:
         """True/False — подписан или нет; None — проверить не удалось (бот не администратор канала и т.п.)."""
@@ -377,11 +552,20 @@ class LeadBot:
         if plan.then_segment:
             await self._run(self.engine.start_segment(client_id, plan.then_segment, username), chat_id, client_id)
 
-    async def _callback(self, cq: dict) -> None:
+    async def _answer(self, callback_id: str, text: str | None = None, alert: bool = False) -> None:
         try:
-            await self.api.answer_callback_query(cq["id"])  # убираем «часики» на кнопке
+            if text:
+                await self.api.answer_callback_query(callback_id, text=text, alert=alert)
+            else:
+                await self.api.answer_callback_query(callback_id)  # убираем «часики» на кнопке
         except TelegramError:
             pass
+
+    async def _callback(self, cq: dict) -> None:
+        if (cq.get("data") or "").startswith("x:"):
+            await self._exit_callback(cq)  # подтверждает нажатие сама (иногда с текстом)
+            return
+        await self._answer(cq["id"])
         user = cq.get("from") or {}
         chat = (cq.get("message") or {}).get("chat") or {}
         if user.get("is_bot") or "id" not in user or chat.get("type") != "private":
@@ -478,6 +662,11 @@ class LeadBot:
             await self.api.send_document(
                 chat_id, "contacts.csv", contacts_csv(contacts, self.store), caption=f"Контактов: {len(contacts)}"
             )
+        elif cmd == "exits":
+            log_rows = self.store.exit_log()
+            await self.api.send_document(
+                chat_id, "exits.csv", exits_csv(log_rows, self.store), caption=f"Ответов об уходе: {len(log_rows)}"
+            )
         elif cmd == "stats":
             await self.api.send_message(chat_id, self._stats_text())
         elif cmd in ("start", "help"):
@@ -486,22 +675,27 @@ class LeadBot:
             await self._forward_reply(msg, chat_id)
 
     def _stats_text(self) -> str:
-        contacts = len(self.store.contacts())
-        if not self.funnels or not (self.funnels.config.funnels or self.funnels.config.disabled):
-            return f"Воронки не настроены. Контактов: {contacts}, заявок: {self.store.count_leads()}."
-        stats = self.store.funnel_stats()
-        lines = [f"Контактов: {contacts}, заявок: {self.store.count_leads()}", ""]
-        for f in self.funnels.config.funnels.values():
-            s = stats.get(f.id, {})
-            line = f"• {f.title}: запусков {s.get('start', 0)}, выдано {s.get('delivered', 0)}"
-            if self.funnels.gated(f):
-                line += (
-                    f", подписались {s.get('subscribed', 0)}, не прошли проверку {s.get('not_subscribed', 0)},"
-                    f" напоминаний {s.get('reminder_sent', 0)}, отказались {s.get('declined', 0)}"
-                )
-            lines.append(line)
-        for fid, reason in self.funnels.config.disabled.items():
-            lines.append(f"• {fid}: ОТКЛЮЧЕНА, {reason}")
+        lines = [f"Контактов: {len(self.store.contacts())}, заявок: {self.store.count_leads()}"]
+        if self.funnels and (self.funnels.config.funnels or self.funnels.config.disabled):
+            stats = self.store.funnel_stats()
+            lines.append("")
+            for f in self.funnels.config.funnels.values():
+                s = stats.get(f.id, {})
+                line = f"• {f.title}: запусков {s.get('start', 0)}, выдано {s.get('delivered', 0)}"
+                if self.funnels.gated(f):
+                    line += (
+                        f", подписались {s.get('subscribed', 0)}, не прошли проверку {s.get('not_subscribed', 0)},"
+                        f" напоминаний {s.get('reminder_sent', 0)}, отказались {s.get('declined', 0)}"
+                    )
+                lines.append(line)
+            for fid, reason in self.funnels.config.disabled.items():
+                lines.append(f"• {fid}: ОТКЛЮЧЕНА, {reason}")
+        exits = self.store.exit_log()
+        if exits:
+            left = sum(1 for e in exits if e["decision"] == "left")
+            counts = Counter(r for e in exits for r in e["reasons"])
+            lines += ["", f"Выход из сообщества: отписались {left}, остались {len(exits) - left}. Причины (выбор можно множественный):"]
+            lines += [f"• {reason}: {n}" for reason, n in counts.most_common()]
         return "\n".join(lines)
 
     async def _send_leads(self, chat_id: str) -> None:
@@ -585,7 +779,11 @@ Line = tuple[str, str]
 
 
 async def preflight(
-    settings: TelegramSettings, api: TelegramAPI, flows: Flows, funnels: FunnelEngine | None = None
+    settings: TelegramSettings,
+    api: TelegramAPI,
+    flows: Flows,
+    funnels: FunnelEngine | None = None,
+    exit_flow: ExitFlow | None = None,
 ) -> list[Line]:
     """Проверки перед запуском. Любой FAIL означает, что бот не стартует."""
     lines: list[Line] = []
@@ -624,6 +822,21 @@ async def preflight(
     else:
         lines.append((OK, "согласие на обработку персональных данных запрашивается"))
 
+    if exit_flow is not None:
+        lines.append((OK, f"путь выхода из сообщества включён: причин {len(exit_flow.cfg.reasons)}, команда /unsubscribe, ссылка ?start=unsub"))
+        if settings.community_chat_id:
+            try:
+                member = await api.get_chat_member(settings.community_chat_id, me["id"])
+                if member.get("status") in ("administrator", "creator"):
+                    lines.append((OK, "бот администратор чата сообщества: при отписке сможет удалить человека из чата"))
+                else:
+                    lines.append((WARN, "бот не администратор чата сообщества: при отписке удалить человека из чата не сможет"))
+            except TelegramError as exc:
+                lines.append((WARN, f"чат сообщества недоступен боту: {exc}"))
+        else:
+            lines.append((WARN, "COMMUNITY_CHAT_ID не задан: при отписке бот только передаёт заявку менеджеру, из чата не удаляет"))
+    if funnels is not None and not funnels.config.keywords_enabled and (funnels.config.funnels or funnels.config.disabled):
+        lines.append((OK, "кодовые слова выключены: воронки запускаются кнопками и диплинками"))
     if funnels is not None and (funnels.config.funnels or funnels.config.disabled):
         if funnels.config.funnels:
             lines.append((OK, "воронки работают: " + ", ".join(funnels.config.funnels)))
@@ -692,11 +905,12 @@ async def _amain(settings: TelegramSettings, args: argparse.Namespace) -> int:
     store = Store(settings.db_path)
     engine = Engine(flows, store, human_mode_hours=settings.human_mode_hours)
     funnels = build_funnels(settings, flows, store)
+    exit_flow = build_exit(settings)
     if args.links:
         return print_links(settings, flows, funnels)
     async with httpx.AsyncClient() as http:
         api = TelegramAPI(settings.bot_token, http, settings.api_base)
-        lines = await preflight(settings, api, flows, funnels)
+        lines = await preflight(settings, api, flows, funnels, exit_flow)
         for icon, text in lines:
             print(f"{icon} {text}")
         if any(icon == FAIL for icon, _ in lines):
@@ -708,7 +922,7 @@ async def _amain(settings: TelegramSettings, args: argparse.Namespace) -> int:
             return 0
         store.purge_seen()
         log.info("Бот запущен: сегментов %d, заявок в базе %d", len(flows.segments), store.count_leads())
-        await LeadBot(settings, api, engine, flows, store, funnels=funnels).run()
+        await LeadBot(settings, api, engine, flows, store, funnels=funnels, exit_flow=exit_flow).run()
     return 0
 
 
@@ -717,6 +931,7 @@ def print_links(settings: TelegramSettings, flows: Flows, funnels: FunnelEngine)
     base = settings.bot_url.rstrip("/")
     print(f"Диплинки бота (кликабельны и в Instagram). Суффикс «__метка» записывает источник, например guide__ig_story:\n")
     print(f"• Приветствие: {base}?start=hello__ig_bio")
+    print(f"• Отписка от сообщества (путь с обратной связью): {base}?start=unsub")
     for f in funnels.config.funnels.values():
         print(f"• {f.title}: {base}?start={f.id}__ig_dm   (кодовые слова в чате: {', '.join(f.keywords)})")
     for key, seg in flows.segments.items():

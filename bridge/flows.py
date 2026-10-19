@@ -24,6 +24,8 @@ REQUIRED_TEXTS = (
     "done_followup",
     "optout",
     "non_text",
+    "nudge",
+    "support_ack",
 )
 
 

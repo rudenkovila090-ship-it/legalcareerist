@@ -211,9 +211,17 @@ class Engine:
                 card("lead", segment=segment.label, qa=qa),
             )
 
-        if conv.state == "menu":
+        if conv.state in ("menu", "support"):
             choice = flows.choose_segment(norm)
             if choice is None:
+                if conv.state == "support":
+                    # вопрос после подсказки про кнопки: передаём в техподдержку, дальше отвечает человек
+                    conv.state, conv.human_until = "human", now + self._human_mode_hours * 3600
+                    return save_and(reply(texts["support_ack"]), card("support", text=text or no_text))
+                conv.step += 1  # сколько раз подряд ответ не подошёл к меню
+                if conv.step >= 2:
+                    conv.state, conv.step = "support", 0
+                    return save_and(reply(texts["nudge"], options=flows.menu_options()))
                 return save_and(
                     reply(f"{texts['menu_retry']}\n\n{flows.menu_text()}", options=flows.menu_options())
                 )

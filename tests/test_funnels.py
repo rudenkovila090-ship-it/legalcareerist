@@ -47,20 +47,22 @@ def press(data, user_id=CLIENT, chat_type="private"):
     }
 
 
-def filled_funnels(tmp_path, **mutate):
-    """Копия config/funnels.json, где вместо «<ссылка…>» подставлены настоящие адреса."""
+def filled_funnels(tmp_path, fill=True, top=None, **mutate):
+    """Копия config/funnels.json: вместо «<ссылка…>» подставлены настоящие адреса (fill), верхние ключи переопределены (top)."""
     raw = json.loads((ROOT / "config" / "funnels.json").read_text(encoding="utf-8"))
 
-    def fill(node):
+    def fill_links(node):
         if isinstance(node, dict):
-            return {k: fill(v) for k, v in node.items()}
+            return {k: fill_links(v) for k, v in node.items()}
         if isinstance(node, list):
-            return [fill(v) for v in node]
+            return [fill_links(v) for v in node]
         if isinstance(node, str) and node.startswith("<") and node.endswith(">"):
             return "https://example.com/material"
         return node
 
-    raw = fill(raw)
+    if fill:
+        raw = fill_links(raw)
+    raw.update(top or {})
     for funnel in raw["funnels"]:
         for key, value in mutate.get(funnel["id"], {}).items():
             funnel[key] = value
@@ -69,8 +71,8 @@ def filled_funnels(tmp_path, **mutate):
     return str(path)
 
 
-def make_bot(tmp_path, *, channel=CHANNEL, filled=True, privacy="", **mutate):
-    funnels_path = filled_funnels(tmp_path, **mutate) if filled else str(ROOT / "config" / "funnels.json")
+def make_bot(tmp_path, *, channel=CHANNEL, filled=True, privacy="", keywords=True, **mutate):
+    funnels_path = filled_funnels(tmp_path, fill=filled, top={"keywords_enabled": keywords}, **mutate)
     settings = make_settings(privacy_url=privacy, subscribe_channel=channel, funnels_path=funnels_path)
     flows = load_flows(settings.flows_path, settings.links, with_comment_rules=False)
     store, api = Store(":memory:"), FunnelAPI()

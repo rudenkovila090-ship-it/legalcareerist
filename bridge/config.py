@@ -55,6 +55,8 @@ class Settings:
     subscribe_channel: str = ""  # «@имя» канала для проверки подписки в воронках; пусто — подписку не проверяем
     channel_url: str = ""
     funnels_path: str = "config/funnels.json"
+    exit_survey_path: str = "config/exit_survey.json"
+    community_chat_id: str = ""  # чат сообщества: если задан, при отписке бот убирает человека из чата
     human_mode_hours: int = 12
     notify_comment_leads: bool = False
     telegram_polling: bool = True  # опрос Telegram: ответы менеджеров из Telegram уходят клиентам в Instagram
@@ -93,6 +95,8 @@ class Settings:
             subscribe_channel=get("SUBSCRIBE_CHANNEL"),
             channel_url=get("CHANNEL_URL"),
             funnels_path=get("FUNNELS_PATH", cls.funnels_path),
+            exit_survey_path=get("EXIT_SURVEY_PATH", cls.exit_survey_path),
+            community_chat_id=get("COMMUNITY_CHAT_ID"),
             human_mode_hours=int(get("HUMAN_MODE_HOURS", str(cls.human_mode_hours))),
             notify_comment_leads=get("NOTIFY_COMMENT_LEADS").lower() in {"1", "true", "yes", "on"},
             telegram_polling=get("TELEGRAM_POLLING", "1").lower() not in {"0", "false", "no", "off"},
@@ -115,6 +119,8 @@ class TelegramSettings:
     subscribe_channel: str = ""
     channel_url: str = ""
     funnels_path: str = "config/funnels.json"
+    exit_survey_path: str = "config/exit_survey.json"
+    community_chat_id: str = ""
     human_mode_hours: int = 12
     force_polling: bool = False
     api_base: str = "https://api.telegram.org"  # другой адрес нужен только для локального Bot API сервера и тестов
@@ -148,6 +154,8 @@ class TelegramSettings:
             subscribe_channel=get("SUBSCRIBE_CHANNEL"),
             channel_url=get("CHANNEL_URL"),
             funnels_path=get("FUNNELS_PATH", cls.funnels_path),
+            exit_survey_path=get("EXIT_SURVEY_PATH", cls.exit_survey_path),
+            community_chat_id=get("COMMUNITY_CHAT_ID"),
             human_mode_hours=int(get("HUMAN_MODE_HOURS", str(cls.human_mode_hours))),
             force_polling=get("TG_FORCE_POLLING").lower() in {"1", "true", "yes", "on"},
             api_base=get("TELEGRAM_API_BASE", cls.api_base).rstrip("/"),

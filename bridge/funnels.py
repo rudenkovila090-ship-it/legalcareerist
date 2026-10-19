@@ -96,6 +96,7 @@ class FunnelConfig:
     funnels: dict[str, Funnel]
     disabled: dict[str, str]  # id → причина
     texts: dict[str, str]
+    keywords_enabled: bool = True  # false: воронки запускаются только кнопками и диплинками, не словами
 
 
 @dataclass
@@ -214,7 +215,7 @@ def load_funnels(path: str, links: dict[str, str], segment_keys: set[str]) -> Fu
         except _Disabled as exc:
             disabled[item["id"]] = str(exc).split(": ", 1)[-1]  # без повтора «воронка 'x':»
             log.warning("Воронка %r отключена: %s", item["id"], disabled[item["id"]])
-    return FunnelConfig(funnels, disabled, texts)
+    return FunnelConfig(funnels, disabled, texts, keywords_enabled=bool(raw.get("keywords_enabled", True)))
 
 
 # ---------------------------------------------------------------------------------------------- кнопки
@@ -256,7 +257,7 @@ class FunnelEngine:
     # --- как пользователь попадает в воронку ---
     def match(self, text: str) -> Funnel | None:
         norm = normalize(text)
-        if not norm or len(norm.split()) > KEYWORD_MAX_WORDS:
+        if not self.config.keywords_enabled or not norm or len(norm.split()) > KEYWORD_MAX_WORDS:
             return None
         return next((f for f in self.config.funnels.values() if f.matcher.search(norm)), None)
 

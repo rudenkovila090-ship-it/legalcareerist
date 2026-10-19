@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 @dataclass
 class Conversation:
     igsid: str  # id клиента: Instagram-scoped ID или "tg:<user_id>" для Telegram
-    state: str = "idle"  # idle | menu | consent | question | done | human | optout
+    state: str = "idle"  # idle | menu | support | consent | question | done | human | optout
     segment: str | None = None
     step: int = 0
     answers: list[str] = field(default_factory=list)
@@ -89,6 +89,22 @@ class Store:
                     source TEXT,
                     first_seen REAL NOT NULL,
                     last_seen REAL NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS exit_surveys (
+                    user_id TEXT PRIMARY KEY,
+                    selected TEXT NOT NULL DEFAULT '[]',
+                    other_text TEXT,
+                    awaiting_other INTEGER NOT NULL DEFAULT 0,
+                    message_id INTEGER,
+                    updated_at REAL NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS exit_log (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id TEXT NOT NULL,
+                    reasons TEXT NOT NULL,
+                    other_text TEXT,
+                    decision TEXT NOT NULL,
+                    created_at REAL NOT NULL
                 );
                 """
             )
@@ -302,6 +318,51 @@ class Store:
             ).fetchall()
         return [
             {"user_id": r[0], "username": r[1], "name": r[2], "source": r[3], "first_seen": r[4], "last_seen": r[5]}
+            for r in rows
+        ]
+
+    # --- анкета ухода из сообщества: промежуточное состояние и итоговый журнал ---
+    def exit_get(self, user_id: str) -> dict | None:
+        with self._lock:
+            row = self._db.execute(
+                "SELECT selected, other_text, awaiting_other, message_id FROM exit_surveys WHERE user_id = ?",
+                (user_id,),
+            ).fetchone()
+        if row is None:
+            return None
+        return {"selected": json.loads(row[0]), "other_text": row[1], "awaiting_other": bool(row[2]), "message_id": row[3]}
+
+    def exit_save(
+        self, user_id: str, selected: list[int], other_text: str | None, awaiting_other: bool, message_id: int | None
+    ) -> None:
+        with self._lock, self._db:
+            self._db.execute(
+                "INSERT INTO exit_surveys (user_id, selected, other_text, awaiting_other, message_id, updated_at) "
+                "VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(user_id) DO UPDATE SET selected=excluded.selected, "
+                "other_text=excluded.other_text, awaiting_other=excluded.awaiting_other, "
+                "message_id=excluded.message_id, updated_at=excluded.updated_at",
+                (user_id, json.dumps(sorted(selected)), other_text, int(awaiting_other), message_id, time.time()),
+            )
+
+    def exit_clear(self, user_id: str) -> None:
+        with self._lock, self._db:
+            self._db.execute("DELETE FROM exit_surveys WHERE user_id = ?", (user_id,))
+
+    def exit_log_add(self, user_id: str, reasons: list[str], other_text: str | None, decision: str) -> None:
+        """Причины хранятся текстом, а не номерами: переставили пункты в конфиге, старые ответы не поплывут."""
+        with self._lock, self._db:
+            self._db.execute(
+                "INSERT INTO exit_log (user_id, reasons, other_text, decision, created_at) VALUES (?, ?, ?, ?, ?)",
+                (user_id, json.dumps(reasons, ensure_ascii=False), other_text, decision, time.time()),
+            )
+
+    def exit_log(self) -> list[dict]:
+        with self._lock:
+            rows = self._db.execute(
+                "SELECT id, user_id, reasons, other_text, decision, created_at FROM exit_log ORDER BY id"
+            ).fetchall()
+        return [
+            {"id": r[0], "user_id": r[1], "reasons": json.loads(r[2]), "other_text": r[3], "decision": r[4], "created_at": r[5]}
             for r in rows
         ]
 

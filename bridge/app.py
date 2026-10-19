@@ -19,7 +19,7 @@ from .graph import GraphError, InstagramClient, TokenManager
 from .logging_setup import setup_logging
 from .store import Store
 from .telegram import TelegramNotifier
-from .tgbot import LeadBot, TelegramAPI, TelegramError, build_funnels
+from .tgbot import LeadBot, TelegramAPI, TelegramError, build_exit, build_funnels
 from .webhook import parse_events, verify_signature
 
 log = logging.getLogger("bridge")
@@ -77,6 +77,7 @@ async def telegram_polling(
         bot_token=settings.telegram_bot_token,
         manager_chat_id=settings.telegram_manager_chat_id,
         human_mode_hours=settings.human_mode_hours,
+        community_chat_id=settings.community_chat_id,
     )
     while True:
         try:
@@ -92,7 +93,7 @@ async def telegram_polling(
             )
             return
         funnels = build_funnels(settings, flows, store)
-        await LeadBot(tg_settings, api, engine, flows, store, ig=ig, funnels=funnels).run()
+        await LeadBot(tg_settings, api, engine, flows, store, ig=ig, funnels=funnels, exit_flow=build_exit(settings)).run()
 
 
 async def token_loop(tokens: TokenManager, tg: TelegramNotifier) -> None:
