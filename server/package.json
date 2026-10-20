@@ -6,6 +6,7 @@
     "start": "node index.js"
   },
   "dependencies": {
+    "@napi-rs/canvas": "^1.0.12",
     "cors": "^2.8.5",
     "express": "^4.21.2",
     "multer": "^2.4.0",

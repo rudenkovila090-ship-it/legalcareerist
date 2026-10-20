@@ -78,6 +78,7 @@ import { getProfile, saveProfile, grantConsent, addRequest, lastRequest, PRACTIC
 import { DOC_TYPES, LIMITS as DOC_LIMITS, ALLOWED_EXT, MIME as DOC_MIME, listDocuments, usedBytes as docsUsedBytes, addDocument, addVersion, updateDocument, deleteDocument, deleteVersion, versionFile } from './lib/accountDocs.js'
 import { exportPersonData, accountEvents } from './lib/accountData.js'
 import { nextTicketNumber } from './lib/ticketCounter.js'
+import { renderTicket, hasTicketImage, tidyName } from './lib/ticketImage.js'
 import { buildDailyReport, mskDayKey, parseReportPeriod } from './lib/dailyReport.js'
 import { logWebhook, lastWebhook } from './lib/webhookLog.js'
 import { FINANCE_KEYBOARD, COMMUNITY_KEYBOARD, sectionScreen, menuScreen, subscribersScreen, planScreen, dueScreen, cancelledScreen, reminderMenuScreen, reminderPreviewScreen, reminderTargets, reminderMessage } from './lib/adminCabinet.js'
@@ -453,6 +454,9 @@ function buildPaymentNotification({ kind, number, tariff, subscriptionName, amou
 
 const mailStatusLine = (mail) => (mail.ok ? '✉️ Письмо клиенту: отправлено ✅' : mail.error === 'no_email' ? '✉️ Письмо клиенту: почта не указана' : mail.error === 'smtp_not_configured' ? '⚠️ Письмо клиенту: почта на сервере не настроена (SMTP)' : `⚠️ Письмо клиенту: не ушло (${mail.error})`)
 
+/** Билет-картинка во вложении письма: приложен / не удалось нарисовать (письмо при этом ушло без билета). */
+const ticketStatusLine = (mail) => (mail.ticket ? '🎟 Именной билет приложен к письму ✅' : mail.ticketError ? `⚠️ Билет не приложен: не удалось нарисовать (${mail.ticketError})` : null)
+
 /** Контактные строки в том же виде, что в уведомлении об оплате подписки. */
 const contactLines = ({ name, phone, email, telegram }) => [
   name && name !== '—' ? `👤 фио: ${name}` : null,
@@ -478,6 +482,7 @@ function buildTicketPaidNotification({ lead, amount, paidAt, mail, warning }) {
     '',
     `💰 Сумма: ${formatRub(amount)}`,
     mailStatusLine(mail),
+    ticketStatusLine(mail),
     `🗂 Регистрация №${lead.number} → «Оплатил»`,
   ].filter((l) => l !== null).join('\n')
 }
@@ -1564,6 +1569,14 @@ async function extrasAction(parts, now, chatId) {
     case 'evst':
       setEventLeadStatus(arg, arg2)
       return eventCard(arg)
+    case 'evticket': {
+      const e = getEventLead(arg)
+      if (!e || e.kind !== 'registration' || !['paid', 'attended'].includes(e.status) || !e.email || !hasTicketImage(e.eventSlug)) return eventCard(arg)
+      const mail = await sendTicketMail(e, e.amount)
+      const card = eventCard(arg)
+      const result = mail.ok ? `🎟 Билет ${mail.ticket ? 'отправлен' : 'не приложен, но письмо с подтверждением отправлено'} на ${e.email}` : `⚠️ Письмо не ушло (${mail.error})`
+      return { ...card, text: `${result}${mail.ticketError ? `\n⚠️ Билет не нарисовался: ${mail.ticketError}` : ''}\n\n${card.text}` }
+    }
     case 'evpaid':
       adminInput.set(String(chatId), { type: 'event-paid', number: Number(arg) })
       return { text: `💳 Регистрация №${arg}: отправьте сумму оплаты числом, например 3500. Отмена — /cancel.`, keyboard: menuBack('⬅️ К карточке', `a:x:evcard:${arg}`) }
@@ -2737,6 +2750,37 @@ app.post('/api/telegram/webhook', async (req, res) => {
   dispatchUpdate(req.body)
 })
 
+/**
+ * Письмо участнику об оплате билета. Если для мероприятия есть шаблон, к письму прикладывается именной билет-картинка
+ * (имя, номер и контакты берутся из регистрации). Не получилось нарисовать — письмо уходит без билета, причина в ответе (ticketError).
+ * Возвращает { ok, error?, ticket, ticketError? }.
+ */
+async function sendTicketMail(lead, amount) {
+  if (!lead.email) return { ok: false, error: 'no_email' }
+  const event = findEvent(lead.eventSlug)
+  let ticket = null
+  let ticketError = null
+  if (hasTicketImage(lead.eventSlug)) {
+    try {
+      ticket = await renderTicket({ eventSlug: lead.eventSlug, number: lead.number, name: lead.name, phone: lead.phone, email: lead.email, paidAt: lead.paidAt ?? Date.now() })
+    } catch (err) {
+      ticketError = err.message || String(err)
+      console.error('[ticket] не удалось нарисовать билет, регистрация №', lead.number, err)
+    }
+  }
+  const greetName = tidyName(lead.name) || lead.name
+  const clock = (iso) => new Date(iso).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Moscow' })
+  const when = event ? `${new Date(event.dateTime).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Moscow' })}, ${clock(event.dateTime)}${event.endDateTime ? `–${clock(event.endDateTime)}` : ''}` : ''
+  const lines = [`${greetName ? `Здравствуйте, ${greetName}!` : 'Здравствуйте!'}`, '', `Оплата получена — вы зарегистрированы на мероприятие «${lead.eventTitle}».`, `Билет: ${lead.tariff}${amount ? ` · ${amount} ₽` : ''}`]
+  if (when) lines.push(`Когда: ${when} (по Москве)`)
+  if (event?.location) lines.push(`Где: ${event.location}`)
+  lines.push(`Номер регистрации: ${lead.number}`)
+  if (ticket) lines.push('', `Ваш именной билет — во вложении к этому письму (${ticket.filename}). Сохраните его на телефон или распечатайте.`)
+  lines.push('', `За день до мероприятия пришлём напоминание на эту почту. Вопросы — ${SUPPORT_HANDLE}`, '', 'Карьерный юрист')
+  const mail = await sendMail({ to: lead.email, subject: `Вы зарегистрированы: ${lead.eventTitle}`, text: lines.join('\n'), attachments: ticket ? [{ filename: ticket.filename, content: ticket.buffer, contentType: ticket.contentType }] : undefined })
+  return { ...mail, ticket: Boolean(ticket && mail.ok), ticketError }
+}
+
 /** Успешная оплата билета: статус «Оплатил» и сумма в регистрации, письмо участнику, уведомление админу. */
 async function handleEventPayment(number, body, signed) {
   const amount = Number(body.sum) || null
@@ -2757,17 +2801,7 @@ async function handleEventPayment(number, body, signed) {
     console.log('[prodamus] повторный вебхук по оплате билета — пропускаю:', number)
     return
   }
-  const event = findEvent(lead.eventSlug)
-  let mail = { ok: false, error: 'no_email' }
-  if (lead.email) {
-    const clock = (iso) => new Date(iso).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Moscow' })
-    const when = event ? `${new Date(event.dateTime).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Moscow' })}, ${clock(event.dateTime)}${event.endDateTime ? `–${clock(event.endDateTime)}` : ''}` : ''
-    const lines = [`${lead.name ? `Здравствуйте, ${lead.name}!` : 'Здравствуйте!'}`, '', `Оплата получена — вы зарегистрированы на мероприятие «${lead.eventTitle}».`, `Билет: ${lead.tariff}${amount ? ` · ${amount} ₽` : ''}`]
-    if (when) lines.push(`Когда: ${when} (по Москве)`)
-    if (event?.location) lines.push(`Где: ${event.location}`)
-    lines.push(`Номер регистрации: ${lead.number}`, '', `За день до мероприятия пришлём напоминание на эту почту. Вопросы — ${SUPPORT_HANDLE}`, '', 'Карьерный юрист')
-    mail = await sendMail({ to: lead.email, subject: `Вы зарегистрированы: ${lead.eventTitle}`, text: lines.join('\n') })
-  }
+  const mail = await sendTicketMail(lead, amount)
   cancelPending({ kind: 'ticket', eventNumber: lead.number })
   if (lead.promo) markPromoUsed(lead.promo)
   // Сумма в оплате не совпала с ценой билета (частичная оплата, другая цена на платёжной странице) — пусть админ посмотрит.

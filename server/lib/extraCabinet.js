@@ -4,6 +4,7 @@
 import { rub, who, planAmount, ruDay, CANCEL_REASONS } from './adminCabinet.js'
 import { mskDayKey } from './dailyReport.js'
 import { EVENT_STATUSES } from './eventLeads.js'
+import { hasTicketImage } from './ticketImage.js'
 import { dealsDueForReminder, dealPayments, stageOf } from './deals.js'
 import { interestsDueForReminder, INTEREST_KINDS } from './interests.js'
 import { NOTIFY_OPTIONS } from './adminSettings.js'
@@ -282,6 +283,8 @@ export function eventLeadCard(e) {
   const keyboard = []
   if (e.kind === 'registration') {
     keyboard.push([{ text: '💳 Оплатил (указать сумму)', callback_data: `a:x:evpaid:${e.number}` }])
+    // Билет-картинка есть у мероприятия, оплата отмечена, почта указана — можно выслать билет ещё раз (письмо не дошло, оплату отметили вручную)
+    if ((e.status === 'paid' || e.status === 'attended') && e.email && hasTicketImage(e.eventSlug)) keyboard.push([{ text: '🎟 Выслать билет на почту', callback_data: `a:x:evticket:${e.number}` }])
     keyboard.push([st('attended', '✅ Пришёл'), st('cancelled', '❌ Отменил')])
     if (e.status !== 'registered') keyboard.push([st('registered', '↩️ Вернуть в зарегистрированные')])
   } else {
