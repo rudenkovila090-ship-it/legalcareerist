@@ -24,8 +24,8 @@ function getTransport() {
 
 const escapeHtml = (t) => String(t).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c])
 
-/** Возвращает { ok, error? }. attachments: [{ filename, content: Buffer }]. */
-export async function sendMail({ to, subject, text, attachments }) {
+/** Возвращает { ok, error? }. attachments: [{ filename, content: Buffer }]. html — готовая вёрстка письма (иначе строится из text). */
+export async function sendMail({ to, subject, text, html, attachments }) {
   if (!mailConfigured()) return { ok: false, error: 'smtp_not_configured' }
   if (!to || !/^\S+@\S+\.\S+$/.test(to)) return { ok: false, error: 'bad_address' }
   try {
@@ -34,7 +34,7 @@ export async function sendMail({ to, subject, text, attachments }) {
       to,
       subject,
       text,
-      html: `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.5;color:#283953">${escapeHtml(text).replace(/\n/g, '<br>')}</div>`,
+      html: html ?? `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.5;color:#283953">${escapeHtml(text).replace(/\n/g, '<br>')}</div>`,
       attachments,
     })
     return { ok: true }

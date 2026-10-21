@@ -43,7 +43,7 @@ try {
   const evSource = fs.readFileSync(path.join(ROOT, 'src/data/events.ts'), 'utf8')
   const evJs = ts.transpileModule(evSource, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } }).outputText
   const { events } = await import(`data:text/javascript;base64,${Buffer.from(evJs).toString('base64')}`)
-  fs.writeFileSync(path.join(dir, 'event-catalog.json'), JSON.stringify(events.map((e) => ({ slug: e.slug, title: e.title, dateTime: e.dateTime, endDateTime: e.endDateTime ?? '', status: e.status, city: e.city, format: e.format, location: e.location ?? '', registrationLink: e.registrationLink ?? '', tariffs: (e.tariffs ?? []).map((t) => ({ id: t.id, name: t.name, price: t.price })) })), null, 2))
+  fs.writeFileSync(path.join(dir, 'event-catalog.json'), JSON.stringify(events.map((e) => ({ slug: e.slug, title: e.title, dateTime: e.dateTime, endDateTime: e.endDateTime ?? '', status: e.status, city: e.city, format: e.format, location: e.location ?? '', venue: e.venue ?? '', participantsChat: e.participantsChat ?? '', registrationLink: e.registrationLink ?? '', tariffs: (e.tariffs ?? []).map((t) => ({ id: t.id, name: t.name, price: t.price })) })), null, 2))
   console.log(`event catalog: ${events.length}`)
 } catch (err) {
   console.warn('vacancy catalog: не удалось выгрузить —', err.message)

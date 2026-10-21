@@ -78,7 +78,7 @@ import { getProfile, saveProfile, grantConsent, addRequest, lastRequest, PRACTIC
 import { DOC_TYPES, LIMITS as DOC_LIMITS, ALLOWED_EXT, MIME as DOC_MIME, listDocuments, usedBytes as docsUsedBytes, addDocument, addVersion, updateDocument, deleteDocument, deleteVersion, versionFile } from './lib/accountDocs.js'
 import { exportPersonData, accountEvents } from './lib/accountData.js'
 import { nextTicketNumber } from './lib/ticketCounter.js'
-import { renderTicket, hasTicketImage } from './lib/ticketImage.js'
+import { renderTicketPdf, hasTicketImage } from './lib/ticketImage.js'
 import { composeTicketMail } from './lib/ticketMail.js'
 import { buildDailyReport, mskDayKey, parseReportPeriod } from './lib/dailyReport.js'
 import { logWebhook, lastWebhook } from './lib/webhookLog.js'
@@ -2763,14 +2763,14 @@ async function sendTicketMail(lead, amount) {
   let ticketError = null
   if (hasTicketImage(lead.eventSlug)) {
     try {
-      ticket = await renderTicket({ eventSlug: lead.eventSlug, number: lead.number, name: lead.name, phone: lead.phone, email: lead.email, paidAt: lead.paidAt ?? Date.now() })
+      ticket = await renderTicketPdf({ eventSlug: lead.eventSlug, number: lead.number, name: lead.name, phone: lead.phone, email: lead.email, paidAt: lead.paidAt ?? Date.now() })
     } catch (err) {
       ticketError = err.message || String(err)
       console.error('[ticket] не удалось нарисовать билет, регистрация №', lead.number, err)
     }
   }
-  const { subject, text } = composeTicketMail({ lead, amount, event, ticket, supportHandle: SUPPORT_HANDLE })
-  const mail = await sendMail({ to: lead.email, subject, text, attachments: ticket ? [{ filename: ticket.filename, content: ticket.buffer, contentType: ticket.contentType }] : undefined })
+  const { subject, text, html } = composeTicketMail({ lead, amount, event, hasTicket: Boolean(ticket), supportHandle: SUPPORT_HANDLE })
+  const mail = await sendMail({ to: lead.email, subject, text, html, attachments: ticket ? [{ filename: ticket.filename, content: ticket.buffer, contentType: ticket.contentType }] : undefined })
   return { ...mail, ticket: Boolean(ticket && mail.ok), ticketError }
 }
 
@@ -2825,7 +2825,7 @@ async function sendEventReminders(now = Date.now()) {
         continue
       }
       const lines = [`${lead.name ? `Здравствуйте, ${lead.name}!` : 'Здравствуйте!'}`, '', `Напоминаем: завтра — «${lead.eventTitle || event.title}».`, `Когда: ${when}`]
-      if (event.location) lines.push(`Где: ${[event.city, event.location].filter(Boolean).join(', ')}`)
+      if (event.location || event.venue) lines.push(`Где: ${[event.city, event.location || event.venue].filter(Boolean).join(', ')}`)
       lines.push(`Номер регистрации: ${lead.number}`, '', `Вопросы — ${SUPPORT_HANDLE}`, '', 'Карьерный юрист')
       const mail = await sendMail({ to: lead.email, subject: `Завтра: ${lead.eventTitle || event.title}`, text: lines.join('\n') })
       if (mail.ok) {
@@ -2835,7 +2835,7 @@ async function sendEventReminders(now = Date.now()) {
         failed += 1
       }
     }
-    const report = [`🔔 Напоминания о мероприятии «${event.title}» (завтра)`, '', `✉️ Отправлено: ${sent}`, noEmail ? `📭 Без почты (напомнить вручную): ${noEmail}` : null, failed ? `⚠️ Не ушло: ${failed} (проверьте почту на сервере)` : null, !event.location ? '⚠️ В каталоге не указано место проведения — в напоминании его нет. Сообщите участникам вручную.' : null].filter((l) => l !== null)
+    const report = [`🔔 Напоминания о мероприятии «${event.title}» (завтра)`, '', `✉️ Отправлено: ${sent}`, noEmail ? `📭 Без почты (напомнить вручную): ${noEmail}` : null, failed ? `⚠️ Не ушло: ${failed} (проверьте почту на сервере)` : null, !(event.location || event.venue) ? '⚠️ В каталоге не указано место проведения — в напоминании его нет. Сообщите участникам вручную.' : null].filter((l) => l !== null)
     await sendTelegramMessage(ADMIN_CHAT_ID, report.join('\n'))
   }
   return true

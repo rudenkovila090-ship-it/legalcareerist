@@ -201,7 +201,7 @@ export default function EventDetail() {
     dateText: new Date(event.dateTime).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Moscow' }).replace(/\s*г\.$/, ''),
     timeText: eventTimeRange(event),
     place: [event.city, story.venue].filter(Boolean).join(', '),
-    chat: story.participantsChat,
+    chat: event.participantsChat,
   } : null
   // Вернулись с оплаты — показываем блок с подтверждением (на телефоне он внизу страницы, иначе его не заметить).
   useEffect(() => {

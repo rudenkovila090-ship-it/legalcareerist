@@ -4,7 +4,7 @@
 //   адреса — всё, где есть «@» (можно несколько); остальные слова — имя на билете; без адресов письмо уходит на SMTP_USER.
 import fs from 'node:fs'
 import path from 'node:path'
-import { renderTicket } from '../server/lib/ticketImage.js'
+import { renderTicketPdf } from '../server/lib/ticketImage.js'
 import { composeTicketMail } from '../server/lib/ticketMail.js'
 import { sendMail } from '../server/lib/mailer.js'
 
@@ -31,10 +31,10 @@ let failed = 0
 for (const email of addresses) {
   const lead = { name, tariff: event.tariffs?.[0]?.name ?? 'Билет', number: 999999, eventTitle: event.title, eventSlug: SLUG, phone: '+7 900 123-45-67', email, paidAt: Date.now() }
   try {
-    const ticket = await renderTicket({ eventSlug: SLUG, number: lead.number, name: lead.name, phone: lead.phone, email: lead.email, paidAt: lead.paidAt })
-    const { subject, text } = composeTicketMail({ lead, amount, event, ticket, supportHandle: support })
-    const r = await sendMail({ to: email, subject: `[ТЕСТ] ${subject}`, text, attachments: [{ filename: ticket.filename, content: ticket.buffer, contentType: ticket.contentType }] })
-    if (r.ok) console.log(`✅ ${email}: отправлено (билет ${ticket.filename}, ${Math.round(ticket.buffer.length / 1024)} КБ)`)
+    const ticket = await renderTicketPdf({ eventSlug: SLUG, number: lead.number, name: lead.name, phone: lead.phone, email: lead.email, paidAt: lead.paidAt })
+    const { subject, text, html } = composeTicketMail({ lead, amount, event, hasTicket: true, supportHandle: support })
+    const r = await sendMail({ to: email, subject: `[ТЕСТ] ${subject}`, text, html, attachments: [{ filename: ticket.filename, content: ticket.buffer, contentType: ticket.contentType }] })
+    if (r.ok) console.log(`✅ ${email}: отправлено (вложение ${ticket.filename}, ${Math.round(ticket.buffer.length / 1024)} КБ)`)
     else {
       failed += 1
       console.log(`❌ ${email}: не ушло (${r.error})`)
@@ -44,5 +44,5 @@ for (const email of addresses) {
     console.log(`❌ ${email}: не удалось нарисовать билет (${err.message})`)
   }
 }
-console.log(failed ? `\nНе отправилось: ${failed} из ${addresses.length}. Пришлите строки выше целиком.` : '\nГотово. Откройте письма и посмотрите вложение (в некоторых почтах картинка видна под текстом письма).')
+console.log(failed ? `\nНе отправилось: ${failed} из ${addresses.length}. Пришлите строки выше целиком.` : '\nГотово. Откройте письма и посмотрите вложение PDF.')
 process.exit(failed ? 1 : 0)

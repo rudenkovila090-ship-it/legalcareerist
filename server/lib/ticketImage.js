@@ -4,6 +4,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { code128B, modulesOf } from './code128.js'
+import { jpegToPdf } from './simplePdf.js'
 
 const ASSETS = path.join(import.meta.dirname, '..', 'assets')
 
@@ -194,5 +195,23 @@ export async function renderTicket({ eventSlug, number, name, phone, email, paid
     filename: `bilet-${code.toLowerCase()}.jpg`,
     contentType: 'image/jpeg',
     code,
+    width: canvas.width,
+    height: canvas.height,
+  }
+}
+
+/**
+ * Билет файлом PDF (одна страница): именно он прикладывается к письму. Имя файла — «Билет №147.pdf».
+ * Возвращает { buffer, filename, contentType, code } или null, если для мероприятия нет шаблона.
+ */
+export async function renderTicketPdf(data) {
+  const image = await renderTicket(data)
+  if (!image) return null
+  const title = `Билет №${data.number} — Legal Night Jazz 2`
+  return {
+    buffer: jpegToPdf(image.buffer, image.width, image.height, { title, author: 'Карьерный юрист' }),
+    filename: `Билет №${data.number}.pdf`,
+    contentType: 'application/pdf',
+    code: image.code,
   }
 }

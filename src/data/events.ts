@@ -34,6 +34,9 @@ export const events: EventItem[] = [
       },
     ],
     location: '',
+    // совпадает с JAZZ_VENUE в eventStories.ts (верхняя строка страницы мероприятия)
+    venue: 'м. Балтийская, Набережная Обводного канала 136, зал Hall Prime',
+    participantsChat: 'https://t.me/+ufLOqdG-OSFlMGVi',
     description: 'В закрытом джаз-баре — живой саксофон, нуар, мафиозные договоренности и вопрос, что на самом деле убивает карьеру юриста.',
     organizer: {
       name: '«Карьерный юрист»',
