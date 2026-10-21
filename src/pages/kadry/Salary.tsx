@@ -10,10 +10,12 @@ import { useDocumentTitle } from '../../lib/useDocumentTitle'
 // /kadry/salary — Зарплатный навигатор (раздел 6.7): не было в исходном ТЗ,
 // добавлено по итогам анализа конкурентов. Диапазон считается из mock-выборки
 // вакансий (в проде — агрегированная статистика по базе + ручные апдейты).
+const cities = Array.from(new Set(vacancies.map((v) => v.city)))
+
 export default function Salary() {
   useDocumentTitle('Зарплатный навигатор')
-  const [spec, setSpec] = useState<Specialization>('inhouse')
-  const [city, setCity] = useState('Москва')
+  const [spec, setSpec] = useState<Specialization>('consulting')
+  const [city, setCity] = useState(cities[0] ?? '')
 
   const sample = useMemo(
     () => vacancies.filter((v) => v.specialization.includes(spec) && v.city === city),
@@ -26,7 +28,6 @@ export default function Salary() {
     return { min: Math.min(...salaries), max: Math.max(...salaries) }
   }, [sample])
 
-  const cities = Array.from(new Set(vacancies.map((v) => v.city)))
   const related = getRelatedContent({ specialization: [spec], industry: [] }, 'article', undefined, 3)
 
   return (

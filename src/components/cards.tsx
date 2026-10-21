@@ -6,10 +6,12 @@ import { useNewsViewCount } from '../lib/useNewsViews'
 import { materialKindLabel } from '../lib/materialLabels'
 import { pluralRu } from '../lib/plural'
 import { startEventMusicOnClick } from '../lib/eventMusic'
+import { salaryLabel } from '../lib/vacancySalary'
 
 const money = new Intl.NumberFormat('ru-RU')
 
 export function VacancyCard({ v }: { v: Vacancy }) {
+  const salary = salaryLabel(v)
   return (
     <Link to={`/vacancies/${v.slug}`} className="glass block rounded-xl p-5">
       <div className="flex items-start justify-between gap-3">
@@ -20,10 +22,7 @@ export function VacancyCard({ v }: { v: Vacancy }) {
         <div className="mt-1 text-xs font-medium text-amber-700">Технический пример</div>
       )}
       <div className="mt-1 text-sm text-ink/60">{v.anonymous ? 'Компания скрыта' : v.company} · {v.city}</div>
-      <div className="mt-2 text-sm font-medium text-ink">
-        {v.salaryFrom ? `от ${money.format(v.salaryFrom)} ₽` : 'По договоренности'}
-        {v.salaryTo ? ` до ${money.format(v.salaryTo)} ₽` : ''}
-      </div>
+      {salary && <div className="mt-2 text-sm font-medium text-ink">{salary}</div>}
       <div className="mt-3">
         <TagRow specialization={v.specialization} industry={v.industry} />
       </div>

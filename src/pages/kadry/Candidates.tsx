@@ -11,6 +11,7 @@ import LeadSuccessCard from '../../components/LeadSuccessCard'
 import { submitLead, nextTicketNumber } from '../../lib/leads'
 import VacancyDetailBody, { VacancyContactsBlock } from '../../components/VacancyDetailBody'
 import { vacancies } from '../../data/vacancies'
+import { salaryLabel } from '../../lib/vacancySalary'
 import { IndustryFilter, EducationFilter } from '../../components/VacancyFilters'
 import {
   SPECIALIZATIONS, EMPLOYMENT_TYPES, WORK_SCHEDULES, EXPERIENCE_BUCKETS,
@@ -28,7 +29,6 @@ import HowHeardField from '../../components/HowHeardField'
 import ConsentCheck from '../../components/ConsentCheck'
 import { consentOf } from '../../lib/consent'
 
-const money = new Intl.NumberFormat('ru-RU')
 
 // Демо-счетчик просмотров вакансии — детерминированный (по id), чтобы не
 // прыгал при каждом ререндере.
@@ -520,10 +520,7 @@ export default function Candidates() {
                   <div className="mt-1 text-xs font-medium text-amber-700">Технический пример</div>
                 )}
                 <div className="mt-1 text-sm text-ink/60">{v.anonymous ? 'Компания скрыта' : v.company} · {v.city}</div>
-                <div className="mt-2 text-sm font-medium text-ink">
-                  {v.salaryFrom ? `от ${money.format(v.salaryFrom)} ₽` : 'По договоренности'}
-                  {v.salaryTo ? ` до ${money.format(v.salaryTo)} ₽` : ''}
-                </div>
+                {salaryLabel(v) && <div className="mt-2 text-sm font-medium text-ink">{salaryLabel(v)}</div>}
                 <div className="mt-3">
                   <TagRow specialization={v.specialization} industry={v.industry} />
                 </div>

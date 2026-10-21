@@ -2,16 +2,17 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { SpecTag, IndustryTag } from './Tag'
 import { pluralRu } from '../lib/plural'
 import { getUtm } from '../lib/utm'
+import { salaryLabel } from '../lib/vacancySalary'
 import { WORK_FORMATS, WORK_SCHEDULES, EMPLOYMENT_TYPES, type Vacancy } from '../types'
 
-const money = new Intl.NumberFormat('ru-RU')
-
-function formatSalary(vacancy: Vacancy) {
-  if (!vacancy.salaryFrom && !vacancy.salaryTo) return 'По договоренности'
-  return [
-    vacancy.salaryFrom ? `от ${money.format(vacancy.salaryFrom)} ₽` : null,
-    vacancy.salaryTo ? `до ${money.format(vacancy.salaryTo)} ₽` : null,
-  ].filter(Boolean).join(' ')
+/** @ник → ссылка на Telegram, адрес почты → mailto, телефон → tel: — в шагах «Как откликнуться». */
+const LINKABLE = /(@[A-Za-z0-9_]{4,32}|[\w.+-]+@[\w-]+(?:\.[\w-]+)+|\+\d[\d\s()-]{9,})/g
+function linkify(text: string): ReactNode[] {
+  return text.split(LINKABLE).map((part, i) => {
+    if (i % 2 === 0) return part
+    const href = part.startsWith('@') ? `https://t.me/${part.slice(1)}` : part.startsWith('+') ? `tel:${part.replace(/[^\d+]/g, '')}` : `mailto:${part}`
+    return <a key={i} href={href} className="underline hover:text-ink" {...(href.startsWith('https') ? { target: '_blank', rel: 'noopener noreferrer' } : {})}>{part.trim()}</a>
+  })
 }
 
 /**
@@ -31,7 +32,7 @@ function buildConditions(vacancy: Vacancy): { label: string; value: string }[] {
     { label: 'График работы', value: scheduleLabel },
     { label: 'Занятость', value: employmentLabel },
     vacancy.employmentArrangement ? { label: 'Оформление', value: vacancy.employmentArrangement } : null,
-    { label: 'Заработная плата', value: formatSalary(vacancy) },
+    salaryLabel(vacancy) ? { label: 'Заработная плата', value: salaryLabel(vacancy) as string } : null,
     vacancy.bonuses ? { label: 'Бонусы', value: vacancy.bonuses } : null,
   ].filter((c): c is { label: string; value: string } => Boolean(c))
 }
@@ -93,7 +94,7 @@ export default function VacancyDetailBody({ vacancy, extra }: { vacancy: Vacancy
 
       <div className="mt-1 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <h1 className="text-3xl font-semibold">{vacancy.title}</h1>
-        <div className="whitespace-nowrap text-lg font-medium text-ink">{formatSalary(vacancy)}</div>
+        {salaryLabel(vacancy) && <div className="whitespace-nowrap text-lg font-medium text-ink">{salaryLabel(vacancy)}</div>}
       </div>
 
       <div className="mt-2 text-ink/60">{vacancy.anonymous ? 'Компания скрыта' : vacancy.company} · {vacancy.city}</div>
@@ -180,6 +181,15 @@ export default function VacancyDetailBody({ vacancy, extra }: { vacancy: Vacancy
         </ul>
       </div>
 
+      {vacancy.howToApply && vacancy.howToApply.length > 0 && (
+        <div className="mt-8">
+          <h2 className="font-semibold">Как откликнуться</h2>
+          <ol className="mt-2 list-inside list-decimal space-y-1 text-ink/70">
+            {vacancy.howToApply.map((step) => <li key={step}>{linkify(step)}</li>)}
+          </ol>
+        </div>
+      )}
+
       {vacancy.officeCoords && (
         <div className="mt-8">
           <h2 className="font-semibold">Адрес</h2>
@@ -196,16 +206,6 @@ export default function VacancyDetailBody({ vacancy, extra }: { vacancy: Vacancy
           </div>
         </div>
       )}
-
-      {/* Настоящих отзывов пока нет — честная заглушка вместо придуманных
-          цитат (тот же принцип, что и в общем разделе «Отзывы», см.
-          Testimonials.tsx). Появятся тексты — заменить на реальные. */}
-      <div className="mt-8">
-        <h2 className="font-semibold">Отзывы о работодателе</h2>
-        <div className="mt-3 rounded-xl border border-dashed border-ink/20 bg-ink/[0.03] p-6 text-sm text-ink/50">
-          Раздел готов к наполнению — как только появятся отзывы сотрудников, разместим их здесь.
-        </div>
-      </div>
     </>
   )
 }
@@ -216,7 +216,7 @@ export default function VacancyDetailBody({ vacancy, extra }: { vacancy: Vacancy
  * картой в основном контенте, повторять его здесь не нужно.
  */
 export function VacancyContactsBlock({ vacancy }: { vacancy: Vacancy }) {
-  if (!vacancy.contactPhone && !vacancy.contactEmail) return null
+  if (!vacancy.contactPhone && !vacancy.contactEmail && !vacancy.contactTelegram) return null
 
   return (
     <div className="rounded-xl border border-ink/10 p-5 text-sm">
@@ -224,6 +224,12 @@ export function VacancyContactsBlock({ vacancy }: { vacancy: Vacancy }) {
       <div className="mt-2 space-y-1 text-ink/70">
         {vacancy.contactPhone && <div><span className="font-semibold text-ink">Телефон:</span> {vacancy.contactPhone}</div>}
         {vacancy.contactEmail && <div><span className="font-semibold text-ink">Почта:</span> {vacancy.contactEmail}</div>}
+        {vacancy.contactTelegram && (
+          <div>
+            <span className="font-semibold text-ink">Telegram:</span>{' '}
+            <a href={`https://t.me/${vacancy.contactTelegram.replace(/^@/, '')}`} target="_blank" rel="noopener noreferrer" className="underline hover:text-ink">{vacancy.contactTelegram}</a>
+          </div>
+        )}
       </div>
     </div>
   )

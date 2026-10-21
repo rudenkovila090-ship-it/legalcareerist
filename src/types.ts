@@ -211,6 +211,10 @@ export interface Vacancy extends Tagged {
   practiceAreas?: string[]
   contactPhone?: string
   contactEmail?: string
+  /** Telegram-ник для откликов, вместе с «@» (показывается в блоке контактов ссылкой на t.me). */
+  contactTelegram?: string
+  /** «Как откликнуться» — шаги по порядку; @ники, почта и телефоны в тексте становятся ссылками. */
+  howToApply?: string[]
   companyAddress?: string
   /** Координаты офиса для карты на странице вакансии (Яндекс.Карты). */
   officeCoords?: { lat: number; lng: number }
