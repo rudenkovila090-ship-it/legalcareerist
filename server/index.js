@@ -573,9 +573,11 @@ async function handleSubscriptionPayment(body, phone) {
     match = { join: { token }, isFirst: true }
   }
 
-  // Разовые скидочные подписки (350 и 500 ₽) — доступ на 30 дней без автопродления: по окончании бот напоминает и исключает из чата.
-  const oneTime = !tariff && [350, 500].includes(Math.round(amount))
-  const nextPaymentAt = pickNextPaymentDate(subscription, paidAt) ?? (tariff ? addMonths(paidAt, tariff.months) : oneTime ? paidAt + 30 * 24 * 3600 * 1000 : null)
+  // Скидочные подписки (350 и 500 ₽) в Prodamus автопродлеваемые: если он прислал дату следующего списания, подписка не разовая.
+  // Разовой (доступ на 30 дней, по окончании бот напоминает и исключает из чата) считаем, только когда даты списания нет.
+  const prodamusNext = pickNextPaymentDate(subscription, paidAt)
+  const oneTime = !tariff && [350, 500].includes(Math.round(amount)) && !prodamusNext
+  const nextPaymentAt = prodamusNext ?? (tariff ? addMonths(paidAt, tariff.months) : oneTime ? paidAt + 30 * 24 * 3600 * 1000 : null)
   const result = recordPayment(match.join.token, { tariffId, amount, paidAt, orderKey, nextPaymentAt, profileId, tgUserId, paymentNum, subscriptionId: subscription.id, subscriptionName, oneTime })
   if (!result) {
     console.error('[prodamus] не удалось записать платёж — карточка не найдена:', match.join.token)
