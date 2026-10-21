@@ -1,7 +1,10 @@
-.env
-data/
-__pycache__/
+*.csv
+*.db
+*.db-journal
 *.pyc
+.env
 .pytest_cache/
 .venv/
+__pycache__/
+data/
 venv/

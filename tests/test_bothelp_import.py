@@ -3,9 +3,13 @@ import datetime as dt
 from bridge import bothelp_import as bi
 from bridge.store import Store
 
-HEADER = '"id";"name";"first_name";"email";"phone";"start_param";"first_contact_at";"last_contact_at";"Промокод";"дни";"User tags"'
+HEADER = (
+    '"id";"name";"first_name";"last_name";"email";"phone";"start_param";'
+    '"first_contact_at";"last_contact_at";"Промокод";"дни";"User tags"'
+)
 EXPORTED = dt.date(2026, 10, 21)
 MIDNIGHT = dt.datetime(2026, 10, 21, tzinfo=dt.timezone.utc).timestamp()
+TG = 1000000000  # ровно 10 цифр, как настоящие id в Telegram
 
 
 def write_csv(tmp_path, *rows, name="export-21102026.csv"):
@@ -14,8 +18,11 @@ def write_csv(tmp_path, *rows, name="export-21102026.csv"):
     return str(path)
 
 
-def row(id_, tags="", days="", promo="", start="", email="", first="1700000000", last="1700001000", name="Аня"):
-    return f'"{id_}";"{name}";"{name}";"{email}";"";"{start}";{first};{last};"{promo}";{days or chr(34)*2};"{tags}"'
+def row(id_, tags="", days="", promo="", start="", email="", phone="", last="", first_seen="1700000000", last_seen="1700001000", name="Аня"):
+    return (
+        f'"{id_}";"{name}";"{name}";"{last}";"{email}";"{phone}";"{start}";{first_seen};{last_seen};'
+        f'"{promo}";{days or chr(34) * 2};"{tags}"'
+    )
 
 
 def test_date_from_filename():
@@ -24,59 +31,96 @@ def test_date_from_filename():
     assert bi.date_from_filename("export-99992026.csv") is None
 
 
-def test_mailing_consent_is_conservative(tmp_path):
+def test_tags_are_kept_as_is_and_mailing_flag_is_added(tmp_path):
     path = write_csv(
         tmp_path,
-        row(101, f"{bi.TAG_YES}"),
-        row(102, f"{bi.TAG_NO}"),
-        row(103, f"{bi.TAG_YES};{bi.TAG_NO}"),
-        row(104, "пользователь"),
+        row(TG + 1, f"{bi.TAG_YES}"),
+        row(TG + 2, f"{bi.TAG_NO}"),
+        row(TG + 3, f"{bi.TAG_YES};{bi.TAG_NO}"),
+        row(TG + 4, "пользователь"),
     )
     plan = bi.parse_export(path, EXPORTED)
     assert [p.mailing for p in plan.people] == ["yes", "no", "no", None]
-    assert plan.people[2].consent_conflict and len(plan.attention) == 1
+    assert len(plan.attention) == 1 and "…000003" in plan.attention[0]
     store = Store(":memory:")
     bi.apply_plan(plan, store)
-    assert "mailing:yes" in store.tags("tg:101")
-    assert "mailing:no" in store.tags("tg:103")
-    assert not any(t.startswith("mailing:") for t in store.tags("tg:104"))
-    assert bi.TAG_YES not in store.tags("tg:101")  # заменено меткой mailing:yes
+    assert store.tags(f"tg:{TG + 1}")[:1] == [bi.TAG_YES]  # исходная метка на месте
+    assert "mailing:yes" in store.tags(f"tg:{TG + 1}")
+    assert {bi.TAG_YES, bi.TAG_NO, "mailing:no"} <= set(store.tags(f"tg:{TG + 3}"))
+    assert not any(t.startswith("mailing:") for t in store.tags(f"tg:{TG + 4}"))
 
 
-def test_other_channels_and_empty_rows_are_skipped(tmp_path):
-    path = write_csv(tmp_path, row(5, "пользователь"), row("2280384629394930", "пользователь"), row("", "x"))
-    plan = bi.parse_export(path, EXPORTED)
-    assert [p.user_id for p in plan.people] == ["tg:5"]
-    assert plan.skipped_other_channel == 1 and plan.skipped_empty == 1
-
-
-def test_subscription_days_become_expiry_dates(tmp_path):
+def test_other_channels_and_chats_are_kept_under_their_own_ids(tmp_path):
     path = write_csv(
         tmp_path,
-        row(1000000001, f"{bi.TAG_SUB};резидент_сообщества", days="22"),
-        row(1000000002, f"{bi.TAG_SUB};резидент_сообщества", days="-10"),
-        row(1000000003, "оплатил_подписку_1", days="8"),
-        row(1000000004, "пользователь", days="999839"),
-        row(1000000005, "пользователь"),
+        row(TG + 5, "пользователь"),
+        row("2280384629394930", "пользователь;" + bi.TAG_YES, name="Из Instagram"),
+        row("-1001234567890", "пользователь", name="Чат сообщества"),
+        row("", "x"),
+    )
+    plan = bi.parse_export(path, EXPORTED)
+    assert [(p.user_id, p.kind) for p in plan.people] == [
+        (f"tg:{TG + 5}", "telegram"),
+        ("bothelp:2280384629394930", "other"),
+        ("chat:-1001234567890", "chat"),
+    ]
+    assert plan.skipped_empty == 1
+    assert plan.chats == ["Чат сообщества (-1001234567890)"]
+    text = bi.report(plan)
+    assert "Люди из Telegram: 1" in text and "Из других каналов (Instagram и др.): 1" in text
+    store = Store(":memory:")
+    bi.apply_plan(plan, store)
+    assert bi.TAG_YES in store.tags("bothelp:2280384629394930")  # данные не потеряны
+
+
+def test_subscription_days_become_exact_expiry_dates(tmp_path):
+    path = write_csv(
+        tmp_path,
+        row(TG + 1, f"{bi.TAG_SUB};резидент_сообщества", days="22"),
+        row(TG + 2, f"{bi.TAG_SUB};резидент_сообщества", days="-10"),
+        row(TG + 3, "оплатил_подписку_1", days="8"),
+        row(TG + 4, "пользователь", days="999839"),
+        row(TG + 5, "пользователь"),
     )
     plan = bi.parse_export(path, EXPORTED)
     store = Store(":memory:")
     bi.apply_plan(plan, store)
-    assert store.subscription("tg:1000000001") == {"plan": bi.TAG_SUB, "expires_at": MIDNIGHT + 22 * 86400, "source": "bothelp"}
-    assert store.subscription("tg:1000000002")["expires_at"] == MIDNIGHT - 10 * 86400
-    assert store.subscription("tg:1000000003")["plan"] == "подписка"
-    assert store.subscription("tg:1000000004") == {"plan": "бессрочно", "expires_at": bi.FOREVER_TS, "source": "bothelp"}
-    assert store.subscription("tg:1000000005") is None
+    assert store.subscription(f"tg:{TG + 1}") == {"plan": bi.TAG_SUB, "expires_at": MIDNIGHT + 22 * 86400, "source": "bothelp"}
+    assert store.subscription(f"tg:{TG + 2}")["expires_at"] == MIDNIGHT - 10 * 86400
+    assert store.subscription(f"tg:{TG + 3}")["plan"] == "подписка"
+    long = store.subscription(f"tg:{TG + 4}")
+    assert dt.datetime.fromtimestamp(long["expires_at"], dt.timezone.utc).date() == EXPORTED + dt.timedelta(days=999839)
+    assert store.subscription(f"tg:{TG + 5}") is None
     text = "\n".join(plan.attention)
-    assert "…0002" in text and "10 дн. назад" in text  # просрочил, но остался в чате
-    assert "…0004" in text and "бессрочно" in text
-    assert "…0001" not in text
+    assert "…000002" in text and "10 дн. назад" in text  # просрочил, но остался в чате
+    assert "…000004" in text and "999839" in text
+    assert "…000001" not in text
+
+
+def test_absurd_days_do_not_crash():
+    assert dt.datetime.fromtimestamp(bi.expires_at(EXPORTED, 10**9), dt.timezone.utc).date() == bi.MAX_DATE
+    assert dt.datetime.fromtimestamp(bi.expires_at(EXPORTED, 10**12), dt.timezone.utc).date() == bi.MAX_DATE
+
+
+def test_same_telegram_id_twice_is_merged(tmp_path):
+    path = write_csv(
+        tmp_path,
+        row(TG + 6, "пользователь;оплатил_лонглист", days="5", first_seen="1700000500", last_seen="1700000600"),
+        row(TG + 6, f"пользователь;{bi.TAG_YES}", days="30", first_seen="1700000100", last_seen="1700009000", promo="PROMO1"),
+    )
+    plan = bi.parse_export(path, EXPORTED)
+    assert plan.merged == 1 and len(plan.people) == 1
+    p = plan.people[0]
+    assert p.tags == ["пользователь", "оплатил_лонглист", bi.TAG_YES]
+    assert (p.days, p.first_seen, p.last_seen, p.promo) == (30, 1700000100.0, 1700009000.0, "PROMO1")
+    assert "объединено строк: 1" in bi.report(plan)
 
 
 def test_import_keeps_live_data_and_is_repeatable(tmp_path):
-    path = write_csv(tmp_path, row(7, "оплатил_лонглист", promo="KQ21", start="abc", name="Старое имя"))
+    uid = f"tg:{TG + 7}"
+    path = write_csv(tmp_path, row(TG + 7, "оплатил_лонглист", promo="PROMO1", start="abc", name="Старое имя"))
     store = Store(":memory:")
-    store.touch_contact("tg:7", "live_user", "Живое имя", "Живое", "ig_story")
+    store.touch_contact(uid, "live_user", "Живое имя", "Живое", "ig_story")
     plan = bi.parse_export(path, EXPORTED)
     first = bi.apply_plan(plan, store)
     second = bi.apply_plan(plan, store)
@@ -84,27 +128,47 @@ def test_import_keeps_live_data_and_is_repeatable(tmp_path):
     contact = store.contacts()[0]
     assert contact["username"] == "live_user" and contact["name"] == "Живое имя" and contact["source"] == "ig_story"
     assert contact["first_seen"] == 1700000000.0  # настоящая дата первого контакта из BotHelp
-    tags = store.tags("tg:7")
+    tags = store.tags(uid)
     assert tags.count("оплатил_лонглист") == 1
-    assert {"promo:KQ21", "import:bothelp"} <= set(tags)
+    assert {"promo:PROMO1", "import:bothelp"} <= set(tags)
 
 
-def test_new_contact_gets_bothelp_source(tmp_path):
-    path = write_csv(tmp_path, row(8, start="c1-test"), row(9))
+def test_new_contact_keeps_all_fields_and_bothelp_source(tmp_path):
+    path = write_csv(
+        tmp_path,
+        row(TG + 8, start="c1-test", last="Иванова", phone="+79990001122", email="a@b.ru"),
+        row(TG + 9),
+    )
     store = Store(":memory:")
     bi.apply_plan(bi.parse_export(path, EXPORTED), store)
-    assert {c["user_id"]: c["source"] for c in store.contacts()} == {"tg:8": "bothelp:c1-test", "tg:9": "bothelp"}
-    assert store.first_name("tg:8") == "Аня"
+    by_id = {c["user_id"]: c for c in store.contacts()}
+    first = by_id[f"tg:{TG + 8}"]
+    assert first["source"] == "bothelp:c1-test"
+    assert (first["last_name"], first["phone"], first["email"]) == ("Иванова", "+79990001122", "a@b.ru")
+    assert by_id[f"tg:{TG + 9}"]["source"] == "bothelp"
+    assert store.first_name(f"tg:{TG + 8}") == "Аня"
 
 
-def test_email_and_phone_are_counted_not_imported(tmp_path):
-    plan = bi.parse_export(write_csv(tmp_path, row(1, email="a@b.ru"), row(2)), EXPORTED)
-    assert plan.lost_contacts == 1
-    assert "email или телефон у 1" in bi.report(plan)
+def test_old_database_gets_new_contact_columns(tmp_path):
+    import sqlite3
+
+    db = str(tmp_path / "old.db")
+    raw = sqlite3.connect(db)
+    raw.execute(
+        "CREATE TABLE contacts (user_id TEXT PRIMARY KEY, username TEXT, name TEXT, first_name TEXT, "
+        "source TEXT, first_seen REAL NOT NULL, last_seen REAL NOT NULL)"
+    )
+    raw.execute("INSERT INTO contacts VALUES ('tg:1', 'u', 'N', 'F', NULL, 1, 2)")
+    raw.commit()
+    raw.close()
+    store = Store(db)
+    assert store.contacts()[0]["username"] == "u" and store.contacts()[0]["phone"] is None
+    assert store.import_contact("tg:1", None, None, None, 0.5, 3, phone="+7")  is False
+    assert store.contacts()[0]["phone"] == "+7"
 
 
 def test_cli_dry_run_writes_nothing_and_apply_writes(tmp_path, capsys):
-    path = write_csv(tmp_path, row(11, bi.TAG_YES), row(12, days="5"))
+    path = write_csv(tmp_path, row(TG + 11, bi.TAG_YES), row(TG + 12, days="5"))
     db = str(tmp_path / "bot.db")
     assert bi.main([path, "--db", db]) == 0
     assert "пробный запуск" in capsys.readouterr().out
@@ -115,7 +179,7 @@ def test_cli_dry_run_writes_nothing_and_apply_writes(tmp_path, capsys):
 
 
 def test_cli_needs_export_date(tmp_path, capsys):
-    path = write_csv(tmp_path, row(1), name="contacts.csv")
+    path = write_csv(tmp_path, row(TG + 1), name="contacts.csv")
     assert bi.main([path, "--db", str(tmp_path / "x.db")]) == 2
     assert "--exported-at" in capsys.readouterr().err
     assert bi.main([path, "--db", str(tmp_path / "x.db"), "--exported-at", "2026-10-21"]) == 0

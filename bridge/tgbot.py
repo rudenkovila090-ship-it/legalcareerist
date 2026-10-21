@@ -226,7 +226,7 @@ def leads_csv(leads: list[dict], flows: Flows) -> bytes:
 def contacts_csv(contacts: list[dict], store: Store) -> bytes:
     buf = io.StringIO()
     writer = csv.writer(buf)
-    writer.writerow(["Дата первого обращения (UTC)", "Username", "Имя", "ID", "Источник", "Метки"])
+    writer.writerow(["Дата первого обращения (UTC)", "Username", "Имя", "ID", "Источник", "Метки", "Фамилия", "Телефон", "Email"])
     for c in contacts:
         writer.writerow(
             [
@@ -236,6 +236,9 @@ def contacts_csv(contacts: list[dict], store: Store) -> bytes:
                 c["user_id"].removeprefix("tg:"),
                 _safe_cell(c["source"]),
                 _safe_cell(", ".join(store.tags(c["user_id"]))),
+                _safe_cell(c["last_name"]),
+                _safe_cell(c["phone"]),
+                _safe_cell(c["email"]),
             ]
         )
     return ("﻿" + buf.getvalue()).encode("utf-8")

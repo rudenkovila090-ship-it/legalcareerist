@@ -88,7 +88,10 @@ class Store:
                     first_name TEXT,
                     source TEXT,
                     first_seen REAL NOT NULL,
-                    last_seen REAL NOT NULL
+                    last_seen REAL NOT NULL,
+                    last_name TEXT,
+                    phone TEXT,
+                    email TEXT
                 );
                 CREATE TABLE IF NOT EXISTS subscriptions (
                     user_id TEXT PRIMARY KEY,
@@ -117,6 +120,10 @@ class Store:
             columns = {row[1] for row in self._db.execute("PRAGMA table_info(conversations)")}
             if "source" not in columns:  # миграция БД, созданной до появления Telegram-бота
                 self._db.execute("ALTER TABLE conversations ADD COLUMN source TEXT")
+            contact_columns = {row[1] for row in self._db.execute("PRAGMA table_info(contacts)")}
+            for column in ("last_name", "phone", "email"):  # миграция БД, созданной до переноса из BotHelp
+                if column not in contact_columns:
+                    self._db.execute(f"ALTER TABLE contacts ADD COLUMN {column} TEXT")
 
     # --- дедупликация (повторные доставки вебхуков/обновлений) ---
     def seen(self, key: str) -> bool:
@@ -320,27 +327,36 @@ class Store:
     def contacts(self) -> list[dict]:
         with self._lock:
             rows = self._db.execute(
-                "SELECT user_id, username, name, source, first_seen, last_seen FROM contacts ORDER BY first_seen"
+                "SELECT user_id, username, name, source, first_seen, last_seen, last_name, phone, email "
+                "FROM contacts ORDER BY first_seen"
             ).fetchall()
-        return [
-            {"user_id": r[0], "username": r[1], "name": r[2], "source": r[3], "first_seen": r[4], "last_seen": r[5]}
-            for r in rows
-        ]
+        keys = ("user_id", "username", "name", "source", "first_seen", "last_seen", "last_name", "phone", "email")
+        return [dict(zip(keys, r)) for r in rows]
 
     def import_contact(
-        self, user_id: str, name: str | None, first_name: str | None, source: str | None, first_seen: float, last_seen: float
+        self,
+        user_id: str,
+        name: str | None,
+        first_name: str | None,
+        source: str | None,
+        first_seen: float,
+        last_seen: float,
+        last_name: str | None = None,
+        phone: str | None = None,
+        email: str | None = None,
     ) -> bool:
         """Переносит контакт из другого сервиса с его настоящими датами. Живые данные не затирает.
         Возвращает True, если контакта у нас ещё не было."""
         with self._lock, self._db:
             is_new = self._db.execute("SELECT 1 FROM contacts WHERE user_id = ?", (user_id,)).fetchone() is None
             self._db.execute(
-                "INSERT INTO contacts (user_id, username, name, first_name, source, first_seen, last_seen) "
-                "VALUES (?, NULL, ?, ?, ?, ?, ?) "
+                "INSERT INTO contacts (user_id, username, name, first_name, source, first_seen, last_seen, "
+                "last_name, phone, email) VALUES (?, NULL, ?, ?, ?, ?, ?, ?, ?, ?) "
                 "ON CONFLICT(user_id) DO UPDATE SET name=COALESCE(name, excluded.name), "
                 "first_name=COALESCE(first_name, excluded.first_name), source=COALESCE(source, excluded.source), "
-                "first_seen=MIN(first_seen, excluded.first_seen)",
-                (user_id, name, first_name, source, first_seen, last_seen),
+                "first_seen=MIN(first_seen, excluded.first_seen), last_name=COALESCE(last_name, excluded.last_name), "
+                "phone=COALESCE(phone, excluded.phone), email=COALESCE(email, excluded.email)",
+                (user_id, name, first_name, source, first_seen, last_seen, last_name, phone, email),
             )
         return is_new
 

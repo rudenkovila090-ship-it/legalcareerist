@@ -358,7 +358,7 @@ def test_stats_and_contacts_commands(tmp_path):
     run(bot, from_managers("/contacts"))
     doc = next(c for c in api.calls if c[0] == "doc")
     rows = list(csv.reader(io.StringIO(doc[3].decode("utf-8-sig"))))
-    assert rows[0][1:] == ["Username", "Имя", "ID", "Источник", "Метки"]
+    assert rows[0][1:] == ["Username", "Имя", "ID", "Источник", "Метки", "Фамилия", "Телефон", "Email"]
     assert rows[1][1:5] == ["ivan", "Иван", str(CLIENT), "hello__ig_bio"] or rows[1][1:4] == ["ivan", "Иван", str(CLIENT)]
     assert "got:consult" in rows[1][5]
 
