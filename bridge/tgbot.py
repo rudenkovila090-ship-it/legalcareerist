@@ -342,6 +342,9 @@ class LeadBot:
         if self.exit and cmd == "unsubscribe":
             await self._exit_start(client_id, chat_id)
             return
+        if cmd == "testsub" and await self._is_manager(user["id"]):  # менеджеру удобно проверить и из личной переписки
+            await self._test_subscription(msg)
+            return
 
         if cmd == "start":
             payload = UNSAFE_SOURCE.sub("", arg)[:SOURCE_MAX]
@@ -683,6 +686,13 @@ class LeadBot:
         elif cmd is None and msg.get("reply_to_message"):
             await self._forward_reply(msg, chat_id)
 
+    async def _is_manager(self, user_id: int) -> bool:
+        try:
+            member = await self.api.get_chat_member(self.s.manager_chat_id, user_id)
+        except TelegramError:
+            return False
+        return member.get("status") in ("creator", "administrator", "member") or bool(member.get("is_member"))
+
     async def _test_subscription(self, msg: dict) -> None:
         """Присылает менеджеру в личку три сообщения о подписке с условными данными."""
         chat_id, user = str(msg["chat"]["id"]), msg.get("from") or {}
@@ -704,7 +714,8 @@ class LeadBot:
                 chat_id, "Не получилось написать вам в личку. Откройте чат с ботом, нажмите «Старт» и повторите /testsub."
             )
             return
-        await self.api.send_message(chat_id, "Тест отправлен вам в личные сообщения.")
+        if chat_id != str(user["id"]):  # команда была в группе менеджеров, а не в личке
+            await self.api.send_message(chat_id, "Тест отправлен вам в личные сообщения.")
 
     def _stats_text(self) -> str:
         lines = [f"Контактов: {len(self.store.contacts())}, заявок: {self.store.count_leads()}"]

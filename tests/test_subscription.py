@@ -9,7 +9,7 @@ from bridge.store import Store
 from bridge.subscription import compose, load_subscription, sample_messages
 from bridge.tgbot import LeadBot, TelegramError
 from conftest import ROOT
-from test_tgbot import MANAGERS, FakeAPI, from_managers, make_settings, run
+from test_tgbot import CLIENT, MANAGERS, FakeAPI, from_managers, make_settings, private, run
 
 PATH = str(ROOT / "config" / "subscription.json")
 ME = 42  # id менеджера в from_managers
@@ -19,9 +19,15 @@ TODAY = dt.date(2026, 10, 21)
 class StrictAPI(FakeAPI):
     """Telegram не даёт писать тому, кто не нажимал «Старт» у бота."""
 
-    def __init__(self, blocked=()):
+    def __init__(self, blocked=(), managers=()):
         super().__init__()
         self.blocked = {str(b) for b in blocked}
+        self.managers = {str(m) for m in managers}
+
+    async def get_chat_member(self, chat_id, user_id):
+        if str(user_id) not in self.managers:
+            raise TelegramError("getChatMember: Bad Request: user not found (HTTP 400)")
+        return {"status": "member"}
 
     async def send_message(self, chat_id, text, **kw):
         if str(chat_id) in self.blocked:
@@ -89,3 +95,16 @@ def test_testsub_reports_broken_texts_instead_of_crashing(clock, tmp_path):
     api = StrictAPI()
     run(make_bot(clock, api, str(broken)), from_managers("/testsub"))
     assert "Не удалось прочитать тексты" in api.sent_to(MANAGERS)[-1][2] and api.sent_to(ME) == []
+
+
+def test_testsub_also_works_in_private_chat_for_managers(clock):
+    api = StrictAPI(managers=[CLIENT])
+    run(make_bot(clock, api), private("/testsub"))
+    texts = [c[2] for c in api.sent_to(CLIENT)]
+    assert len(texts) == 4 and "оплата прошла" in texts[1] and "Списали" in texts[3]  # без лишнего «тест отправлен»
+
+
+def test_testsub_in_private_chat_is_ignored_for_strangers(clock):
+    api = StrictAPI()
+    run(make_bot(clock, api), private("/testsub"))
+    assert not any("оплата прошла" in c[2] or "Тест:" in c[2] for c in api.sent_to(CLIENT))
