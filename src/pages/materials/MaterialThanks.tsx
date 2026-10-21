@@ -3,7 +3,7 @@ import PageHero from '../../components/PageHero'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import { usePaymentGoal } from '../../lib/paymentGoal'
 
-const BOT_USERNAME = 'legalcareerist_bot'
+const BOT_USERNAME = 'LegalcareeristBot'
 
 // Страница после оплаты материала — Prodamus возвращает сюда (urlSuccess в server/index.js, /api/marketplace/purchase).
 // Личного кабинета и скачивания по ссылке нет: файл приходит на почту, а в Telegram — по кнопке ниже

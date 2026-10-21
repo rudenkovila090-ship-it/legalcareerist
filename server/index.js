@@ -3,7 +3,7 @@
 // 2. POST /api/community/subscribe — выбор тарифа на сайте → подписанная
 //    ссылка на оплату в Prodamus (идентификация клиента по телефону, без
 //    tg_user_id — на этом шаге человек ещё не открывал бота).
-// 3. POST /api/telegram/webhook — апдейты бота @legalcareerist_bot: по
+// 3. POST /api/telegram/webhook — апдейты бота @LegalcareeristBot: по
 //    /start access_<token> проверяет, оплачена ли заявка, и присылает
 //    ссылку на вступление в сообщество (сразу либо как только придёт
 //    вебхук об оплате).
@@ -236,7 +236,7 @@ async function downloadTelegramFile(fileId) {
   return Buffer.from(await res.arrayBuffer())
 }
 
-const BOT_USERNAME = (process.env.BOT_USERNAME || 'legalcareerist_bot').replace(/^@/, '')
+const BOT_USERNAME = (process.env.BOT_USERNAME || 'LegalcareeristBot').replace(/^@/, '')
 
 /** Письмо покупателю с материалом: PDF во вложении (если загружен), ссылка (если задана) и кнопка «получить в Telegram». Возвращает { ok, error? }. */
 async function emailMaterial({ to, name, materialSlug, token }) {
@@ -1413,7 +1413,7 @@ app.post('/api/event/:slug/checkout', async (req, res) => {
   }
 })
 
-// Апдейты от Telegram-бота @legalcareerist_bot. Настраивается один раз
+// Апдейты от Telegram-бота @LegalcareeristBot. Настраивается один раз
 // командой setWebhook (см. README сервера).
 // Ожидание текстового ответа от админа (сумма выручки, данные новой сделки):
 // chatId → { type, number? }. Живёт в памяти — после перезапуска сервера просто нажмите кнопку ещё раз.

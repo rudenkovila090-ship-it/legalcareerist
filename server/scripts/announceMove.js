@@ -1,4 +1,7 @@
-// Разовое сообщение пользователям нынешнего бота: «мы переехали в другого бота». Запускать ДО замены токена,
+// НЕ ЗАПУСКАТЬ в нынешнем виде. Переезд идёт с BotHelp-бота на нашего (@LegalcareeristBot, токен в server/.env не меняется):
+// сообщение «мы переехали» отправляет BotHelp-бот рассылкой из BotHelp. Этот скрипт пишет от имени бота из server/.env, то есть от
+// нашего нового бота, которому люди ещё не писали, и Telegram такие сообщения не доставит (см. docs/bot-move.md).
+// Прежнее назначение: разовое сообщение пользователям нынешнего бота «мы переехали в другого бота». Запускать ДО замены токена,
 // пока сервер ещё работает от имени прежнего бота (скриптом scripts/setup-bot.sh токен меняется уже после).
 //   node --env-file=.env scripts/announceMove.js --dry   — только посчитать, кому уйдёт
 //   node --env-file=.env scripts/announceMove.js         — отправить
@@ -7,7 +10,7 @@
 import { listBotUsers } from '../lib/botUsers.js'
 import { listJoins } from '../lib/store.js'
 
-const NEW_BOT = (process.env.NEW_BOT_USERNAME || 'legalcareerist_bot').replace(/^@/, '')
+const NEW_BOT = (process.env.NEW_BOT_USERNAME || 'LegalcareeristBot').replace(/^@/, '')
 const TEXT = `Мы переехали! 🚀\n\nБот «Карьерный юрист» теперь работает здесь: @${NEW_BOT}\n\nОткройте его и нажмите Start — подписка, доступ и все данные сохранены. Этот бот скоро перестанет отвечать.`
 const dry = process.argv.includes('--dry')
 const token = process.env.TELEGRAM_BOT_TOKEN

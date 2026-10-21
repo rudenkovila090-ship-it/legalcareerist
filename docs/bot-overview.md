@@ -1,10 +1,10 @@
-# Telegram-бот @legalcareerist_bot: что сделано и как устроено
+# Telegram-бот @LegalcareeristBot: что сделано и как устроено
 
 Документ для соседнего чата и для владельца. Составлен 21.10.2026 по коду репозитория (ветка `claude/website-example-build-ygtjbs`), а не по памяти: пути и названия можно проверить поиском по `server/`.
 
 ## 1. Главное в двух абзацах
-- Бот написан самостоятельно (Node.js, без конструкторов) и **живёт в одном процессе с бэкендом сайта**: `server/index.js`, процесс pm2 `legalcareerist-api`. Бот получает сообщения сам, опросом Telegram (long polling; отключается `TELEGRAM_POLLING=0`). Вебхук Telegram не нужен. **Свой** вебхук (на наш сайт) сервер при запуске снимает сам, а **чужой (BotHelp) не трогает**: пока бот подключён к BotHelp, опрос не запускается, а админу раз в 6 часов приходит предупреждение «бот подключён к другому сервису». Отключить бота от BotHelp нужно вручную (см. `docs/bot-move.md`, шаг 3).
-- Он заменил бота из BotHelp: воронка (старт, согласие, меню, маркет, сообщество, консультации), подписки сообщества через Prodamus, выдача материалов, кабинет администратора, уведомления, учёт денег и людей. Почти всё сделано в чате с сессией `01D96PdeZ8GLZoSExXess9uo` (со 2-й половины сентября; поиск: `git log --grep=session_01D96PdeZ8GLZoSExXess9uo`).
+- Бот написан самостоятельно (Node.js, без конструкторов) и **живёт в одном процессе с бэкендом сайта**: `server/index.js`, процесс pm2 `legalcareerist-api`. Бот получает сообщения сам, опросом Telegram (long polling; отключается `TELEGRAM_POLLING=0`). Вебхук Telegram не нужен: у @LegalcareeristBot вебхука нет, он работает на сервере. (Код при запуске снимает свой вебхук на наш сайт, а чужой не трогает: если бы бот был подключён к другому сервису, опрос не запустился бы, а админу пришло бы предупреждение.)
+- Он заменяет бота из BotHelp (@legalcareerist_bot), людей переносим к нему без смены токена: воронка (старт, согласие, меню, маркет, сообщество, консультации), подписки сообщества через Prodamus, выдача материалов, кабинет администратора, уведомления, учёт денег и людей. Почти всё сделано в чате с сессией `01D96PdeZ8GLZoSExXess9uo` (со 2-й половины сентября; поиск: `git log --grep=session_01D96PdeZ8GLZoSExXess9uo`).
 
 ## 2. Что сделано, по датам
 | Дата | Что |
@@ -17,7 +17,7 @@
 | 12.10 | Материалы без кабинета покупателя: PDF на почту и в Telegram (кнопка «Получить в Telegram»), отзывы о материалах, команда `/material`, имитация оплаты без денег |
 | 12.10 | Prodamus: отдельные платёжные страницы для материалов и мероприятий; бот не отвечает в групповых чатах; вопрос «Откуда вы о нас узнали?» во всех формах; промокоды на билеты |
 | 13.10 | Оплата билета засчитывается только по подписанному уведомлению Prodamus; согласия на формах; автосроки хранения ПД; удаление данных по запросу; закрыто публичное зеркало данных |
-| 14.10 | Переезд на `@legalcareerist_bot` заменой токена (`scripts/setup-bot.sh`); загрузка выгрузки BotHelp командой `/import`; `announceMove.js` («мы переехали») |
+| 14.10 | Подготовка переезда с BotHelp-бота (@legalcareerist_bot) на нашего (@LegalcareeristBot): загрузка выгрузки BotHelp командой `/import`. Скрипты `setup-bot.sh` (смена токена) и `announceMove.js` для этого переезда не нужны и в нынешнем виде не запускаются |
 | 17–21.10 | `/stop_newsletter`; оферты на лонглисты, гайды и мероприятие в боте; карточка лонглиста «Юридические мероприятия» (990 ₽, «в разработке, но есть оферта»); билет мероприятия PDF на почте; в карточке регистрации в боте кнопка «🎟 Выслать билет на почту» |
 
 ## 3. Карта кода (`server/`)
@@ -27,7 +27,7 @@
 - Подписки и деньги: `store.js` (карточки подписчиков, оплаты), `prodamus.js` (ссылки на оплату и подпись), `hmac.js`, `webhookLog.js`, `deals.js`, `expenses.js`, `promoCodes.js`, `ambassadors.js`.
 - Материалы: `materialsStore.js`, `materialFiles.js` (PDF хранятся как Telegram `file_id`), `materialReviews.js`. Мероприятия: `eventLeads.js`, `ticketCounter.js`, `ticketImage.js`/`ticketMail.js`/`simplePdf.js` (билет), `eventStats.js`.
 - Данные и ПД: `consentLog.js`, `personData.js` (реестр хранилищ), `retention.js` (автосроки), `erasure.js` (удаление по запросу), `healthBackup.js`.
-- Перенос из BotHelp: `botHelpImport.js`, `scripts/importBotHelp.js`, `scripts/announceMove.js`. Подробности и порядок: `docs/bot-move.md`.
+- Перенос из BotHelp: `botHelpImport.js`, `scripts/importBotHelp.js` (людей загружает и команда `/import`). `scripts/announceMove.js` не запускать (см. `docs/bot-move.md`). Подробности и порядок: `docs/bot-move.md`.
 
 ## 4. Как пользоваться ботом
 Клиенту: `/start`, `/start access_<токен>` (после оплаты подписки на сайте), `/start mat_<токен>` (получить купленный материал), `/menu` или `/cabinet`, `/stop_newsletter` (отказаться от рекламы), `/id`.
@@ -40,21 +40,21 @@
 Три платёжные страницы, у каждой свой домен и секретный ключ: общая (подписки), материалы (`PRODAMUS_MATERIALS_*`), мероприятия (`PRODAMUS_EVENTS_*`, подключена 21.10.2026). Вебхук: `/api/prodamus/webhook`. Засчитывается только уведомление с верной подписью. Заказ узнаётся так: билет — `order_id` вида `ev-<номер регистрации>`, материал — по токену покупки, подписка — по телефону, почте или нику. Каждое уведомление целиком пишется в `data/prodamus-webhooks.jsonl`. Ключи в чат и репозиторий не кладём; заводятся скриптом `bash scripts/setup-prodamus.sh materials|events`.
 
 ## 7. Настройки (`server/.env`, в git не хранятся)
-Токен и чаты: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_ADMIN_CHAT_ID`, `TELEGRAM_VIEWER_CHAT_IDS` (помощники только смотрят), `COMMUNITY_CHAT_ID`, `COMMUNITY_INVITE_LINK`, `BOT_USERNAME`. Почта: `SMTP_HOST/PORT/USER/PASS/FROM` (скрипты `scripts/setup-mail.sh`, `scripts/test-mail.sh`). Сайт: `SITE_URL`, `SUPPORT_HANDLE`, `FEEDBACK_URL`. Подписки: `LIFETIME_IDS`, `LIFETIME_USERNAMES` (бессрочный доступ). Ссылки доступа к материалам: `GUIDE_NOTARIAT_ACCESS_URL`, `GUIDE_GRANTS_ACCESS_URL`, `LONGLIST_EVENTS_ACCESS_URL`. Смена токена бота: только `bash scripts/setup-bot.sh` (проверяет токен, делает копию `.env`, перезапускает бота).
+Токен и чаты: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_ADMIN_CHAT_ID`, `TELEGRAM_VIEWER_CHAT_IDS` (помощники только смотрят), `COMMUNITY_CHAT_ID`, `COMMUNITY_INVITE_LINK`, `BOT_USERNAME` (по умолчанию `LegalcareeristBot`). Почта: `SMTP_HOST/PORT/USER/PASS/FROM` (скрипты `scripts/setup-mail.sh`, `scripts/test-mail.sh`). Сайт: `SITE_URL`, `SUPPORT_HANDLE`, `FEEDBACK_URL`. Подписки: `LIFETIME_IDS`, `LIFETIME_USERNAMES` (бессрочный доступ). Ссылки доступа к материалам: `GUIDE_NOTARIAT_ACCESS_URL`, `GUIDE_GRANTS_ACCESS_URL`, `LONGLIST_EVENTS_ACCESS_URL`. Токен нашего бота (@LegalcareeristBot) уже записан в `server/.env`, при переезде с BotHelp его менять не нужно. Скрипт смены токена `bash scripts/setup-bot.sh` для переезда не запускать.
 
 ## 8. Данные (`server/data/`, не в git)
 `bot-users.json` (люди и метки), `pending-joins.json` (подписки), `material-purchases.json`, `material-files.json`, `material-reviews.json`, `event-leads.json` (регистрации и заявки), `promo-codes.json`, `deals.json`, `expenses.json`, `consultation-orders.json`, `reserve-candidates.json`, `interests.json`, `ambassadors.json`, `candidate-applications.json`, `todos.json` (список «Доработки» в боте), `audit.jsonl`, `consent-log.jsonl`, `lead-sources.jsonl`, `prodamus-webhooks.jsonl` и др. Каталоги вакансий, материалов и мероприятий (`*-catalog.json`) создаются при сборке сайта (`scripts/export-vacancy-catalog.mjs`) из `src/data/*`. Новое хранилище с персональными данными нужно добавить в `lib/personData.js`, иначе оно не попадёт под автосроки и удаление.
 
 ## 9. Что не сделано по боту
-- **Идёт в соседнем чате:** перенос людей из BotHelp и настройка бота.
+- **Идёт в соседнем чате:** перенос людей из BotHelp и настройка бота. Людей загружает команда `/import` без смены токена, сообщение «мы переехали» отправляет BotHelp-бот рассылкой из BotHelp (порядок и предупреждения: `docs/bot-move.md`).
 - **Уведомление в Telegram после оплаты** (билет, материал, подписка, что угодно): на странице после оплаты и в письме кнопка «Получить в Telegram», бот присылает то же самое. Для материалов (`start=mat_<токен>`) и подписки (`start=access_<токен>`) ссылка есть; для билетов (например, `start=tkt_<токен>`) её нужно добавить. Делаем после того, как бот заработает.
 - Напоминание о мероприятии в боте (только согласившимся на рассылку, с кнопкой «Отказаться»); сейчас напоминания уходят письмами.
 - Из списка «Система → Доработки» (`lib/todos.js`, SEED; что отмечено выполненным, видно только в боте): выгрузка платежей Prodamus в учёт, проверка доставки вебхуков, PDF материалов боту, перевыпуск токена через @BotFather, номера подписок Prodamus для тарифов 12 мес., 350, 500, 530 ₽ и вход по промокоду, баллы и уровни, отмена подписки из бота прямо в Prodamus, `FEEDBACK_URL`, картинки блоков воронки, Google-таблица.
 
 ## 10. Правила работы, чтобы не сломать
 1. Одна ветка `claude/website-example-build-ygtjbs`. Перед работой: `git pull --rebase origin claude/website-example-build-ygtjbs`; после: коммит и `git push`. Бот и сайт в одном файле `server/index.js`, поэтому правки двух чатов легко пересекаются.
-2. `server/data/` и `server/.env` не коммитить и не терять: там люди, подписки, деньги. Перед массовыми действиями делать пробный запуск (`--dry` у `announceMove.js` и `importBotHelp.js`).
-3. Не запускать второй процесс бота с тем же токеном. Пока бот подключён к BotHelp (стоит его вебхук), наш сервер сообщения не получает: сначала отключите бота в BotHelp (или снимите вебхук, см. `docs/bot-move.md`, шаг 3).
+2. `server/data/` и `server/.env` не коммитить и не терять: там люди, подписки, деньги. Перед массовыми действиями делать пробный запуск (`--dry` у `importBotHelp.js` и `importPayments.js`).
+3. Не запускать второй процесс бота с тем же токеном. Токен не менять: `scripts/setup-bot.sh` и `server/scripts/announceMove.js` для переезда с BotHelp не запускать.
 4. Рекламная рассылка только тем, кто согласился (`mailingConsent`); отказ работает кнопкой и командой `/stop_newsletter`.
 5. Деплой: на сервере `cd /var/www/legalcareerist && bash deploy.sh` (подтянуть, поставить зависимости, собрать сайт, перезапустить бота). Проверка бота после перезапуска: «Система» в админ-кабинете.
 6. Связанные документы: `docs/bot-move.md` (переезд и импорт), `docs/prodamus-subscriptions.md`, `docs/personal-data-map.md` (где какие данные), `docs/tickets.md` (билеты).

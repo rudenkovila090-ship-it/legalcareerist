@@ -4,7 +4,7 @@
 // Параметр startParam долетает до бота как payload команды /start —
 // бэкенд (server/index.js, /api/telegram/webhook) разбирает его и для
 // resident_<tariffId> сразу присылает подписанную ссылку на оплату подписки.
-export const TELEGRAM_BOT_USERNAME = 'legalcareerist_bot'
+export const TELEGRAM_BOT_USERNAME = 'LegalcareeristBot'
 export const TELEGRAM_BOT_DISPLAY_NAME = 'Карьерный юрист | Помощник'
 
 export function openTelegramBot(startParam: string) {
