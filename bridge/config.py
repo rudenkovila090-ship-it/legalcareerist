@@ -56,6 +56,7 @@ class Settings:
     channel_url: str = ""
     funnels_path: str = "config/funnels.json"
     exit_survey_path: str = "config/exit_survey.json"
+    subscription_path: str = "config/subscription.json"
     community_chat_id: str = ""  # чат сообщества: если задан, при отписке бот убирает человека из чата
     human_mode_hours: int = 12
     notify_comment_leads: bool = False
@@ -96,6 +97,7 @@ class Settings:
             channel_url=get("CHANNEL_URL"),
             funnels_path=get("FUNNELS_PATH", cls.funnels_path),
             exit_survey_path=get("EXIT_SURVEY_PATH", cls.exit_survey_path),
+            subscription_path=get("SUBSCRIPTION_PATH", cls.subscription_path),
             community_chat_id=get("COMMUNITY_CHAT_ID"),
             human_mode_hours=int(get("HUMAN_MODE_HOURS", str(cls.human_mode_hours))),
             notify_comment_leads=get("NOTIFY_COMMENT_LEADS").lower() in {"1", "true", "yes", "on"},
@@ -120,6 +122,7 @@ class TelegramSettings:
     channel_url: str = ""
     funnels_path: str = "config/funnels.json"
     exit_survey_path: str = "config/exit_survey.json"
+    subscription_path: str = "config/subscription.json"
     community_chat_id: str = ""
     human_mode_hours: int = 12
     force_polling: bool = False
@@ -155,6 +158,7 @@ class TelegramSettings:
             channel_url=get("CHANNEL_URL"),
             funnels_path=get("FUNNELS_PATH", cls.funnels_path),
             exit_survey_path=get("EXIT_SURVEY_PATH", cls.exit_survey_path),
+            subscription_path=get("SUBSCRIPTION_PATH", cls.subscription_path),
             community_chat_id=get("COMMUNITY_CHAT_ID"),
             human_mode_hours=int(get("HUMAN_MODE_HOURS", str(cls.human_mode_hours))),
             force_polling=get("TG_FORCE_POLLING").lower() in {"1", "true", "yes", "on"},

@@ -226,6 +226,10 @@ class Store:
                 (user_id, tag[:100], time.time()),
             )
 
+    def remove_tag(self, user_id: str, tag: str) -> None:
+        with self._lock, self._db:
+            self._db.execute("DELETE FROM user_tags WHERE user_id = ? AND tag = ?", (user_id, tag))
+
     def tags(self, user_id: str) -> list[str]:
         with self._lock:
             rows = self._db.execute(

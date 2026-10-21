@@ -16,6 +16,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import csv
+import datetime as dt
 import io
 import logging
 import re
@@ -38,6 +39,7 @@ from .funnels import FunnelEngine, Plan, load_funnels
 from .graph import GraphError
 from .logging_setup import setup_logging
 from .store import Conversation, Store
+from .subscription import TEST_NOTE, load_subscription, sample_messages
 from .webhook import DmEvent
 
 log = logging.getLogger("tgbot")
@@ -55,6 +57,7 @@ MANAGER_HELP = (
     "• /contacts: все, кто писал боту, с метками и источниками (CSV)\n"
     "• /stats: статистика воронок и причины ухода из сообщества\n"
     "• /exits: ответы тех, кто хотел уйти из сообщества, файлом CSV\n"
+    "• /testsub: прислать вам тестовые сообщения о подписке (оплата, напоминание, списание)\n"
     "• /chatid: узнать ID чата"
 )
 
@@ -673,10 +676,35 @@ class LeadBot:
             )
         elif cmd == "stats":
             await self.api.send_message(chat_id, self._stats_text())
+        elif cmd == "testsub":
+            await self._test_subscription(msg)
         elif cmd in ("start", "help"):
             await self.api.send_message(chat_id, MANAGER_HELP)
         elif cmd is None and msg.get("reply_to_message"):
             await self._forward_reply(msg, chat_id)
+
+    async def _test_subscription(self, msg: dict) -> None:
+        """Присылает менеджеру в личку три сообщения о подписке с условными данными."""
+        chat_id, user = str(msg["chat"]["id"]), msg.get("from") or {}
+        try:
+            texts = load_subscription(self.s.subscription_path)
+        except (OSError, ValueError) as exc:
+            await self.api.send_message(chat_id, f"Не удалось прочитать тексты подписки: {exc}")
+            return
+        if "id" not in user:
+            await self.api.send_message(chat_id, "Не вижу, кому отправить: напишите /testsub от своего имени, не анонимно.")
+            return
+        today = dt.datetime.fromtimestamp(self._clock(), dt.timezone.utc).date()
+        try:
+            await self.api.send_message(str(user["id"]), TEST_NOTE)
+            for text in sample_messages(texts, user.get("first_name"), today):
+                await self.api.send_message(str(user["id"]), text)
+        except TelegramError:
+            await self.api.send_message(
+                chat_id, "Не получилось написать вам в личку. Откройте чат с ботом, нажмите «Старт» и повторите /testsub."
+            )
+            return
+        await self.api.send_message(chat_id, "Тест отправлен вам в личные сообщения.")
 
     def _stats_text(self) -> str:
         lines = [f"Контактов: {len(self.store.contacts())}, заявок: {self.store.count_leads()}"]

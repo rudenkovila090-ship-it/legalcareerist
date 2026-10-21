@@ -42,4 +42,4 @@ python -m bridge.doctor --url https://<DOMAIN>   # самопроверка
 | Воронки: кодовые слова, материалы, приветствие | `config/funnels.json` |
 | Переменные окружения | `.env.example` |
 | Код | `bridge/` |
-| Тесты (162) | `tests/`: `pip install -r requirements-dev.txt && pytest` |
+| Тесты (172) | `tests/`: `pip install -r requirements-dev.txt && pytest` |

@@ -21,6 +21,7 @@ TELEGRAM_ID_LIMIT = 10**13  # id в Instagram/Facebook длиннее (15-16 ц�
 LONG_ACCESS_DAYS = 3650  # доступ дольше 10 лет: скорее всего выдан вручную или тестовый, просим проверить
 MAX_DATE = dt.date(9999, 12, 31)
 SOURCE = "bothelp"
+MAILING_OWNER = "mailing:owner_yes"  # согласие подтвердил владелец; повторный импорт его не перебивает
 
 
 @dataclass
@@ -38,6 +39,7 @@ class Person:
     tags: list[str]
     promo: str | None
     days: int | None
+    owner_yes: bool = False  # владелец сам подтвердил согласие на рассылку (--allow-mailing)
 
     @property
     def says_yes(self) -> bool:
@@ -49,7 +51,9 @@ class Person:
 
     @property
     def mailing(self) -> str | None:
-        """Одна общая метка для будущих рассылок: разрешено только при «согласен» без «не согласен»."""
+        """Одна общая метка для будущих рассылок: разрешено при «согласен» без «не согласен» или по решению владельца."""
+        if self.owner_yes:
+            return "yes"
         return "yes" if self.says_yes and not self.says_no else "no" if self.says_no else None
 
     @property
@@ -120,7 +124,7 @@ def _merge(a: Person, b: Person) -> Person:
     return a
 
 
-def parse_export(path: str, exported_at: dt.date) -> ImportPlan:
+def parse_export(path: str, exported_at: dt.date, allow_mailing: frozenset[str] = frozenset()) -> ImportPlan:
     plan = ImportPlan(exported_at=exported_at)
     by_id: dict[str, Person] = {}
     with open(path, encoding="utf-8-sig", newline="") as fh:
@@ -154,12 +158,14 @@ def parse_export(path: str, exported_at: dt.date) -> ImportPlan:
             else:
                 by_id[user_id] = person
     plan.people = list(by_id.values())
+    for p in plan.people:
+        p.owner_yes = p.kind == "telegram" and p.user_id.removeprefix("tg:") in allow_mailing
 
     for p in plan.people:
         who = mask(p)
         if p.kind == "chat":
             plan.chats.append(f"{p.name or 'без названия'} ({p.user_id.removeprefix('chat:')})")
-        if p.says_yes and p.says_no:
+        if p.says_yes and p.says_no and not p.owner_yes:
             plan.attention.append(f"{who}: в BotHelp стоят обе метки, «согласен» и «не согласен». Для рассылок считаем, что нельзя.")
         if p.days is not None and p.days >= LONG_ACCESS_DAYS:
             plan.attention.append(f"{who}: осталось {p.days} дн. доступа (выдан вручную или тестовый). Перенёс как есть, проверьте, нужен ли он.")
@@ -190,7 +196,10 @@ def apply_plan(plan: ImportPlan, store: Store) -> dict[str, int]:
         for tag in p.tags:  # метки BotHelp переносятся как есть
             store.add_tag(p.user_id, tag)
         extra = [f"import:{SOURCE}"]  # к ним только добавляем свои
-        if p.mailing:
+        if p.owner_yes:
+            extra += ["mailing:yes", MAILING_OWNER]
+            store.remove_tag(p.user_id, "mailing:no")  # наша же пометка от прошлого импорта
+        elif p.mailing and MAILING_OWNER not in store.tags(p.user_id):  # решение владельца не перебиваем
             extra.append(f"mailing:{p.mailing}")
         if p.promo:
             extra.append(f"promo:{p.promo}")
@@ -245,6 +254,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("file", help="CSV-выгрузка контактов из BotHelp")
     parser.add_argument("--db", default=os.environ.get("DB_PATH", "data/bridge.db"), help="файл базы бота")
     parser.add_argument("--exported-at", help="дата выгрузки ГГГГ-ММ-ДД (по умолчанию из названия файла)")
+    parser.add_argument(
+        "--allow-mailing", nargs="+", default=[], metavar="ID",
+        help="Telegram id людей, чьё согласие на рассылку вы подтверждаете сами (если в BotHelp метки противоречат друг другу)",
+    )
     parser.add_argument("--apply", action="store_true", help="записать в базу (без этого флага только показывает, что будет)")
     args = parser.parse_args(argv)
     setup_logging("WARNING")
@@ -258,7 +271,7 @@ def main(argv: list[str] | None = None) -> int:
         print("Не нашёл дату в названии файла. Укажите её: --exported-at 2026-10-21", file=sys.stderr)
         return 2
 
-    plan = parse_export(args.file, exported_at)
+    plan = parse_export(args.file, exported_at, frozenset(args.allow_mailing))
     print(report(plan))
     if not args.apply:
         print("\nЭто пробный запуск, в базу ничего не записано. Чтобы записать, добавьте --apply")

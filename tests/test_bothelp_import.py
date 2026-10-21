@@ -184,3 +184,34 @@ def test_cli_needs_export_date(tmp_path, capsys):
     assert "--exported-at" in capsys.readouterr().err
     assert bi.main([path, "--db", str(tmp_path / "x.db"), "--exported-at", "2026-10-21"]) == 0
     assert bi.main([path, "--exported-at", "21.10.2026"]) == 2
+
+
+def test_owner_can_confirm_mailing_consent_for_conflicting_tags(tmp_path):
+    uid = f"tg:{TG + 20}"
+    path = write_csv(tmp_path, row(TG + 20, f"{bi.TAG_YES};{bi.TAG_NO}"), row(TG + 21, f"{bi.TAG_YES};{bi.TAG_NO}"))
+    store = Store(":memory:")
+    bi.apply_plan(bi.parse_export(path, EXPORTED), store)  # первый импорт без решения владельца
+    assert "mailing:no" in store.tags(uid)
+
+    plan = bi.parse_export(path, EXPORTED, frozenset({str(TG + 20)}))
+    assert len(plan.attention) == 1 and "…000021" in plan.attention[0]  # по Екатерине вопроса больше нет
+    bi.apply_plan(plan, store)
+    tags = store.tags(uid)
+    assert {"mailing:yes", bi.MAILING_OWNER, bi.TAG_YES, bi.TAG_NO} <= set(tags) and "mailing:no" not in tags
+    assert "mailing:no" in store.tags(f"tg:{TG + 21}")  # остальные не затронуты
+
+    bi.apply_plan(bi.parse_export(path, EXPORTED), store)  # свежая выгрузка без флага не перебивает решение
+    assert "mailing:no" not in store.tags(uid) and "mailing:yes" in store.tags(uid)
+
+
+def test_allow_mailing_only_applies_to_telegram_people(tmp_path):
+    path = write_csv(tmp_path, row("2280384629394930", bi.TAG_NO))
+    plan = bi.parse_export(path, EXPORTED, frozenset({"2280384629394930"}))
+    assert plan.people[0].mailing == "no"
+
+
+def test_cli_allow_mailing(tmp_path):
+    path = write_csv(tmp_path, row(TG + 30, f"{bi.TAG_YES};{bi.TAG_NO}"))
+    db = str(tmp_path / "bot.db")
+    assert bi.main([path, "--db", db, "--allow-mailing", str(TG + 30), "--apply"]) == 0
+    assert "mailing:yes" in Store(db).tags(f"tg:{TG + 30}")
