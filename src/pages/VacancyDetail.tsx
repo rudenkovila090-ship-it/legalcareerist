@@ -1,8 +1,8 @@
 import { Link, useParams } from 'react-router-dom'
 import { vacancies } from '../data/vacancies'
 import { VacancyCard } from '../components/cards'
-import VacancyDetailBody, { VacancyContactsBlock } from '../components/VacancyDetailBody'
-import LeadForm from '../components/LeadForm'
+import VacancyDetailBody from '../components/VacancyDetailBody'
+import VacancyApplyPanel from '../components/VacancyApplyPanel'
 import { getRelatedContent, getSimilar } from '../lib/related'
 import { trackEvent } from '../lib/leads'
 import { useDocumentTitle } from '../lib/useDocumentTitle'
@@ -108,25 +108,7 @@ export default function VacancyDetail() {
           {/* top-20 — под закрепленной шапкой сайта (h-16 = 64px) с запасом,
               иначе заголовок формы уезжает под нее при прокрутке. */}
           <div className="space-y-6 lg:sticky lg:top-20">
-            <LeadForm
-              sourceBlock="kadry"
-              formType="vacancy_application"
-              submitId="btn-vacancy-apply"
-              title="Откликнуться на вакансию"
-              description={`«${vacancy.title}»`}
-              contactLabel="Почта"
-              showPhone
-              showTelegram
-              showResumeUpload
-              showMotivationUpload
-              showCoverLetterUpload
-              showRecommendationUpload
-              requireAll
-              vacancySlug={vacancy.slug}
-              vacancyTitle={vacancy.title}
-              vacancyNumber={vacancy.number}
-            />
-            <VacancyContactsBlock vacancy={vacancy} />
+            <VacancyApplyPanel vacancy={vacancy} />
           </div>
         </aside>
       </div>

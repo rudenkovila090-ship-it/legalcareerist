@@ -7,11 +7,15 @@ import { WORK_FORMATS, WORK_SCHEDULES, EMPLOYMENT_TYPES, type Vacancy } from '..
 
 /** @ник → ссылка на Telegram, адрес почты → mailto, телефон → tel: — в шагах «Как откликнуться». */
 const LINKABLE = /(@[A-Za-z0-9_]{4,32}|[\w.+-]+@[\w-]+(?:\.[\w-]+)+|\+\d[\d\s()-]{9,})/g
-function linkify(text: string): ReactNode[] {
+const digitsOf = (t: string) => t.replace(/\D/g, '')
+function linkify(text: string, vacancy: Vacancy): ReactNode[] {
   return text.split(LINKABLE).map((part, i) => {
     if (i % 2 === 0) return part
-    const href = part.startsWith('@') ? `https://t.me/${part.slice(1)}` : part.startsWith('+') ? `tel:${part.replace(/[^\d+]/g, '')}` : `mailto:${part}`
-    return <a key={i} href={href} className="underline hover:text-ink" {...(href.startsWith('https') ? { target: '_blank', rel: 'noopener noreferrer' } : {})}>{part.trim()}</a>
+    const shown = part.trim()
+    const href = shown.startsWith('@') ? `https://t.me/${shown.slice(1)}` : shown.startsWith('+') ? `tel:${shown.replace(/[^\d+]/g, '')}` : `mailto:${shown}`
+    // клики по контактам для отклика — цели Метрики click_vacancy_contact_* (id btn-… ловит MetrikaTracker); ссылка на канал компании — не отклик
+    const id = shown === vacancy.contactTelegram ? 'btn-vacancy-contact-telegram' : shown === vacancy.contactEmail ? 'btn-vacancy-contact-email' : vacancy.contactPhone && shown.startsWith('+') && digitsOf(shown) === digitsOf(vacancy.contactPhone) ? 'btn-vacancy-contact-phone' : undefined
+    return <a key={i} id={id} href={href} className={`underline hover:text-ink${href.startsWith('tel:') ? ' whitespace-nowrap' : ''}`} {...(href.startsWith('https') ? { target: '_blank', rel: 'noopener noreferrer' } : {})}>{shown}</a>
   })
 }
 
@@ -102,8 +106,13 @@ export default function VacancyDetailBody({ vacancy, extra }: { vacancy: Vacancy
       {extra}
       {stats && (
         <div className="mt-1 text-sm font-semibold text-gold">
-          {stats.views} {pluralRu(stats.views, ['просмотр', 'просмотра', 'просмотров'])} ·{' '}
-          {stats.applications} {pluralRu(stats.applications, ['отклик', 'отклика', 'откликов'])}
+          {stats.views} {pluralRu(stats.views, ['просмотр', 'просмотра', 'просмотров'])}
+          {!vacancy.directApply && (
+            <>
+              {' · '}
+              {stats.applications} {pluralRu(stats.applications, ['отклик', 'отклика', 'откликов'])}
+            </>
+          )}
         </div>
       )}
 
@@ -181,11 +190,11 @@ export default function VacancyDetailBody({ vacancy, extra }: { vacancy: Vacancy
         </ul>
       </div>
 
-      {vacancy.howToApply && vacancy.howToApply.length > 0 && (
+      {vacancy.howToApply && vacancy.howToApply.length > 0 && !vacancy.directApply && (
         <div className="mt-8">
           <h2 className="font-semibold">Как откликнуться</h2>
           <ol className="mt-2 list-inside list-decimal space-y-1 text-ink/70">
-            {vacancy.howToApply.map((step) => <li key={step}>{linkify(step)}</li>)}
+            {vacancy.howToApply.map((step) => <li key={step}>{linkify(step, vacancy)}</li>)}
           </ol>
         </div>
       )}
@@ -231,6 +240,28 @@ export function VacancyContactsBlock({ vacancy }: { vacancy: Vacancy }) {
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+/**
+ * Вместо формы отклика для вакансий, на которые отклики принимает сам работодатель (vacancy.directApply): шаги и контакты.
+ * Резюме и документы кандидатов на сайт не попадают.
+ */
+export function VacancyHowToApplyCard({ vacancy }: { vacancy: Vacancy }) {
+  if (!vacancy.howToApply?.length) return null
+  return (
+    <div className="glass rounded-xl p-6">
+      <div className="font-semibold">Как откликнуться</div>
+      <p className="mt-1 text-sm text-ink/60">«{vacancy.title}»</p>
+      <ol className="mt-4 space-y-3">
+        {vacancy.howToApply.map((step, i) => (
+          <li key={step} className="flex gap-3 text-sm leading-relaxed text-ink/70">
+            <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-ink/[0.06] text-xs font-semibold text-ink">{i + 1}</span>
+            <span className="min-w-0 break-words">{linkify(step, vacancy)}</span>
+          </li>
+        ))}
+      </ol>
     </div>
   )
 }

@@ -70,5 +70,7 @@ export const vacancies: Vacancy[] = [
     publishedAt: '2026-10-21',
     urgent: false,
     employerId: 'e2',
+    // отклики принимает сама компания (контакты в блоке «Как откликнуться»), резюме и документы на сайт не загружаются
+    directApply: true,
   },
 ]

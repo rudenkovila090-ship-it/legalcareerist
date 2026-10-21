@@ -215,6 +215,9 @@ export interface Vacancy extends Tagged {
   contactTelegram?: string
   /** «Как откликнуться» — шаги по порядку; @ники, почта и телефоны в тексте становятся ссылками. */
   howToApply?: string[]
+  /** Отклики принимает работодатель, а не мы: формы отклика на сайте нет, вместо неё справа карточка «Как откликнуться» (howToApply),
+   *  счётчик откликов не показывается. */
+  directApply?: boolean
   companyAddress?: string
   /** Координаты офиса для карты на странице вакансии (Яндекс.Карты). */
   officeCoords?: { lat: number; lng: number }

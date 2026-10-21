@@ -5,11 +5,11 @@ import Testimonials from '../../components/Testimonials'
 import { consultationTestimonials } from '../../data/testimonials'
 import FAQSection from '../../components/FAQSection'
 import { TagRow } from '../../components/Tag'
-import LeadForm from '../../components/LeadForm'
 import PhoneInput from '../../components/PhoneInput'
 import LeadSuccessCard from '../../components/LeadSuccessCard'
 import { submitLead, nextTicketNumber } from '../../lib/leads'
-import VacancyDetailBody, { VacancyContactsBlock } from '../../components/VacancyDetailBody'
+import VacancyDetailBody from '../../components/VacancyDetailBody'
+import VacancyApplyPanel from '../../components/VacancyApplyPanel'
 import { vacancies } from '../../data/vacancies'
 import { salaryLabel } from '../../lib/vacancySalary'
 import { IndustryFilter, EducationFilter } from '../../components/VacancyFilters'
@@ -393,25 +393,7 @@ export default function Candidates() {
                   занимает ~63px), иначе заголовок формы уезжает под них
                   при прокрутке. Замерено через getBoundingClientRect(). */}
               <div className="space-y-6 lg:sticky lg:top-[128px]">
-                <LeadForm
-                  sourceBlock="kadry"
-                  formType="vacancy_application"
-                  submitId="btn-vacancy-apply"
-                  title="Откликнуться на вакансию"
-                  description={`«${selectedVacancy.title}»`}
-                  contactLabel="Почта"
-                  showPhone
-                  showTelegram
-                  showResumeUpload
-                  showMotivationUpload
-                  showCoverLetterUpload
-                  showRecommendationUpload
-                  requireAll
-                  vacancySlug={selectedVacancy.slug}
-                  vacancyTitle={selectedVacancy.title}
-                  vacancyNumber={selectedVacancy.number}
-                />
-                <VacancyContactsBlock vacancy={selectedVacancy} />
+                <VacancyApplyPanel vacancy={selectedVacancy} />
               </div>
             </aside>
           </div>
