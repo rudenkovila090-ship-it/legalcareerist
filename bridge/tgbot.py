@@ -24,6 +24,7 @@ import time
 from collections import Counter
 from dataclasses import replace
 from typing import Any
+from urllib.parse import urlparse
 
 import httpx
 
@@ -804,7 +805,8 @@ async def preflight(
             lines.append(
                 (
                     FAIL,
-                    "у бота включён webhook: токен уже использует другой процесс. Остановите его, возьмите у BotFather "
+                    f"у бота включён webhook (сайт: {urlparse(info['url']).hostname}): токен уже использует другой процесс "
+                    "или сервис. Остановите его, возьмите у BotFather "
                     "новый токен для этого бота или запустите с TG_FORCE_POLLING=1 (старый процесс перестанет получать сообщения)",
                 )
             )

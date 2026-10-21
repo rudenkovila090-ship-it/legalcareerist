@@ -90,6 +90,12 @@ class Store:
                     first_seen REAL NOT NULL,
                     last_seen REAL NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS subscriptions (
+                    user_id TEXT PRIMARY KEY,
+                    plan TEXT NOT NULL,
+                    expires_at REAL NOT NULL,
+                    source TEXT NOT NULL
+                );
                 CREATE TABLE IF NOT EXISTS exit_surveys (
                     user_id TEXT PRIMARY KEY,
                     selected TEXT NOT NULL DEFAULT '[]',
@@ -320,6 +326,47 @@ class Store:
             {"user_id": r[0], "username": r[1], "name": r[2], "source": r[3], "first_seen": r[4], "last_seen": r[5]}
             for r in rows
         ]
+
+    def import_contact(
+        self, user_id: str, name: str | None, first_name: str | None, source: str | None, first_seen: float, last_seen: float
+    ) -> bool:
+        """Переносит контакт из другого сервиса с его настоящими датами. Живые данные не затирает.
+        Возвращает True, если контакта у нас ещё не было."""
+        with self._lock, self._db:
+            is_new = self._db.execute("SELECT 1 FROM contacts WHERE user_id = ?", (user_id,)).fetchone() is None
+            self._db.execute(
+                "INSERT INTO contacts (user_id, username, name, first_name, source, first_seen, last_seen) "
+                "VALUES (?, NULL, ?, ?, ?, ?, ?) "
+                "ON CONFLICT(user_id) DO UPDATE SET name=COALESCE(name, excluded.name), "
+                "first_name=COALESCE(first_name, excluded.first_name), source=COALESCE(source, excluded.source), "
+                "first_seen=MIN(first_seen, excluded.first_seen)",
+                (user_id, name, first_name, source, first_seen, last_seen),
+            )
+        return is_new
+
+    # --- подписки: до какого числа у человека оплачен доступ ---
+    def set_subscription(self, user_id: str, plan: str, expires_at: float, source: str) -> None:
+        with self._lock, self._db:
+            self._db.execute(
+                "INSERT INTO subscriptions (user_id, plan, expires_at, source) VALUES (?, ?, ?, ?) "
+                "ON CONFLICT(user_id) DO UPDATE SET plan=excluded.plan, expires_at=excluded.expires_at, "
+                "source=excluded.source",
+                (user_id, plan, expires_at, source),
+            )
+
+    def subscription(self, user_id: str) -> dict | None:
+        with self._lock:
+            row = self._db.execute(
+                "SELECT plan, expires_at, source FROM subscriptions WHERE user_id = ?", (user_id,)
+            ).fetchone()
+        return {"plan": row[0], "expires_at": row[1], "source": row[2]} if row else None
+
+    def subscriptions(self) -> list[dict]:
+        with self._lock:
+            rows = self._db.execute(
+                "SELECT user_id, plan, expires_at, source FROM subscriptions ORDER BY expires_at"
+            ).fetchall()
+        return [{"user_id": r[0], "plan": r[1], "expires_at": r[2], "source": r[3]} for r in rows]
 
     # --- анкета ухода из сообщества: промежуточное состояние и итоговый журнал ---
     def exit_get(self, user_id: str) -> dict | None:

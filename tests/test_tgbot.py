@@ -353,7 +353,7 @@ def test_preflight_refuses_when_webhook_is_active():
         method = request.url.path.rsplit("/", 1)[-1]
         result = {
             "getMe": {"username": "LegalcareeristBot"},
-            "getWebhookInfo": {"url": "https://other.example.com/hook"},
+            "getWebhookInfo": {"url": "https://other.example.com/hook/secret-part"},
             "getChat": {"title": "Менеджеры"},
         }[method]
         return httpx.Response(200, json={"ok": True, "result": result})
@@ -365,6 +365,8 @@ def test_preflight_refuses_when_webhook_is_active():
 
     lines = asyncio.run(go(make_settings()))
     assert any(icon == FAIL and "webhook" in text for icon, text in lines)
+    text = " ".join(t for _, t in lines)
+    assert "other.example.com" in text and "secret-part" not in text  # показываем сайт, а не секретную часть адреса
 
 
 def test_api_errors_never_contain_the_bot_token():

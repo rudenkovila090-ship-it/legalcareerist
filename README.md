@@ -11,7 +11,7 @@ Instagram: автоответ по кодовому слову (Meta Business Su
 
 Работает отдельно, без Meta, и подходит для сервера в РФ. Воронки выдачи по кодовому слову (вопросы кнопками, проверка подписки на канал, напоминание, опрос, дожим), приветствие по имени, диплинки, анкеты с проверкой телефона, согласие на обработку данных, источники и метки, карточки менеджерам, ответ менеджера клиенту, `/leads`, `/export`, `/contacts`, `/stats`, `/exits`; путь отписки от сообщества с обратной связью (причины → «Продолжить» → «Отписаться»); подсказка «используй кнопки» с передачей вопроса в техподдержку.
 
-Запуск: [docs/TELEGRAM_BOT.md](docs/TELEGRAM_BOT.md). Воронки и связь с Instagram: [docs/FUNNELS.md](docs/FUNNELS.md).
+Запуск: [docs/TELEGRAM_BOT.md](docs/TELEGRAM_BOT.md). Воронки и связь с Instagram: [docs/FUNNELS.md](docs/FUNNELS.md). Переезд с BotHelp (перенос людей, меток, подписок): [docs/MIGRATION_FROM_BOTHELP.md](docs/MIGRATION_FROM_BOTHELP.md).
 
 ```bash
 pip install -r requirements.txt
@@ -19,6 +19,7 @@ python -m bridge.tgbot --find-chat        # узнать ID группы мен�
 python -m bridge.tgbot --check            # проверить настройку
 python -m bridge.tgbot --links            # готовые диплинки для Instagram и QR
 python -m bridge.tgbot                    # запустить
+python -m bridge.bothelp_import файл.csv  # пробный перенос контактов из BotHelp (--apply: записать)
 ```
 
 ## Автоответы в самом Instagram
@@ -41,4 +42,4 @@ python -m bridge.doctor --url https://<DOMAIN>   # самопроверка
 | Воронки: кодовые слова, материалы, приветствие | `config/funnels.json` |
 | Переменные окружения | `.env.example` |
 | Код | `bridge/` |
-| Тесты (151) | `tests/`: `pip install -r requirements-dev.txt && pytest` |
+| Тесты (160) | `tests/`: `pip install -r requirements-dev.txt && pytest` |
