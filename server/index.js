@@ -78,7 +78,8 @@ import { getProfile, saveProfile, grantConsent, addRequest, lastRequest, PRACTIC
 import { DOC_TYPES, LIMITS as DOC_LIMITS, ALLOWED_EXT, MIME as DOC_MIME, listDocuments, usedBytes as docsUsedBytes, addDocument, addVersion, updateDocument, deleteDocument, deleteVersion, versionFile } from './lib/accountDocs.js'
 import { exportPersonData, accountEvents } from './lib/accountData.js'
 import { nextTicketNumber } from './lib/ticketCounter.js'
-import { renderTicket, hasTicketImage, tidyName } from './lib/ticketImage.js'
+import { renderTicket, hasTicketImage } from './lib/ticketImage.js'
+import { composeTicketMail } from './lib/ticketMail.js'
 import { buildDailyReport, mskDayKey, parseReportPeriod } from './lib/dailyReport.js'
 import { logWebhook, lastWebhook } from './lib/webhookLog.js'
 import { FINANCE_KEYBOARD, COMMUNITY_KEYBOARD, sectionScreen, menuScreen, subscribersScreen, planScreen, dueScreen, cancelledScreen, reminderMenuScreen, reminderPreviewScreen, reminderTargets, reminderMessage } from './lib/adminCabinet.js'
@@ -2768,16 +2769,8 @@ async function sendTicketMail(lead, amount) {
       console.error('[ticket] не удалось нарисовать билет, регистрация №', lead.number, err)
     }
   }
-  const greetName = tidyName(lead.name) || lead.name
-  const clock = (iso) => new Date(iso).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Moscow' })
-  const when = event ? `${new Date(event.dateTime).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Moscow' })}, ${clock(event.dateTime)}${event.endDateTime ? `–${clock(event.endDateTime)}` : ''}` : ''
-  const lines = [`${greetName ? `Здравствуйте, ${greetName}!` : 'Здравствуйте!'}`, '', `Оплата получена — вы зарегистрированы на мероприятие «${lead.eventTitle}».`, `Билет: ${lead.tariff}${amount ? ` · ${amount} ₽` : ''}`]
-  if (when) lines.push(`Когда: ${when} (по Москве)`)
-  if (event?.location) lines.push(`Где: ${event.location}`)
-  lines.push(`Номер регистрации: ${lead.number}`)
-  if (ticket) lines.push('', `Ваш именной билет — во вложении к этому письму (${ticket.filename}). Сохраните его на телефон или распечатайте.`)
-  lines.push('', `За день до мероприятия пришлём напоминание на эту почту. Вопросы — ${SUPPORT_HANDLE}`, '', 'Карьерный юрист')
-  const mail = await sendMail({ to: lead.email, subject: `Вы зарегистрированы: ${lead.eventTitle}`, text: lines.join('\n'), attachments: ticket ? [{ filename: ticket.filename, content: ticket.buffer, contentType: ticket.contentType }] : undefined })
+  const { subject, text } = composeTicketMail({ lead, amount, event, ticket, supportHandle: SUPPORT_HANDLE })
+  const mail = await sendMail({ to: lead.email, subject, text, attachments: ticket ? [{ filename: ticket.filename, content: ticket.buffer, contentType: ticket.contentType }] : undefined })
   return { ...mail, ticket: Boolean(ticket && mail.ok), ticketError }
 }
 
