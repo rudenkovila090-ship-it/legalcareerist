@@ -70,3 +70,59 @@ export function composeTicketMail({ lead, amount, event, hasTicket, supportHandl
 
   return { subject: `Вы зарегистрированы: ${lead.eventTitle}`, text, html }
 }
+
+/**
+ * Напоминание участнику: за день до мероприятия (when = 'tomorrow') и в день мероприятия (when = 'today').
+ * То же оформление, что у подтверждения; билет — во вложении, если он есть (hasTicket).
+ */
+export function composeReminderMail({ lead, event, when, hasTicket, supportHandle }) {
+  const today = when === 'today'
+  const title = lead.eventTitle || event.title
+  const greetName = tidyName(lead.name) || lead.name
+  const hello = greetName ? `Здравствуйте, ${greetName}!` : 'Здравствуйте!'
+  const headline = today ? `Сегодня — «${title}».` : `Напоминаем: завтра — «${title}».`
+  const date = `${new Date(event.dateTime).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric', timeZone: MSK })}, ${clock(event.dateTime)}${event.endDateTime ? `–${clock(event.endDateTime)}` : ''} (по Москве)`
+  const where = [event.city, event.location || event.venue].filter(Boolean).join(', ')
+  const chat = event.participantsChat || ''
+  const supportUrl = `https://t.me/${supportHandle.replace(/^@/, '')}`
+  const ticketLine = hasTicket ? 'Ваш именной билет — во вложении к этому письму.' : ''
+
+  const text = [
+    hello,
+    headline,
+    '',
+    `Билет: №${lead.number}`,
+    `Когда: ${date}`,
+    where ? `Где: ${where}` : null,
+    chat ? `Чат участников в Telegram: ${chat}` : null,
+    ticketLine ? '' : null,
+    ticketLine || null,
+    '',
+    `Вопросы — ${supportHandle}`,
+    '',
+    'Карьерный юрист',
+    'Мероприятия',
+    '',
+    `${CONTACTS.phone} | ${CONTACTS.email} | сайт: ${CONTACTS.site}`,
+  ].filter((l) => l !== null).join('\n')
+
+  const p = (inner) => `<p style="margin:0 0 16px">${inner}</p>`
+  const row = (label, value) => `<b>${label}</b> ${value}`
+  const link = (href, label) => `<a href="${esc(href)}" style="color:#45608a">${esc(label)}</a>`
+  const details = [
+    row('Билет:', esc(`№${lead.number}`)),
+    row('Когда:', esc(date)),
+    where && row('Где:', esc(where)),
+    chat && row('Чат участников:', link(chat, 'вступить в Telegram-чат')),
+  ].filter(Boolean)
+  const html = `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.5;color:#283953">${[
+    p(`<b>${esc(hello)}<br>${esc(headline)}</b>`),
+    p(details.join('<br>')),
+    ticketLine && p(esc(ticketLine)),
+    p(`Вопросы — ${link(supportUrl, supportHandle)}`),
+    p('Карьерный юрист<br>Мероприятия'),
+    p(`${link(`tel:${CONTACTS.phone.replace(/[^\d+]/g, '')}`, CONTACTS.phone)} | ${link(`mailto:${CONTACTS.email}`, CONTACTS.email)} | ${link(CONTACTS.site, 'сайт')}`),
+  ].filter(Boolean).join('')}</div>`
+
+  return { subject: `${today ? 'Сегодня' : 'Завтра'}: ${title}`, text, html }
+}

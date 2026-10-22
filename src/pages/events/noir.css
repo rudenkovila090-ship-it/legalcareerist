@@ -3672,6 +3672,26 @@ a.fam-ava:hover {
   letter-spacing: 0.5em;
 }
 /* Строка-ссылка на чат участников: чёрная плашка, как печатная вставка. */
+.rc-download {
+  display: block;
+  margin: 3.6cqw 6cqw 0;
+  padding: 2.8cqw 3cqw;
+  background: #8b1b24;
+  color: #f1e6cb;
+  font: 800 3.9cqw/1.2 Inter, ui-sans-serif, sans-serif;
+  letter-spacing: 0.18em;
+  text-align: center;
+  text-decoration: none;
+  text-transform: uppercase;
+  transition: background 0.2s;
+}
+.rc-download:hover {
+  background: #2a1d12;
+}
+.rc-download:focus-visible {
+  outline: 2px solid #2a1d12;
+  outline-offset: 2px;
+}
 .rc-chat {
   display: block;
   margin: 3.6cqw 6cqw 0;

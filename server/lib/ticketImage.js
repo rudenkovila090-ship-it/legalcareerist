@@ -13,10 +13,14 @@ export const TICKET_TEMPLATES = {
   'dzhazovyy-vecher-dlya-yuristov-2': { file: 'legal-night-jazz-2.png', prefix: 'LNJ2' },
 }
 
-export const hasTicketImage = (slug) => Object.hasOwn(TICKET_TEMPLATES, slug)
+// Регистрации, созданные до переименования мероприятия, хранят прежний адрес: шаблон ищем и по нему.
+const SLUG_ALIASES = { 'yuridicheskaya-noch-dzhaza-2': 'dzhazovyy-vecher-dlya-yuristov-2' }
+const templateSlug = (slug) => SLUG_ALIASES[slug] ?? slug
+
+export const hasTicketImage = (slug) => Object.hasOwn(TICKET_TEMPLATES, templateSlug(slug))
 
 /** Код билета для штрихкода и подписи: LNJ2-000147. */
-export const ticketCode = (slug, number) => `${TICKET_TEMPLATES[slug].prefix}-${String(number).padStart(6, '0')}`
+export const ticketCode = (slug, number) => `${TICKET_TEMPLATES[templateSlug(slug)].prefix}-${String(number).padStart(6, '0')}`
 
 // Библиотека рисования подключается при первом билете, а не при старте сервера: если на сервере она не загрузится,
 // пострадает только вложение, а бот, сайт и письма без билета продолжат работать.
@@ -130,7 +134,7 @@ function fitText(ctx, text, fontFor, maxWidth, size, minSize) {
  * data: { eventSlug, number, name, phone, email, paidAt (мс) }.
  */
 export async function renderTicket({ eventSlug, number, name, phone, email, paidAt = Date.now() }) {
-  const tpl = TICKET_TEMPLATES[eventSlug]
+  const tpl = TICKET_TEMPLATES[templateSlug(eventSlug)]
   if (!tpl) return null
   const lib = await loadCanvas()
   registerFonts(lib)

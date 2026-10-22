@@ -195,6 +195,9 @@ export default function EventDetail() {
   // Оформление вечера с «печатающимся» чеком: показываем его, как только сервер подтвердит оплату (по тому же токену).
   const receipt = useTicketReceipt(story && justPaid ? searchParams.get('t') : null)
   const [receiptOpen, setReceiptOpen] = useState(true)
+  // Скачать именной билет (PDF): есть только у мероприятий, для которых сервер умеет его рисовать (ответ чека: hasTicket).
+  const ticketToken = justPaid ? searchParams.get('t') : null
+  const ticketDownloadUrl = receipt.state === 'paid' && receipt.ticket?.hasTicket && ticketToken ? `/api/ticket/pdf?token=${ticketToken}` : undefined
   const receiptEvent = event && story ? {
     title: event.title,
     tagline: story.tagline,
@@ -342,7 +345,7 @@ export default function EventDetail() {
             <ScrollCylinder />
             <SoundToggle />
             {receiptOpen && receiptEvent && (receipt.state === 'checking' || receipt.state === 'timeout' || receipt.state === 'paid') && (
-              <TicketReceipt state={receipt.state} ticket={receipt.ticket} event={receiptEvent} onClose={() => setReceiptOpen(false)} />
+              <TicketReceipt state={receipt.state} ticket={receipt.ticket} event={receiptEvent} downloadUrl={ticketDownloadUrl} onClose={() => setReceiptOpen(false)} />
             )}
           </>
         )}
@@ -687,6 +690,11 @@ export default function EventDetail() {
                       <button type="button" onClick={() => setReceiptOpen(true)} className="mt-2 block font-semibold underline">
                         Показать чек
                       </button>
+                    )}
+                    {ticketDownloadUrl && (
+                      <a href={ticketDownloadUrl} download className="mt-2 inline-block rounded-full bg-emerald-700 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-800">
+                        Скачать билет
+                      </a>
                     )}
                   </div>
                 )}

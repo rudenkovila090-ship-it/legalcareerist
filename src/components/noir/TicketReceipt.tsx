@@ -27,6 +27,8 @@ interface TicketReceiptProps {
   state: 'checking' | 'paid' | 'timeout'
   ticket: TicketReceiptData | null
   event: ReceiptEvent
+  /** Ссылка на PDF-билет (если у мероприятия он есть): кнопка «Скачать билет». */
+  downloadUrl?: string
   onClose: () => void
 }
 
@@ -74,7 +76,7 @@ const FEED_MS = 4300
 const FEED_STEPS = 72
 const FEED_DELAY_MS = 800
 
-export default function TicketReceipt({ state, ticket, event, onClose }: TicketReceiptProps) {
+export default function TicketReceipt({ state, ticket, event, downloadUrl, onClose }: TicketReceiptProps) {
   const reduced = prefersReducedMotion()
   const overlayRef = useRef<HTMLDivElement>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
@@ -240,6 +242,12 @@ export default function TicketReceipt({ state, ticket, event, onClose }: TicketR
                       ))}
                     </svg>
                   </div>
+
+                  {downloadUrl && (
+                    <a className="rc-download" href={downloadUrl} download>
+                      Скачать билет
+                    </a>
+                  )}
 
                   {event.chat && (
                     <a className="rc-chat" href={event.chat} target="_blank" rel="noopener noreferrer">

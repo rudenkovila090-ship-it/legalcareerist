@@ -7,6 +7,8 @@ export interface TicketReceiptData {
   amount: number
   number: number
   paidAt: number | null
+  /** У мероприятия есть именной билет: можно показать кнопку «Скачать билет». */
+  hasTicket: boolean
 }
 
 /**
@@ -44,7 +46,7 @@ export function useTicketReceipt(token: string | null | undefined) {
           return
         }
         if (data.paid) {
-          setTicket({ name: data.name ?? '', tariff: data.tariff ?? '', amount: Number(data.amount) || 0, number: Number(data.number) || 0, paidAt: data.paidAt ?? null })
+          setTicket({ name: data.name ?? '', tariff: data.tariff ?? '', amount: Number(data.amount) || 0, number: Number(data.number) || 0, paidAt: data.paidAt ?? null, hasTicket: data.hasTicket === true })
           setState('paid')
           return
         }

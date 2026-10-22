@@ -79,7 +79,7 @@ import { DOC_TYPES, LIMITS as DOC_LIMITS, ALLOWED_EXT, MIME as DOC_MIME, listDoc
 import { exportPersonData, accountEvents } from './lib/accountData.js'
 import { nextTicketNumber } from './lib/ticketCounter.js'
 import { renderTicketPdf, hasTicketImage } from './lib/ticketImage.js'
-import { composeTicketMail } from './lib/ticketMail.js'
+import { composeTicketMail, composeReminderMail } from './lib/ticketMail.js'
 import { buildDailyReport, mskDayKey, parseReportPeriod } from './lib/dailyReport.js'
 import { logWebhook, lastWebhook } from './lib/webhookLog.js'
 import { FINANCE_KEYBOARD, COMMUNITY_KEYBOARD, sectionScreen, menuScreen, subscribersScreen, planScreen, dueScreen, cancelledScreen, reminderMenuScreen, reminderPreviewScreen, reminderTargets, reminderMessage } from './lib/adminCabinet.js'
@@ -1246,7 +1246,41 @@ app.get('/api/ticket/receipt', (req, res) => {
     number: lead.number,
     eventSlug: lead.eventSlug ?? '',
     paidAt: lead.paidAt ?? null,
+    hasTicket: hasTicketImage(lead.eventSlug ?? ''),
   })
+})
+
+// Скачать именной билет файлом PDF: кнопка «Скачать билет» на странице после оплаты. Токен — из ссылки возврата с оплаты
+// (её знает только заплативший), как и у чека. Рисуем на лету, на диск не сохраняем.
+const ticketPdfAttempts = new Map()
+function ticketPdfRateLimited(ip) {
+  const now = Date.now()
+  const e = ticketPdfAttempts.get(ip)
+  if (!e || e.resetAt < now) {
+    ticketPdfAttempts.set(ip, { count: 1, resetAt: now + 10 * 60 * 1000 })
+    return false
+  }
+  e.count += 1
+  return e.count > 30
+}
+app.get('/api/ticket/pdf', async (req, res) => {
+  res.set('Cache-Control', 'no-store')
+  if (ticketPdfRateLimited(req.ip)) return res.status(429).json({ ok: false, error: 'too_many_requests' })
+  const token = String(req.query.token ?? '')
+  if (!PAY_TOKEN_RE.test(token)) return res.status(404).json({ ok: false, error: 'not_found' })
+  const lead = listEventLeads().find((l) => l.token === token && l.kind === 'registration')
+  if (!lead || (lead.status !== 'paid' && lead.status !== 'attended') || !hasTicketImage(lead.eventSlug ?? '')) return res.status(404).json({ ok: false, error: 'not_found' })
+  try {
+    const ticket = await renderTicketPdf({ eventSlug: lead.eventSlug, number: lead.number, name: lead.name, phone: lead.phone, email: lead.email, paidAt: lead.paidAt ?? Date.now() })
+    res.set({
+      'Content-Type': ticket.contentType,
+      'Content-Disposition': `attachment; filename="bilet-${lead.number}.pdf"; filename*=UTF-8''${encodeURIComponent(ticket.filename)}`,
+    })
+    res.send(ticket.buffer)
+  } catch (err) {
+    console.error('[ticket] не удалось нарисовать билет для скачивания, регистрация №', lead.number, err)
+    res.status(500).json({ ok: false, error: 'render_failed' })
+  }
 })
 
 // Покупка материала маркетплейса → ссылка на разовую оплату Prodamus.
@@ -2807,38 +2841,62 @@ async function handleEventPayment(number, body, signed) {
 }
 
 /**
- * Напоминание участникам за день до мероприятия: письмо всем оплатившим, у кого есть почта (один раз на человека).
- * Админу — короткий итог; если у мероприятия не указано место, предупреждение, пока не поздно.
+ * Напоминания участникам: за день до мероприятия и в день мероприятия. Письмо всем оплатившим, у кого есть почта, по одному разу
+ * на каждое напоминание; к письму приложен именной билет (если у мероприятия он есть). Админу — короткий итог; если у мероприятия
+ * не указано место, предупреждение, пока не поздно.
  */
 async function sendEventReminders(now = Date.now()) {
-  const tomorrow = mskDayKey(now + 24 * 3600 * 1000)
-  const clock = (iso) => new Date(iso).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Moscow' })
+  const kinds = [
+    { when: 'tomorrow', day: mskDayKey(now + 24 * 3600 * 1000), field: 'reminderSentAt', word: 'завтра' },
+    { when: 'today', day: mskDayKey(now), field: 'dayReminderSentAt', word: 'сегодня' },
+  ]
   for (const event of readEventCatalog()) {
-    if (mskDayKey(new Date(event.dateTime).getTime()) !== tomorrow) continue
-    const people = listEventLeads().filter((l) => l.kind === 'registration' && l.status === 'paid' && !l.reminderSentAt && findEvent(l.eventSlug)?.slug === event.slug)
-    if (!people.length) continue
-    const when = `${new Date(event.dateTime).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Moscow' })}, ${clock(event.dateTime)}${event.endDateTime ? `–${clock(event.endDateTime)}` : ''}`
-    let sent = 0
-    let noEmail = 0
-    let failed = 0
-    for (const lead of people) {
-      if (!lead.email) {
-        noEmail += 1
-        continue
+    const eventDay = mskDayKey(new Date(event.dateTime).getTime())
+    for (const kind of kinds) {
+      if (eventDay !== kind.day) continue
+      const people = listEventLeads().filter((l) => l.kind === 'registration' && l.status === 'paid' && !l[kind.field] && findEvent(l.eventSlug)?.slug === event.slug)
+      if (!people.length) continue
+      let sent = 0
+      let withTicket = 0
+      let noEmail = 0
+      let failed = 0
+      let ticketFailed = 0
+      for (const lead of people) {
+        if (!lead.email) {
+          noEmail += 1
+          continue
+        }
+        let ticket = null
+        if (hasTicketImage(lead.eventSlug)) {
+          try {
+            ticket = await renderTicketPdf({ eventSlug: lead.eventSlug, number: lead.number, name: lead.name, phone: lead.phone, email: lead.email, paidAt: lead.paidAt ?? Date.now() })
+          } catch (err) {
+            ticketFailed += 1
+            console.error('[ticket] не удалось нарисовать билет для напоминания, регистрация №', lead.number, err)
+          }
+        }
+        const { subject, text, html } = composeReminderMail({ lead, event, when: kind.when, hasTicket: Boolean(ticket), supportHandle: SUPPORT_HANDLE })
+        const mail = await sendMail({ to: lead.email, subject, text, html, attachments: ticket ? [{ filename: ticket.filename, content: ticket.buffer, contentType: ticket.contentType }] : undefined })
+        if (mail.ok) {
+          setEventLeadField(lead.number, kind.field, Date.now())
+          sent += 1
+          if (ticket) withTicket += 1
+        } else {
+          failed += 1
+        }
       }
-      const lines = [`${lead.name ? `Здравствуйте, ${lead.name}!` : 'Здравствуйте!'}`, '', `Напоминаем: завтра — «${lead.eventTitle || event.title}».`, `Когда: ${when}`]
-      if (event.location || event.venue) lines.push(`Где: ${[event.city, event.location || event.venue].filter(Boolean).join(', ')}`)
-      lines.push(`Номер регистрации: ${lead.number}`, '', `Вопросы — ${SUPPORT_HANDLE}`, '', 'Карьерный юрист')
-      const mail = await sendMail({ to: lead.email, subject: `Завтра: ${lead.eventTitle || event.title}`, text: lines.join('\n') })
-      if (mail.ok) {
-        setEventLeadField(lead.number, 'reminderSentAt', Date.now())
-        sent += 1
-      } else {
-        failed += 1
-      }
+      const report = [
+        `🔔 Напоминания о мероприятии «${event.title}» (${kind.word})`,
+        '',
+        `✉️ Отправлено: ${sent}`,
+        withTicket ? `🎟 С билетом: ${withTicket}` : null,
+        ticketFailed ? `⚠️ Билет не нарисовался у ${ticketFailed} чел., письмо им ушло без билета` : null,
+        noEmail ? `📭 Без почты (напомнить вручную): ${noEmail}` : null,
+        failed ? `⚠️ Не ушло: ${failed} (проверьте почту на сервере)` : null,
+        !(event.location || event.venue) ? '⚠️ В каталоге не указано место проведения — в напоминании его нет. Сообщите участникам вручную.' : null,
+      ].filter((l) => l !== null)
+      await sendTelegramMessage(ADMIN_CHAT_ID, report.join('\n'))
     }
-    const report = [`🔔 Напоминания о мероприятии «${event.title}» (завтра)`, '', `✉️ Отправлено: ${sent}`, noEmail ? `📭 Без почты (напомнить вручную): ${noEmail}` : null, failed ? `⚠️ Не ушло: ${failed} (проверьте почту на сервере)` : null, !(event.location || event.venue) ? '⚠️ В каталоге не указано место проведения — в напоминании его нет. Сообщите участникам вручную.' : null].filter((l) => l !== null)
-    await sendTelegramMessage(ADMIN_CHAT_ID, report.join('\n'))
   }
   return true
 }
