@@ -29,12 +29,20 @@ fi
 LEN=$(ACC_PW="$PW" node -e 'console.log([...process.env.ACC_PW].length)')
 echo "Принято: логин ${LOGIN}, пароль из ${LEN} знаков."
 
-LINES=$(ACC_LOGIN="$LOGIN" ACC_PW="$PW" node scripts/setAccount.js) || exit 1
+# Имя переменной не LINES: так в bash называется высота окна терминала, и в реальном терминале она подменяла результат.
+ENV_LINES=$(ACC_LOGIN="$LOGIN" ACC_PW="$PW" node scripts/setAccount.js) || exit 1
 
 BACKUP="/root/.env.backup-$(date +%s)"
 cp .env "$BACKUP" && chmod 600 "$BACKUP"
-sed -i '/^ACCOUNT_LOGIN=/d;/^ACCOUNT_PASSWORD_HASH=/d' .env
-printf '\n%s\n' "$LINES" >> .env
+# заодно убираем строки из одних цифр: это следы прежней ошибки скрипта (в .env они не нужны, у настройки всегда есть имя=)
+sed -i '/^ACCOUNT_LOGIN=/d;/^ACCOUNT_PASSWORD_HASH=/d;/^[0-9][0-9]*$/d' .env
+printf '\n%s\n' "$ENV_LINES" >> .env
+# в .env должно быть ровно по одной строке логина и хэша; иначе возвращаем прежний файл и ничего не перезапускаем
+if [ "$(grep -c '^ACCOUNT_LOGIN=' .env)" != 1 ] || [ "$(grep -c '^ACCOUNT_PASSWORD_HASH=' .env)" != 1 ]; then
+  cp "$BACKUP" .env
+  echo "❌ Не получилось записать логин и пароль в server/.env. Прежний файл возвращён, ничего не изменено. Пришлите этот экран."
+  exit 1
+fi
 # закрываются только входы администратора; резиденты, вошедшие в кабинет по почте, остаются на месте
 node -e "import('./lib/accountAuth.js').then((m) => m.revokeAdminSessions())"
 echo "✅ Записано в server/.env: логин и хэш пароля (копия прежнего файла: $BACKUP)"
