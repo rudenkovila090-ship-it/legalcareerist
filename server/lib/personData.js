@@ -33,6 +33,7 @@ export const TERMS = {
   application: 1 * YEAR, // отклик на вакансию
   consultationNoOrder: 2 * YEAR, // вопрос/заявка без заказа
   consultationAfterDone: 3 * YEAR, // выполненный заказ
+  account: 5 * YEAR, // аккаунт резидента в кабинете на сайте: с последнего входа (смены пароля или создания)
   payments: 5 * YEAR, // сведения об оплатах (бухгалтерский учёт)
   leadSources: 1 * YEAR, // журнал «Откуда узнали»
   audit: 1 * YEAR, // журнал действий админа

@@ -182,14 +182,44 @@ export function setMarketing(id, value, now = Date.now()) {
   return data[id]
 }
 
-/** Привязка Telegram: по ней находятся подписка и карточка в боте (позже: код из бота). */
-export function setTelegram(id, tgUserId) {
-  const data = load()
-  if (!data[id]) return null
-  data[id].tgUserId = String(tgUserId)
-  save(data)
-  return data[id]
+/** Аккаунт, к которому привязан этот Telegram, или null. */
+export const findByTelegram = (tgUserId) => {
+  const id = String(tgUserId ?? '')
+  return id ? listAccounts().find((a) => a.tgUserId === id) ?? null : null
 }
+
+/**
+ * Привязка Telegram к аккаунту (код из бота, lib/telegramLink.js): по ней находятся подписка и карточка в боте.
+ * Один Telegram — один аккаунт: если он уже привязан к другому, отказ { error: 'telegram_taken' }.
+ */
+export function linkTelegram(id, tgUserId, now = Date.now()) {
+  const data = load()
+  const account = data[id]
+  const tg = String(tgUserId ?? '')
+  if (!account || !tg) return { error: 'not_found' }
+  if (Object.values(data).some((a) => a.id !== id && a.tgUserId === tg)) return { error: 'telegram_taken' }
+  account.tgUserId = tg
+  account.tgLinkedAt = now
+  data[id] = account
+  save(data)
+  return { account }
+}
+
+/** Отвязывает Telegram (из кабинета или командой /unlink в боте). Возвращает прежнего владельца Telegram или null. */
+export function unlinkTelegram(id) {
+  const data = load()
+  const account = data[id]
+  if (!account?.tgUserId) return null
+  const was = account.tgUserId
+  delete account.tgUserId
+  delete account.tgLinkedAt
+  data[id] = account
+  save(data)
+  return was
+}
+
+/** Когда аккаунтом последний раз пользовались: вход по паролю, смена пароля или создание. По нему считается срок хранения. */
+export const lastActivityAt = (a) => Math.max(a.lastLoginAt ?? 0, a.passwordChangedAt ?? 0, a.createdAt ?? 0)
 
 /** Удаление аккаунта (по запросу на удаление данных). */
 export function deleteAccount(id) {
@@ -205,6 +235,7 @@ export function contextOf(account) {
   return {
     login: `u:${account.id}`,
     tgId: account.tgUserId ?? '',
+    tgLinkedAt: account.tgLinkedAt ?? null,
     name: account.name || account.email,
     email: account.email,
     phone: '', // телефон не подтверждён, по нему чужие записи не подтягиваем

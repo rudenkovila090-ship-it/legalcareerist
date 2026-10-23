@@ -101,9 +101,11 @@ export function logout(token) {
   }
 }
 
-/** Все сессии отзываются (например, после смены пароля скриптом). */
-export function revokeAll() {
-  save({})
+/** Отзывает входы администратора (смена пароля скриптом, удаление его данных); входы резидентов («u:<id>») остаются. */
+export function revokeAdminSessions() {
+  const data = load()
+  for (const [k, s] of Object.entries(data)) if (!String(s.login).startsWith('u:')) delete data[k]
+  save(data)
 }
 
 /** Токен из заголовка запроса. */

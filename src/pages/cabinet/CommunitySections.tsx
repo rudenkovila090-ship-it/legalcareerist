@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { fetchEvents, type CabinetEvent, type CabinetUser } from '../../lib/cabinet'
+import { fetchEvents, linkTelegram, unlinkTelegram, type CabinetEvent, type CabinetUser } from '../../lib/cabinet'
 import { pluralRu } from '../../lib/plural'
 import { TELEGRAM_BOT_USERNAME } from '../../lib/telegram'
 import { Card } from './ui'
@@ -50,21 +50,132 @@ export function EventsSection() {
 }
 
 // ---- Telegram-бот ----
-export function TelegramSection({ user }: { user: CabinetUser }) {
+const SUPPORT_EMAIL = 'info@legalcareerist.ru'
+
+const linkError = (code: string): string =>
+  ({
+    bad_code: 'Код не подошёл: он неверный, просрочен (живёт 10 минут) или уже использован. Отправьте боту /link и возьмите новый.',
+    telegram_taken: `Этот Telegram уже привязан к другому кабинету. Откройте тот кабинет и отвяжите Telegram там или напишите нам: ${SUPPORT_EMAIL}`,
+    already_linked: 'К этому кабинету уже привязан Telegram. Сначала отвяжите его.',
+    too_many_attempts: 'Слишком много попыток. Попробуйте через 15 минут.',
+    unauthorized: 'Сессия закончилась. Войдите снова.',
+    network: 'Не получилось связаться с сервером. Попробуйте ещё раз.',
+  })[code] ?? 'Не получилось привязать Telegram. Попробуйте ещё раз.'
+
+export function TelegramSection({ user, onRefresh }: { user: CabinetUser; onRefresh: () => Promise<void> }) {
+  const tg = user.telegram
+  const [code, setCode] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const [confirmUnlink, setConfirmUnlink] = useState(false)
+
+  async function handleLink(e: FormEvent) {
+    e.preventDefault()
+    setBusy(true)
+    setError('')
+    const r = await linkTelegram(code)
+    if (!r.ok) {
+      setBusy(false)
+      setError(linkError(r.error))
+      return
+    }
+    setCode('')
+    await onRefresh()
+    setBusy(false)
+  }
+
+  async function handleUnlink() {
+    setBusy(true)
+    setError('')
+    const r = await unlinkTelegram()
+    if (!r.ok) setError(linkError(r.error))
+    setConfirmUnlink(false)
+    await onRefresh()
+    setBusy(false)
+  }
+
+  // Администратор: Telegram задан в настройках сервера, привязывать нечего.
+  if (!tg.canLink) {
+    return (
+      <Card>
+        <span className={`inline-block rounded-full px-3 py-1 text-xs font-semibold ${user.telegramLinked ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-800'}`}>
+          {user.telegramLinked ? 'Бот подключён' : 'Бот не подключён'}
+        </span>
+        <p className="mt-3 text-lg font-semibold">@{TELEGRAM_BOT_USERNAME}</p>
+        <p className="mt-1 max-w-xl text-sm text-ink/60">Telegram администратора задан в настройках сервера: подписка и согласия берутся из карточки в боте.</p>
+        <a href={`https://t.me/${TELEGRAM_BOT_USERNAME}`} target="_blank" rel="noreferrer" className="mt-4 inline-block rounded-full bg-ink px-6 py-2.5 text-sm font-semibold text-white hover:bg-ink/90">
+          Открыть бота
+        </a>
+      </Card>
+    )
+  }
+
+  if (tg.linked) {
+    return (
+      <Card>
+        <span className="inline-block rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">Telegram привязан</span>
+        <p className="mt-3 text-lg font-semibold">{tg.name || 'Ваш Telegram'}</p>
+        <p className="mt-1 max-w-xl text-sm text-ink/60">
+          {tg.linkedAt ? `Привязан ${longDate(tg.linkedAt)} ` : ''}Подписка и согласия берутся из вашей карточки в @{TELEGRAM_BOT_USERNAME}, бот присылает уведомления и напоминания.
+          Если привязали не вы, отвяжите Telegram и смените пароль в разделе «Вход и пароль».
+        </p>
+        {error && <p role="alert" className="mt-3 text-sm text-red-600">{error}</p>}
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <a href={`https://t.me/${TELEGRAM_BOT_USERNAME}`} target="_blank" rel="noreferrer" className="rounded-full bg-ink px-6 py-2.5 text-sm font-semibold text-white hover:bg-ink/90">
+            Открыть бота
+          </a>
+          {!confirmUnlink ? (
+            <button type="button" onClick={() => setConfirmUnlink(true)} className="rounded-full border border-ink/15 px-5 py-2.5 text-sm font-semibold text-ink/60 hover:text-ink">Отвязать Telegram</button>
+          ) : (
+            <>
+              <button type="button" disabled={busy} onClick={() => void handleUnlink()} className="rounded-full bg-red-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60">{busy ? 'Отвязываем…' : 'Да, отвязать'}</button>
+              <button type="button" onClick={() => setConfirmUnlink(false)} className="text-sm font-medium text-ink/50 hover:text-ink">Отмена</button>
+            </>
+          )}
+        </div>
+        {confirmUnlink && <p className="mt-3 text-xs text-ink/50">После отвязки подписка и билеты будут находиться только по почте кабинета.</p>}
+      </Card>
+    )
+  }
+
   return (
     <Card>
-      <span className={`inline-block rounded-full px-3 py-1 text-xs font-semibold ${user.telegramLinked ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-800'}`}>
-        {user.telegramLinked ? 'Бот подключён' : 'Бот не подключён'}
-      </span>
-      <p className="mt-3 text-lg font-semibold">@{TELEGRAM_BOT_USERNAME}</p>
+      <span className="inline-block rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">Telegram не привязан</span>
+      <p className="mt-3 text-lg font-semibold">Привяжите Telegram по коду из бота</p>
       <p className="mt-1 max-w-xl text-sm text-ink/60">
-        {user.telegramLinked
-          ? 'Ваш аккаунт в боте найден: подписка и согласия в кабинете берутся оттуда. Бот присылает уведомления и напоминания.'
-          : 'Откройте бота и нажмите Start: тогда кабинет найдёт ваш аккаунт, подтянет подписку и сможет присылать уведомления.'}
+        Тогда подписка и билеты, оформленные через бота или с другой почтой, появятся в кабинете, а бот сможет присылать уведомления. Пароль и почта при этом не меняются.
       </p>
-      <a href={`https://t.me/${TELEGRAM_BOT_USERNAME}`} target="_blank" rel="noreferrer" className="mt-4 inline-block rounded-full bg-ink px-6 py-2.5 text-sm font-semibold text-white hover:bg-ink/90">
-        Открыть бота
-      </a>
+      <ol className="mt-5 space-y-5 text-sm">
+        <li>
+          <p className="font-medium">1. Получите код в боте</p>
+          <p className="mt-1 text-ink/60">Откройте @{TELEGRAM_BOT_USERNAME} и нажмите Start, бот пришлёт код. Если бот уже открыт, отправьте ему команду /link.</p>
+          <a href={`https://t.me/${TELEGRAM_BOT_USERNAME}?start=link`} target="_blank" rel="noreferrer" className="mt-3 inline-block rounded-full bg-ink px-6 py-2.5 text-sm font-semibold text-white hover:bg-ink/90">
+            Получить код в боте
+          </a>
+        </li>
+        <li>
+          <form onSubmit={handleLink}>
+            <label htmlFor="tg-code" className="font-medium">2. Введите код из бота</label>
+            <div className="mt-2 flex flex-wrap gap-3">
+              <input
+                id="tg-code"
+                value={code}
+                onChange={(e) => setCode(e.target.value.toUpperCase())}
+                autoComplete="off"
+                autoCapitalize="characters"
+                spellCheck={false}
+                maxLength={12}
+                required
+                placeholder="XXXX-XXXX"
+                className="w-44 rounded-lg border border-ink/15 px-4 py-2.5 font-mono text-sm tracking-widest placeholder:text-ink/30 focus:border-ink/40 focus:outline-none"
+              />
+              <button type="submit" disabled={busy} className="rounded-full bg-ink px-6 py-2.5 text-sm font-semibold text-white hover:bg-ink/90 disabled:opacity-60">{busy ? 'Привязываем…' : 'Привязать'}</button>
+            </div>
+            {error && <p role="alert" className="mt-3 text-sm text-red-600">{error}</p>}
+          </form>
+        </li>
+      </ol>
+      <p className="mt-5 text-xs text-ink/50">Код действует 10 минут и срабатывает один раз. Никому его не сообщайте: с ним можно привязать ваш Telegram к чужому кабинету.</p>
     </Card>
   )
 }

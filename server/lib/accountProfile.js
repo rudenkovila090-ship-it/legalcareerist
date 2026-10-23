@@ -48,6 +48,13 @@ export function accountProfile(cfg, now = Date.now()) {
     name: cfg.name || botName || cfg.login,
     role: 'client',
     telegramLinked: Boolean(bot),
+    // Привязка Telegram к кабинету (код из бота): у аккаунта резидента её можно сделать и снять, у администратора Telegram задан в настройках сервера.
+    telegram: {
+      linked: Boolean(cfg.tgId),
+      linkedAt: cfg.tgLinkedAt ?? null,
+      name: bot ? [bot.firstName, bot.username].filter(Boolean).join(' ') || undefined : undefined,
+      canLink: String(cfg.login).startsWith('u:'),
+    },
     email: cfg.email || undefined,
     resident: residentStatus(cfg.tgId, now, cfg.email),
     privacy: { hidden: getProfile(cfg.login).privacy.hidden },

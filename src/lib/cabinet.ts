@@ -24,10 +24,22 @@ export interface CabinetUser {
   role: 'client'
   /** Есть ли карточка этого человека в Telegram-боте (по ней находится подписка). */
   telegramLinked: boolean
+  /** Привязка Telegram к кабинету по коду из бота. */
+  telegram: TelegramInfo
   resident: ResidentInfo
   /** Режим конфиденциальности: резюме скрыто от работодателей. */
   privacy: { hidden: boolean }
   consents: ConsentsInfo
+}
+
+export interface TelegramInfo {
+  /** У кабинета есть Telegram id (у резидента — привязан по коду, у администратора задан в настройках сервера). */
+  linked: boolean
+  linkedAt: number | null
+  /** Имя и @ник привязанного Telegram: чтобы видеть, кого привязали. */
+  name?: string
+  /** Привязку можно сделать и снять (аккаунт резидента). */
+  canLink: boolean
 }
 
 export interface ConsentsInfo {
@@ -224,6 +236,10 @@ export const saveProfile = (parts: Partial<Pick<Profile, 'practices' | 'experien
 
 export const setMarketing = (marketing: boolean) => api<{ marketing: boolean; at: number; applied: boolean }>('/api/account/marketing', { method: 'POST', body: JSON.stringify({ marketing, consentVersion: CONSENT_VERSION, marketingVersion: MARKETING_CONSENT_VERSION }) })
 export const requestDeletion = () => api<{ already?: boolean; at: number }>('/api/account/data-request', { method: 'POST', body: '{}' })
+
+/** Привязка Telegram: код из бота (команда /link). */
+export const linkTelegram = (code: string) => api<{ ok: true }>('/api/account/telegram/link', { method: 'POST', body: JSON.stringify({ code }) })
+export const unlinkTelegram = () => api<{ ok: true }>('/api/account/telegram', { method: 'DELETE' })
 
 /** Смена пароля вошедшим: нужен текущий. Остальные входы с других устройств закрываются. */
 export const changePassword = (current: string, password: string) => api<{ ok: true }>('/api/account/password', { method: 'POST', body: JSON.stringify({ current, password }) })

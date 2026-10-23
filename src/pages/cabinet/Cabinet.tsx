@@ -163,7 +163,7 @@ function SectionBody({ section, user, onRefresh }: { section: CabinetSection; us
     visibility: <VisibilitySection />,
     resident: <ResidentSection user={user} />,
     events: <EventsSection />,
-    telegram: <TelegramSection user={user} />,
+    telegram: <TelegramSection user={user} onRefresh={onRefresh} />,
     cv: <CvSection />,
     documents: <DocumentsSection />,
   }

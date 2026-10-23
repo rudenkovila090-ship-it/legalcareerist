@@ -7,7 +7,7 @@ import path from 'node:path'
 import { createJsonStore, normalizePhone } from './jsonStore.js'
 import { SOURCES, recordsOf, anonymizeRecord } from './personData.js'
 import { personKeys, countConsentEntries, pseudonymizeConsent } from './consentLog.js'
-import { accountConfig, revokeAll, revokeFor } from './accountAuth.js'
+import { accountConfig, revokeAdminSessions, revokeFor } from './accountAuth.js'
 import { listAccounts, contextOf, deleteAccount } from './accountUsers.js'
 import { accountKeys } from './accountData.js'
 import { eraseProfile, getProfile } from './accountStore.js'
@@ -210,7 +210,7 @@ export function erasePerson(keyList) {
   if (cfg && (keys.has(ACCOUNT_KEY) || intersects(accountKeys(cfg), keys))) {
     done.cabinetFiles = eraseAccountFiles(cfg.login)
     done.cabinet = eraseProfile(cfg.login) ? 1 : 0
-    revokeAll()
+    revokeAdminSessions()
   }
 
   for (const c of customersOf(keys)) {

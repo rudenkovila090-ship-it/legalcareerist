@@ -6,6 +6,10 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { SOURCES, TERMS, recordsOf, anonymizeRecord, retentionContext } from './personData.js'
 import { countOlderConsent, pruneConsentLog } from './consentLog.js'
+import { listAccounts, deleteAccount, lastActivityAt } from './accountUsers.js'
+import { eraseAccountFiles } from './accountDocs.js'
+import { eraseProfile } from './accountStore.js'
+import { revokeFor } from './accountAuth.js'
 
 const DATA_DIR = path.join(import.meta.dirname, '..', 'data')
 
@@ -70,12 +74,33 @@ const consentLog = {
   prune: (now) => pruneConsentLog(now - TERMS.consentLog),
 }
 
+// Аккаунты резидентов в кабинете на сайте: 5 лет с последнего входа. Вместе с аккаунтом уходят профиль, документы с файлами и входы.
+const expiredAccounts = (now) => listAccounts().filter((a) => now > lastActivityAt(a) + TERMS.account)
+const accounts = {
+  id: 'accounts',
+  title: 'Аккаунты резидентов в кабинете (нет входов 5 лет)',
+  term: TERMS.account,
+  count: (now) => expiredAccounts(now).length,
+  prune: (now) => {
+    let n = 0
+    for (const a of expiredAccounts(now)) {
+      const login = `u:${a.id}`
+      eraseAccountFiles(login)
+      eraseProfile(login)
+      revokeFor(login)
+      if (deleteAccount(a.id)) n += 1
+    }
+    return n
+  },
+}
+
 export const LOGS = [
   jsonlLog('leadSources', 'Журнал «Откуда узнали»', 'lead-sources.jsonl', 'at', TERMS.leadSources),
   jsonlLog('audit', 'Журнал действий админа', 'audit.jsonl', 'at', TERMS.audit),
   jsonlLog('webhooks', 'Журнал платёжных уведомлений Prodamus', 'prodamus-webhooks.jsonl', 'receivedAt', TERMS.webhooks),
   consentLog,
   pendingNotices,
+  accounts,
 ]
 
 /** Что пора удалить/обезличить на момент now. Ничего не меняет. */

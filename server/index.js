@@ -73,14 +73,15 @@ import { scanRetention, applyRetention, retentionReportText, retentionDoneText }
 import { findPerson, describeFound, erasePerson, erasedText } from './lib/erasure.js'
 import { planImport, applyImport, planSummary, doneSummary } from './lib/botHelpImport.js'
 import { accountConfig, login as accountLogin, sessionFor, logout as accountLogout, bearer, startSession, revokeFor, sameText } from './lib/accountAuth.js'
-import { startRegistration, startReset, peekToken, consumeToken, verifyLogin, changePassword as changeAccountPassword, setMarketing as setAccountMarketing, getAccount, contextOf, validEmail, ACTIVATE_TTL_MS, RESET_TTL_MS } from './lib/accountUsers.js'
+import { startRegistration, startReset, peekToken, consumeToken, verifyLogin, changePassword as changeAccountPassword, setMarketing as setAccountMarketing, getAccount, contextOf, validEmail, linkTelegram, unlinkTelegram, findByTelegram, ACTIVATE_TTL_MS, RESET_TTL_MS } from './lib/accountUsers.js'
+import { issueCode, consumeCode, CODE_TTL_MS } from './lib/telegramLink.js'
 import { composeAccountMail } from './lib/accountMail.js'
 import { accountProfile } from './lib/accountProfile.js'
 import { getProfile, saveProfile, grantConsent, addRequest, lastRequest, PRACTICES, LEVELS } from './lib/accountStore.js'
 import { DOC_TYPES, LIMITS as DOC_LIMITS, ALLOWED_EXT, MIME as DOC_MIME, listDocuments, usedBytes as docsUsedBytes, addDocument, addVersion, updateDocument, deleteDocument, deleteVersion, versionFile } from './lib/accountDocs.js'
 import { exportPersonData, accountEvents } from './lib/accountData.js'
 import { nextTicketNumber } from './lib/ticketCounter.js'
-import { renderTicketPdf, hasTicketImage } from './lib/ticketImage.js'
+import { renderTicketPdf, hasTicketImage, maskEmail } from './lib/ticketImage.js'
 import { composeTicketMail, composeReminderMail } from './lib/ticketMail.js'
 import { buildDailyReport, mskDayKey, parseReportPeriod } from './lib/dailyReport.js'
 import { logWebhook, lastWebhook } from './lib/webhookLog.js'
@@ -157,7 +158,7 @@ async function sendTelegramMessage(chatId, text, replyMarkup, opts = {}) {
   const res = await telegramFetch('sendMessage', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: chatId, text, ...(opts.silent ? { disable_notification: true } : {}), ...(replyMarkup ? { reply_markup: { inline_keyboard: replyMarkup } } : {}) }),
+    body: JSON.stringify({ chat_id: chatId, text, ...(opts.parseMode ? { parse_mode: opts.parseMode } : {}), ...(opts.silent ? { disable_notification: true } : {}), ...(replyMarkup ? { reply_markup: { inline_keyboard: replyMarkup } } : {}) }),
   })
   if (!res.ok) console.error('[telegram] sendMessage ошибка:', await res.text())
   return res.ok
@@ -906,6 +907,33 @@ app.post('/api/account/password', (req, res) => {
   const r = changeAccountPassword(String(cfg.login).slice(2), req.body?.current, req.body?.password)
   if (r.error) return res.status(r.error === 'bad_credentials' ? 403 : 400).json({ ok: false, error: r.error })
   revokeFor(cfg.login, bearer(req))
+  res.json({ ok: true })
+})
+
+// Привязка Telegram по коду из бота (команда /link, см. sendLinkCode): кабинет узнаёт Telegram id и находит подписку и карточку в боте.
+// Привязать и снять можно только у аккаунта резидента; один Telegram — один аккаунт. Кто привязал, тому бот сообщает об этом
+// (с маской почты) и называет команду /unlink: так видно, если код выманили.
+const telegramLinkAttempts = new Map()
+app.post('/api/account/telegram/link', (req, res) => {
+  const cfg = requireAccount(req, res)
+  if (!cfg) return
+  if (!String(cfg.login).startsWith('u:')) return res.status(400).json({ ok: false, error: 'not_supported' })
+  if (hitLimit(telegramLinkAttempts, `l:${cfg.login}`, 10, LOGIN_WINDOW_MS) || hitLimit(telegramLinkAttempts, `ip:${req.ip}`, 40, LOGIN_WINDOW_MS)) return res.status(429).json({ ok: false, error: 'too_many_attempts' })
+  if (cfg.tgId) return res.status(409).json({ ok: false, error: 'already_linked' })
+  const tgUserId = consumeCode(req.body?.code)
+  if (!tgUserId) return res.status(400).json({ ok: false, error: 'bad_code' })
+  const r = linkTelegram(String(cfg.login).slice(2), tgUserId)
+  if (r.error) return res.status(409).json({ ok: false, error: r.error })
+  void sendTelegramMessage(tgUserId, `✅ Telegram привязан к кабинету на сайте (${maskEmail(r.account.email) || 'почта скрыта'}).\n\nЕсли это сделали не вы, отвяжите командой /unlink.`).catch(() => {})
+  res.json({ ok: true })
+})
+
+app.delete('/api/account/telegram', (req, res) => {
+  const cfg = requireAccount(req, res)
+  if (!cfg) return
+  if (!String(cfg.login).startsWith('u:')) return res.status(400).json({ ok: false, error: 'not_supported' })
+  const was = unlinkTelegram(String(cfg.login).slice(2))
+  if (was) void sendTelegramMessage(was, 'Кабинет на сайте отвязан от этого Telegram.').catch(() => {})
   res.json({ ok: true })
 })
 
@@ -2657,6 +2685,10 @@ async function handleResidentCallback(query) {
   }
   const [, action] = String(query.data).split(':')
   if (action !== 'cancelyes') userFlows.delete(String(chatId))
+  if (action === 'site') {
+    await sendLinkCode(chatId, null)
+    return
+  }
   const user = getBotUser(chatId) ?? fromUser ?? {}
   let screen
   if (action === 'sub') screen = subscriptionScreen(join, TARIFFS)
@@ -2701,6 +2733,25 @@ function isOutsidePrivateChat(chat) {
   const isGroup = (chat.type && chat.type !== 'private') || Number(chat.id) < 0
   if (!isGroup) return false
   return String(chat.id) !== String(ADMIN_CHAT_ID) && !VIEWER_IDS.has(String(chat.id))
+}
+
+/** /link: код для привязки Telegram к кабинету на сайте. Только в личном чате (группы бот не обслуживает). */
+async function sendLinkCode(chatId, from) {
+  if (from) touchBotUser({ ...from, id: from.id ?? chatId })
+  const code = issueCode(chatId)
+  await sendTelegramMessage(
+    chatId,
+    `🔗 Код для привязки кабинета на сайте: <code>${code}</code>\n\nВведите его в кабинете на ${SITE_URL.replace(/^https?:\/\//, '')}, раздел «Telegram-бот». Код действует ${CODE_TTL_MS / 60000} минут и срабатывает один раз.\n\nНикому не сообщайте код: с ним можно привязать ваш Telegram к чужому кабинету. Если код просили не вы сами, просто проигнорируйте это сообщение.\n\nНужен кабинет? Зарегистрируйтесь на ${SITE_URL.replace(/^https?:\/\//, '')}/cabinet.`,
+    undefined,
+    { parseMode: 'HTML' },
+  )
+}
+
+/** /unlink: снять привязку кабинета с этого Telegram. */
+async function unlinkCabinet(chatId) {
+  const account = findByTelegram(chatId)
+  if (account && unlinkTelegram(account.id)) await sendTelegramMessage(chatId, 'Кабинет на сайте отвязан от этого Telegram. Привязать снова можно командой /link.')
+  else await sendTelegramMessage(chatId, 'К этому Telegram кабинет на сайте не привязан.')
 }
 
 async function handleTelegramUpdate(update) {
@@ -2814,6 +2865,14 @@ async function handleTelegramUpdate(update) {
     await sendTelegramMessage(chatId, screen.text, screen.keyboard)
     return
   }
+  if (chatId && text && /^\/link(@\w+)?$/i.test(text.trim())) {
+    await sendLinkCode(chatId, message.from)
+    return
+  }
+  if (chatId && text && /^\/unlink(@\w+)?$/i.test(text.trim())) {
+    await unlinkCabinet(chatId)
+    return
+  }
   if (chatId && (text === '/menu' || text === '/cabinet')) {
     await startFlow(chatId, message.from)
     return
@@ -2847,6 +2906,11 @@ async function handleTelegramUpdate(update) {
   if (!chatId || !text || !text.startsWith('/start')) return
 
   const payload = text.slice('/start'.length).trim()
+  // Кнопка «Получить код в боте» в кабинете открывает бота по t.me/бот?start=link
+  if (payload === 'link') {
+    await sendLinkCode(chatId, message.from)
+    return
+  }
   const matBuy = payload.match(/^mat_([0-9a-f]+)$/i)
   if (matBuy) {
     await handleMaterialStart(chatId, message.from, matBuy[1])

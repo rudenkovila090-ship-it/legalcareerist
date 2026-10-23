@@ -23,6 +23,7 @@ export function residentMenu(join, user) {
     keyboard: [
       [{ text: '📋 Моя подписка', callback_data: 'r:sub' }],
       [{ text: '🔗 Ссылка на сообщество', callback_data: 'r:link' }],
+      [{ text: '🌐 Кабинет на сайте', callback_data: 'r:site' }],
       [{ text: '💬 Поддержка', callback_data: 'u:support' }, { text: '⚙️ Настройки', callback_data: 'r:set' }],
       [{ text: '⬅️ Сообщество', callback_data: 'u:community' }],
     ],
