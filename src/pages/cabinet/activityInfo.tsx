@@ -23,6 +23,8 @@ export function activityLabel(e: ActivityEntry): string {
     case 'deletion_requested': return 'Запрошено удаление данных'
     case 'support_message': return 'Сообщение в поддержку'
     case 'support_reply': return 'Ответ поддержки'
+    case 'subscription_cancelled': return 'Отключено автопродление подписки'
+    case 'card_change_requested': return 'Запрошена смена карты для списаний'
     default: return 'Действие в кабинете'
   }
 }
@@ -32,6 +34,7 @@ export function activityIcon(kind: string): ReactNode {
   if (kind.startsWith('telegram')) return icon.telegram
   if (kind.startsWith('document')) return icon.doc
   if (kind.startsWith('support')) return icon.lifebuoy
+  if (kind === 'subscription_cancelled' || kind === 'card_change_requested') return icon.shield
   if (kind === 'data_exported' || kind === 'deletion_requested') return icon.download
   if (kind === 'marketing_changed') return icon.bell
   return icon.user

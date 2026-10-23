@@ -396,3 +396,29 @@ export const updateContact = (name: string, phone: string) => api<{ contact: Con
 /** Открытие чата отмечает ответы поддержки прочитанными. */
 export const fetchSupport = () => api<{ messages: SupportMessage[]; unread: number; maxLength: number }>('/api/account/support')
 export const sendSupport = (text: string) => api<{ message: SupportMessage; notified: boolean }>('/api/account/support', { method: 'POST', body: JSON.stringify({ text }) })
+
+// ---- Подписка на сообщество (раздел «Статус») ----
+
+export interface SubscriptionPayment {
+  amount: number | null
+  paidAt: number | null
+  /** Сумма оценочная (перенесена из прежней системы). */
+  estimated: boolean
+}
+
+export interface SubscriptionInfo extends ResidentInfo {
+  /** Цена одного периода по тарифу, ₽. */
+  price?: number | null
+  period?: string | null
+  /** Дата следующего списания; null, если автопродления нет. */
+  nextPayment?: number | null
+  /** Автопродление можно отключить из кабинета. */
+  canCancel?: boolean
+  payments: SubscriptionPayment[]
+}
+
+export const fetchSubscription = () => api<{ subscription: SubscriptionInfo }>('/api/account/subscription')
+/** Отключение автопродления: доступ сохраняется до конца оплаченного периода. confirmed — подтверждено ли отключение в платёжной системе. */
+export const cancelSubscription = (reason: string) => api<{ confirmed: boolean; test: boolean; endsAt: number | null }>('/api/account/subscription/cancel', { method: 'POST', body: JSON.stringify({ reason }) })
+/** Запрос смены карты: уходит в чат поддержки с данными подписки. */
+export const requestCardChange = () => api<{ notified: boolean }>('/api/account/subscription/card', { method: 'POST', body: '{}' })

@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { isResidentAccount, type CabinetEvent, type CabinetUser, type DashboardData, type ResidentInfo } from '../../lib/cabinet'
 import { pluralRu } from '../../lib/plural'
-import { groups, icon, sections, sectionsOfGroup } from './sections'
+import { allGroups, icon, sections, sectionsOfGroup } from './sections'
 import { Avatar, CardHead, Chip, IconBubble } from './ui'
 import { longDate, relativeTime, roleOf } from './shared'
 import { activityIcon, activityLabel } from './activityInfo'
@@ -79,25 +79,23 @@ export default function Dashboard({ user, dash }: { user: CabinetUser; dash: Das
         )}
       </section>
 
-      {/* Плитки */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <Tile to="/cabinet/resident" icon={icon.shield} label="Подписка" value={sub.title} note={sub.sub} tone={sub.tone} />
-        <Tile to="/cabinet/events" icon={icon.ticket} label="Мероприятия" value={dash ? String(dash.counts.events) : '—'} note={dash ? pluralRu(dash.counts.events, ['регистрация', 'регистрации', 'регистраций']) : ' '} />
-        <Tile to="/cabinet/cv" icon={icon.folder} label="Документы" value={dash ? String(dash.counts.documents) : '—'} note="резюме и письма" />
-        <Tile to="/cabinet/support" icon={icon.lifebuoy} label="Поддержка" value={unread > 0 ? `${unread} ${pluralRu(unread, ['ответ', 'ответа', 'ответов'])}` : 'Написать'} note={unread > 0 ? 'ждёт вас в чате' : 'ответим в чате'} tone={unread > 0 ? 'warn' : 'muted'} />
+      {/* Плитки: компактные и яркие, каждая своим цветом, чтобы обзор не сливался в одну массу */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Tile to="/cabinet/resident" icon={icon.shield} label="Подписка" value={sub.title} note={sub.sub} variant="ink" />
+        <Tile to="/cabinet/events" icon={icon.ticket} label="Мероприятия" value={dash ? String(dash.counts.events) : '—'} note={dash ? pluralRu(dash.counts.events, ['регистрация', 'регистрации', 'регистраций']) : ' '} variant="gold" />
+        <Tile to="/cabinet/cv" icon={icon.folder} label="Документы" value={dash ? String(dash.counts.documents) : '—'} note="резюме и письма" variant="light" />
+        <Tile to="/cabinet/support" icon={icon.lifebuoy} label="Поддержка" value={unread > 0 ? `${unread} ${pluralRu(unread, ['ответ', 'ответа', 'ответов'])}` : 'Написать'} note={unread > 0 ? 'ждёт вас в чате' : 'ответим в чате'} variant={unread > 0 ? 'alert' : 'outline'} />
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        {/* Статусы */}
+        {/* Статусы: только то, что можно изменить, у каждого — кнопка «Изменить» */}
         <section className="glass min-w-0 rounded-2xl p-6" aria-label="Статусы">
           <CardHead title="Статусы" />
           <ul className="space-y-1">
-            <StatusRow to="/cabinet/password" icon={icon.mail} label="Почта" value={resident ? 'Подтверждена' : 'Из настроек сервера'} tone={resident ? 'good' : 'muted'} />
-            <StatusRow to="/cabinet/telegram" icon={icon.telegram} label="Telegram" value={user.telegram.linked ? 'Привязан' : 'Не привязан'} tone={user.telegram.linked ? 'good' : 'warn'} hint={user.telegram.linked ? user.telegram.name : 'привяжите по коду из бота'} />
             <StatusRow to="/cabinet/resident" icon={icon.shield} label="Подписка" value={sub.title} tone={sub.tone} hint={sub.sub} />
+            <StatusRow to="/cabinet/telegram" icon={icon.telegram} label="Telegram" value={user.telegram.linked ? 'Привязан' : 'Не привязан'} tone={user.telegram.linked ? 'good' : 'warn'} hint={user.telegram.linked ? user.telegram.name : 'привяжите по коду из бота'} action={user.telegram.linked || !user.telegram.canLink ? 'Изменить' : 'Привязать'} />
             <StatusRow to="/cabinet/privacy" icon={icon.lock} label="Скрытый поиск" value={user.privacy.hidden ? 'Включён' : 'Выключен'} tone={user.privacy.hidden ? 'good' : 'muted'} />
             <StatusRow to="/cabinet/consents" icon={icon.bell} label="Рассылки" value={user.consents.marketing === true ? 'Включены' : user.consents.marketing === false ? 'Выключены' : 'Не выбрано'} tone={user.consents.marketing === true ? 'good' : 'muted'} />
-            <StatusRow to="/cabinet/consents" icon={icon.check} label="Согласие на обработку данных" value={user.consents.processingAt || user.consents.profileAt ? 'Дано' : 'Не давали'} tone={user.consents.processingAt || user.consents.profileAt ? 'good' : 'muted'} />
           </ul>
         </section>
 
@@ -188,7 +186,7 @@ export default function Dashboard({ user, dash }: { user: CabinetUser; dash: Das
           <span className="text-lg leading-none text-ink/40 transition-transform group-open:rotate-90" aria-hidden="true">›</span>
         </summary>
         <div className="mt-4 space-y-6">
-          {groups.map((g) => (
+          {allGroups.map((g) => (
             <div key={g.id}>
               <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink/40">{g.title}</h3>
               <div className="grid gap-3 sm:grid-cols-2">
@@ -209,31 +207,40 @@ export default function Dashboard({ user, dash }: { user: CabinetUser; dash: Das
   )
 }
 
-function Tile({ to, icon: ic, label, value, note, tone = 'muted' }: { to: string; icon: ReactNode; label: string; value: string; note: string; tone?: Tone }) {
+const TILE_VARIANTS = {
+  ink: { box: 'bg-ink text-white shadow-ink/30', bubble: 'bg-white/15 text-white', note: 'text-white/70' },
+  gold: { box: 'bg-gold text-white shadow-gold/30', bubble: 'bg-white/20 text-white', note: 'text-white/80' },
+  light: { box: 'bg-gold-light text-ink shadow-gold-light/40', bubble: 'bg-ink/15 text-ink', note: 'text-ink/75' },
+  outline: { box: 'border-2 border-ink bg-white text-ink shadow-ink/10', bubble: 'bg-ink text-white', note: 'text-ink/60' },
+  alert: { box: 'bg-amber-400 text-ink shadow-amber-400/40', bubble: 'bg-ink text-white', note: 'text-ink/75' },
+}
+
+function Tile({ to, icon: ic, label, value, note, variant }: { to: string; icon: ReactNode; label: string; value: string; note: string; variant: keyof typeof TILE_VARIANTS }) {
+  const v = TILE_VARIANTS[variant]
   return (
-    <Link to={to} className={`glass flex min-w-0 flex-col gap-3 rounded-2xl p-4 sm:p-5 ${focusRing}`}>
-      <div className="flex items-center gap-2 text-xs font-medium text-ink/50">
-        <IconBubble tone="soft">{ic}</IconBubble>
+    <Link to={to} className={`flex min-w-0 flex-col gap-1 rounded-2xl p-3 shadow-md transition hover:-translate-y-0.5 hover:shadow-lg ${v.box} ${focusRing}`}>
+      <div className="flex items-center gap-2 text-xs font-semibold">
+        <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full [&>svg]:h-3.5 [&>svg]:w-3.5 ${v.bubble}`}>{ic}</span>
         <span className="truncate">{label}</span>
       </div>
-      <div className={`text-xl font-semibold leading-tight ${tone === 'good' ? 'text-emerald-700' : tone === 'warn' ? 'text-amber-800' : 'text-ink'}`}>{value}</div>
-      <div className="-mt-2 min-h-4 text-xs text-ink/50">{note}</div>
+      <div className="truncate text-base font-bold leading-tight sm:text-lg">{value}</div>
+      <div className={`min-h-4 truncate text-[11px] leading-4 ${v.note}`}>{note}</div>
     </Link>
   )
 }
 
-function StatusRow({ to, icon: ic, label, value, tone, hint }: { to: string; icon: ReactNode; label: string; value: string; tone: Tone; hint?: string }) {
+function StatusRow({ to, icon: ic, label, value, tone, hint, action = 'Изменить' }: { to: string; icon: ReactNode; label: string; value: string; tone: Tone; hint?: string; action?: string }) {
   return (
-    <li>
-      <Link to={to} className={`-mx-2 flex items-center gap-3 rounded-xl px-2 py-2.5 hover:bg-ink/[0.04] ${focusRing}`}>
-        <IconBubble tone="soft">{ic}</IconBubble>
-        <div className="min-w-0 flex-1">
-          <div className="truncate text-sm font-medium">{label}</div>
-          {hint && <div className="truncate text-xs text-ink/50">{hint}</div>}
+    <li className="flex items-center gap-3 rounded-xl py-2.5">
+      <IconBubble tone="soft">{ic}</IconBubble>
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span className="text-sm font-medium">{label}</span>
+          <Chip tone={tone}>{value}</Chip>
         </div>
-        <Chip tone={tone}>{value}</Chip>
-        {arrow}
-      </Link>
+        {hint && <div className="mt-0.5 truncate text-xs text-ink/50">{hint}</div>}
+      </div>
+      <Link to={to} className={`shrink-0 rounded-full border border-ink/15 px-3.5 py-1.5 text-xs font-semibold text-ink/70 hover:border-ink/30 hover:text-ink ${focusRing}`}>{action}</Link>
     </li>
   )
 }

@@ -79,7 +79,7 @@ import { logActivity, listActivity } from './lib/accountActivity.js'
 import { getThread, markSeen, addUserMessage, addSupportReply, linkAdminMessage, loginByAdminMessage, MAX_TEXT as SUPPORT_MAX_TEXT } from './lib/supportChat.js'
 import { accountDashboard } from './lib/accountDashboard.js'
 import { composeAccountMail, composeSupportReplyMail } from './lib/accountMail.js'
-import { accountProfile } from './lib/accountProfile.js'
+import { accountProfile, residentJoin, subscriptionDetails } from './lib/accountProfile.js'
 import { getProfile, saveProfile, grantConsent, addRequest, lastRequest, PRACTICES, LEVELS } from './lib/accountStore.js'
 import { DOC_TYPES, LIMITS as DOC_LIMITS, ALLOWED_EXT, MIME as DOC_MIME, listDocuments, usedBytes as docsUsedBytes, addDocument, addVersion, updateDocument, deleteDocument, deleteVersion, versionFile } from './lib/accountDocs.js'
 import { exportPersonData, accountEvents } from './lib/accountData.js'
@@ -961,7 +961,7 @@ app.delete('/api/account/telegram', (req, res) => {
 /** Данные для журнала согласий о вошедшем: имя, Telegram id и ник из карточки бота. */
 function accountIdentity(cfg) {
   const bot = cfg.tgId ? getBotUser(cfg.tgId) : null
-  return { name: cfg.name || [bot?.firstName, bot?.lastName].filter(Boolean).join(' ') || cfg.login, tgId: cfg.tgId || undefined, telegram: bot?.username, phone: cfg.phone || bot?.phone, email: cfg.email || bot?.email }
+  return { name: cfg.name || [bot?.firstName, bot?.lastName].filter(Boolean).join(' ') || cfg.login, tgId: cfg.tgId || undefined, telegram: bot?.username, phone: cfg.phone || cfg.contactPhone || bot?.phone, email: cfg.email || bot?.email }
 }
 
 app.get('/api/account/profile', (req, res) => {
@@ -1107,6 +1107,77 @@ async function deliverSupportReply(adminChatId, login, text) {
   }
   await sendTelegramMessage(adminChatId, `✅ Ответ добавлен в чат кабинета${notes.length ? ` (${notes.join(', ')})` : ''}.`)
 }
+
+// ---- Подписка на сообщество в кабинете (раздел «Статус») ----
+// Подписку находим по Telegram id и по подтверждённой почте аккаунта (как и статус резидента).
+app.get('/api/account/subscription', (req, res) => {
+  const cfg = requireAccount(req, res)
+  if (!cfg) return
+  res.json({ ok: true, subscription: subscriptionDetails(cfg.tgId, cfg.email) })
+})
+
+const subscriptionAttempts = new Map()
+
+/** Отключение автопродления из кабинета: тот же путь, что в боте (Prodamus setActivity), доступ остаётся до конца оплаченного периода. */
+app.post('/api/account/subscription/cancel', async (req, res) => {
+  const cfg = requireAccount(req, res)
+  if (!cfg) return
+  if (hitLimit(subscriptionAttempts, `c:${cfg.login}`, 5, HOUR_MS)) return res.status(429).json({ ok: false, error: 'too_many_attempts' })
+  const join = residentJoin(cfg.tgId, cfg.email)
+  if (!join) return res.status(404).json({ ok: false, error: 'no_subscription' })
+  if (join.status !== 'active') return res.status(409).json({ ok: false, error: 'already_cancelled' })
+  const reason = String(req.body?.reason ?? '').replace(/\s+/g, ' ').trim().slice(0, 500) || 'не указана'
+  // Основатель проходит путь клиента целиком, но подписка не меняется (иначе он потерял бы доступ).
+  const test = Boolean(join.lifetime)
+  const { confirmed, results } = test ? { confirmed: true, results: [] } : await cancelSubscription(join, reason)
+  const endsAt = test ? join.endsAt : join.nextPaymentAt
+  logActivity(cfg.login, 'subscription_cancelled')
+  if (BOT_TOKEN && ADMIN_CHAT_ID) {
+    const who = accountIdentity(cfg)
+    await sendTelegramMessage(ADMIN_CHAT_ID, buildKadryRichNotification({
+      template: 'support',
+      direction: 'Кабинет на сайте → Сообщество',
+      service: 'Отмена подписки резидентом',
+      date: new Date().toISOString(),
+      name: who.name,
+      phone: who.phone,
+      email: who.email,
+      telegram: who.telegram,
+      details: [
+        `Причина: ${reason}`,
+        test ? 'ТЕСТ основателя: ничего не отключено, подписка осталась активной' : join.oneTime ? 'Разовая подписка — доступ закончится в срок, списаний нет' : confirmed ? 'Отключена в Prodamus автоматически' : '⚠️ Автоматически отключить в Prodamus не удалось — отключите вручную, иначе спишут деньги',
+        ...results.map((r) => `Prodamus, подписка ${r.id}: ${r.ok ? 'OK' : 'ошибка'} (${r.raw ?? r.status})`),
+        endsAt ? `Доступ до ${new Date(endsAt).toLocaleDateString('ru-RU', { timeZone: 'Europe/Moscow' })}` : 'Дата окончания неизвестна',
+      ],
+      ticketNumber: String(nextTicketNumber()),
+      origin: 'из кабинета',
+    })).catch(() => false)
+  }
+  res.json({ ok: true, confirmed, test, endsAt: endsAt ?? null })
+})
+
+/**
+ * Смена карты для списаний. Prodamus не даёт ни клиенту, ни нам сменить карту самостоятельно (в REST API есть только включение и
+ * выключение подписки, скидка и дата списания), поэтому запрос уходит в чат поддержки с данными подписки, а дальше это делает человек.
+ */
+app.post('/api/account/subscription/card', async (req, res) => {
+  const cfg = requireAccount(req, res)
+  if (!cfg) return
+  if (hitLimit(subscriptionAttempts, `k:${cfg.login}`, 3, 24 * HOUR_MS)) return res.status(429).json({ ok: false, error: 'too_many_attempts' })
+  const sub = subscriptionDetails(cfg.tgId, cfg.email)
+  if (sub.status === 'none') return res.status(404).json({ ok: false, error: 'no_subscription' })
+  const date = (ts) => (ts ? new Date(ts).toLocaleDateString('ru-RU', { timeZone: 'Europe/Moscow' }) : 'не указана')
+  const text = [
+    'Прошу помочь сменить банковскую карту для списаний по подписке.',
+    `Тариф: ${sub.tariff ?? 'не указан'}.`,
+    sub.nextPayment ? `Следующее списание: ${date(sub.nextPayment)}.` : `Доступ до: ${date(sub.until)}.`,
+  ].join('\n')
+  const r = addUserMessage(cfg.login, text)
+  if (r.error) return res.status(400).json({ ok: false, error: 'empty' })
+  logActivity(cfg.login, 'card_change_requested')
+  const notified = await notifySupportMessage(cfg, r.message)
+  res.json({ ok: true, notified })
+})
 
 app.get('/api/account/events', (req, res) => {
   const cfg = requireAccount(req, res)
@@ -2736,10 +2807,12 @@ async function cancelSubscription(join, reason) {
   if (join.importedFromBotHelp) ['2611878', '2611880'].forEach((id) => ids.add(id)) // номера подписок из сценария BotHelp
   const results = []
   // Разовые подписки (350/500 ₽) без автопродления в Prodamus не отключаем — доступ просто закончится в срок.
-  if (!join.oneTime && join.tgUserId) {
+  // Клиента в Prodamus ищем по Telegram id, а если карточка с сайта и Telegram не привязан — по телефону или почте.
+  const who = join.tgUserId ? { tgUserId: join.tgUserId } : join.phone ? { phone: join.phone } : join.email ? { email: join.email } : null
+  if (!join.oneTime && who) {
     for (const id of ids) {
       try {
-        results.push({ id, ...(await setSubscriptionActivity({ subscriptionId: id, tgUserId: join.tgUserId, active: false })) })
+        results.push({ id, ...(await setSubscriptionActivity({ subscriptionId: id, ...who, active: false })) })
       } catch (err) {
         results.push({ id, ok: false, raw: err.message })
       }

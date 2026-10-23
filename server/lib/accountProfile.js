@@ -12,17 +12,26 @@ const DAY = 24 * 3600 * 1000
  *   ended — срок закончился; none — подписки не было.
  * until — конец оплаченного периода (для бессрочного — условная дата 2045).
  */
-export function residentStatus(tgId, now = Date.now(), email = '') {
+/** Карточки подписки человека: по Telegram id (карточка привязана к боту) и по подтверждённой почте аккаунта. */
+function myJoins(tgId, email) {
   const mail = String(email ?? '').trim().toLowerCase()
-  // подписку находим по Telegram id (карточка привязана к боту) и по подтверждённой почте аккаунта
-  const mine = listJoins().filter((j) => j.paid && ((tgId && String(j.tgUserId ?? '') === String(tgId)) || (mail && String(j.email ?? '').trim().toLowerCase() === mail)))
-  if (!mine.length) return { status: 'none' }
-  const lifetime = mine.find((j) => j.lifetime)
-  const endOf = (j) => Math.max(Number(j.nextPaymentAt) || 0, Number(j.endsAt) || 0)
-  if (lifetime) {
-    return { status: 'lifetime', tariff: 'Основатель — бессрочно', until: lifetime.endsAt ?? null, since: lifetime.startAt ?? lifetime.firstPaidAt ?? lifetime.createdAt, autoRenew: false, cancelled: false, daysLeft: null }
+  return listJoins().filter((j) => j.paid && ((tgId && String(j.tgUserId ?? '') === String(tgId)) || (mail && String(j.email ?? '').trim().toLowerCase() === mail)))
+}
+const endOf = (j) => Math.max(Number(j.nextPaymentAt) || 0, Number(j.endsAt) || 0)
+
+/** Главная карточка подписки человека: бессрочная, иначе та, что заканчивается позже всех. null — подписки не было. */
+export function residentJoin(tgId, email = '') {
+  const mine = myJoins(tgId, email)
+  if (!mine.length) return null
+  return mine.find((j) => j.lifetime) ?? [...mine].sort((a, b) => endOf(b) - endOf(a))[0]
+}
+
+export function residentStatus(tgId, now = Date.now(), email = '') {
+  const best = residentJoin(tgId, email)
+  if (!best) return { status: 'none' }
+  if (best.lifetime) {
+    return { status: 'lifetime', tariff: 'Основатель — бессрочно', until: best.endsAt ?? null, since: best.startAt ?? best.firstPaidAt ?? best.createdAt, autoRenew: false, cancelled: false, daysLeft: null }
   }
-  const best = [...mine].sort((a, b) => endOf(b) - endOf(a))[0]
   const until = endOf(best) || null
   const active = Boolean(until && until > now)
   const cancelled = best.status === 'cancelled'
@@ -36,6 +45,31 @@ export function residentStatus(tgId, now = Date.now(), email = '') {
     cancelled,
     oneTime: Boolean(best.oneTime),
     daysLeft: active ? Math.ceil((until - now) / DAY) : 0,
+  }
+}
+
+/**
+ * Подписка для раздела «Статус»: то же, что в residentStatus, плюс цена, дата следующего списания и история оплат (новые сверху).
+ * Внутренний токен карточки не отдаётся.
+ */
+export function subscriptionDetails(tgId, email = '', now = Date.now()) {
+  const status = residentStatus(tgId, now, email)
+  const join = residentJoin(tgId, email)
+  if (!join) return { ...status, payments: [] }
+  const tariff = TARIFFS[join.tariffId]
+  const payments = (join.payments ?? [])
+    .filter((p) => Number(p.amount) > 0 || p.estimated)
+    .map((p) => ({ amount: Number(p.amount) || null, paidAt: Number(p.paidAt) || null, estimated: Boolean(p.estimated) }))
+    .sort((a, b) => (b.paidAt ?? 0) - (a.paidAt ?? 0))
+    .slice(0, 50)
+  const renews = status.status === 'active' && status.autoRenew
+  return {
+    ...status,
+    price: tariff?.price ?? payments.find((p) => p.amount)?.amount ?? null,
+    period: tariff?.period ?? null,
+    nextPayment: renews ? Number(join.nextPaymentAt) || null : null,
+    canCancel: renews && !join.lifetime,
+    payments,
   }
 }
 

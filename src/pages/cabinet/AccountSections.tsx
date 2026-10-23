@@ -1,8 +1,8 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { fetchActivity, setMarketing, updateContact, isResidentAccount, type ActivityEntry, type CabinetUser } from '../../lib/cabinet'
+import { fetchActivity, updateContact, isResidentAccount, type ActivityEntry, type CabinetUser } from '../../lib/cabinet'
 import { icon } from './sections'
-import { Avatar, Card, Chip, IconBubble, Switch } from './ui'
+import { Avatar, Card, Chip, IconBubble } from './ui'
 import { dayTitle, fieldClass, labelClass, longDate, roleOf, timeOfDay } from './shared'
 import { activityIcon, activityLabel } from './activityInfo'
 
@@ -182,57 +182,19 @@ export function ActivitySection() {
   )
 }
 
-// ---- Настройки ----
-export function SettingsSection({ user, onRefresh }: { user: CabinetUser; onRefresh: () => Promise<void> }) {
+// ---- Настройки: быстрые пункты; ниже на странице «Согласия и рассылки», «Мои данные» и другие разделы «Доверия и данных» ----
+export function SettingsSection({ user }: { user: CabinetUser }) {
   const resident = isResidentAccount(user)
-  const marketing = user.consents.marketing
-  const [pending, setPending] = useState<boolean | null>(null)
-  const [busy, setBusy] = useState(false)
-  const [note, setNote] = useState('')
-  const on = pending ?? marketing === true
-
-  async function toggle(value: boolean) {
-    setBusy(true)
-    setPending(value)
-    setNote('')
-    const r = await setMarketing(value)
-    if (!r.ok) setNote('Не получилось сохранить. Попробуйте ещё раз.')
-    await onRefresh()
-    setPending(null)
-    setBusy(false)
-  }
-
   return (
     <div className="space-y-6">
-      <Group title="Уведомления">
-        <div className="flex flex-wrap items-center justify-between gap-4 px-4 py-4">
-          <div className="min-w-0 flex-1">
-            <div className="text-sm font-semibold">Рекламные и информационные сообщения</div>
-            <p className="mt-1 max-w-md text-xs text-ink/60">О мероприятиях, материалах и сообществе. Служебные сообщения (оплата, билет, напоминание о мероприятии) приходят всегда.</p>
-          </div>
-          <div className="flex shrink-0 items-center gap-3">
-            <span className={`text-sm font-medium ${on ? 'text-emerald-700' : 'text-ink/50'}`}>{on ? 'Включены' : 'Выключены'}</span>
-            <Switch checked={on} onChange={toggle} label="Рекламные и информационные сообщения" disabled={busy} />
-          </div>
-        </div>
-        {note && <p role="status" className="px-4 pb-3 text-sm text-red-600">{note}</p>}
-      </Group>
-
-      <Group title="Конфиденциальность">
-        <NavRow to="/cabinet/privacy" icon={icon.lock} title="Скрытый поиск" note="Резюме не видно работодателям, пока вы не откликнулись" value={user.privacy.hidden ? 'Включён' : 'Выключен'} good={user.privacy.hidden} />
-        <NavRow to="/cabinet/visibility" icon={icon.eye} title="Что видит работодатель" note="Какие данные видны, а какие остаются только у вас" />
-      </Group>
-
       <Group title="Безопасность">
         {resident && <NavRow to="/cabinet/password" icon={icon.lock} title="Пароль" note="Сменить пароль для входа" />}
         <NavRow to="/cabinet/telegram" icon={icon.telegram} title="Telegram" note="Код из бота, привязка и отвязка" value={user.telegram.linked ? 'Привязан' : 'Не привязан'} good={user.telegram.linked} />
         <NavRow to="/cabinet/activity" icon={icon.history} title="История действий" note="Входы и изменения в вашем кабинете" />
       </Group>
 
-      <Group title="Данные">
-        <NavRow to="/cabinet/mydata" icon={icon.download} title="Скачать мои данные" note="Всё, что мы о вас храним, одним файлом" />
-        <NavRow to="/cabinet/mydata" icon={icon.shield} title="Запросить удаление данных" note="Платёжные сведения обезличиваются, а не удаляются" />
-        <NavRow to="/cabinet/consents" icon={icon.check} title="Согласия" note="Что и когда вы подтвердили" />
+      <Group title="Конфиденциальность">
+        <NavRow to="/cabinet/privacy" icon={icon.lock} title="Скрытый поиск" note="Резюме не видно работодателям, пока вы не откликнулись" value={user.privacy.hidden ? 'Включён' : 'Выключен'} good={user.privacy.hidden} />
       </Group>
     </div>
   )

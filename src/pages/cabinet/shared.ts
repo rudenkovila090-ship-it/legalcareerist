@@ -75,3 +75,6 @@ export function roleOf(user: CabinetUser): { label: string; tone: 'ink' | 'gold'
   if (user.resident.status === 'active' || user.resident.status === 'lifetime') return { label: 'Резидент сообщества', tone: 'gold' }
   return { label: 'Клиент сервиса', tone: 'soft' }
 }
+
+/** Резидент сообщества (подписка действует или бессрочная); администратор видит всё как резидент. */
+export const isMember = (user: CabinetUser) => !isResidentAccount(user) || user.resident.status === 'active' || user.resident.status === 'lifetime'
