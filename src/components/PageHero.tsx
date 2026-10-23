@@ -22,7 +22,7 @@ export default function PageHero({
         {eyebrow && (
           <div className={`mb-2 text-sm font-medium uppercase tracking-wide ${dark ? 'text-gold-light' : 'text-gold'}`}>{eyebrow}</div>
         )}
-        <h1 className={`text-3xl font-semibold tracking-tight sm:text-4xl ${dark ? 'text-white' : ''}`}>{title}</h1>
+        <h1 className={`text-[1.625rem] font-semibold tracking-tight min-[360px]:text-3xl sm:text-4xl ${dark ? 'text-white' : ''}`}>{title}</h1>
         {description && <p className={`mt-3 ${wide ? '' : 'max-w-3xl'} ${dark ? 'text-white/60' : 'text-ink/60'}`}>{description}</p>}
         {prototype && (
           <div className="mt-4 inline-block rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">

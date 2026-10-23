@@ -19,7 +19,6 @@ import HowHeardField from '../../components/HowHeardField'
 import { pluralRu } from '../../lib/plural'
 import { eventStories } from '../../data/eventStories'
 import { NoirHero, NoirIntro, NoirFacts, NoirAudience, NoirStory, NoirFamily, NoirProgram, NoirSpeakers, NoirNewspaper } from './NoirSections'
-import { useNoirFont } from '../../lib/useNoirFont'
 import { useNoirScroll } from '../../lib/useNoirScroll'
 import ScrollCylinder from '../../components/noir/ScrollCylinder'
 import SoundToggle from '../../components/noir/SoundToggle'
@@ -173,7 +172,6 @@ export default function EventDetail() {
   const views = useEventViews(slug ?? '')
   // Авторское оформление мероприятия (тёмная тема и блоки сюжета) — если для него есть запись в eventStories.
   const story = slug ? eventStories[slug] : undefined
-  useNoirFont(Boolean(story))
   const noirRef = useRef<HTMLDivElement>(null)
   useNoirScroll(noirRef, Boolean(story))
 

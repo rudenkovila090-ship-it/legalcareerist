@@ -355,7 +355,7 @@ export default function CareerReserve({ embedded = false }: { embedded?: boolean
 
       {/* Доп. призыв к действию + заявка */}
       <section id="lead-form" className="bg-ink py-16 text-white">
-        <div className="container-page grid gap-10 lg:grid-cols-2">
+        <div className="container-page grid grid-cols-1 gap-10 lg:grid-cols-2">
           <div>
             <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold-light">Оставить заявку</div>
             <h2 className="mb-4 text-3xl font-semibold">Расскажите о себе — подберем подходящие вакансии</h2>

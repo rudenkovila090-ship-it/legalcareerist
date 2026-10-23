@@ -381,7 +381,7 @@ export default function Candidates() {
             ← Все вакансии
           </button>
 
-          <div className="mt-4 grid gap-8 lg:grid-cols-[3fr_2fr]">
+          <div className="mt-4 grid grid-cols-1 gap-8 lg:grid-cols-[3fr_2fr]">
             <div>
               <VacancyDetailBody vacancy={selectedVacancy} />
             </div>

@@ -592,7 +592,8 @@ export interface CommunityClub extends Tagged {
   slug: string
   name: string
   description: string
-  telegramLink: string
+  /** Ссылка на Telegram-чат клуба. Нет ссылки — на странице клуба нет кнопки «Вступить». */
+  telegramLink?: string
   coordinator: string
 }
 

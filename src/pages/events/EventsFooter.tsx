@@ -90,7 +90,6 @@ export default function EventsFooter() {
           <div className="mb-3 text-xs font-bold uppercase leading-tight tracking-wide text-white">Все события</div>
           <ul className="space-y-1.5 text-xs">
             <li><Link className="hover:text-white" to="/events?tab=poster">Афиша</Link></li>
-            <li><Link className="hover:text-white" to="/events/ticket-refund">Возврат билета</Link></li>
           </ul>
         </div>
 
@@ -101,16 +100,15 @@ export default function EventsFooter() {
           </ul>
         </div>
 
-        <div>
-          <div className="mb-3 text-xs font-bold uppercase leading-tight tracking-wide text-white">Организаторам</div>
-          <ul className="space-y-1.5 text-xs">
-            {SHOW_CREATE_EVENT && (
+        {/* Раздел «Организаторам» вернётся, когда будут готовы «Создать событие», «Возможности» и «Реклама»: пустых страниц-заглушек в подвале нет. */}
+        {SHOW_CREATE_EVENT && (
+          <div>
+            <div className="mb-3 text-xs font-bold uppercase leading-tight tracking-wide text-white">Организаторам</div>
+            <ul className="space-y-1.5 text-xs">
               <li><Link className="hover:text-white" to="/events?tab=create">Создать событие</Link></li>
-            )}
-            <li><Link className="hover:text-white" to="/events/opportunities">Возможности</Link></li>
-            <li><Link className="hover:text-white" to="/events/advertising">Реклама</Link></li>
-          </ul>
-        </div>
+            </ul>
+          </div>
+        )}
 
         <div>
           <div className="mb-3 text-xs font-bold uppercase leading-tight tracking-wide text-white">Помощь</div>

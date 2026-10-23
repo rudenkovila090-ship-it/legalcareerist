@@ -49,7 +49,6 @@ const About = lazy(() => import('./pages/About'))
 const News = lazy(() => import('./pages/News'))
 const NewsDetail = lazy(() => import('./pages/NewsDetail'))
 const Documents = lazy(() => import('./pages/Documents'))
-const Placeholder = lazy(() => import('./pages/Placeholder'))
 const NotFound = lazy(() => import('./pages/NotFound'))
 
 export default function App() {
@@ -113,11 +112,12 @@ export default function App() {
             <Route path="/materials/:slug" element={<MaterialDetail />} />
             <Route path="/events/contacts" element={<Contacts eyebrow="Мероприятия" sourceBlock="events" />} />
             <Route path="/events/documents" element={<Documents />} />
-            <Route path="/events/ticket-refund" element={<Placeholder eyebrow="Афиша" title="Возврат билета" />} />
-            <Route path="/events/research" element={<Placeholder eyebrow="Афиша" title="Участие в исследованиях" />} />
-            <Route path="/events/ticketing" element={<Placeholder eyebrow="Афиша" title="Билетная система" />} />
-            <Route path="/events/opportunities" element={<Placeholder eyebrow="Организаторам" title="Возможности" />} />
-            <Route path="/events/advertising" element={<Placeholder eyebrow="Организаторам" title="Реклама" />} />
+            {/* Разделы, которые ещё не написаны, не показываем «заглушками»: адреса ведут туда, где можно получить помощь. */}
+            <Route path="/events/ticket-refund" element={<Navigate to="/events/contacts" replace />} />
+            <Route path="/events/research" element={<Navigate to="/events" replace />} />
+            <Route path="/events/ticketing" element={<Navigate to="/events" replace />} />
+            <Route path="/events/opportunities" element={<Navigate to="/events" replace />} />
+            <Route path="/events/advertising" element={<Navigate to="/events" replace />} />
 
             {/* Общие информационные страницы */}
             <Route path="/about" element={<About />} />

@@ -53,7 +53,7 @@ export default function Header() {
           </span>
         </NavLink>
 
-        <nav className="hidden items-center gap-6 md:flex">
+        <nav className="hidden items-center gap-2 md:flex lg:gap-6">
           {nav.map((item) =>
             item.label === 'Кадры' ? (
               // «Кадры» — по наведению открывает выбор аудитории (Работодателям/

@@ -1383,7 +1383,7 @@ export default function KadryHome() {
 
       {/* Найти сотрудника — объединенный яркий CTA-блок с формой */}
       <section id="lead-form" className="scroll-mt-16 bg-ink py-16 text-white">
-        <div className="container-page grid gap-10 lg:grid-cols-[1fr_1.1fr] lg:items-center">
+        <div className="container-page grid grid-cols-1 gap-10 lg:grid-cols-[1fr_1.1fr] lg:items-center">
           <div>
             <div className="text-sm font-medium uppercase tracking-wide text-gold-light">Найти сотрудника</div>
             <h2 className="mt-2 text-3xl font-semibold sm:text-4xl">Расскажите о вакансии — запустим поиск уже сегодня</h2>

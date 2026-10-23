@@ -185,7 +185,7 @@ export default function MarketplaceHome() {
       />
 
       <div className="container-page py-10">
-        <div className="grid gap-8 lg:grid-cols-[260px_1fr]">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[260px_1fr]">
           {/* Фильтры */}
           <aside className="space-y-4">
             <CollapsibleCheckboxFilter label="Категория" options={categoryOptions} selected={category} onToggle={toggleCategory} />
@@ -225,7 +225,7 @@ export default function MarketplaceHome() {
             <div className="mb-1 text-sm font-medium uppercase tracking-wide text-gold">Каталог</div>
             <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
               <h2 className="text-2xl font-semibold">Каталог материалов</h2>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <select
                   value={sort}
                   onChange={(e) => setSort(e.target.value as 'popular' | 'price_asc' | 'price_desc')}

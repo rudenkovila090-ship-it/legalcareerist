@@ -72,8 +72,6 @@ export default function Layout() {
   // сами являются частью подвала как ссылки, и остаются на общем футере.
   const eventsStaticSubpages = [
     '/events/knowledge', '/events/materials', '/events/contacts', '/events/documents',
-    '/events/ticket-refund', '/events/research', '/events/ticketing',
-    '/events/opportunities', '/events/advertising',
   ]
   // То же для «Сообщества»: свой единый подвал (CommunityFooter: CommunityHome
   // + детальная страница клуба), статичные подстраницы раздела остаются на

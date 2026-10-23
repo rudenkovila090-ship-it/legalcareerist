@@ -35,14 +35,21 @@ export default function ClubDetail() {
           </div>
           <p className="mt-6 leading-relaxed text-ink/80">{club.description}</p>
           <div className="mt-4 text-sm text-ink/60">Координатор: {club.coordinator}</div>
-          <a
-            href={club.telegramLink}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-6 inline-block rounded-lg bg-ink px-6 py-2.5 text-sm font-semibold text-white hover:bg-ink/90"
-          >
-            Вступить в Telegram-чат клуба
-          </a>
+          {club.telegramLink ? (
+            <a
+              href={club.telegramLink}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-6 inline-block rounded-lg bg-ink px-6 py-2.5 text-sm font-semibold text-white hover:bg-ink/90"
+            >
+              Вступить в Telegram-чат клуба
+            </a>
+          ) : (
+            <p className="mt-6 rounded-xl bg-ink/[0.04] p-4 text-sm leading-relaxed text-ink/70">
+              Чат клуба ещё не открыт. Чтобы попасть в него первым, напишите нам на странице{' '}
+              <Link to="/community/contacts" className="underline hover:text-ink">«Контакты»</Link>.
+            </p>
+          )}
 
           <RelatedContentBlock items={related} title="Обсудить с другими: связанные материалы и вакансии" />
         </div>

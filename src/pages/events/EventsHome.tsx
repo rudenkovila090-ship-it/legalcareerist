@@ -12,7 +12,6 @@ import HowHeardField from '../../components/HowHeardField'
 import { eventTimeRange } from '../../lib/eventTime'
 import { startEventMusicOnClick } from '../../lib/eventMusic'
 import { eventStories } from '../../data/eventStories'
-import { useNoirFont } from '../../lib/useNoirFont'
 import { pluralRu } from '../../lib/plural'
 import ConsentCheck from '../../components/ConsentCheck'
 import { consentOf } from '../../lib/consent'
@@ -286,7 +285,6 @@ type TabId = (typeof eventTabs)[number]['id'] | 'partner' | 'support'
 
 export default function EventsHome() {
   useDocumentTitle('Мероприятия')
-  useNoirFont(events.some((e) => eventStories[e.slug]))
   // 'partner' и 'support' не выведены отдельными кнопками в подменю сверху
   // (eventTabs) — до них ведут только ссылки в едином подвале (EventsFooter),
   // в том числе с других страниц (например, с детальной страницы

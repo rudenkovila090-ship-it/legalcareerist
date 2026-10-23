@@ -1,5 +1,7 @@
 import type { CommunityClub } from '../types'
 
+// Ссылка на Telegram-чат клуба (telegramLink) появится у клуба, когда чат реально откроется: до тех пор кнопки «Вступить» на странице клуба нет.
+
 export const clubs: CommunityClub[] = [
   {
     id: 'c2',
@@ -8,7 +10,6 @@ export const clubs: CommunityClub[] = [
     specialization: ['advocacy'],
     industry: ['disputes'],
     description: 'Для тех, кто готовится к статусу адвоката или уже практикует: разборы дел, менторство.',
-    telegramLink: 'https://t.me/example_advocacy_club',
     coordinator: 'Игорь Панов',
   },
   {
@@ -18,7 +19,6 @@ export const clubs: CommunityClub[] = [
     specialization: ['consulting'],
     industry: ['tax'],
     description: 'Практикум по налоговым спорам и консультированию — от студентов до практикующих юристов.',
-    telegramLink: 'https://t.me/example_tax_club',
     coordinator: 'Мария Крылова',
   },
   {
@@ -28,7 +28,6 @@ export const clubs: CommunityClub[] = [
     specialization: ['government'],
     industry: ['gr'],
     description: 'О карьере в госорганах, кадровом резерве и GR-направлении.',
-    telegramLink: 'https://t.me/example_gov_club',
     coordinator: 'Дмитрий Орлов',
   },
 ]

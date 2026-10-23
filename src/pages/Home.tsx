@@ -158,7 +158,7 @@ export default function Home() {
       <section className="border-b border-ink/10 bg-white">
         <div className="container-page py-16 text-center">
           <div className="mb-3 text-sm font-medium uppercase tracking-wide text-gold">Карьерный Юрист</div>
-          <h1 className="mx-auto max-w-3xl text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">
+          <h1 className="mx-auto max-w-3xl text-[1.75rem] font-semibold leading-tight tracking-tight min-[360px]:text-[2rem] min-[390px]:text-4xl sm:text-5xl">
             Карьера в праве строится легче — в кругу единомышленников
           </h1>
           <p className="mx-auto mt-4 max-w-xl text-ink/60">
