@@ -40,7 +40,7 @@ export function exportPersonData(cfg, now = Date.now()) {
   return {
     generatedAt: new Date(now).toISOString(),
     note: 'Все данные о вас, которые хранит сервис «Карьерный юрист» на сегодня. Платёжные сведения и журналы показаны в объёме, в котором мы их храним.',
-    account: { login: cfg.login, telegramId: cfg.tgId || null },
+    account: { login: cfg.login, email: cfg.email || null, telegramId: cfg.tgId || null },
     cabinetProfile: getProfile(cfg.login),
     cabinetDocuments: {
       note: 'Сами файлы скачиваются в личном кабинете, в разделах «Профиль и CV» и «Сопроводительные и тестовые».',

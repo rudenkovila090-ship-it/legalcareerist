@@ -1,15 +1,15 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Link, NavLink, useParams } from 'react-router-dom'
 import PageHero from '../../components/PageHero'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
-import { fetchMe, signIn, signOut, type CabinetUser, type ResidentInfo } from '../../lib/cabinet'
+import { fetchMe, signOut, type CabinetUser, type ResidentInfo } from '../../lib/cabinet'
 import { groups, sectionById, sections, sectionsOfGroup, type CabinetSection, type GroupId } from './sections'
 import { Card, Todo } from './ui'
-import { inputClass } from './shared'
 import { ExpectationsSection, PracticesSection, PrivacySection } from './ProfileSections'
 import { ConsentsSection, MyDataSection, VisibilitySection } from './DataSections'
 import { EventsSection, ResidentSection, TelegramSection } from './CommunitySections'
 import { CvSection, DocumentsSection } from './DocumentsSections'
+import { ActivatePage, Landing, PasswordSection } from './AccountAccess'
 
 const IconOverview = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 shrink-0" aria-hidden="true">
@@ -19,8 +19,9 @@ const IconOverview = () => (
 
 type Session = { state: 'loading' } | { state: 'anonymous'; notice?: string } | { state: 'error' } | { state: 'authed'; user: CabinetUser }
 
-// /cabinet — личный кабинет. Посетителям показываем «раздел в разработке» и вход для администратора проекта; вошедший
-// пользуется кабинетом как клиент сервиса. Разделы, которые ещё не сделаны, помечены «В разработке» и перечисляют, что осталось.
+// /cabinet — личный кабинет. Посетителям показываем вход и регистрацию по почте (резиденты сообщества; администратор проекта входит
+// здесь же по своему логину), вошедший пользуется кабинетом как клиент сервиса. Разделы, которые ещё не сделаны, помечены
+// «В разработке» и перечисляют, что осталось. Ссылка из письма «задайте пароль» — /cabinet/activate?token=…
 export default function Cabinet() {
   useDocumentTitle('Личный кабинет')
   const { section } = useParams()
@@ -49,6 +50,8 @@ export default function Cabinet() {
   const openGroup: GroupId = picked && picked.section === current?.id ? picked.group : current?.group ?? groups[0].id
   const setOpenGroup = (group: GroupId) => setPicked({ group, section: current?.id })
 
+  // Ссылка из письма «задайте пароль»: открывается, даже если в этом браузере уже есть вход (при восстановлении пароля так и бывает).
+  if (section === 'activate') return <ActivatePage onSignedIn={(user) => setSession({ state: 'authed', user })} />
   if (session.state === 'loading') return <div className="container-page py-24 text-center text-sm text-ink/50">Загружаем кабинет…</div>
   if (session.state === 'error') {
     return (
@@ -74,6 +77,7 @@ export default function Cabinet() {
         <aside className="min-w-0 lg:sticky lg:top-24 lg:self-start">
           <div className="glass mb-4 rounded-xl p-4">
             <div className="truncate font-semibold">{user.name}</div>
+            {user.email && user.email !== user.name && <div className="truncate text-xs text-ink/50">{user.email}</div>}
             <span className="mt-1 inline-block rounded-full bg-ink/[0.06] px-2.5 py-1 text-xs font-medium text-ink/70">Клиент сервиса</span>
             <Link
               to="/cabinet/privacy"
@@ -150,6 +154,7 @@ function NavItem({ to, end, icon, label, dev }: { to: string; end?: boolean; ico
 
 function SectionBody({ section, user, onRefresh }: { section: CabinetSection; user: CabinetUser; onRefresh: () => Promise<void> }) {
   const body: Record<string, ReactNode> = {
+    password: <PasswordSection user={user} />,
     privacy: <PrivacySection onSaved={() => void onRefresh()} />,
     practices: <PracticesSection />,
     expectations: <ExpectationsSection />,
@@ -227,71 +232,5 @@ function StatusTile({ to, label, value, good }: { to: string; label: string; val
       <div className="text-xs text-ink/50">{label}</div>
       <div className={`mt-1 font-semibold ${good ? 'text-emerald-700' : 'text-ink'}`}>{value}</div>
     </Link>
-  )
-}
-
-function Landing({ notice, onSignedIn }: { notice?: string; onSignedIn: (user: CabinetUser) => void }) {
-  const [login, setLogin] = useState('')
-  const [password, setPassword] = useState('')
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState(notice ?? '')
-
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault()
-    setBusy(true)
-    setError('')
-    const r = await signIn(login, password)
-    if (!r.ok) {
-      setBusy(false)
-      setError(
-        r.error === 'too_many_attempts' ? 'Слишком много попыток. Попробуйте через 15 минут.'
-        : r.error === 'not_configured' ? 'Вход пока не настроен.'
-        : r.error === 'network' ? 'Не получилось связаться с сервером. Попробуйте ещё раз.'
-        : 'Неверный логин или пароль.',
-      )
-      return
-    }
-    const me = await fetchMe()
-    setBusy(false)
-    if (me.state === 'authed') onSignedIn(me.user)
-    else setError('Вход выполнен, но кабинет не открылся. Обновите страницу.')
-  }
-
-  return (
-    <div>
-      <PageHero
-        eyebrow="Личный кабинет"
-        title="Личный кабинет"
-        description="Раздел в разработке. Здесь появятся профиль юриста с режимом конфиденциальности, отклики и интервью, карьерный план, статус в сообществе и управление вашими данными."
-      />
-      <div className="container-page grid gap-6 py-12 lg:grid-cols-[1fr_22rem]">
-        <section className="glass rounded-2xl p-6">
-          <div className="mb-1 inline-block rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">В разработке</div>
-          <h2 className="mt-2 text-xl font-semibold">Что будет в кабинете</h2>
-          <div className="mt-4 grid gap-6 sm:grid-cols-2">
-            {groups.map((g) => (
-              <div key={g.id}>
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-ink/40">{g.title}</h3>
-                <ul className="mt-2 space-y-1.5 text-sm text-ink/80">
-                  {sectionsOfGroup(g.id).map((s) => <li key={s.id}>{s.title}</li>)}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </section>
-        <form onSubmit={handleSubmit} className="glass h-fit rounded-2xl p-6">
-          <h2 className="text-lg font-semibold">Вход для администратора</h2>
-          <p className="mt-1 text-sm text-ink/60">Пока кабинет в разработке, вход открыт только администратору проекта.</p>
-          <div className="mt-4 grid gap-3">
-            <input value={login} onChange={(e) => setLogin(e.target.value)} placeholder="Логин" autoComplete="username" required className={inputClass} />
-            <input value={password} onChange={(e) => setPassword(e.target.value)} type="password" placeholder="Пароль" autoComplete="current-password" required className={inputClass} />
-            {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
-            <button type="submit" disabled={busy} className="rounded-full bg-ink py-2.5 text-sm font-semibold text-white hover:bg-ink/90 disabled:opacity-60">
-              {busy ? 'Входим…' : 'Войти'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
   )
 }

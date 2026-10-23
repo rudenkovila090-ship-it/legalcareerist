@@ -61,7 +61,7 @@ export function healthLines({ lastWebhook, lastPollAt, pollingEnabled, errors, l
 export async function makeBackup() {
   const tmp = path.join(os.tmpdir(), `lc-backup-${Date.now()}.tar.gz`)
   try {
-    await run('tar', ['-czf', tmp, '--exclude=./account-files', '-C', DATA_DIR, '.'])
+    await run('tar', ['-czf', tmp, '--exclude=./account-files', '--exclude=./account-sessions.json', '-C', DATA_DIR, '.'])
     return fs.readFileSync(tmp)
   } finally {
     fs.rmSync(tmp, { force: true })

@@ -12,8 +12,10 @@ const DAY = 24 * 3600 * 1000
  *   ended — срок закончился; none — подписки не было.
  * until — конец оплаченного периода (для бессрочного — условная дата 2045).
  */
-export function residentStatus(tgId, now = Date.now()) {
-  const mine = listJoins().filter((j) => j.paid && tgId && String(j.tgUserId ?? '') === String(tgId))
+export function residentStatus(tgId, now = Date.now(), email = '') {
+  const mail = String(email ?? '').trim().toLowerCase()
+  // подписку находим по Telegram id (карточка привязана к боту) и по подтверждённой почте аккаунта
+  const mine = listJoins().filter((j) => j.paid && ((tgId && String(j.tgUserId ?? '') === String(tgId)) || (mail && String(j.email ?? '').trim().toLowerCase() === mail)))
   if (!mine.length) return { status: 'none' }
   const lifetime = mine.find((j) => j.lifetime)
   const endOf = (j) => Math.max(Number(j.nextPaymentAt) || 0, Number(j.endsAt) || 0)
@@ -46,14 +48,15 @@ export function accountProfile(cfg, now = Date.now()) {
     name: cfg.name || botName || cfg.login,
     role: 'client',
     telegramLinked: Boolean(bot),
-    resident: residentStatus(cfg.tgId, now),
+    email: cfg.email || undefined,
+    resident: residentStatus(cfg.tgId, now, cfg.email),
     privacy: { hidden: getProfile(cfg.login).privacy.hidden },
     // Согласия: на обработку и рассылку — из карточки в боте, на профиль кабинета — из самого профиля.
     consents: {
-      processingAt: bot?.consentAt ?? null,
+      processingAt: bot?.consentAt ?? cfg.consentAt ?? null,
       profileAt: getProfile(cfg.login).consentAt,
-      marketing: typeof bot?.mailingConsent === 'boolean' ? bot.mailingConsent : null,
-      marketingAt: bot?.mailingAnsweredAt ?? null,
+      marketing: typeof bot?.mailingConsent === 'boolean' ? bot.mailingConsent : typeof cfg.marketing === 'boolean' ? cfg.marketing : null,
+      marketingAt: bot?.mailingAnsweredAt ?? cfg.marketingAt ?? null,
     },
   }
 }

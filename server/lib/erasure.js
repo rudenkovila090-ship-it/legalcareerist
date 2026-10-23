@@ -7,7 +7,8 @@ import path from 'node:path'
 import { createJsonStore, normalizePhone } from './jsonStore.js'
 import { SOURCES, recordsOf, anonymizeRecord } from './personData.js'
 import { personKeys, countConsentEntries, pseudonymizeConsent } from './consentLog.js'
-import { accountConfig, revokeAll } from './accountAuth.js'
+import { accountConfig, revokeAll, revokeFor } from './accountAuth.js'
+import { listAccounts, contextOf, deleteAccount } from './accountUsers.js'
 import { accountKeys } from './accountData.js'
 import { eraseProfile, getProfile } from './accountStore.js'
 import { listDocuments, eraseAccountFiles } from './accountDocs.js'
@@ -42,6 +43,17 @@ function accountOf(query, keys) {
   if (!keys.has(ACCOUNT_KEY) && asked !== cfg.login.toLowerCase() && !intersects(accountKeys(cfg), keys)) return null
   const docs = listDocuments(cfg.login)
   return { login: cfg.login, hasProfile: Boolean(getProfile(cfg.login).updatedAt), docs: docs.length, files: docs.reduce((n, d) => n + d.versions.length, 0) }
+}
+
+// Аккаунты резидентов (вход по почте, lib/accountUsers.js): считаются данными человека, если их почта или Telegram совпали с запросом.
+function customersOf(keys) {
+  return listAccounts()
+    .filter((a) => intersects(accountKeys(contextOf(a)), keys))
+    .map((a) => {
+      const login = `u:${a.id}`
+      const docs = listDocuments(login)
+      return { id: a.id, login, email: a.email, hasProfile: Boolean(getProfile(login).updatedAt), docs: docs.length, files: docs.reduce((n, d) => n + d.versions.length, 0) }
+    })
 }
 
 /** Короткая подпись записи для подтверждения: имя с инициалом фамилии и последние цифры телефона — чтобы админ узнал человека. */
@@ -121,6 +133,7 @@ export function findPerson(query) {
   const extraKeys = keys.size - initial.size
   const account = accountOf(query, keys)
   if (account) keys.add(ACCOUNT_KEY)
+  const customers = customersOf(keys)
   const matches = found.map(({ source, rec }) => ({
     source: source.id,
     title: source.title,
@@ -133,8 +146,8 @@ export function findPerson(query) {
     webhooks: hooks.length,
     reviews: reviews.length,
   }
-  const empty = !matches.length && !logs.consent && !logs.webhooks && !logs.reviews && !(account && (account.hasProfile || account.docs))
-  return { keys: [...keys], extraKeys, matches, logs, account, empty }
+  const empty = !matches.length && !logs.consent && !logs.webhooks && !logs.reviews && !(account && (account.hasProfile || account.docs)) && !customers.length
+  return { keys: [...keys], extraKeys, matches, logs, account, customers, empty }
 }
 
 /** Текст подтверждения для админа. */
@@ -153,6 +166,7 @@ export function describeFound(res) {
   if (res.account && (res.account.hasProfile || res.account.docs)) {
     lines.push(`• Личный кабинет на сайте (${res.account.login}): удалить профиль${res.account.docs ? `, документов ${res.account.docs} (файлов ${res.account.files})` : ''}, закрыть вход`)
   }
+  for (const c of res.customers ?? []) lines.push(`• Личный кабинет резидента (${c.email}): удалить аккаунт${c.hasProfile ? ', профиль' : ''}${c.docs ? `, документов ${c.docs} (файлов ${c.files})` : ''}`)
   if (res.logs.reviews) lines.push(`• Отзывы о материалах: удалить ${res.logs.reviews}`)
   if (res.logs.consent) lines.push(`• Журнал согласий: заменить имя и контакты отпечатками (${res.logs.consent})`)
   if (res.logs.webhooks) lines.push(`• Журнал платежей Prodamus: стереть имя и контакты (${res.logs.webhooks})`)
@@ -197,6 +211,13 @@ export function erasePerson(keyList) {
     done.cabinetFiles = eraseAccountFiles(cfg.login)
     done.cabinet = eraseProfile(cfg.login) ? 1 : 0
     revokeAll()
+  }
+
+  for (const c of customersOf(keys)) {
+    done.cabinetFiles = (done.cabinetFiles ?? 0) + eraseAccountFiles(c.login)
+    done.cabinet = (done.cabinet ?? 0) + (eraseProfile(c.login) ? 1 : 0)
+    revokeFor(c.login)
+    done.accounts = (done.accounts ?? 0) + (deleteAccount(c.id) ? 1 : 0)
   }
 
   done.consent = pseudonymizeConsent(keys)
@@ -249,6 +270,7 @@ export function erasedText(done) {
   const lines = ['✅ Данные удалены', '', `Записей удалено: ${done.deleted}`, `Записей обезличено: ${done.anonymized}`]
   if (done.reviews) lines.push(`Отзывов удалено: ${done.reviews}`)
   if (done.cabinet || done.cabinetFiles) lines.push(`Личный кабинет: профиль удалён, файлов документов удалено ${done.cabinetFiles}, вход закрыт`)
+  if (done.accounts) lines.push(`Аккаунты резидентов удалены: ${done.accounts}`)
   if (done.consent) lines.push(`Записей журнала согласий обезличено: ${done.consent}`)
   if (done.webhooks) lines.push(`Строк журнала платежей очищено: ${done.webhooks}`)
   if (done.leadSources) lines.push(`Строк журнала «Откуда узнали» удалено: ${done.leadSources}`)

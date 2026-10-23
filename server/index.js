@@ -72,7 +72,9 @@ import { recordConsent } from './lib/consentLog.js'
 import { scanRetention, applyRetention, retentionReportText, retentionDoneText } from './lib/retention.js'
 import { findPerson, describeFound, erasePerson, erasedText } from './lib/erasure.js'
 import { planImport, applyImport, planSummary, doneSummary } from './lib/botHelpImport.js'
-import { accountConfig, login as accountLogin, sessionFor, logout as accountLogout, bearer } from './lib/accountAuth.js'
+import { accountConfig, login as accountLogin, sessionFor, logout as accountLogout, bearer, startSession, revokeFor, sameText } from './lib/accountAuth.js'
+import { startRegistration, startReset, peekToken, consumeToken, verifyLogin, changePassword as changeAccountPassword, setMarketing as setAccountMarketing, getAccount, contextOf, validEmail, ACTIVATE_TTL_MS, RESET_TTL_MS } from './lib/accountUsers.js'
+import { composeAccountMail } from './lib/accountMail.js'
 import { accountProfile } from './lib/accountProfile.js'
 import { getProfile, saveProfile, grantConsent, addRequest, lastRequest, PRACTICES, LEVELS } from './lib/accountStore.js'
 import { DOC_TYPES, LIMITS as DOC_LIMITS, ALLOWED_EXT, MIME as DOC_MIME, listDocuments, usedBytes as docsUsedBytes, addDocument, addVersion, updateDocument, deleteDocument, deleteVersion, versionFile } from './lib/accountDocs.js'
@@ -91,6 +93,7 @@ import { dealCard, activeDealsScreen, funnelScreen, stageScreen, closedScreen, m
 
 const app = express()
 app.use(cors())
+app.set('trust proxy', 'loopback')
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
@@ -761,22 +764,119 @@ const loginFailures = { count: 0, resetAt: 0 }
 const LOGIN_MAX_FAILURES = 20
 const LOGIN_WINDOW_MS = 15 * 60 * 1000
 
+/** Простой счётчик попыток по ключу (адрес, почта): true — лимит исчерпан. */
+function hitLimit(map, key, max, windowMs, now = Date.now()) {
+  const e = map.get(key)
+  if (!e || e.resetAt < now) {
+    map.set(key, { count: 1, resetAt: now + windowMs })
+    return false
+  }
+  e.count += 1
+  return e.count > max
+}
+const customerLoginAttempts = new Map()
+const registerAttempts = new Map()
+const forgotAttempts = new Map()
+const activateAttempts = new Map()
+const HOUR_MS = 3600 * 1000
+
+// Вход: администратор (логин и пароль из server/.env) или резидент (почта и пароль, lib/accountUsers.js).
 app.post('/api/account/login', (req, res) => {
   const now = Date.now()
-  if (loginFailures.resetAt < now) Object.assign(loginFailures, { count: 0, resetAt: now + LOGIN_WINDOW_MS })
-  if (loginFailures.count >= LOGIN_MAX_FAILURES) return res.status(429).json({ ok: false, error: 'too_many_attempts' })
-  const r = accountLogin(req.body?.login, req.body?.password)
-  if (r.error === 'not_configured') return res.status(503).json({ ok: false, error: 'not_configured' })
-  if (r.error) {
-    loginFailures.count += 1
-    return res.status(401).json({ ok: false, error: 'bad_credentials' })
+  const id = String(req.body?.login ?? '').trim()
+  const cfg = accountConfig()
+  if (cfg && sameText(id, cfg.login)) {
+    // Администратор. Защита от перебора: не больше 20 неудачных входов за 15 минут на весь сервер (по адресу не считаем:
+    // за nginx он у всех одинаковый или подделывается). Пароль длинный и случайный, scrypt медленный, так что этого с запасом.
+    if (loginFailures.resetAt < now) Object.assign(loginFailures, { count: 0, resetAt: now + LOGIN_WINDOW_MS })
+    if (loginFailures.count >= LOGIN_MAX_FAILURES) return res.status(429).json({ ok: false, error: 'too_many_attempts' })
+    const r = accountLogin(req.body?.login, req.body?.password)
+    if (r.error) {
+      loginFailures.count += 1
+      return res.status(401).json({ ok: false, error: 'bad_credentials' })
+    }
+    return res.json({ ok: true, token: r.token, expiresAt: r.expiresAt })
   }
-  res.json({ ok: true, token: r.token, expiresAt: r.expiresAt })
+  // Резидент: не больше 60 попыток за 15 минут с одного адреса и 8 неудачных подряд на одну почту (lib/accountUsers.js).
+  if (hitLimit(customerLoginAttempts, req.ip, 60, LOGIN_WINDOW_MS, now)) return res.status(429).json({ ok: false, error: 'too_many_attempts' })
+  const r = verifyLogin(id, req.body?.password, now)
+  if (r.error === 'too_many_attempts') return res.status(429).json({ ok: false, error: 'too_many_attempts' })
+  if (r.error) return res.status(401).json({ ok: false, error: 'bad_credentials' })
+  const session = startSession(`u:${r.account.id}`, now)
+  res.json({ ok: true, token: session.token, expiresAt: session.expiresAt })
 })
 
-app.get('/api/account/me', (req, res) => {
+/** Письмо со ссылкой «задать пароль» (подтверждение почты или восстановление). Возвращает { ok, error? } как sendMail. */
+async function sendAccountLinkMail({ token, purpose, account }, kind = purpose) {
+  const link = `${SITE_URL}/cabinet/activate?token=${token}`
+  const mail = composeAccountMail({ kind, link, name: account.name, hours: (purpose === 'reset' ? RESET_TTL_MS : ACTIVATE_TTL_MS) / HOUR_MS })
+  return sendMail({ to: account.email, subject: mail.subject, text: mail.text, html: mail.html })
+}
+
+// Регистрация резидента: почта и согласия. Пароль человек задаёт по ссылке из письма. Ответ не зависит от того, есть ли уже
+// такая почта (иначе по ответу можно было бы узнавать, кто зарегистрирован); существующему владельцу уходит письмо «у вас уже есть кабинет».
+app.post('/api/account/register', async (req, res) => {
+  const body = req.body ?? {}
+  if (!mailConfigured()) return res.status(503).json({ ok: false, error: 'mail_unavailable' })
+  if (hitLimit(registerAttempts, req.ip, 10, HOUR_MS)) return res.status(429).json({ ok: false, error: 'too_many_attempts' })
+  if (!validEmail(body.email)) return res.status(400).json({ ok: false, error: 'bad_email' })
+  if (!consentGiven(body)) return res.status(400).json({ ok: false, error: 'consent_required' })
+  const r = startRegistration({ email: body.email, name: body.name, consentAt: Date.now(), consentVersion: consentVersion(body), marketing: consentChoice(body).marketing, marketingVersion: marketingVersion(body) })
+  if (r.sent) {
+    if (r.purpose === 'activate') recordConsent({ form: 'cabinet_register', version: consentVersion(body), given: true, ...marketingFields(body), name: r.account.name || undefined, email: r.account.email })
+    const mail = await sendAccountLinkMail(r, r.purpose === 'reset' ? 'exists' : 'activate')
+    if (!mail.ok) return res.status(502).json({ ok: false, error: 'mail_failed' })
+  }
+  res.json({ ok: true })
+})
+
+// «Забыли пароль»: так же отвечаем одинаково независимо от того, есть ли аккаунт.
+app.post('/api/account/forgot', async (req, res) => {
+  if (!mailConfigured()) return res.status(503).json({ ok: false, error: 'mail_unavailable' })
+  if (hitLimit(forgotAttempts, req.ip, 10, HOUR_MS)) return res.status(429).json({ ok: false, error: 'too_many_attempts' })
+  if (!validEmail(req.body?.email)) return res.status(400).json({ ok: false, error: 'bad_email' })
+  const r = startReset(req.body.email)
+  if (r) {
+    const mail = await sendAccountLinkMail(r)
+    if (!mail.ok) return res.status(502).json({ ok: false, error: 'mail_failed' })
+  }
+  res.json({ ok: true })
+})
+
+// Страница «задайте пароль» узнаёт у сервера, что за ссылка (подтверждение почты или восстановление) и для какой почты.
+app.get('/api/account/activation', (req, res) => {
+  res.set('Cache-Control', 'no-store')
+  if (hitLimit(activateAttempts, req.ip, 60, HOUR_MS)) return res.status(429).json({ ok: false, error: 'too_many_attempts' })
+  const info = peekToken(String(req.query.token ?? ''))
+  if (!info) return res.status(404).json({ ok: false, error: 'bad_token' })
+  res.json({ ok: true, purpose: info.purpose, email: info.email })
+})
+
+// Пароль по ссылке из письма: подтверждает почту, гасит ссылку и сразу открывает кабинет. После восстановления старые входы закрываются.
+app.post('/api/account/activate', (req, res) => {
+  res.set('Cache-Control', 'no-store')
+  if (hitLimit(activateAttempts, req.ip, 60, HOUR_MS)) return res.status(429).json({ ok: false, error: 'too_many_attempts' })
+  const r = consumeToken(String(req.body?.token ?? ''), req.body?.password)
+  if (r.error) return res.status(r.error === 'bad_token' ? 404 : 400).json({ ok: false, error: r.error })
+  const loginName = `u:${r.account.id}`
+  revokeFor(loginName)
+  const session = startSession(loginName)
+  res.json({ ok: true, token: session.token, expiresAt: session.expiresAt })
+})
+
+/** Кто вошёл: администратор (настройки из .env) или резидент (аккаунт). Для всех разделов кабинета вид один: { login, tgId, name, email, phone }. */
+function accountContext(req) {
+  const s = sessionFor(bearer(req))
+  if (!s) return null
   const cfg = accountConfig()
-  if (!cfg || !sessionFor(bearer(req))) return res.status(401).json({ ok: false, error: 'unauthorized' })
+  if (cfg && s.login === cfg.login) return cfg
+  const account = String(s.login).startsWith('u:') ? getAccount(String(s.login).slice(2)) : null
+  return account ? contextOf(account) : null
+}
+
+app.get('/api/account/me', (req, res) => {
+  const cfg = accountContext(req)
+  if (!cfg) return res.status(401).json({ ok: false, error: 'unauthorized' })
   res.set('Cache-Control', 'no-store')
   res.json({ ok: true, ...accountProfile(cfg) })
 })
@@ -786,16 +886,28 @@ app.post('/api/account/logout', (req, res) => {
   res.json({ ok: true })
 })
 
-/** Вошедший в кабинет (настройки входа) или null — тогда уже отправлен ответ 401. */
+/** Вошедший в кабинет или null — тогда уже отправлен ответ 401. */
 function requireAccount(req, res) {
-  const cfg = accountConfig()
-  if (!cfg || !sessionFor(bearer(req))) {
+  const cfg = accountContext(req)
+  if (!cfg) {
     res.status(401).json({ ok: false, error: 'unauthorized' })
     return null
   }
   res.set('Cache-Control', 'no-store')
   return cfg
 }
+
+// Смена пароля резидента (нужен текущий). Остальные входы закрываются, этот остаётся.
+app.post('/api/account/password', (req, res) => {
+  const cfg = requireAccount(req, res)
+  if (!cfg) return
+  if (!String(cfg.login).startsWith('u:')) return res.status(400).json({ ok: false, error: 'not_supported' })
+  if (hitLimit(customerLoginAttempts, `pw:${cfg.login}`, 10, LOGIN_WINDOW_MS)) return res.status(429).json({ ok: false, error: 'too_many_attempts' })
+  const r = changeAccountPassword(String(cfg.login).slice(2), req.body?.current, req.body?.password)
+  if (r.error) return res.status(r.error === 'bad_credentials' ? 403 : 400).json({ ok: false, error: r.error })
+  revokeFor(cfg.login, bearer(req))
+  res.json({ ok: true })
+})
 
 /** Данные для журнала согласий о вошедшем: имя, Telegram id и ник из карточки бота. */
 function accountIdentity(cfg) {
@@ -828,6 +940,7 @@ app.post('/api/account/marketing', (req, res) => {
   if (typeof req.body?.marketing !== 'boolean') return res.status(400).json({ ok: false, error: 'bad_request' })
   const value = req.body.marketing
   if (cfg.tgId && getBotUser(cfg.tgId)) setMailingConsent(cfg.tgId, value)
+  if (String(cfg.login).startsWith('u:')) setAccountMarketing(String(cfg.login).slice(2), value)
   recordConsent({ form: 'cabinet_marketing', version: consentVersion(req.body), given: Boolean(getProfile(cfg.login).consentAt), marketing: value, marketingVersion: marketingVersion(req.body), ...accountIdentity(cfg) })
   res.json({ ok: true, marketing: value, at: Date.now(), applied: Boolean(cfg.tgId && getBotUser(cfg.tgId)) })
 })
@@ -849,7 +962,7 @@ app.post('/api/account/data-request', async (req, res) => {
   const request = addRequest(cfg.login, 'delete')
   if (BOT_TOKEN && ADMIN_CHAT_ID) {
     const who = accountIdentity(cfg)
-    await sendTelegramMessage(ADMIN_CHAT_ID, `🗑 Запрос на удаление данных из личного кабинета\n\nКто: ${who.name} (логин ${cfg.login}${cfg.tgId ? `, Telegram id ${cfg.tgId}` : ''})\n\nЧтобы выполнить: /forget ${cfg.tgId || cfg.login}\nПлатёжные сведения при этом не удаляются, а обезличиваются — закон велит хранить их дольше.`).catch(() => false)
+    await sendTelegramMessage(ADMIN_CHAT_ID, `🗑 Запрос на удаление данных из личного кабинета\n\nКто: ${who.name} (${cfg.email ? `почта ${cfg.email}` : `логин ${cfg.login}`}${cfg.tgId ? `, Telegram id ${cfg.tgId}` : ''})\n\nЧтобы выполнить: /forget ${cfg.tgId || cfg.login}\nПлатёжные сведения при этом не удаляются, а обезличиваются — закон велит хранить их дольше.`).catch(() => false)
   }
   res.json({ ok: true, at: request.at })
 })
@@ -888,7 +1001,7 @@ const docError = (res, code) => {
 
 // Загрузка: новый документ или, если передан docId, новая версия существующего. Вход проверяется до разбора файла.
 app.post('/api/account/documents', (req, res, next) => (requireAccount(req, res) ? next() : undefined), (req, res) => {
-  const cfg = accountConfig()
+  const cfg = accountContext(req)
   documentUpload(req, res, (err) => {
     if (err?.code === 'LIMIT_FILE_SIZE') return docError(res, 'file_too_large')
     if (err || !req.file) return res.status(400).json({ ok: false, error: 'no_file' })

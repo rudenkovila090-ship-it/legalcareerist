@@ -1,5 +1,6 @@
-// Вход в личный кабинет на сайте (/cabinet). Пока кабинет в разработке, входит один человек — администратор проекта,
-// который пользуется кабинетом как клиент сервиса. Логин и хэш пароля лежат только в server/.env (ACCOUNT_LOGIN,
+// Вход в личный кабинет на сайте (/cabinet): администратор проекта (логин и хэш пароля в server/.env) и резиденты
+// с аккаунтами (lib/accountUsers.js, вход по почте и паролю). Сессия резидента хранится под логином «u:<id аккаунта>».
+// Администратор пользуется кабинетом как клиент сервиса. Логин и хэш пароля лежат только в server/.env (ACCOUNT_LOGIN,
 // ACCOUNT_PASSWORD_HASH — готовит scripts/setup-account.sh); пароль нигде не хранится, в репозиторий ничего не попадает.
 // Не настроено — вход отключён (503), остальные посетители видят «раздел в разработке».
 // Сессии: случайный токен у браузера, на сервере — только его sha256 и срок (account-sessions.json), поэтому после
@@ -7,30 +8,17 @@
 import crypto from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
+import { hashPassword, verifyPassword, DUMMY_HASH } from './password.js'
+import { getAccount, isActive } from './accountUsers.js'
 
 const DATA_DIR = path.join(import.meta.dirname, '..', 'data')
 const FILE = path.join(DATA_DIR, 'account-sessions.json')
 export const SESSION_MS = 30 * 24 * 3600 * 1000
-const SCRYPT = { N: 16384, r: 8, p: 1 }
+export { hashPassword, verifyPassword }
 
-/** Хэш пароля вида scrypt.<соль>.<ключ> (base64url — без символов, которые ломают .env). */
-export function hashPassword(password, salt = crypto.randomBytes(16)) {
-  const key = crypto.scryptSync(String(password), salt, 64, SCRYPT)
-  return `scrypt.${salt.toString('base64url')}.${key.toString('base64url')}`
-}
-
-export function verifyPassword(password, stored) {
-  const [alg, s, k] = String(stored ?? '').split('.')
-  if (alg !== 'scrypt' || !s || !k) return false
-  const expected = Buffer.from(k, 'base64url')
-  const key = crypto.scryptSync(String(password), Buffer.from(s, 'base64url'), expected.length, SCRYPT)
-  return key.length === expected.length && crypto.timingSafeEqual(key, expected)
-}
-
-// Хэш-пустышка: при неверном логине пароль всё равно проверяется, чтобы по времени ответа нельзя было угадать логин.
-const DUMMY = hashPassword(crypto.randomBytes(8).toString('hex'))
+const DUMMY = DUMMY_HASH
 const digest = (v) => crypto.createHash('sha256').update(String(v)).digest()
-const sameText = (a, b) => crypto.timingSafeEqual(digest(a), digest(b))
+export const sameText = (a, b) => crypto.timingSafeEqual(digest(a), digest(b))
 
 /** Настройки входа из окружения или null, если вход не настроен. */
 export function accountConfig(env = process.env) {
@@ -62,10 +50,15 @@ export function login(loginInput, password, env = process.env, now = Date.now())
   const loginOk = sameText(String(loginInput ?? '').trim(), cfg.login)
   const passOk = verifyPassword(String(password ?? ''), loginOk ? cfg.hash : DUMMY)
   if (!(loginOk && passOk)) return { error: 'bad_credentials' }
+  return startSession(cfg.login, now)
+}
+
+/** Новая сессия на 30 дней для логина (администратор или «u:<id>»): токен у браузера, на сервере только его sha256. */
+export function startSession(loginName, now = Date.now()) {
   const token = crypto.randomBytes(32).toString('hex')
   const data = load()
   for (const [k, s] of Object.entries(data)) if (s.expiresAt <= now) delete data[k]
-  data[tokenKey(token)] = { login: cfg.login, createdAt: now, expiresAt: now + SESSION_MS }
+  data[tokenKey(token)] = { login: loginName, createdAt: now, expiresAt: now + SESSION_MS }
   save(data)
   return { token, expiresAt: now + SESSION_MS }
 }
@@ -75,8 +68,28 @@ export function sessionFor(token, env = process.env, now = Date.now()) {
   if (!token || !/^[0-9a-f]{64}$/.test(token)) return null
   const cfg = accountConfig(env)
   const s = load()[tokenKey(token)]
-  if (!cfg || !s || s.expiresAt <= now || s.login !== cfg.login) return null
-  return s
+  if (!s || s.expiresAt <= now) return null
+  if (cfg && s.login === cfg.login) return s
+  // резидент: сессия живёт, пока есть подтверждённый аккаунт (его удаляют по запросу на удаление данных)
+  if (String(s.login).startsWith('u:')) {
+    const account = getAccount(String(s.login).slice(2))
+    if (account && isActive(account)) return s
+  }
+  return null
+}
+
+/** Закрывает все сессии одного логина (смена пароля, удаление аккаунта); except — токен, который оставить. */
+export function revokeFor(loginName, exceptToken = '') {
+  const data = load()
+  const keep = exceptToken ? tokenKey(exceptToken) : ''
+  let changed = false
+  for (const [k, s] of Object.entries(data)) {
+    if (s.login === loginName && k !== keep) {
+      delete data[k]
+      changed = true
+    }
+  }
+  if (changed) save(data)
 }
 
 export function logout(token) {

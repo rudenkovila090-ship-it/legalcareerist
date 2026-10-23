@@ -19,6 +19,8 @@ export interface ResidentInfo {
 export interface CabinetUser {
   login: string
   name: string
+  /** Почта аккаунта резидента (у администратора может быть пустой). */
+  email?: string
   role: 'client'
   /** Есть ли карточка этого человека в Telegram-боте (по ней находится подписка). */
   telegramLinked: boolean
@@ -37,6 +39,9 @@ export interface ConsentsInfo {
   marketing: boolean | null
   marketingAt: number | null
 }
+
+/** Резидент входит по почте; администратор — по логину из настроек сервера (у него логин без «u:»). */
+export const isResidentAccount = (user: CabinetUser) => user.login.startsWith('u:')
 
 export function getToken(): string {
   try {
@@ -77,6 +82,62 @@ export async function signIn(login: string, password: string): Promise<SignInRes
   } catch {
     return { ok: false, error: 'network' }
   }
+}
+
+// ---- Аккаунт резидента: регистрация по почте, пароль по ссылке из письма ----
+
+export type AccountError = 'bad_email' | 'consent_required' | 'too_many_attempts' | 'mail_failed' | 'mail_unavailable' | 'network' | 'error'
+export type PasswordError = 'password_short' | 'password_long' | 'password_weak'
+
+async function postPublic<T extends object>(path: string, body: object): Promise<{ ok: true; data: T } | { ok: false; error: string }> {
+  try {
+    const res = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+    const data = (await res.json().catch(() => ({}))) as T & { error?: string }
+    return res.ok ? { ok: true, data } : { ok: false, error: data.error ?? 'error' }
+  } catch {
+    return { ok: false, error: 'network' }
+  }
+}
+
+/** Регистрация: на почту уходит письмо со ссылкой, где человек задаёт пароль. Ответ не зависит от того, есть ли уже такая почта. */
+export async function registerAccount(input: { email: string; name: string; consent: ConsentChoice }): Promise<{ ok: true } | { ok: false; error: AccountError }> {
+  const r = await postPublic('/api/account/register', { ...input, consentVersion: CONSENT_VERSION, marketingVersion: MARKETING_CONSENT_VERSION })
+  return r.ok ? { ok: true } : { ok: false, error: r.error as AccountError }
+}
+
+/** «Забыли пароль»: если аккаунт есть, на почту уходит ссылка; ответ всегда одинаковый. */
+export async function requestPasswordReset(email: string): Promise<{ ok: true } | { ok: false; error: AccountError }> {
+  const r = await postPublic('/api/account/forgot', { email })
+  return r.ok ? { ok: true } : { ok: false, error: r.error as AccountError }
+}
+
+export interface ActivationInfo {
+  /** activate — подтверждение почты и первый пароль; reset — новый пароль вместо забытого. */
+  purpose: 'activate' | 'reset'
+  email: string
+}
+
+/** Что за ссылка из письма. null — ссылка не действует (использована или истекла). */
+export async function fetchActivation(token: string): Promise<{ state: 'ok'; info: ActivationInfo } | { state: 'invalid' } | { state: 'error' }> {
+  try {
+    const res = await fetch(`/api/account/activation?token=${encodeURIComponent(token)}`)
+    if (res.status === 404) return { state: 'invalid' }
+    if (!res.ok) return { state: 'error' }
+    const data = (await res.json()) as ActivationInfo
+    return { state: 'ok', info: { purpose: data.purpose, email: data.email } }
+  } catch {
+    return { state: 'error' }
+  }
+}
+
+/** Пароль по ссылке из письма. При успехе кабинет сразу открывается: сервер выдаёт сессию. */
+export async function activateAccount(token: string, password: string): Promise<{ ok: true } | { ok: false; error: PasswordError | 'bad_token' | 'too_many_attempts' | 'network' | 'error' }> {
+  const r = await postPublic<{ token?: string }>('/api/account/activate', { token, password })
+  if (r.ok && r.data.token) {
+    setToken(r.data.token)
+    return { ok: true }
+  }
+  return { ok: false, error: (r.ok ? 'error' : r.error) as PasswordError | 'bad_token' | 'too_many_attempts' | 'network' | 'error' }
 }
 
 export type MeResult = { state: 'authed'; user: CabinetUser } | { state: 'anonymous' } | { state: 'error' }
@@ -163,6 +224,9 @@ export const saveProfile = (parts: Partial<Pick<Profile, 'practices' | 'experien
 
 export const setMarketing = (marketing: boolean) => api<{ marketing: boolean; at: number; applied: boolean }>('/api/account/marketing', { method: 'POST', body: JSON.stringify({ marketing, consentVersion: CONSENT_VERSION, marketingVersion: MARKETING_CONSENT_VERSION }) })
 export const requestDeletion = () => api<{ already?: boolean; at: number }>('/api/account/data-request', { method: 'POST', body: '{}' })
+
+/** Смена пароля вошедшим: нужен текущий. Остальные входы с других устройств закрываются. */
+export const changePassword = (current: string, password: string) => api<{ ok: true }>('/api/account/password', { method: 'POST', body: JSON.stringify({ current, password }) })
 
 /** Сохраняет файл из памяти браузера под заданным именем (ссылка должна быть в документе, и адрес живёт ещё секунду). */
 function saveBlob(blob: Blob, filename: string) {
