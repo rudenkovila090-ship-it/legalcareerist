@@ -35,6 +35,7 @@ const VacancyBuilder = lazy(() => import('./pages/account/VacancyBuilder'))
 const MarketplaceHome = lazy(() => import('./pages/MarketplaceHome'))
 const BlogHome = lazy(() => import('./pages/BlogHome'))
 const Contacts = lazy(() => import('./pages/Contacts'))
+const LegalHome = lazy(() => import('./pages/legal/LegalHome'))
 const Privacy = lazy(() => import('./pages/legal/Privacy'))
 const Consent = lazy(() => import('./pages/legal/Consent'))
 const ConsentPublication = lazy(() => import('./pages/legal/ConsentPublication'))
@@ -151,6 +152,7 @@ export default function App() {
             <Route path="/contacts" element={<Contacts eyebrow="Карьерный Юрист" sourceBlock="home" />} />
 
             {/* Юридические документы */}
+            <Route path="/legal" element={<LegalHome />} />
             <Route path="/legal/privacy" element={<Privacy />} />
             <Route path="/legal/consent" element={<Consent />} />
             <Route path="/legal/consent-publication" element={<ConsentPublication />} />

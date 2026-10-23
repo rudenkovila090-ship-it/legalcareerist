@@ -1,5 +1,5 @@
-import { openCookieSettings } from '../../lib/metrika'
 import { Link } from 'react-router-dom'
+import { FooterBottom, FooterLegal } from '../../components/FooterLegal'
 import { SHOW_AMBASSADORS } from '../../lib/featureFlags'
 
 // Единый подвал раздела «Сообщество» — построен по тому же принципу, что и
@@ -99,19 +99,7 @@ export default function CommunityFooter() {
           </ul>
         </div>
 
-        <div className="max-w-sm">
-          <div className="mb-3 whitespace-nowrap text-xs font-bold uppercase leading-tight tracking-wide text-white">Юридический блок</div>
-          <ul className="space-y-1.5 text-xs">
-            <li><Link className="hover:text-white" to="/legal/privacy">Политика обработки персональных данных</Link></li>
-            <li><Link className="hover:text-white" to="/legal/consent">Согласие на обработку персональных данных</Link></li>
-            <li><Link className="hover:text-white" to="/legal/marketing-consent">Согласие на получение рекламных и информационных материалов</Link></li>
-            <li><Link className="hover:text-white" to="/legal/offer">Оферта на Лонглист «Студенческие юридические мероприятия»</Link></li>
-            <li><Link className="hover:text-white" to="/legal/offer-longlist-yuridicheskie-meropriyatiya">Оферта на Лонглист «Юридические мероприятия»</Link></li>
-            <li><Link className="hover:text-white" to="/legal/offer-gaid-kariera-yurista-v-notariate">Оферта на Гайд «Карьера юриста в нотариате»</Link></li>
-            <li><Link className="hover:text-white" to="/legal/offer-gaid-stipendii-i-granty">Оферта на Гайд «Стипендии и гранты»</Link></li>
-            <li><button type="button" onClick={openCookieSettings} className="hover:text-white">Настройки cookie</button></li>
-          </ul>
-        </div>
+        <FooterLegal />
         {/* Соцсети — тот же flex-item в общей строке, не отдельная секция с
             собственным border-t/py ниже. */}
         <div>
@@ -145,11 +133,7 @@ export default function CommunityFooter() {
         </div>
       </div>
 
-      <div className="border-t border-white/10 py-5">
-        <div className="w-full px-6 text-center text-xs text-white/40 sm:px-10 lg:px-16">
-          <span>© {new Date().getFullYear()} ИП Руденков И.В. Карьерный Юрист. ИНН 262607024144 ОГРНИП 325784700110048</span>
-        </div>
-      </div>
+      <FooterBottom />
     </footer>
   )
 }
