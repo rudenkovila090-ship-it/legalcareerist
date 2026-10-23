@@ -6,7 +6,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { SOURCES, TERMS, recordsOf, anonymizeRecord, retentionContext } from './personData.js'
 import { countOlderConsent, pruneConsentLog } from './consentLog.js'
-import { listAccounts, deleteAccount, lastActivityAt } from './accountUsers.js'
+import { listAccounts, deleteAccount, isActive, lastActivityAt, lastRegistrationAt } from './accountUsers.js'
 import { eraseAccountFiles } from './accountDocs.js'
 import { eraseProfile } from './accountStore.js'
 import { revokeFor } from './accountAuth.js'
@@ -74,11 +74,13 @@ const consentLog = {
   prune: (now) => pruneConsentLog(now - TERMS.consentLog),
 }
 
-// Аккаунты резидентов в кабинете на сайте: 5 лет с последнего входа. Вместе с аккаунтом уходят профиль, документы с файлами и входы.
-const expiredAccounts = (now) => listAccounts().filter((a) => now > lastActivityAt(a) + TERMS.account)
+// Аккаунты резидентов в кабинете на сайте: 5 лет с последнего входа; регистрация без подтверждённой почты и пароля — 30 дней.
+// Вместе с аккаунтом уходят профиль, документы с файлами и входы.
+const expiredAccounts = (now) =>
+  listAccounts().filter((a) => (isActive(a) ? now > lastActivityAt(a) + TERMS.account : now > lastRegistrationAt(a) + TERMS.accountUnverified))
 const accounts = {
   id: 'accounts',
-  title: 'Аккаунты резидентов в кабинете (нет входов 5 лет)',
+  title: 'Аккаунты резидентов в кабинете (нет входов 5 лет, не подтверждены 30 дней)',
   term: TERMS.account,
   count: (now) => expiredAccounts(now).length,
   prune: (now) => {

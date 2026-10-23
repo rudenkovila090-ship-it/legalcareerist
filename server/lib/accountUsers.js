@@ -221,6 +221,9 @@ export function unlinkTelegram(id) {
 /** Когда аккаунтом последний раз пользовались: вход по паролю, смена пароля или создание. По нему считается срок хранения. */
 export const lastActivityAt = (a) => Math.max(a.lastLoginAt ?? 0, a.passwordChangedAt ?? 0, a.createdAt ?? 0)
 
+/** Когда регистрацию, которую не довели до пароля, можно удалить: считаем от создания или последнего письма со ссылкой (повторная регистрация продлевает срок). */
+export const lastRegistrationAt = (a) => Math.max(a.createdAt ?? 0, a.lastMailAt ?? 0)
+
 /** Удаление аккаунта (по запросу на удаление данных). */
 export function deleteAccount(id) {
   const data = load()
