@@ -6,6 +6,8 @@ import { personKeys, consentEntriesFor } from './consentLog.js'
 import { SOURCES, recordsOf } from './personData.js'
 import { getProfile } from './accountStore.js'
 import { listDocuments, DOC_TYPES } from './accountDocs.js'
+import { listActivity } from './accountActivity.js'
+import { getThread } from './supportChat.js'
 
 const DATA_DIR = path.join(import.meta.dirname, '..', 'data')
 
@@ -40,7 +42,9 @@ export function exportPersonData(cfg, now = Date.now()) {
   return {
     generatedAt: new Date(now).toISOString(),
     note: 'Все данные о вас, которые хранит сервис «Карьерный юрист» на сегодня. Платёжные сведения и журналы показаны в объёме, в котором мы их храним.',
-    account: { login: cfg.login, email: cfg.email || null, telegramId: cfg.tgId || null },
+    account: { login: cfg.login, email: cfg.email || null, name: cfg.name || null, phone: cfg.contactPhone || cfg.phone || null, telegramId: cfg.tgId || null, created: cfg.createdAt ? new Date(cfg.createdAt).toISOString() : null },
+    activityLog: listActivity(cfg.login, 100, now).map((e) => ({ ...e, at: new Date(e.at).toISOString() })),
+    supportChat: getThread(cfg.login).messages.map((m) => ({ from: m.from === 'user' ? 'вы' : 'поддержка', text: m.text, at: new Date(m.at).toISOString() })),
     cabinetProfile: getProfile(cfg.login),
     cabinetDocuments: {
       note: 'Сами файлы скачиваются в личном кабинете, в разделах «Профиль и CV» и «Сопроводительные и тестовые».',

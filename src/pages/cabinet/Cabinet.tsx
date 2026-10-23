@@ -1,10 +1,14 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { Link, NavLink, useParams } from 'react-router-dom'
 import PageHero from '../../components/PageHero'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
-import { fetchMe, signOut, type CabinetUser, type ResidentInfo } from '../../lib/cabinet'
-import { groups, sectionById, sections, sectionsOfGroup, type CabinetSection, type GroupId } from './sections'
-import { Card, Todo } from './ui'
+import { fetchDashboard, fetchMe, signOut, type CabinetUser, type DashboardData } from '../../lib/cabinet'
+import { groups, sectionById, sectionsOfGroup, type CabinetSection, type GroupId } from './sections'
+import { Avatar, Card, Todo } from './ui'
+import { roleOf } from './shared'
+import Dashboard from './Dashboard'
+import { ActivitySection, ProfileInfoSection, SettingsSection } from './AccountSections'
+import { HelpSection, SupportSection } from './HelpSections'
 import { ExpectationsSection, PracticesSection, PrivacySection } from './ProfileSections'
 import { ConsentsSection, MyDataSection, VisibilitySection } from './DataSections'
 import { EventsSection, ResidentSection, TelegramSection } from './CommunitySections'
@@ -44,6 +48,24 @@ export default function Cabinet() {
     }
   }, [])
 
+  // Сводка для обзора и числа непрочитанных ответов поддержки в меню; обновляется при входе и когда разделы что-то меняют.
+  const [dash, setDash] = useState<DashboardData | null>(null)
+  const authed = session.state === 'authed'
+  const loadDash = useCallback(async () => {
+    const r = await fetchDashboard()
+    if (r.ok) setDash(r.data)
+  }, [])
+  useEffect(() => {
+    if (!authed) return
+    let active = true
+    fetchDashboard().then((r) => {
+      if (active && r.ok) setDash(r.data)
+    })
+    return () => {
+      active = false
+    }
+  }, [authed])
+
   const current = sectionById(section)
   // Группа, раскрытая в мобильном меню: выбранная вручную (пока остаёмся на том же разделе) или группа текущего раздела.
   const [picked, setPicked] = useState<{ group: GroupId; section?: string } | null>(null)
@@ -67,21 +89,29 @@ export default function Cabinet() {
     const r = await fetchMe()
     if (r.state === 'authed') setSession(r)
     else if (r.state === 'anonymous') setSession({ state: 'anonymous', notice: 'Сессия закончилась. Войдите снова.' })
+    void loadDash()
   }
+  const unread = dash?.support.unread ?? 0
+  const role = roleOf(user)
 
   return (
     // ym-hide-content: содержимое кабинета (профиль, документы, согласия) не попадает в запись вебвизора Яндекс Метрики.
     <div className="ym-hide-content">
-      <PageHero eyebrow="Личный кабинет" title={current ? current.title : `Здравствуйте, ${user.name.split(' ')[0]}`} description={current?.lead} />
+      <PageHero eyebrow="Личный кабинет" title={current ? current.title : `Здравствуйте, ${(user.contact.name || user.name).split(' ')[0]}`} description={current?.lead ?? 'Всё о вашем аккаунте в одном месте: подписка, данные, история и поддержка.'} />
       <div className="container-page grid gap-8 py-10 lg:grid-cols-[17rem_1fr]">
         <aside className="min-w-0 lg:sticky lg:top-24 lg:self-start">
-          <div className="glass mb-4 rounded-xl p-4">
-            <div className="truncate font-semibold">{user.name}</div>
-            {user.email && user.email !== user.name && <div className="truncate text-xs text-ink/50">{user.email}</div>}
-            <span className="mt-1 inline-block rounded-full bg-ink/[0.06] px-2.5 py-1 text-xs font-medium text-ink/70">Клиент сервиса</span>
+          <div className="glass mb-4 rounded-2xl p-4">
+            <div className="flex items-center gap-3">
+              <Avatar name={user.contact.name || user.name} email={user.contact.email} size="md" />
+              <div className="min-w-0">
+                <div className="truncate font-semibold">{user.contact.name || user.name}</div>
+                {user.contact.email && user.contact.email !== (user.contact.name || user.name) && <div className="truncate text-xs text-ink/50">{user.contact.email}</div>}
+              </div>
+            </div>
+            <span className={`mt-3 inline-block rounded-full px-2.5 py-1 text-xs font-semibold ${role.tone === 'gold' ? 'bg-gold-light/30 text-ink' : role.tone === 'ink' ? 'bg-ink text-white' : 'bg-ink/[0.06] text-ink/70'}`}>{role.label}</span>
             <Link
               to="/cabinet/privacy"
-              className={`mt-3 flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium ${user.privacy.hidden ? 'bg-emerald-50 text-emerald-800' : 'bg-ink/[0.04] text-ink/60 hover:text-ink'}`}
+              className={`mt-3 hidden items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium lg:flex ${user.privacy.hidden ? 'bg-emerald-50 text-emerald-800' : 'bg-ink/[0.04] text-ink/60 hover:text-ink'}`}
             >
               {sectionById('privacy')?.icon}
               Скрытый поиск: {user.privacy.hidden ? 'включён' : 'выключен'}
@@ -90,9 +120,10 @@ export default function Cabinet() {
               type="button"
               onClick={async () => {
                 await signOut()
+                setDash(null)
                 setSession({ state: 'anonymous' })
               }}
-              className="mt-3 block text-xs font-semibold text-ink/50 hover:text-ink"
+              className="mt-3 block rounded text-xs font-semibold text-ink/50 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink/40"
             >
               Выйти
             </button>
@@ -104,7 +135,7 @@ export default function Cabinet() {
             {groups.map((g) => (
               <div key={g.id}>
                 <div className="px-4 pb-1 pt-4 text-xs font-semibold uppercase tracking-wide text-ink/40">{g.title}</div>
-                {sectionsOfGroup(g.id).map((s) => <NavItem key={s.id} to={`/cabinet/${s.id}`} icon={s.icon} label={s.title} dev={!s.ready} />)}
+                {sectionsOfGroup(g.id).map((s) => <NavItem key={s.id} to={`/cabinet/${s.id}`} icon={s.icon} label={s.title} dev={!s.ready} badge={s.id === 'support' ? unread : 0} />)}
               </div>
             ))}
           </nav>
@@ -120,11 +151,11 @@ export default function Cabinet() {
               ))}
             </div>
             <div className="flex gap-2 overflow-x-auto pb-1">
-              {sectionsOfGroup(openGroup).map((s) => <Pill key={s.id} to={`/cabinet/${s.id}`}>{s.title}</Pill>)}
+              {sectionsOfGroup(openGroup).map((s) => <Pill key={s.id} to={`/cabinet/${s.id}`}>{s.title}{s.id === 'support' && unread > 0 ? ` · ${unread}` : ''}</Pill>)}
             </div>
           </div>
         </aside>
-        <main className="min-w-0">{!current ? <Overview user={user} /> : <SectionBody section={current} user={user} onRefresh={refresh} />}</main>
+        <main className="min-w-0">{!current ? <Dashboard user={user} dash={dash} /> : <SectionBody section={current} user={user} onRefresh={refresh} onRead={loadDash} />}</main>
       </div>
     </div>
   )
@@ -138,7 +169,7 @@ function Pill({ to, end, children }: { to: string; end?: boolean; children: Reac
   )
 }
 
-function NavItem({ to, end, icon, label, dev }: { to: string; end?: boolean; icon: ReactNode; label: string; dev?: boolean }) {
+function NavItem({ to, end, icon, label, dev, badge = 0 }: { to: string; end?: boolean; icon: ReactNode; label: string; dev?: boolean; badge?: number }) {
   return (
     <NavLink
       to={to}
@@ -148,12 +179,18 @@ function NavItem({ to, end, icon, label, dev }: { to: string; end?: boolean; ico
       {icon}
       <span className="min-w-0">{label}</span>
       {dev && <span className="ml-auto h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400" title="В разработке" />}
+      {badge > 0 && <span className="ml-auto rounded-full bg-amber-400 px-2 py-0.5 text-[11px] font-bold text-ink" aria-label={`Новых ответов: ${badge}`}>{badge}</span>}
     </NavLink>
   )
 }
 
-function SectionBody({ section, user, onRefresh }: { section: CabinetSection; user: CabinetUser; onRefresh: () => Promise<void> }) {
+function SectionBody({ section, user, onRefresh, onRead }: { section: CabinetSection; user: CabinetUser; onRefresh: () => Promise<void>; onRead: () => void }) {
   const body: Record<string, ReactNode> = {
+    profile: <ProfileInfoSection user={user} onSaved={onRefresh} />,
+    activity: <ActivitySection />,
+    settings: <SettingsSection user={user} onRefresh={onRefresh} />,
+    help: <HelpSection />,
+    support: <SupportSection onRead={onRead} />,
     password: <PasswordSection user={user} />,
     privacy: <PrivacySection onSaved={() => void onRefresh()} />,
     practices: <PracticesSection />,
@@ -187,50 +224,7 @@ function SectionBody({ section, user, onRefresh }: { section: CabinetSection; us
   return (
     <div className="space-y-6">
       {body[section.id]}
-      <Todo items={section.todo} />
+      {section.todo.length > 0 && <Todo items={section.todo} />}
     </div>
-  )
-}
-
-const residentBadge = (r: ResidentInfo) => (r.status === 'lifetime' ? 'Бессрочно' : r.status === 'active' ? 'Резидент' : r.status === 'ended' ? 'Подписка закончилась' : 'Нет подписки')
-
-function Overview({ user }: { user: CabinetUser }) {
-  const mk = user.consents.marketing
-  return (
-    <div className="space-y-8">
-      <div className="grid gap-4 sm:grid-cols-3">
-        <StatusTile to="/cabinet/resident" label="Сообщество" value={residentBadge(user.resident)} good={user.resident.status === 'active' || user.resident.status === 'lifetime'} />
-        <StatusTile to="/cabinet/privacy" label="Скрытый поиск" value={user.privacy.hidden ? 'Включён' : 'Выключен'} good={user.privacy.hidden} />
-        <StatusTile to="/cabinet/consents" label="Рассылки" value={mk === true ? 'Включены' : mk === false ? 'Выключены' : 'Не выбрано'} good={mk === true} />
-      </div>
-      {groups.map((g) => (
-        <section key={g.id}>
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink/40">{g.title}</h2>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {sectionsOfGroup(g.id).map((s) => (
-              <Link key={s.id} to={`/cabinet/${s.id}`} className="glass flex min-w-0 items-center gap-3 rounded-xl p-4">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ink text-white">{s.icon}</span>
-                <span className="min-w-0 flex-1 font-semibold leading-snug">{s.title}</span>
-                {s.ready ? (
-                  <span className="shrink-0 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">Доступно</span>
-                ) : (
-                  <span className="shrink-0 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800">В разработке</span>
-                )}
-              </Link>
-            ))}
-          </div>
-        </section>
-      ))}
-      <p className="text-xs text-ink/40">Всего разделов: {sections.length}. Разделы со значком «В разработке» мы будем настраивать по очереди.</p>
-    </div>
-  )
-}
-
-function StatusTile({ to, label, value, good }: { to: string; label: string; value: string; good: boolean }) {
-  return (
-    <Link to={to} className="glass rounded-xl p-4">
-      <div className="text-xs text-ink/50">{label}</div>
-      <div className={`mt-1 font-semibold ${good ? 'text-emerald-700' : 'text-ink'}`}>{value}</div>
-    </Link>
   )
 }

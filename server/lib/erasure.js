@@ -12,6 +12,8 @@ import { listAccounts, contextOf, deleteAccount } from './accountUsers.js'
 import { accountKeys } from './accountData.js'
 import { eraseProfile, getProfile } from './accountStore.js'
 import { listDocuments, eraseAccountFiles } from './accountDocs.js'
+import { eraseActivity } from './accountActivity.js'
+import { eraseThread } from './supportChat.js'
 
 const DATA_DIR = path.join(import.meta.dirname, '..', 'data')
 const reviewsStore = createJsonStore('material-reviews.json')
@@ -48,7 +50,8 @@ function accountOf(query, keys) {
 // Аккаунты резидентов (вход по почте, lib/accountUsers.js): считаются данными человека, если их почта или Telegram совпали с запросом.
 function customersOf(keys) {
   return listAccounts()
-    .filter((a) => intersects(accountKeys(contextOf(a)), keys))
+    // телефон для связи, который человек указал в профиле, на показ подписки не влияет, а для удаления по запросу «по номеру» учитывается
+    .filter((a) => intersects(accountKeys(contextOf(a)), keys) || (a.phone && intersects(personKeys({ phone: a.phone }), keys)))
     .map((a) => {
       const login = `u:${a.id}`
       const docs = listDocuments(login)
@@ -210,12 +213,16 @@ export function erasePerson(keyList) {
   if (cfg && (keys.has(ACCOUNT_KEY) || intersects(accountKeys(cfg), keys))) {
     done.cabinetFiles = eraseAccountFiles(cfg.login)
     done.cabinet = eraseProfile(cfg.login) ? 1 : 0
+    done.activity = eraseActivity(cfg.login)
+    done.chat = eraseThread(cfg.login)
     revokeAdminSessions()
   }
 
   for (const c of customersOf(keys)) {
     done.cabinetFiles = (done.cabinetFiles ?? 0) + eraseAccountFiles(c.login)
     done.cabinet = (done.cabinet ?? 0) + (eraseProfile(c.login) ? 1 : 0)
+    done.activity = (done.activity ?? 0) + eraseActivity(c.login)
+    done.chat = (done.chat ?? 0) + eraseThread(c.login)
     revokeFor(c.login)
     done.accounts = (done.accounts ?? 0) + (deleteAccount(c.id) ? 1 : 0)
   }
@@ -271,6 +278,7 @@ export function erasedText(done) {
   if (done.reviews) lines.push(`Отзывов удалено: ${done.reviews}`)
   if (done.cabinet || done.cabinetFiles) lines.push(`Личный кабинет: профиль удалён, файлов документов удалено ${done.cabinetFiles}, вход закрыт`)
   if (done.accounts) lines.push(`Аккаунты резидентов удалены: ${done.accounts}`)
+  if (done.activity || done.chat) lines.push(`Журнал действий в кабинете: стёрто записей ${done.activity ?? 0}; чат поддержки: стёрто сообщений ${done.chat ?? 0}`)
   if (done.consent) lines.push(`Записей журнала согласий обезличено: ${done.consent}`)
   if (done.webhooks) lines.push(`Строк журнала платежей очищено: ${done.webhooks}`)
   if (done.leadSources) lines.push(`Строк журнала «Откуда узнали» удалено: ${done.leadSources}`)

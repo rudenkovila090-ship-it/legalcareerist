@@ -10,6 +10,8 @@ import { listAccounts, deleteAccount, isActive, lastActivityAt, lastRegistration
 import { eraseAccountFiles } from './accountDocs.js'
 import { eraseProfile } from './accountStore.js'
 import { revokeFor } from './accountAuth.js'
+import { eraseActivity, countOldActivity, pruneActivity } from './accountActivity.js'
+import { eraseThread, countOldThreads, pruneThreads } from './supportChat.js'
 
 const DATA_DIR = path.join(import.meta.dirname, '..', 'data')
 
@@ -89,11 +91,29 @@ const accounts = {
       const login = `u:${a.id}`
       eraseAccountFiles(login)
       eraseProfile(login)
+      eraseActivity(login)
+      eraseThread(login)
       revokeFor(login)
       if (deleteAccount(a.id)) n += 1
     }
     return n
   },
+}
+
+const activityLog = {
+  id: 'activity',
+  title: 'Журнал действий в кабинете (старше года)',
+  term: TERMS.activity,
+  count: (now) => countOldActivity(now),
+  prune: (now) => pruneActivity(now),
+}
+
+const supportChats = {
+  id: 'supportChat',
+  title: 'Чаты поддержки в кабинете (без новых сообщений больше года)',
+  term: TERMS.support,
+  count: (now) => countOldThreads(now),
+  prune: (now) => pruneThreads(now),
 }
 
 export const LOGS = [
@@ -103,6 +123,8 @@ export const LOGS = [
   consentLog,
   pendingNotices,
   accounts,
+  activityLog,
+  supportChats,
 ]
 
 /** Что пора удалить/обезличить на момент now. Ничего не меняет. */

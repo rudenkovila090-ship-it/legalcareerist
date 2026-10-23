@@ -73,9 +73,12 @@ import { scanRetention, applyRetention, retentionReportText, retentionDoneText }
 import { findPerson, describeFound, erasePerson, erasedText } from './lib/erasure.js'
 import { planImport, applyImport, planSummary, doneSummary } from './lib/botHelpImport.js'
 import { accountConfig, login as accountLogin, sessionFor, logout as accountLogout, bearer, startSession, revokeFor, sameText } from './lib/accountAuth.js'
-import { startRegistration, startReset, peekToken, consumeToken, verifyLogin, changePassword as changeAccountPassword, setMarketing as setAccountMarketing, getAccount, contextOf, validEmail, linkTelegram, unlinkTelegram, findByTelegram, ACTIVATE_TTL_MS, RESET_TTL_MS } from './lib/accountUsers.js'
+import { startRegistration, startReset, peekToken, consumeToken, verifyLogin, changePassword as changeAccountPassword, setMarketing as setAccountMarketing, getAccount, contextOf, validEmail, linkTelegram, unlinkTelegram, findByTelegram, updateContact, ACTIVATE_TTL_MS, RESET_TTL_MS } from './lib/accountUsers.js'
 import { issueCode, consumeCode, CODE_TTL_MS } from './lib/telegramLink.js'
-import { composeAccountMail } from './lib/accountMail.js'
+import { logActivity, listActivity } from './lib/accountActivity.js'
+import { getThread, markSeen, addUserMessage, addSupportReply, linkAdminMessage, loginByAdminMessage, MAX_TEXT as SUPPORT_MAX_TEXT } from './lib/supportChat.js'
+import { accountDashboard } from './lib/accountDashboard.js'
+import { composeAccountMail, composeSupportReplyMail } from './lib/accountMail.js'
 import { accountProfile } from './lib/accountProfile.js'
 import { getProfile, saveProfile, grantConsent, addRequest, lastRequest, PRACTICES, LEVELS } from './lib/accountStore.js'
 import { DOC_TYPES, LIMITS as DOC_LIMITS, ALLOWED_EXT, MIME as DOC_MIME, listDocuments, usedBytes as docsUsedBytes, addDocument, addVersion, updateDocument, deleteDocument, deleteVersion, versionFile } from './lib/accountDocs.js'
@@ -154,14 +157,23 @@ async function telegramFetch(method, init) {
   throw lastError
 }
 
-async function sendTelegramMessage(chatId, text, replyMarkup, opts = {}) {
+// Отправка сообщения: { ok, messageId } — номер нужен, когда на сообщение потом отвечают (чат поддержки в кабинете).
+async function sendTelegram(chatId, text, replyMarkup, opts = {}) {
   const res = await telegramFetch('sendMessage', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ chat_id: chatId, text, ...(opts.parseMode ? { parse_mode: opts.parseMode } : {}), ...(opts.silent ? { disable_notification: true } : {}), ...(replyMarkup ? { reply_markup: { inline_keyboard: replyMarkup } } : {}) }),
   })
-  if (!res.ok) console.error('[telegram] sendMessage ошибка:', await res.text())
-  return res.ok
+  if (!res.ok) {
+    console.error('[telegram] sendMessage ошибка:', await res.text())
+    return { ok: false, messageId: null }
+  }
+  const body = await res.json().catch(() => null)
+  return { ok: true, messageId: body?.result?.message_id ?? null }
+}
+
+async function sendTelegramMessage(chatId, text, replyMarkup, opts = {}) {
+  return (await sendTelegram(chatId, text, replyMarkup, opts)).ok
 }
 
 /** Некритичное сообщение админу (отчёты, сводки, копии): без звука, если включён «тихий режим» в настройках уведомлений. */
@@ -796,6 +808,7 @@ app.post('/api/account/login', (req, res) => {
       loginFailures.count += 1
       return res.status(401).json({ ok: false, error: 'bad_credentials' })
     }
+    logActivity(cfg.login, 'login')
     return res.json({ ok: true, token: r.token, expiresAt: r.expiresAt })
   }
   // Резидент: не больше 60 попыток за 15 минут с одного адреса и 8 неудачных подряд на одну почту (lib/accountUsers.js).
@@ -804,6 +817,7 @@ app.post('/api/account/login', (req, res) => {
   if (r.error === 'too_many_attempts') return res.status(429).json({ ok: false, error: 'too_many_attempts' })
   if (r.error) return res.status(401).json({ ok: false, error: 'bad_credentials' })
   const session = startSession(`u:${r.account.id}`, now)
+  logActivity(`u:${r.account.id}`, 'login')
   res.json({ ok: true, token: session.token, expiresAt: session.expiresAt })
 })
 
@@ -857,10 +871,12 @@ app.get('/api/account/activation', (req, res) => {
 app.post('/api/account/activate', (req, res) => {
   res.set('Cache-Control', 'no-store')
   if (hitLimit(activateAttempts, req.ip, 60, HOUR_MS)) return res.status(429).json({ ok: false, error: 'too_many_attempts' })
+  const purpose = peekToken(String(req.body?.token ?? ''))?.purpose
   const r = consumeToken(String(req.body?.token ?? ''), req.body?.password)
   if (r.error) return res.status(r.error === 'bad_token' ? 404 : 400).json({ ok: false, error: r.error })
   const loginName = `u:${r.account.id}`
   revokeFor(loginName)
+  logActivity(loginName, purpose === 'reset' ? 'password_reset' : 'password_set')
   const session = startSession(loginName)
   res.json({ ok: true, token: session.token, expiresAt: session.expiresAt })
 })
@@ -907,6 +923,7 @@ app.post('/api/account/password', (req, res) => {
   const r = changeAccountPassword(String(cfg.login).slice(2), req.body?.current, req.body?.password)
   if (r.error) return res.status(r.error === 'bad_credentials' ? 403 : 400).json({ ok: false, error: r.error })
   revokeFor(cfg.login, bearer(req))
+  logActivity(cfg.login, 'password_changed')
   res.json({ ok: true })
 })
 
@@ -924,6 +941,7 @@ app.post('/api/account/telegram/link', (req, res) => {
   if (!tgUserId) return res.status(400).json({ ok: false, error: 'bad_code' })
   const r = linkTelegram(String(cfg.login).slice(2), tgUserId)
   if (r.error) return res.status(409).json({ ok: false, error: r.error })
+  logActivity(cfg.login, 'telegram_linked')
   void sendTelegramMessage(tgUserId, `✅ Telegram привязан к кабинету на сайте (${maskEmail(r.account.email) || 'почта скрыта'}).\n\nЕсли это сделали не вы, отвяжите командой /unlink.`).catch(() => {})
   res.json({ ok: true })
 })
@@ -933,7 +951,10 @@ app.delete('/api/account/telegram', (req, res) => {
   if (!cfg) return
   if (!String(cfg.login).startsWith('u:')) return res.status(400).json({ ok: false, error: 'not_supported' })
   const was = unlinkTelegram(String(cfg.login).slice(2))
-  if (was) void sendTelegramMessage(was, 'Кабинет на сайте отвязан от этого Telegram.').catch(() => {})
+  if (was) {
+    logActivity(cfg.login, 'telegram_unlinked')
+    void sendTelegramMessage(was, 'Кабинет на сайте отвязан от этого Telegram.').catch(() => {})
+  }
   res.json({ ok: true })
 })
 
@@ -955,6 +976,7 @@ app.put('/api/account/profile', (req, res) => {
   if (!cfg) return
   const r = saveProfile(cfg.login, req.body, consentGiven(req.body))
   if (r.error) return res.status(400).json({ ok: false, error: r.error })
+  logActivity(cfg.login, 'profile_saved', { part: Object.keys(req.body ?? {}).find((k) => ['practices', 'experience', 'expectations', 'privacy'].includes(k)) })
   if (r.firstConsent) recordConsent({ form: 'cabinet_profile', version: consentVersion(req.body), given: true, ...marketingFields(req.body), ...accountIdentity(cfg) })
   if (r.firstConsent && consentChoice(req.body).marketing && cfg.tgId && getBotUser(cfg.tgId)) setMailingConsent(cfg.tgId, true)
   res.json({ ok: true, profile: r.profile })
@@ -969,6 +991,7 @@ app.post('/api/account/marketing', (req, res) => {
   const value = req.body.marketing
   if (cfg.tgId && getBotUser(cfg.tgId)) setMailingConsent(cfg.tgId, value)
   if (String(cfg.login).startsWith('u:')) setAccountMarketing(String(cfg.login).slice(2), value)
+  logActivity(cfg.login, 'marketing_changed', { value })
   recordConsent({ form: 'cabinet_marketing', version: consentVersion(req.body), given: Boolean(getProfile(cfg.login).consentAt), marketing: value, marketingVersion: marketingVersion(req.body), ...accountIdentity(cfg) })
   res.json({ ok: true, marketing: value, at: Date.now(), applied: Boolean(cfg.tgId && getBotUser(cfg.tgId)) })
 })
@@ -977,6 +1000,7 @@ app.post('/api/account/marketing', (req, res) => {
 app.get('/api/account/data', (req, res) => {
   const cfg = requireAccount(req, res)
   if (!cfg) return
+  logActivity(cfg.login, 'data_exported')
   res.set('Content-Disposition', `attachment; filename="moi-dannye-${new Date().toISOString().slice(0, 10)}.json"`)
   res.type('application/json').send(JSON.stringify(exportPersonData(cfg), null, 2))
 })
@@ -988,12 +1012,101 @@ app.post('/api/account/data-request', async (req, res) => {
   const previous = lastRequest(cfg.login, 'delete')
   if (previous && Date.now() - previous.at < 24 * 3600 * 1000) return res.json({ ok: true, already: true, at: previous.at })
   const request = addRequest(cfg.login, 'delete')
+  logActivity(cfg.login, 'deletion_requested')
   if (BOT_TOKEN && ADMIN_CHAT_ID) {
     const who = accountIdentity(cfg)
     await sendTelegramMessage(ADMIN_CHAT_ID, `🗑 Запрос на удаление данных из личного кабинета\n\nКто: ${who.name} (${cfg.email ? `почта ${cfg.email}` : `логин ${cfg.login}`}${cfg.tgId ? `, Telegram id ${cfg.tgId}` : ''})\n\nЧтобы выполнить: /forget ${cfg.tgId || cfg.login}\nПлатёжные сведения при этом не удаляются, а обезличиваются — закон велит хранить их дольше.`).catch(() => false)
   }
   res.json({ ok: true, at: request.at })
 })
+
+// Сводка для обзора: счётчики, заполненность профиля, последние события и действия, непрочитанные ответы поддержки.
+app.get('/api/account/dashboard', (req, res) => {
+  const cfg = requireAccount(req, res)
+  if (!cfg) return
+  res.json({ ok: true, ...accountDashboard(cfg) })
+})
+
+// Имя и телефон для связи. Почта задаётся при регистрации и здесь не меняется (смена почты требует подтверждения нового адреса).
+app.put('/api/account/contact', (req, res) => {
+  const cfg = requireAccount(req, res)
+  if (!cfg) return
+  if (!String(cfg.login).startsWith('u:')) return res.status(400).json({ ok: false, error: 'not_supported' })
+  const r = updateContact(String(cfg.login).slice(2), { name: req.body?.name, phone: req.body?.phone })
+  if (r.error) return res.status(400).json({ ok: false, error: r.error })
+  logActivity(cfg.login, 'contact_updated')
+  res.json({ ok: true, contact: { name: r.account.name ?? '', email: r.account.email, phone: r.account.phone ?? '' } })
+})
+
+// Журнал действий в кабинете (вход, смена пароля, привязка Telegram, профиль, документы…): последние 100.
+app.get('/api/account/activity', (req, res) => {
+  const cfg = requireAccount(req, res)
+  if (!cfg) return
+  res.json({ ok: true, activity: listActivity(cfg.login, 100) })
+})
+
+// ---- Чат поддержки в кабинете (lib/supportChat.js) ----
+// Сообщение человека уходит админу в бота; админ отвечает «Ответить» (Reply) на него, и ответ появляется здесь. Открытие чата
+// отмечает ответы прочитанными; обзор показывает только число непрочитанных и ничего не отмечает.
+const supportAttempts = new Map()
+
+app.get('/api/account/support', (req, res) => {
+  const cfg = requireAccount(req, res)
+  if (!cfg) return
+  const thread = getThread(cfg.login)
+  markSeen(cfg.login)
+  res.json({ ok: true, messages: thread.messages, unread: thread.unread, maxLength: SUPPORT_MAX_TEXT })
+})
+
+app.post('/api/account/support', async (req, res) => {
+  const cfg = requireAccount(req, res)
+  if (!cfg) return
+  if (hitLimit(supportAttempts, cfg.login, 10, HOUR_MS)) return res.status(429).json({ ok: false, error: 'too_many_attempts' })
+  const r = addUserMessage(cfg.login, req.body?.text)
+  if (r.error) return res.status(400).json({ ok: false, error: 'empty' })
+  logActivity(cfg.login, 'support_message')
+  const notified = await notifySupportMessage(cfg, r.message)
+  res.json({ ok: true, message: r.message, notified })
+})
+
+/** Передаёт сообщение из чата админу в бота и запоминает его номер: ответ (Reply) админа найдёт по нему нужную переписку. */
+async function notifySupportMessage(cfg, message) {
+  if (!BOT_TOKEN || !ADMIN_CHAT_ID) return false
+  try {
+    const who = accountIdentity(cfg)
+    const sent = await sendTelegram(ADMIN_CHAT_ID, `💬 Чат поддержки на сайте\n\nОт: ${who.name} (${cfg.email ? `почта ${cfg.email}` : `логин ${cfg.login}`}${cfg.tgId ? `, Telegram id ${cfg.tgId}` : ''})\n\n${message.text}\n\n↩️ Чтобы ответить, нажмите «Ответить» (Reply) на это сообщение: ответ появится в чате кабинета.`)
+    if (sent.ok && sent.messageId) linkAdminMessage(cfg.login, sent.messageId)
+    return sent.ok
+  } catch (err) {
+    console.error('[support] не удалось передать сообщение админу:', err?.message ?? err)
+    return false
+  }
+}
+
+/** Ответ админа (Reply в боте) попадает в чат кабинета; человеку уходит письмо и, если Telegram привязан, сообщение в бота. */
+async function deliverSupportReply(adminChatId, login, text) {
+  const r = addSupportReply(login, text)
+  if (r.error) {
+    await sendTelegramMessage(adminChatId, 'Пустой ответ не отправлен.')
+    return
+  }
+  logActivity(login, 'support_reply')
+  const account = String(login).startsWith('u:') ? getAccount(String(login).slice(2)) : null
+  const notes = []
+  if (account) {
+    const link = `${SITE_URL}/cabinet/support`
+    if (mailConfigured()) {
+      const mail = composeSupportReplyMail({ name: account.name, text: r.message.text, link })
+      const sent = await sendMail({ to: account.email, subject: mail.subject, text: mail.text, html: mail.html }).catch(() => ({ ok: false }))
+      notes.push(sent.ok ? 'письмо отправлено' : 'письмо не ушло')
+    }
+    if (account.tgUserId) {
+      const ok = await sendTelegramMessage(account.tgUserId, `💬 Ответ службы поддержки\n\n${r.message.text}\n\nЧат: ${link}`).catch(() => false)
+      notes.push(ok ? 'сообщение в Telegram отправлено' : 'в Telegram не доставлено')
+    }
+  }
+  await sendTelegramMessage(adminChatId, `✅ Ответ добавлен в чат кабинета${notes.length ? ` (${notes.join(', ')})` : ''}.`)
+}
 
 app.get('/api/account/events', (req, res) => {
   const cfg = requireAccount(req, res)
@@ -1047,6 +1160,7 @@ app.post('/api/account/documents', (req, res, next) => (requireAccount(req, res)
     const file = { buffer: req.file.buffer, filename: String(b.fileName || req.file.originalname || '') }
     const r = b.docId ? addVersion(cfg.login, String(b.docId), file) : addDocument(cfg.login, { type: String(b.type ?? 'cv'), title: b.title, note: b.note, target: b.target }, file)
     if (r.error) return docError(res, r.error)
+    logActivity(cfg.login, 'document_added', { docType: r.doc?.type })
     if (needConsent && grantConsent(cfg.login)) {
       recordConsent({ form: 'cabinet_documents', version: consentVersion(body), given: true, ...marketingFields(body), ...accountIdentity(cfg) })
       if (consentChoice(body).marketing && cfg.tgId && getBotUser(cfg.tgId)) setMailingConsent(cfg.tgId, true)
@@ -1068,6 +1182,7 @@ app.delete('/api/account/documents/:id', (req, res) => {
   if (!cfg) return
   const r = deleteDocument(cfg.login, req.params.id)
   if (r.error) return docError(res, r.error)
+  logActivity(cfg.login, 'document_deleted')
   res.json(documentsState(cfg))
 })
 
@@ -2750,8 +2865,10 @@ async function sendLinkCode(chatId, from) {
 /** /unlink: снять привязку кабинета с этого Telegram. */
 async function unlinkCabinet(chatId) {
   const account = findByTelegram(chatId)
-  if (account && unlinkTelegram(account.id)) await sendTelegramMessage(chatId, 'Кабинет на сайте отвязан от этого Telegram. Привязать снова можно командой /link.')
-  else await sendTelegramMessage(chatId, 'К этому Telegram кабинет на сайте не привязан.')
+  if (account && unlinkTelegram(account.id)) {
+    logActivity(`u:${account.id}`, 'telegram_unlinked')
+    await sendTelegramMessage(chatId, 'Кабинет на сайте отвязан от этого Telegram. Привязать снова можно командой /link.')
+  } else await sendTelegramMessage(chatId, 'К этому Telegram кабинет на сайте не привязан.')
 }
 
 async function handleTelegramUpdate(update) {
@@ -2838,6 +2955,14 @@ async function handleTelegramUpdate(update) {
     adminInput.delete(String(chatId))
     await sendTelegramMessage(chatId, 'Отменено.', KADRY_KEYBOARD)
     return
+  }
+  // Ответ (Reply) админа на сообщение из чата поддержки кабинета: уходит в чат этого человека.
+  if (isAdmin && text && !text.startsWith('/') && message.reply_to_message?.message_id) {
+    const supportLogin = loginByAdminMessage(message.reply_to_message.message_id)
+    if (supportLogin) {
+      await deliverSupportReply(chatId, supportLogin, text)
+      return
+    }
   }
   const pendingRaw = (isAdmin || isViewer) && text && !text.startsWith('/') ? adminInput.get(String(chatId)) : null
   const pendingInput = pendingRaw && (isAdmin || pendingRaw.type === 'find') ? pendingRaw : null

@@ -224,6 +224,27 @@ export const lastActivityAt = (a) => Math.max(a.lastLoginAt ?? 0, a.passwordChan
 /** Когда регистрацию, которую не довели до пароля, можно удалить: считаем от создания или последнего письма со ссылкой (повторная регистрация продлевает срок). */
 export const lastRegistrationAt = (a) => Math.max(a.createdAt ?? 0, a.lastMailAt ?? 0)
 
+/**
+ * Имя и телефон для связи (раздел «Профиль и контакты»). Телефон не подтверждается, поэтому по нему подписка и билеты не ищутся
+ * (иначе, указав чужой номер, можно было бы увидеть чужие покупки); он нужен только для связи с человеком.
+ * Пустое имя и пустой телефон допустимы (стираются). Возвращает { account } или { error: 'bad_phone' | 'not_found' }.
+ */
+export function updateContact(id, { name, phone }) {
+  const data = load()
+  const account = data[id]
+  if (!account) return { error: 'not_found' }
+  const p = String(phone ?? '').trim().replace(/\s+/g, ' ')
+  if (p) {
+    const digits = p.replace(/\D/g, '').length
+    if (!/^\+?[0-9\s().-]{6,25}$/.test(p) || digits < 7 || digits > 15) return { error: 'bad_phone' }
+    account.phone = p
+  } else delete account.phone
+  account.name = cleanName(name)
+  data[id] = account
+  save(data)
+  return { account }
+}
+
 /** Удаление аккаунта (по запросу на удаление данных). */
 export function deleteAccount(id) {
   const data = load()
@@ -242,6 +263,9 @@ export function contextOf(account) {
     name: account.name || account.email,
     email: account.email,
     phone: '', // телефон не подтверждён, по нему чужие записи не подтягиваем
+    contactName: account.name ?? '',
+    contactPhone: account.phone ?? '', // телефон для связи, который человек указал сам: на показ и выгрузку, не на поиск записей
+    createdAt: account.createdAt ?? null,
     consentAt: account.consentAt ?? null,
     marketing: typeof account.marketing === 'boolean' ? account.marketing : null,
     marketingAt: account.marketingAt ?? null,

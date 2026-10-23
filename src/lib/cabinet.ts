@@ -16,9 +16,19 @@ export interface ResidentInfo {
   daysLeft?: number | null
 }
 
+export interface ContactInfo {
+  name: string
+  email: string
+  phone: string
+}
+
 export interface CabinetUser {
   login: string
   name: string
+  /** Имя, почта и телефон для связи (раздел «Личные данные и контакты»). */
+  contact: ContactInfo
+  /** Когда создан аккаунт; у администратора null. */
+  memberSince: number | null
   /** Почта аккаунта резидента (у администратора может быть пустой). */
   email?: string
   role: 'client'
@@ -353,3 +363,36 @@ export async function downloadVersion(id: string, v: DocVersion): Promise<boolea
     return false
   }
 }
+
+// ---- Обзор, журнал действий, чат поддержки ----
+
+export interface ActivityEntry {
+  at: number
+  kind: string
+  value?: boolean
+  docType?: string
+  part?: string
+}
+
+export interface DashboardData {
+  counts: { events: number; documents: number }
+  completeness: { percent: number; missing: { key: string; label: string; to: string }[] }
+  recentEvents: CabinetEvent[]
+  activity: ActivityEntry[]
+  support: { unread: number }
+}
+
+export interface SupportMessage {
+  id: string
+  from: 'user' | 'support'
+  text: string
+  at: number
+}
+
+export const fetchDashboard = () => api<DashboardData>('/api/account/dashboard')
+export const fetchActivity = () => api<{ activity: ActivityEntry[] }>('/api/account/activity')
+/** Имя и телефон для связи; почта здесь не меняется. */
+export const updateContact = (name: string, phone: string) => api<{ contact: ContactInfo }>('/api/account/contact', { method: 'PUT', body: JSON.stringify({ name, phone }) })
+/** Открытие чата отмечает ответы поддержки прочитанными. */
+export const fetchSupport = () => api<{ messages: SupportMessage[]; unread: number; maxLength: number }>('/api/account/support')
+export const sendSupport = (text: string) => api<{ message: SupportMessage; notified: boolean }>('/api/account/support', { method: 'POST', body: JSON.stringify({ text }) })

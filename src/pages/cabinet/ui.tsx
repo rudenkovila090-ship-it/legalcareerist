@@ -1,8 +1,9 @@
 import { useState, type FormEvent, type ReactNode } from 'react'
+import { Link } from 'react-router-dom'
 import ConsentCheck from '../../components/ConsentCheck'
 import { consentOf } from '../../lib/consent'
 import { saveProfile, type Profile } from '../../lib/cabinet'
-import { errorText } from './shared'
+import { errorText, initials } from './shared'
 
 export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
   return <div className={`glass rounded-2xl p-6 ${className}`}>{children}</div>
@@ -95,5 +96,46 @@ export function ProfileForm({
         {state === 'saved' && <span className="text-sm font-medium text-emerald-700">Сохранено</span>}
       </div>
     </form>
+  )
+}
+
+const AVATAR_SIZES = { sm: 'h-10 w-10 text-sm', md: 'h-14 w-14 text-lg', lg: 'h-20 w-20 text-2xl sm:h-24 sm:w-24 sm:text-3xl' }
+
+/** Аватар из инициалов: фото в кабинете пока не загружается. Круг фирменных цветов с мягким кольцом и тенью. */
+export function Avatar({ name, email, size = 'md' }: { name: string; email?: string; size?: keyof typeof AVATAR_SIZES }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`inline-flex shrink-0 select-none items-center justify-center rounded-full bg-gradient-to-br from-ink to-gold font-semibold tracking-wide text-white shadow-lg shadow-ink/20 ring-4 ring-gold-light/30 ${AVATAR_SIZES[size]}`}
+    >
+      {initials(name, email)}
+    </span>
+  )
+}
+
+/** Статус-пилюля: good — всё в порядке, warn — требует внимания, muted — нейтрально. */
+export function Chip({ tone = 'muted', children }: { tone?: 'good' | 'warn' | 'muted'; children: ReactNode }) {
+  const toneClass = tone === 'good' ? 'bg-emerald-50 text-emerald-700' : tone === 'warn' ? 'bg-amber-50 text-amber-800' : 'bg-ink/[0.06] text-ink/70'
+  return <span className={`inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ${toneClass}`}>{children}</span>
+}
+
+/** Круглая иконка-подложка для карточек и строк. */
+export function IconBubble({ children, tone = 'ink' }: { children: ReactNode; tone?: 'ink' | 'soft' }) {
+  return (
+    <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${tone === 'ink' ? 'bg-ink text-white' : 'bg-ink/[0.06] text-ink'}`}>{children}</span>
+  )
+}
+
+/** Заголовок карточки обзора со ссылкой «Все…» справа. */
+export function CardHead({ title, to, linkText }: { title: string; to?: string; linkText?: string }) {
+  return (
+    <div className="mb-4 flex items-baseline justify-between gap-3">
+      <h2 className="text-base font-semibold">{title}</h2>
+      {to && (
+        <Link to={to} className="shrink-0 rounded text-sm font-medium text-gold hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink/40">
+          {linkText ?? 'Все'} →
+        </Link>
+      )}
+    </div>
   )
 }

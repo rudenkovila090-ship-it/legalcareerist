@@ -56,6 +56,9 @@ export function accountProfile(cfg, now = Date.now()) {
       canLink: String(cfg.login).startsWith('u:'),
     },
     email: cfg.email || undefined,
+    // Личные данные и контакты для раздела «Профиль и контакты» и обзора: почта подтверждена (в кабинет без этого не войти).
+    contact: { name: cfg.contactName ?? cfg.name ?? '', email: cfg.email || '', phone: cfg.contactPhone ?? cfg.phone ?? '' },
+    memberSince: cfg.createdAt ?? null,
     resident: residentStatus(cfg.tgId, now, cfg.email),
     privacy: { hidden: getProfile(cfg.login).privacy.hidden },
     // Согласия: на обработку и рассылку — из карточки в боте, на профиль кабинета — из самого профиля.

@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 // Разделы личного кабинета по группам. ready: true — раздел работает; у остальных «В разработке», а в todo записано, что
 // именно ещё не сделано (показывается в самом разделе, чтобы возвращаться к ним по очереди). Тексты todo — предварительные:
 // уточняем и дополняем вместе с владельцем, когда доходим до раздела.
-export type GroupId = 'main' | 'lawyer' | 'growth' | 'community' | 'trust'
+export type GroupId = 'account' | 'main' | 'lawyer' | 'growth' | 'community' | 'trust'
 
 export interface CabinetSection {
   id: string
@@ -16,6 +16,7 @@ export interface CabinetSection {
 }
 
 export const groups: { id: GroupId; title: string }[] = [
+  { id: 'account', title: 'Аккаунт' },
   { id: 'lawyer', title: 'Для юристов' },
   { id: 'trust', title: 'Доверие и данные' },
   { id: 'community', title: 'Сообщество' },
@@ -29,7 +30,7 @@ const svg = (children: ReactNode) => (
   </svg>
 )
 
-const icon = {
+export const icon = {
   doc: svg(<><path d="M7 3.5h7l4 4V20a.5.5 0 0 1-.5.5h-10.5a.5.5 0 0 1-.5-.5V4a.5.5 0 0 1 .5-.5Z" /><path d="M14 3.5V8h4M9.5 12h5M9.5 15.5h5" /></>),
   list: svg(<><path d="M9 6.5h10M9 12h10M9 17.5h10" /><path d="m4.5 6.5.8.8L7 5.5M4.5 12l.8.8L7 11M4.5 17.5l.8.8L7 16.5" /></>),
   chat: svg(<><path d="M4.5 6.5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H11l-4 3.5v-3.5H6.5a2 2 0 0 1-2-2v-7Z" /></>),
@@ -61,9 +62,47 @@ const icon = {
   download: svg(<><path d="M12 4v11M7.5 11 12 15.5 16.5 11M5 19.5h14" /></>),
   eye: svg(<><path d="M2.5 12S6 6 12 6s9.5 6 9.5 6-3.5 6-9.5 6S2.5 12 2.5 12Z" /><circle cx="12" cy="12" r="2.6" /></>),
   swap: svg(<><path d="M5 8h13l-3-3M19 16H6l3 3" /></>),
+  user: svg(<><circle cx="12" cy="8.5" r="3.5" /><path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5" /></>),
+  mail: svg(<><rect x="3.5" y="5.5" width="17" height="13" rx="2" /><path d="m4 7.5 8 6 8-6" /></>),
+  phone: svg(<><path d="M6.5 4.5h3l1.5 4-2 1.5a11 11 0 0 0 5 5l1.5-2 4 1.5v3a2 2 0 0 1-2 2A15 15 0 0 1 4.5 6.5a2 2 0 0 1 2-2Z" /></>),
+  history: svg(<><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" /></>),
+  lifebuoy: svg(<><circle cx="12" cy="12" r="8.5" /><circle cx="12" cy="12" r="3.5" /><path d="m6 6 3.5 3.5M18 6l-3.5 3.5M6 18l3.5-3.5M18 18l-3.5-3.5" /></>),
+  bolt: svg(<><path d="M13 3.5 6 13h5l-1 7.5L18 11h-5V3.5Z" /></>),
+  arrow: svg(<><path d="M5 12h14M13 6l6 6-6 6" /></>),
 }
 
 export const sections: CabinetSection[] = [
+  // ---- Аккаунт ----
+  {
+    id: 'profile', group: 'account', title: 'Личные данные и контакты', icon: icon.user, ready: true,
+    lead: 'Имя, телефон и почта: как мы обращаемся к вам и как с вами связаться.',
+    todo: ['Загрузка фото для аватара (сейчас аватар строится из инициалов)', 'Смена почты с подтверждением нового адреса (сейчас — через поддержку)'],
+  },
+  {
+    id: 'activity', group: 'account', title: 'История действий', icon: icon.history, ready: true,
+    lead: 'Что происходило в вашем кабинете: входы, смена пароля, документы, настройки. Видите только вы.',
+    todo: ['Список устройств, где открыт вход, и выход с каждого'],
+  },
+  {
+    id: 'settings', group: 'account', title: 'Настройки', icon: icon.sliders, ready: true,
+    lead: 'Уведомления, конфиденциальность, безопасность и данные: всё, что можно включить или выключить.',
+    todo: ['Уведомления по темам и каналам (почта, Telegram) вместо одного выключателя рассылок'],
+  },
+  {
+    id: 'password', group: 'account', title: 'Вход и пароль', icon: icon.lock, ready: true,
+    lead: 'Почта, по которой вы входите, и смена пароля.',
+    todo: [],
+  },
+  {
+    id: 'help', group: 'account', title: 'Помощь и FAQ', icon: icon.help, ready: true,
+    lead: 'Ответы на частые вопросы про вход, билеты, подписку и данные.',
+    todo: [],
+  },
+  {
+    id: 'support', group: 'account', title: 'Чат поддержки', icon: icon.lifebuoy, ready: true,
+    lead: 'Напишите нам: ответ появится здесь, придёт на почту и в Telegram, если он привязан.',
+    todo: ['Вложения к сообщениям'],
+  },
   // ---- Для юристов ----
   {
     id: 'privacy', group: 'lawyer', title: 'Конфиденциальность', icon: icon.lock, ready: true,
@@ -91,11 +130,6 @@ export const sections: CabinetSection[] = [
     todo: ['Кто эксперты, как устроена очередь и срок ответа', 'Цена и условия для участников сообщества', 'Оплата через Prodamus и выдача разбора в кабинете'],
   },
   // ---- Доверие и данные ----
-  {
-    id: 'password', group: 'trust', title: 'Вход и пароль', icon: icon.lock, ready: true,
-    lead: 'Почта, по которой вы входите, и смена пароля.',
-    todo: ['Список устройств, где открыт вход, и выход с каждого'],
-  },
   {
     id: 'consents', group: 'trust', title: 'Согласия и рассылки', icon: icon.sliders, ready: true,
     lead: 'Какие согласия вы дали и когда. Рекламные и информационные сообщения можно включить и отключить в любой момент.',
@@ -172,11 +206,6 @@ export const sections: CabinetSection[] = [
     id: 'notifications', group: 'main', title: 'Уведомления', icon: icon.bell,
     lead: 'Сообщения о смене статуса откликов в Telegram или на почту.',
     todo: ['Выбор каналов и тем', 'Отправка по почте (письма из сервиса уже работают для билетов и материалов)', 'Зависит от раздела «Мои отклики»'],
-  },
-  {
-    id: 'help', group: 'main', title: 'Помощь', icon: icon.help,
-    lead: 'Ответы на частые вопросы и связь с поддержкой.',
-    todo: ['Список вопросов и ответов по кабинету', 'Форма обращения в поддержку с номером заявки', 'Ссылка на бота поддержки'],
   },
   // ---- Развитие карьеры ----
   {
