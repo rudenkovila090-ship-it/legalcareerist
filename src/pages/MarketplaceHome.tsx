@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import PageHero from '../components/PageHero'
 import { materials } from '../data/materials'
 import { materialKindLabel } from '../lib/materialLabels'
+import { isFreeMaterial, paidFirst } from '../lib/materialOrder'
 import { useDocumentTitle } from '../lib/useDocumentTitle'
 import { MARKETPLACE_DIRECTIONS, type MaterialItem, type MaterialKind, type MarketplaceDirection } from '../types'
 import MarketplaceFooter from './MarketplaceFooter'
@@ -81,7 +82,7 @@ function CollapsibleCheckboxFilter<T extends string>({
 
 function ProductCard({ m }: { m: MaterialItem }) {
   const total = combineRating(m, useMaterialRatings()[m.slug])
-  const free = m.price === 0 && !m.sale
+  const free = isFreeMaterial(m)
   const fromPrice = m.sale ? Math.min(...Object.values(m.sale).filter((v): v is number => v !== undefined)) : m.price
   return (
     <Link to={`/materials/${m.slug}`} className="glass flex flex-col overflow-hidden rounded-xl">
@@ -118,7 +119,7 @@ function ProductCard({ m }: { m: MaterialItem }) {
           </span>
         ) : (
           <span className="mt-4 rounded-full bg-ink py-2.5 text-center text-sm font-semibold text-white hover:bg-ink/90">
-            {free || m.freePreview ? 'Посмотреть бесплатно' : `Купить за ${money.format(fromPrice)} ₽`}
+            {m.freePreview ? 'Посмотреть бесплатно' : free ? 'Получить бесплатно' : `Купить за ${money.format(fromPrice)} ₽`}
           </span>
         )}
       </div>
@@ -163,7 +164,8 @@ export default function MarketplaceHome() {
 
   const filtered = useMemo(() => {
     const from = Number(priceFrom) || 0
-    const to = Number(priceTo) || Infinity
+    // «До 0» — это фильтр «только бесплатные», а не «без ограничения»: бесконечность только когда поле пустое.
+    const to = priceTo === '' ? Infinity : Number(priceTo)
     const list = materials.filter((m) => {
       if (category.size > 0 && !category.has(m.kind)) return false
       if (directions.size > 0 && !m.direction.some((d) => directions.has(d))) return false
@@ -172,7 +174,8 @@ export default function MarketplaceHome() {
     })
     if (sort === 'price_asc') return [...list].sort((a, b) => a.price - b.price)
     if (sort === 'price_desc') return [...list].sort((a, b) => b.price - a.price)
-    return [...list].sort((a, b) => (b.purchases ?? 0) - (a.purchases ?? 0))
+    // «Популярное» — это порядок каталога по умолчанию: платные материалы сверху, бесплатные внизу, внутри групп по числу покупок.
+    return paidFirst([...list].sort((a, b) => (b.purchases ?? 0) - (a.purchases ?? 0)))
   }, [category, directions, priceFrom, priceTo, sort])
 
   return (

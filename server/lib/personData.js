@@ -24,6 +24,7 @@ export const TERMS = {
   botInactive: 3 * YEAR, // карточка пользователя бота без активности
   subscriptionAfterEnd: 3 * YEAR, // подписка: данные подписчика после окончания (срок исковой давности)
   purchaseAfter: 3 * YEAR, // покупка материала
+  freeMaterial: 1 * YEAR, // бесплатный материал: почта и имя, без платежей — с последней выдачи
   eventContactsAfter: 1 * YEAR, // контакты участника после мероприятия
   eventRequest: 2 * YEAR, // заявка партнёра/организатора без договора
   dealLost: 2 * YEAR, // отказ по сделке
@@ -129,8 +130,10 @@ export const SOURCES = [
     store: createJsonStore('material-purchases.json'),
     keysOf: (p) => personKeys({ phone: p.phone, email: p.email, tgId: p.tgUserId }),
     personal: ['name', 'phone', 'email', 'tgUserId', 'howHeard'],
-    hasMoney: (p) => Boolean(p.paid),
+    hasMoney: (p) => Boolean(p.paid) && !p.free,
     due: (p, ctx) => {
+      // Бесплатный материал: платёжных сведений нет, поэтому просто удаляем контакты, когда срок вышел.
+      if (p.free) return ctx.now > lastOf(p.grantedAt, p.createdAt) + TERMS.freeMaterial ? { action: 'delete', reason: 'бесплатный материал: срок хранения истёк' } : null
       if (!p.paid) return ctx.now > p.createdAt + TERMS.abandonedPayment ? { action: 'delete', reason: 'неоплаченная заявка старше 30 дней' } : null
       const ref = p.paidAt ?? p.createdAt
       return twoStage(p, ctx.now, { contactsFrom: ref, contactsAfter: TERMS.purchaseAfter, moneyFrom: ref, money: true, label: 'покупка' })

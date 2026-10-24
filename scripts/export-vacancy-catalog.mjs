@@ -36,7 +36,7 @@ try {
   const matSource = fs.readFileSync(path.join(ROOT, 'src/data/materials.ts'), 'utf8')
   const matJs = ts.transpileModule(matSource, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } }).outputText
   const { materials } = await import(`data:text/javascript;base64,${Buffer.from(matJs).toString('base64')}`)
-  fs.writeFileSync(path.join(dir, 'material-catalog.json'), JSON.stringify(materials.map((m) => ({ slug: m.slug, title: m.title, description: m.description, forWhom: m.forWhom, price: m.price, offerPath: m.offerPath, inDevelopment: m.inDevelopment })), null, 2))
+  fs.writeFileSync(path.join(dir, 'material-catalog.json'), JSON.stringify(materials.map((m) => ({ slug: m.slug, title: m.title, description: m.description, forWhom: m.forWhom, price: m.price, offerPath: m.offerPath, inDevelopment: m.inDevelopment, realPurchase: m.realPurchase })), null, 2))
   console.log(`material catalog: ${materials.length}`)
 
   // Каталог мероприятий: сервер сам берёт название и цену билета (клиенту цену доверять нельзя)

@@ -62,6 +62,7 @@ const SERVICE_LABELS: Record<string, string> = {
   support_request: 'Поддержка — вопрос',
   contact: 'Обращение через форму контактов',
   material_purchase: 'Покупка полезного материала',
+  material_free: 'Получение бесплатного материала',
 }
 
 function directionLabel(sourceBlock: LeadSourceBlock, formType: string): string {

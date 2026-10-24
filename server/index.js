@@ -11,7 +11,9 @@
 //    подписанная ссылка на разовую оплату (не подписка). После оплаты на почту
 //    уходит личная ссылка на файл (7 дней): GET /api/materials/link — что за
 //    ссылка и до какого она срока, GET /api/materials/download — сам PDF.
-//    Файлы лежат на сервере (data/material-pdfs), в боте материалов нет.
+//    Файлы лежат на сервере (data/material-pdfs; бесплатные гайды ещё и в assets/materials), в боте материалов нет.
+//    Бесплатные гайды: POST /api/marketplace/free — почта и согласия, на почту
+//    уходит такая же личная ссылка на 7 дней (без оплаты и телефона).
 // 5. GET /api/payment/status — оплачен ли заказ по токену из ссылки возврата
 //    (подписка, билет, материал): страницы «спасибо» отправляют цель в
 //    Метрику только после подтверждения оплаты. Данных покупателя не отдаёт.
@@ -41,7 +43,8 @@ import { createPaymentLink, TARIFFS, tariffIdBySubscriptionId, createProductPaym
 import { HmacHelper } from './lib/hmac.js'
 import { createPendingJoin, createOrphanJoin, listJoins, setTgUserId, findJoinForPayment, recordPayment, setSubscriptionActive, markReminded, getJoin, setCancelReason, setJoinField, extendSubscription, createLifetimeJoin } from './lib/store.js'
 import { normalizePhone } from './lib/jsonStore.js'
-import { createPendingPurchase, getPurchase, markPurchasePaidByPhone, recordPurchasePayment, listPurchases } from './lib/materialsStore.js'
+import { createPendingPurchase, getPurchase, markPurchasePaidByPhone, recordPurchasePayment, listPurchases, grantFreeMaterial, hasMaterialAccess } from './lib/materialsStore.js'
+import { materialInfo } from './lib/materialCatalog.js'
 import { incrementView, incrementApplication, allVacancyStats } from './lib/vacancyStats.js'
 import { utmLabel } from './lib/utm.js'
 import { createApplication, listApplications } from './lib/candidateApplications.js'
@@ -267,8 +270,8 @@ const CHECKLIST_SLUG = 'checklist-novichka'
  * Ссылка выдаётся, только если PDF уже загружен на сайт (scripts/upload-material.sh), иначе письмо говорит, что материал пришлёт поддержка.
  * Возвращает { ok, error?, linkIssued, expiresAt? }.
  */
-async function emailMaterial({ to, name, materialSlug, token }) {
-  const material = MATERIALS[materialSlug]
+async function emailMaterial({ to, name, materialSlug, token, free = false }) {
+  const material = materialInfo(materialSlug)
   const link = token && getMaterialPdf(materialSlug) ? issueMaterialLink(token) : null
   const { subject, text } = composeMaterialMail({
     name,
@@ -278,6 +281,7 @@ async function emailMaterial({ to, name, materialSlug, token }) {
     accessUrl: material?.accessUrl,
     reviewUrl: token ? `${SITE_URL}/materials/${materialSlug}?review=${token}#reviews` : null,
     supportHandle: SUPPORT_HANDLE,
+    free,
   })
   const sent = await sendMail({ to, subject, text })
   return { ...sent, linkIssued: Boolean(link), expiresAt: link?.expiresAt }
@@ -1644,7 +1648,42 @@ app.post('/api/marketplace/purchase', async (req, res) => {
   }
 })
 
-// ---- Личная ссылка на купленный материал ----
+// Бесплатный гайд маркетплейса: почта и согласия вместо оплаты. Файл не показывается на странице — личная ссылка (7 дней) уходит на почту,
+// поэтому получить его может только владелец ящика. Чужую почту «закидать» письмами не дают ограничения по адресу и по IP.
+const freeGrantByIp = new Map()
+const freeGrantByEmail = new Map()
+app.post('/api/marketplace/free', async (req, res) => {
+  const { materialSlug, email } = req.body ?? {}
+  const material = materialInfo(materialSlug)
+  if (!material?.free) return res.status(400).json({ ok: false, error: 'unknown_material' })
+  if (!consentGiven(req.body)) return res.status(400).json({ ok: false, error: 'consent_required' })
+  const mail = String(email ?? '').trim()
+  if (mail.length > 200 || !EMAIL_RE.test(mail)) return res.status(400).json({ ok: false, error: 'email_required' })
+  if (hitLimit(freeGrantByIp, req.ip, 20, HOUR_MS) || hitLimit(freeGrantByEmail, mail.toLowerCase(), 3, HOUR_MS)) return res.status(429).json({ ok: false, error: 'too_many_attempts' })
+  // Без файла ссылку выдавать нечего: лучше честно отказать, чем отправить письмо «пришлёт поддержка».
+  if (!getMaterialPdf(materialSlug)) {
+    console.error(`[marketplace] бесплатный материал «${materialSlug}»: файла нет, выдача невозможна`)
+    return res.status(503).json({ ok: false, error: 'file_missing' })
+  }
+
+  const name = String(req.body.name ?? '').trim().slice(0, 120)
+  try {
+    logLeadSource({ kind: `Бесплатный материал: ${material.title}`, name, answer: req.body.howHeard })
+    const token = grantFreeMaterial({ materialSlug, name, email: mail, howHeard: cleanHowHeard(req.body.howHeard), consentAt: Date.now(), marketingAt: consentChoice(req.body).marketing ? Date.now() : null })
+    recordConsent({ form: 'material_free', version: consentVersion(req.body), given: true, ...marketingFields(req.body), name, email: mail })
+    const sent = await emailMaterial({ to: mail, name, materialSlug, token, free: true })
+    if (!sent.ok) {
+      console.error('[marketplace] письмо с бесплатным материалом не ушло:', sent.error)
+      return res.status(502).json({ ok: false, error: 'mail_failed' })
+    }
+    res.json({ ok: true })
+  } catch (err) {
+    console.error('[marketplace] ошибка выдачи бесплатного материала:', err)
+    res.status(500).json({ ok: false, error: 'grant_failed' })
+  }
+})
+
+// ---- Личная ссылка на материал (купленный или бесплатный) ----
 // Ссылка приходит покупателю в письме после оплаты и действует 7 дней (materialLinks.js). Страница /materials/download?token=…
 // спрашивает здесь, что это за ссылка и не истёк ли срок, а кнопка «Скачать» ведёт на /api/materials/download — туда же, но за файлом.
 const materialLinkAttempts = new Map()
@@ -1659,9 +1698,9 @@ function lookupMaterialLink(req) {
   if (link.error === 'expired') return { status: 410, error: 'expired', expiresAt: link.expiresAt }
   if (link.error) return { status: 404, error: 'not_found' }
   const purchase = getPurchase(link.purchaseToken)
-  // Покупку обезличили или стёрли (удаление данных по запросу): тогда и ссылка не работает.
-  if (!purchase?.paid || purchase.anonymizedAt) return { status: 404, error: 'not_found' }
-  return { purchase, material: MATERIALS[purchase.materialSlug], expiresAt: link.expiresAt }
+  // Покупку обезличили или стёрли (удаление данных по запросу), либо она не оплачена: тогда и ссылка не работает.
+  if (!hasMaterialAccess(purchase)) return { status: 404, error: 'not_found' }
+  return { purchase, material: materialInfo(purchase.materialSlug), expiresAt: link.expiresAt }
 }
 
 app.get('/api/materials/link', (req, res) => {
@@ -1697,15 +1736,15 @@ app.get('/api/materials/ratings', (_req, res) => {
 })
 
 app.get('/api/materials/:slug/reviews', (req, res) => {
-  if (!MATERIALS[req.params.slug]) return res.status(404).json({ ok: false, error: 'unknown_material' })
+  if (!materialInfo(req.params.slug)) return res.status(404).json({ ok: false, error: 'unknown_material' })
   const reviews = publicReviews(req.params.slug)
   res.json({ ok: true, reviews, count: reviews.length, sum: reviews.reduce((acc, r) => acc + r.rating, 0) })
 })
 
-/** Покупка, по которой разрешён отзыв: оплачена и относится к этому материалу. */
+/** Покупка, по которой разрешён отзыв: оплачена (или материал получен бесплатно) и относится к этому материалу. */
 const purchaseForReview = (token, slug) => {
   const purchase = /^[0-9a-f]{8,64}$/i.test(String(token ?? '')) ? getPurchase(String(token)) : null
-  return purchase?.paid && purchase.materialSlug === slug ? purchase : null
+  return hasMaterialAccess(purchase) && purchase.materialSlug === slug ? purchase : null
 }
 
 app.get('/api/materials/:slug/review-access', (req, res) => {
@@ -1740,7 +1779,7 @@ app.post('/api/materials/:slug/review', async (req, res) => {
     const text = [
       updated ? '✏️ Отзыв о материале обновлён' : '⭐ Новый отзыв о материале',
       '',
-      `Маркетплейс → ${MATERIALS[slug].title}`,
+      `Маркетплейс → ${materialInfo(slug)?.title ?? slug}`,
       `Оценка: ${stars} (${review.rating} из 5)`,
       review.text ? `💬 Отзыв: ${review.text}` : null,
       '',
@@ -2070,16 +2109,16 @@ async function extrasAction(parts, now, chatId) {
       removePromo(arg)
       return promosScreen(listPromos(), promoLabel)
     case 'rv':
-      return reviewsScreen(listReviews(), (slug) => MATERIALS[slug]?.title ?? slug)
+      return reviewsScreen(listReviews(), (slug) => materialInfo(slug)?.title ?? slug)
     case 'rvc': {
       const r = getReview(arg)
-      return r ? reviewCard(r, MATERIALS[r.materialSlug]?.title ?? r.materialSlug) : reviewsScreen(listReviews(), (slug) => MATERIALS[slug]?.title ?? slug)
+      return r ? reviewCard(r, materialInfo(r.materialSlug)?.title ?? r.materialSlug) : reviewsScreen(listReviews(), (slug) => materialInfo(slug)?.title ?? slug)
     }
     case 'rvh': {
       const current = getReview(arg)
       const r = current ? setReviewHidden(arg, !current.hidden) : null
       if (r) logAction(chatId, `review:${r.hidden ? 'hide' : 'show'}:${r.number}`)
-      return r ? reviewCard(r, MATERIALS[r.materialSlug]?.title ?? r.materialSlug) : reviewsScreen(listReviews(), (slug) => MATERIALS[slug]?.title ?? slug)
+      return r ? reviewCard(r, materialInfo(r.materialSlug)?.title ?? r.materialSlug) : reviewsScreen(listReviews(), (slug) => materialInfo(slug)?.title ?? slug)
     }
     case 'notif':
       return notificationsScreen(arg ? toggleAdminSetting(arg) : getAdminSettings())

@@ -30,7 +30,7 @@ const priceOf = (slug) => catalog.find((m) => m.slug === slug)?.price ?? 490
 
 const candidates = Object.entries(purchases)
   .map(([token, p]) => ({ token, ...p }))
-  .filter((p) => !p.paid && Date.now() - p.createdAt < MAX_AGE_MS)
+  .filter((p) => !p.paid && !p.free && Date.now() - p.createdAt < MAX_AGE_MS)
   .sort((a, b) => b.createdAt - a.createdAt)
   .slice(0, 5)
 

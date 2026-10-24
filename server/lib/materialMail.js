@@ -12,12 +12,13 @@ export const LINK_DAYS = Math.round(LINK_TTL_MS / 86400000)
 /**
  * { subject, text }. downloadUrl нет — файла на сайте ещё нет, и письмо честно говорит, что материал пришлёт поддержка.
  * reviewUrl — страница отзыва (по ссылке с токеном покупки); accessUrl — внешняя ссылка на материал, если она задана.
+ * free — бесплатный материал: письмо без «спасибо за покупку».
  */
-export function composeMaterialMail({ name, title, downloadUrl, expiresAt, accessUrl, reviewUrl, supportHandle }) {
+export function composeMaterialMail({ name, title, downloadUrl, expiresAt, accessUrl, reviewUrl, supportHandle, free = false }) {
   const lines = [name ? `Здравствуйте, ${name}!` : 'Здравствуйте!', '']
   if (downloadUrl) {
     lines.push(
-      `Спасибо за покупку! Материал «${title}» — по вашей личной ссылке:`,
+      free ? `Материал «${title}» — по вашей личной ссылке:` : `Спасибо за покупку! Материал «${title}» — по вашей личной ссылке:`,
       downloadUrl,
       '',
       `Ссылка действует ${LINK_DAYS} дней — до ${formatMoscowDateTime(expiresAt)} (мск). Скачайте файл за это время и сохраните у себя.`,

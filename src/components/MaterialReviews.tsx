@@ -7,9 +7,9 @@ import { CONSENT_VERSION, PUBLICATION_CONSENT_VERSION, consentOf } from '../lib/
 
 const inputClass = 'w-full rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none'
 
-// Отзывы о материале: список от покупателей + форма «Оцените материал», которая открывается по ссылке
+// Отзывы о материале: список от покупателей (у бесплатных гайдов — от читателей, free) + форма «Оцените материал», которая открывается по ссылке
 // из письма (?review=<токен покупки>). Без ссылки форму видят только те, у кого она есть, — это защита от накрутки.
-export default function MaterialReviews({ slug }: { slug: string }) {
+export default function MaterialReviews({ slug, free = false }: { slug: string; free?: boolean }) {
   const [params] = useSearchParams()
   const token = params.get('review') ?? ''
   const [reviews, setReviews] = useState<PublicReview[] | null>(null)
@@ -48,7 +48,7 @@ export default function MaterialReviews({ slug }: { slug: string }) {
   return (
     <section id="reviews" ref={sectionRef} className="mt-10 scroll-mt-24">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <h2 className="text-xl font-semibold">Отзывы покупателей</h2>
+        <h2 className="text-xl font-semibold">{free ? 'Отзывы читателей' : 'Отзывы покупателей'}</h2>
         {avg !== null && reviews && (
           <span className="flex items-center gap-2 text-sm text-ink/60">
             <Stars rating={avg} />
@@ -69,7 +69,7 @@ export default function MaterialReviews({ slug }: { slug: string }) {
         {reviews === null && <p className="text-sm text-ink/50">Загружаем отзывы…</p>}
         {reviews && reviews.length === 0 && (
           <p className="text-sm text-ink/60">
-            Отзывов пока нет{access === 'none' ? '. Купили материал? Оставить отзыв можно по ссылке из письма.' : '.'}
+            Отзывов пока нет{access === 'none' ? `. ${free ? 'Скачали гайд?' : 'Купили материал?'} Оставить отзыв можно по ссылке из письма.` : '.'}
           </p>
         )}
         {reviews?.map((r) => (

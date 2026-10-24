@@ -2,8 +2,8 @@
 // Запуск из папки server с настройками из .env (удобнее через scripts/material-link.sh):
 //   node --env-file=.env scripts/materialLink.js <почта | телефон | начало токена покупки> [--send]
 // Без --send ссылки только печатаются (их можно отправить вручную); с --send уходит такое же письмо, как после оплаты.
-import { listPurchases } from '../lib/materialsStore.js'
-import { MATERIALS } from '../lib/prodamus.js'
+import { hasMaterialAccess, listPurchases } from '../lib/materialsStore.js'
+import { materialInfo } from '../lib/materialCatalog.js'
 import { getMaterialPdf } from '../lib/materialPdfs.js'
 import { issueMaterialLink } from '../lib/materialLinks.js'
 import { composeMaterialMail, formatMoscowDateTime } from '../lib/materialMail.js'
@@ -23,10 +23,10 @@ const SUPPORT_HANDLE = process.env.SUPPORT_HANDLE || '@legalcareerist_support'
 const q = query.trim().toLowerCase()
 const phoneQuery = normalizePhone(query)
 const found = listPurchases().filter(
-  (p) => p.paid && (String(p.email ?? '').toLowerCase() === q || (phoneQuery.length >= 11 && normalizePhone(p.phone ?? '') === phoneQuery) || (q.length >= 6 && String(p.token).startsWith(q))),
+  (p) => hasMaterialAccess(p) && (String(p.email ?? '').toLowerCase() === q || (phoneQuery.length >= 11 && normalizePhone(p.phone ?? '') === phoneQuery) || (q.length >= 6 && String(p.token).startsWith(q))),
 )
 if (!found.length) {
-  console.error(`Оплаченных покупок материалов по «${query}» не найдено.`)
+  console.error(`Оплаченных покупок и выдач бесплатных материалов по «${query}» не найдено.`)
   process.exit(1)
 }
 if (send && !mailConfigured()) {
@@ -34,10 +34,10 @@ if (send && !mailConfigured()) {
   process.exit(1)
 }
 
-for (const p of found.sort((a, b) => (b.paidAt ?? 0) - (a.paidAt ?? 0))) {
-  const material = MATERIALS[p.materialSlug]
+for (const p of found.sort((a, b) => (b.paidAt ?? b.grantedAt ?? 0) - (a.paidAt ?? a.grantedAt ?? 0))) {
+  const material = materialInfo(p.materialSlug)
   const title = material?.title ?? p.materialSlug
-  console.log(`\n«${title}» — ${p.name || 'без имени'}, ${p.email || 'почты нет'}, оплачено ${p.paidAt ? formatMoscowDateTime(p.paidAt) : 'дата не записана'}`)
+  console.log(`\n«${title}» — ${p.name || 'без имени'}, ${p.email || 'почты нет'}, ${p.free ? `бесплатно, выдан ${p.grantedAt ? formatMoscowDateTime(p.grantedAt) : 'дата не записана'}` : `оплачено ${p.paidAt ? formatMoscowDateTime(p.paidAt) : 'дата не записана'}`}`)
   if (!getMaterialPdf(p.materialSlug)) {
     console.log(`  ⚠️ Файл материала не загружен на сайт: сначала bash scripts/upload-material.sh ${p.materialSlug} файл.pdf`)
     continue
@@ -58,6 +58,7 @@ for (const p of found.sort((a, b) => (b.paidAt ?? 0) - (a.paidAt ?? 0))) {
     accessUrl: material?.accessUrl,
     reviewUrl: `${SITE_URL}/materials/${p.materialSlug}?review=${p.token}#reviews`,
     supportHandle: SUPPORT_HANDLE,
+    free: Boolean(p.free),
   })
   const r = await sendMail({ to: p.email, subject, text })
   console.log(r.ok ? `  ✉️ Письмо отправлено на ${p.email}` : `  ❌ Письмо не ушло: ${r.error}`)
