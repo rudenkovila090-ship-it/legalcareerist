@@ -107,6 +107,7 @@ export function recordPayment(token, { tariffId, amount, paidAt, orderKey, nextP
       // oneTime: false приходит из вебхука, когда Prodamus прислал дату следующего списания: подписка продлевается сама и «разовой» быть перестаёт.
       // Без значения (загрузка истории платежей) признак не меняется.
       ...(oneTime === true ? { oneTime: true } : oneTime === false ? { oneTime: undefined } : {}),
+      ...(join.watch ? { watch: undefined } : {}), // успешная оплата снимает жёлтую метку «на контроле списания»
       paid: true,
       status: 'active',
       payments,

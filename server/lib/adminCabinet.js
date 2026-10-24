@@ -10,7 +10,8 @@ const DAY = 24 * 3600 * 1000
 
 export const rub = (n) => `${Math.round(n).toLocaleString('ru-RU')} ₽`
 export const ruDay = (ts) => new Intl.DateTimeFormat('ru-RU', { timeZone: MSK, day: '2-digit', month: '2-digit' }).format(new Date(ts))
-export const who = (j) => [j.name && j.name !== '—' ? j.name : null, j.telegram || null, j.phone || null].filter(Boolean).join(', ') || 'контакты не указаны'
+// 🟡 — подписчик на контроле списания (scripts/sendNotice.js): метка снимается сама после следующей успешной оплаты.
+export const who = (j) => `${j.watch ? '🟡 ' : ''}${[j.name && j.name !== '—' ? j.name : null, j.telegram || null, j.phone || null].filter(Boolean).join(', ') || 'контакты не указаны'}`
 
 function tariffLabel(join, tariffs) {
   const last = join.payments?.at(-1)
