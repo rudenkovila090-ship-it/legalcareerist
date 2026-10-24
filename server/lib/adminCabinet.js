@@ -281,7 +281,7 @@ export function cancelledScreen(joins, tariffs = {}) {
  */
 export function reminderTargets(joins, now, days) {
   const day = mskDayKey(now + days * DAY)
-  const due = joins.filter((j) => j.status === 'active' && j.nextPaymentAt && mskDayKey(j.nextPaymentAt) === day)
+  const due = joins.filter((j) => j.status === 'active' && !j.oneTime && j.nextPaymentAt && mskDayKey(j.nextPaymentAt) === day) // у разовых списания нет, им пишет processExpiry
   const fresh = due.filter((j) => j.remindedFor !== `${j.nextPaymentAt}:${days}`)
   return {
     day,

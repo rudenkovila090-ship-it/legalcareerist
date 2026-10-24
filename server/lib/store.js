@@ -60,7 +60,8 @@ export function findJoinForPayment({ phone, email, telegram, tgUserId, profileId
   const emailKey = String(email ?? '').trim().toLowerCase()
   const telegramKey = normalizeTelegramKey(telegram)
   const joins = store.all().sort((a, b) => b.createdAt - a.createdAt)
-  const sameTariff = (j) => !tariffId || j.tariffId === tariffId
+  // Перенесённые из BotHelp карточки без тарифа подходят под продление любого тарифа, иначе продление создаст дубль.
+  const sameTariff = (j) => !tariffId || j.tariffId === tariffId || (!j.tariffId && !j.lifetime)
   const byPhone = (j) => phoneKey && normalizePhone(j.phone) === phoneKey
   const byEmail = (j) => emailKey && String(j.email ?? '').trim().toLowerCase() === emailKey
   const byTelegram = (j) => telegramKey && normalizeTelegramKey(j.telegram) === telegramKey
@@ -103,7 +104,9 @@ export function recordPayment(token, { tariffId, amount, paidAt, orderKey, nextP
       ...join,
       ...(profileId ? { prodamusProfileId: String(profileId) } : {}),
       ...(tgUserId && !join.tgUserId ? { tgUserId } : {}),
-      ...(oneTime ? { oneTime: true } : {}),
+      // oneTime: false приходит из вебхука, когда Prodamus прислал дату следующего списания: подписка продлевается сама и «разовой» быть перестаёт.
+      // Без значения (загрузка истории платежей) признак не меняется.
+      ...(oneTime === true ? { oneTime: true } : oneTime === false ? { oneTime: undefined } : {}),
       paid: true,
       status: 'active',
       payments,

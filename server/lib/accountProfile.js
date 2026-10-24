@@ -59,7 +59,7 @@ export function subscriptionDetails(tgId, email = '', now = Date.now()) {
   const tariff = TARIFFS[join.tariffId]
   const payments = (join.payments ?? [])
     .filter((p) => Number(p.amount) > 0 || p.estimated)
-    .map((p) => ({ amount: Number(p.amount) || null, paidAt: Number(p.paidAt) || null, estimated: Boolean(p.estimated) }))
+    .map((p) => ({ amount: Number(p.amount) || null, paidAt: Number(p.at ?? p.paidAt) || null, estimated: Boolean(p.estimated) }))
     .sort((a, b) => (b.paidAt ?? 0) - (a.paidAt ?? 0))
     .slice(0, 50)
   const renews = status.status === 'active' && status.autoRenew

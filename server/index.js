@@ -3520,7 +3520,7 @@ async function processReviewFlow() {
   reviewFlowRunning = true
   try {
     for (const j of listJoins()) {
-      if (!j.paid || !j.tgUserId || j.status !== 'active' || !j.firstPaidAt) continue
+      if (!j.paid || !j.tgUserId || j.status !== 'active' || !j.firstPaidAt || j.importedFromBotHelp) continue // перенесённым просьбу об отзыве уже присылал BotHelp
       const age = now - j.firstPaidAt
       if (!j.reviewAskedAt && age >= 30 * DAY && age <= 60 * DAY && hour >= 10 && hour < 21) {
         setJoinField(j.token, 'reviewAskedAt', now)
