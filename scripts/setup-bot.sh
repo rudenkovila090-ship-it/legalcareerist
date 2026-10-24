@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 # Смена Telegram-бота, от имени которого работает сервер (например, переезд с одного токена на другой).
-# НЕ нужен для переезда с BotHelp: наш бот @LegalcareeristBot уже работает, токен в server/.env менять не нужно (docs/bot-move.md).
 # Запуск на сервере:  bash /var/www/legalcareerist/scripts/setup-bot.sh
 # Спрашивает токен (при вводе ничего не видно), проверяет его у Telegram, сам определяет имя бота,
 # записывает TELEGRAM_BOT_TOKEN и BOT_USERNAME в server/.env (копия старого файла — рядом с ним) и перезапускает бота.
