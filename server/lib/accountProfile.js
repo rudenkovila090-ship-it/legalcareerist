@@ -65,7 +65,7 @@ export function subscriptionDetails(tgId, email = '', now = Date.now()) {
   const renews = status.status === 'active' && status.autoRenew
   return {
     ...status,
-    price: tariff?.price ?? payments.find((p) => p.amount)?.amount ?? null,
+    price: payments.find((p) => p.amount)?.amount ?? tariff?.price ?? null, // цена закреплена за подписчиком: берём последнюю оплату, а не текущий прайс сайта
     period: tariff?.period ?? null,
     nextPayment: renews ? Number(join.nextPaymentAt) || null : null,
     canCancel: renews && !join.lifetime,

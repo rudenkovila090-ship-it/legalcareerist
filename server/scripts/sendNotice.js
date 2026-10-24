@@ -2,6 +2,7 @@
 // (подписчики, списания, просрочено), пока не придёт следующая успешная оплата (платёж снимает метку сам).
 //   node --env-file=.env scripts/sendNotice.js return 4391 [--dry]   — вернуть в чат: подписка активна, а человека исключили по ошибке
 //   node --env-file=.env scripts/sendNotice.js charge 7679 [--dry]   — списание не прошло: предложить оформить подписку на сайте
+//   node --env-file=.env scripts/sendNotice.js mark 7679             — только поставить метку 🟡, ничего не отправляя
 //   node --env-file=.env scripts/sendNotice.js clear 7679            — снять метку вручную
 // Человека находим по последним цифрам его Telegram id (должен найтись ровно один человек). То же сообщение второй раз не отправляется.
 // Писать можно только тому, кто открывал этого бота; если Telegram не доставит, скрипт скажет об этом, метка при этом всё равно ставится.
@@ -10,13 +11,13 @@ import { getBotUser, addTag } from '../lib/botUsers.js'
 
 const [kind, suffix] = process.argv.slice(2)
 const dry = process.argv.includes('--dry')
-const KINDS = ['return', 'charge', 'clear']
+const KINDS = ['return', 'charge', 'mark', 'clear']
 if (!KINDS.includes(kind) || !/^\d{3,11}$/.test(suffix ?? '')) {
-  console.error('Использование: node --env-file=.env scripts/sendNotice.js return|charge|clear <последние цифры id> [--dry]')
+  console.error('Использование: node --env-file=.env scripts/sendNotice.js return|charge|mark|clear <последние цифры id> [--dry]')
   process.exit(1)
 }
 const token = process.env.TELEGRAM_BOT_TOKEN
-if (!token && !dry && kind !== 'clear') {
+if (!token && !dry && (kind === 'return' || kind === 'charge')) {
   console.error('Нет TELEGRAM_BOT_TOKEN: запускайте как  node --env-file=.env scripts/sendNotice.js …')
   process.exit(1)
 }
@@ -45,6 +46,13 @@ const who = `${first || 'без имени'} …${tgId.slice(-4)}`
 if (kind === 'clear') {
   setJoinField(join.token, 'watch', undefined)
   console.log(`Метка снята: ${who}`)
+  process.exit(0)
+}
+
+if (kind === 'mark') {
+  setJoinField(join.token, 'watch', 'charge')
+  addTag(tgId, WATCH_TAG)
+  console.log(`Метка 🟡 поставлена: ${who} (снимется сама после следующей успешной оплаты)`)
   process.exit(0)
 }
 
