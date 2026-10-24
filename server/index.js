@@ -66,7 +66,8 @@ import { touchBotUser, giveConsent, setMailingConsent, getBotUser, listBotUsers,
 import { isStartKeyword, welcomeScreen, noConsentScreen, mailingScreen, mainMenuScreen, supportPrompt, consultPrompt, genderScreen, reviewThanks, legalScreen, aboutScreen, consultScreen, consultBookedScreen, CONTACT_PROMPTS, contactCancelKeyboard, unsubscribedScreen, communityScreen, communityResidentScreen, periodsScreen, subLinkScreen, aboutClubScreen, careerScreen, achievementsScreen } from './lib/botFlow.js'
 import { buildMonthCsv } from './lib/exportCsv.js'
 import { vacancyOverrides, setVacancyStatus } from './lib/vacancyOverrides.js'
-import { residentMenu, subscriptionScreen, linkScreen, settingsScreen, cancelConfirmScreen, cancelReasonPrompt, cancelDoneScreen, hasAccess } from './lib/residentCabinet.js'
+import { residentMenu, subscriptionScreen, linkScreen, settingsScreen, cancelConfirmScreen, cancelReasonPrompt, cancelDoneScreen, hasAccess, reviewScreen, reviewSendPrompt } from './lib/residentCabinet.js'
+import { REVIEW_BONUS_DAYS, REVIEW_MIN_LENGTH, reviewRequestDue, addCommunityReview, listCommunityReviews, decideCommunityReview, communityReviewsScreen, approvedReviewsScreen, reviewForAdmin } from './lib/communityReviews.js'
 import { logAction, recentActions } from './lib/auditLog.js'
 import { healthLines, makeBackup, readBackupState, writeBackupState } from './lib/healthBackup.js'
 import { listTodos, addTodo, setTodoDone, ensureTodo } from './lib/todos.js'
@@ -1978,6 +1979,37 @@ async function extrasAction(parts, now, chatId) {
     case 'ambdelok':
       deleteAmbassador(arg)
       return ambassadorsScreen(listAmbassadors())
+    case 'rvs':
+      return communityReviewsScreen(data.joins, listCommunityReviews())
+    case 'rvapp':
+      return approvedReviewsScreen(listCommunityReviews())
+    case 'rvok': {
+      const r = decideCommunityReview(arg, 'approved')
+      if (!r) return { text: 'Этот отзыв уже обработан или не найден. Все отзывы: «Отзывы и бонусы».', keyboard: menuBack('⬅️ Отзывы и бонусы', 'a:x:rvs') }
+      const j = getJoin(r.joinToken)
+      const already = Boolean(j?.reviewThankedAt) // бонус за отзыв выдаётся один раз на человека
+      if (j && !already) {
+        extendSubscription(j.token, REVIEW_BONUS_DAYS)
+        setJoinField(j.token, 'reviewThankedAt', Date.now())
+      }
+      if (r.tgUserId) {
+        const thanks = already ? 'Спасибо за отзыв 🙌 он правда важен для нас!' : reviewThanks(getBotUser(r.tgUserId) ?? {}, REVIEW_BONUS_DAYS)
+        await sendTelegramMessage(r.tgUserId, thanks, [[{ text: 'Главное меню', callback_data: 'u:menu' }]]).catch(() => false)
+      }
+      const note = !j
+        ? 'Карточка подписки не найдена, бонус только записан.'
+        : already
+          ? 'Бонус за отзыв этому человеку уже начислялся, поэтому дни повторно не добавлены.'
+          : j.oneTime
+            ? `Срок разовой подписки сдвинут на ${REVIEW_BONUS_DAYS} дня.`
+            : 'У подписки с автопродлением дату списания задаёт Prodamus: бонус записан в карточку (в кабинете «Бонусные дни»), а дата списания не изменилась. Чтобы реально сдвинуть списание, сделайте это в Prodamus.'
+      return { text: `✅ Отзыв одобрен: ${[r.name, r.telegram].filter(Boolean).join(', ') || r.tgUserId}. Текст сохранён в «Одобренных отзывах».\n\n${note}`, keyboard: [[{ text: '📄 Одобренные отзывы', callback_data: 'a:x:rvapp' }, { text: '⬅️ Отзывы и бонусы', callback_data: 'a:x:rvs' }]] }
+    }
+    case 'rvno': {
+      const r = decideCommunityReview(arg, 'rejected')
+      if (!r) return { text: 'Этот отзыв уже обработан или не найден. Все отзывы: «Отзывы и бонусы».', keyboard: menuBack('⬅️ Отзывы и бонусы', 'a:x:rvs') }
+      return { text: `❌ Отзыв отклонён: ${[r.name, r.telegram].filter(Boolean).join(', ') || r.tgUserId}. Бонус не начислен, человеку ничего не отправлено: при желании напишите ему сами.`, keyboard: menuBack('⬅️ Отзывы и бонусы', 'a:x:rvs') }
+    }
     case 'kick': {
       const j = getJoin(arg)
       if (!j) return { text: 'Подписчик не найден.', keyboard: menuBack('⬅️ Сообщество', 'a:sec:community') }
@@ -2547,7 +2579,7 @@ async function adminScreen(data, now, chatId) {
 // Кнопки, которые что-то меняют или отправляют данные: помощникам (только просмотр) они недоступны, в журнал попадают только они.
 // Кнопки, которые только открывают ввод текста или подтверждение — в журнал не пишем (запишется само действие).
 const PROMPT_ONLY = /^a:(k:(rev|new)|s:(ikind|inew|rnew|redit|rdel)|x:(tnew|ambnew|ambdel|fexpnew|evpaid|promonew))\b/
-const MUTATING = /^a:(k:(adv|back|q1|q0|lost|reopen|revok|rev|new|pp|pf)|s:(vst|cst|idone|iclose|isnooze|ikind|inew|rnew|redit|rdel|rdelok)|x:(grant|promonew|promodel|tnew|tdone|ambnew|ambplus|ambdel|ambdelok|kickok|cr|fexpnew|fexpdel|evst|evpaid|backup|erase|pdgo|impgo|impall)|remgo)\b/
+const MUTATING = /^a:(k:(adv|back|q1|q0|lost|reopen|revok|rev|new|pp|pf)|s:(vst|cst|idone|iclose|isnooze|ikind|inew|rnew|redit|rdel|rdelok)|x:(grant|promonew|promodel|tnew|tdone|ambnew|ambplus|ambdel|ambdelok|kickok|rvok|rvno|cr|fexpnew|fexpdel|evst|evpaid|backup|erase|pdgo|impgo|impall)|remgo)\b/
 
 /** Нажатие кнопки кабинета — от админа (все кнопки) или помощника (только просмотр); остальным молча отвечаем. */
 async function handleAdminCallback(query) {
@@ -2887,6 +2919,32 @@ async function finishCancellation(chatId, flow, reason) {
   }), [[{ text: '👤 Карточка человека', callback_data: `a:x:pc:${chatId}` }, { text: '✉️ Написать', url: user.username ? `https://t.me/${user.username.replace(/^@/, '')}` : `tg://user?id=${chatId}` }]])
 }
 
+/**
+ * Отзыв резидента о сообществе (текст пишется прямо в чате): сохраняем вместе с согласием на публикацию, показываем админу
+ * и ждём его решения «Одобряем». Бонус сам не начисляется: отзыв может повредить бренду, его читает человек.
+ */
+async function finishReview(chatId, flow, message) {
+  const text = String(message.text ?? message.caption ?? '').trim().slice(0, 3000)
+  if (text.length < REVIEW_MIN_LENGTH) {
+    await sendTelegramMessage(chatId, `Напиши, пожалуйста, чуть подробнее: отзыв нужен текстом, не короче ${REVIEW_MIN_LENGTH} символов. Отмена — /cancel.`)
+    return
+  }
+  userFlows.delete(String(chatId))
+  const join = getJoin(flow.token)
+  const user = getBotUser(chatId) ?? {}
+  const back = [[{ text: 'Главное меню', callback_data: 'u:menu' }]]
+  if (listCommunityReviews().some((r) => r.joinToken === flow.token && r.status === 'new')) {
+    await sendTelegramMessage(chatId, 'Твой отзыв уже на проверке, спасибо! Как только проверим, напишем сюда.', back)
+    return
+  }
+  const name = [user.firstName, user.lastName].filter(Boolean).join(' ') || (join?.name !== '—' ? join?.name : '') || ''
+  const telegram = user.username ? `@${user.username.replace(/^@/, '')}` : join?.telegram || ''
+  const id = addCommunityReview({ joinToken: flow.token, tgUserId: chatId, name, telegram, text })
+  const screen = reviewForAdmin({ review: { id, tgUserId: String(chatId), name, telegram, text }, join })
+  await sendTelegramMessage(ADMIN_CHAT_ID, screen.text, screen.keyboard)
+  await sendTelegramMessage(chatId, `Спасибо, отзыв получили! 🙌 Мы его прочитаем${join?.reviewThankedAt ? '.' : ` и, если всё в порядке, добавим +${REVIEW_BONUS_DAYS} дня подписки. Напишем сюда.`}`, back)
+}
+
 async function handleResidentCallback(query) {
   const chatId = query.message?.chat?.id
   void ackCallback(query)
@@ -2908,6 +2966,11 @@ async function handleResidentCallback(query) {
   let screen
   if (action === 'sub') screen = subscriptionScreen(join, TARIFFS)
   else if (action === 'link') screen = linkScreen(join, COMMUNITY_INVITE_LINK)
+  else if (action === 'rv') screen = reviewScreen({ bonusDays: REVIEW_BONUS_DAYS, consentUrl: `${SITE_URL}/legal/consent-publication`, bonusGiven: Boolean(join.reviewThankedAt) })
+  else if (action === 'rvgo') {
+    userFlows.set(String(chatId), { kind: 'review', token: join.token })
+    screen = reviewSendPrompt(REVIEW_MIN_LENGTH)
+  }
   else if (action === 'set') screen = settingsScreen(join, user)
   else if (action === 'mail') {
     const updated = setMailingConsent(chatId, user.mailingConsent !== true) ?? user
@@ -3075,9 +3138,14 @@ async function handleTelegramUpdate(update) {
     await sendTelegramMessage(chatId, 'Отменено.', [[{ text: 'Главное меню', callback_data: 'u:menu' }]])
     return
   }
+  if (chatId && (message?.photo || message?.document) && userFlows.get(String(chatId))?.kind === 'review') {
+    await finishReview(chatId, userFlows.get(String(chatId)), message)
+    return
+  }
   if (chatId && text && !text.startsWith('/') && userFlows.has(String(chatId)) && !pendingInput) {
     const flow = userFlows.get(String(chatId))
     if (flow.kind === 'cancel') await finishCancellation(chatId, flow, text.trim())
+    else if (flow.kind === 'review') await finishReview(chatId, flow, message)
     else await handleContactFlowInput(chatId, text)
     return
   }
@@ -3510,27 +3578,25 @@ async function processExpiry() {
   return true
 }
 
-/** Просьба об отзыве через 30 дней после первой оплаты и бонус +4 дня через 5 часов (как в воронке BotHelp). */
+/**
+ * Просьба об отзыве: через REVIEW_ASK_AFTER_DAYS дней после первой настоящей оплаты подписки (у перенесённых из BotHelp приблизительные
+ * даты в счёт не идут). Просьба считается отправленной, только если сообщение дошло: иначе пробуем снова не чаще раза в сутки.
+ * Бонус за отзыв начисляет админ кнопкой «Одобряем», см. finishReview и extrasAction (rvok).
+ */
 let reviewFlowRunning = false
 async function processReviewFlow() {
   if (!BOT_TOKEN || !ADMIN_CHAT_ID || reviewFlowRunning || process.env.REVIEW_FLOW === '0') return
   const now = Date.now()
   const hour = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Moscow', hour: '2-digit', hour12: false }).format(new Date(now)))
-  const DAY = 86400000
+  if (hour < 10 || hour >= 21) return
   reviewFlowRunning = true
   try {
+    const reviews = listCommunityReviews()
     for (const j of listJoins()) {
-      if (!j.paid || !j.tgUserId || j.status !== 'active' || !j.firstPaidAt || j.importedFromBotHelp) continue // перенесённым просьбу об отзыве уже присылал BotHelp
-      const age = now - j.firstPaidAt
-      if (!j.reviewAskedAt && age >= 30 * DAY && age <= 60 * DAY && hour >= 10 && hour < 21) {
-        setJoinField(j.token, 'reviewAskedAt', now)
-        await sendTelegramMessage(j.tgUserId, 'Нам важно твое мнение о сообществе, оно помогает нам делать сервис лучше для тебя\n\nПожалуйста оставь отзыв о своем опыте 👇\n\nВ благодарность за обратную связь подарим тебе +4 дня подписки бесплатно', [[{ text: 'Оставить обратную связь', url: process.env.FEEDBACK_URL || `${SITE_URL}/community` }], [{ text: 'Главное меню', callback_data: 'u:menu' }]]).catch(() => false)
-      } else if (j.reviewAskedAt && !j.reviewThankedAt && now - j.reviewAskedAt >= 5 * 3600 * 1000) {
-        setJoinField(j.token, 'reviewThankedAt', now)
-        extendSubscription(j.token, 4)
-        await sendTelegramMessage(j.tgUserId, reviewThanks(getBotUser(j.tgUserId) ?? {}), [[{ text: 'Главное меню', callback_data: 'u:menu' }]]).catch(() => false)
-        await sendTelegramMessage(ADMIN_CHAT_ID, `🎁 ${[j.name, j.telegram].filter(Boolean).join(' ')}: начислено +4 дня подписки за отзыв (автоматически через 5 часов после просьбы, как в BotHelp). Проверьте, что отзыв действительно оставлен.`, undefined, quiet()).catch(() => false)
-      }
+      if (!reviewRequestDue(j, reviews, now)) continue
+      setJoinField(j.token, 'reviewTriedAt', now)
+      const ok = await sendTelegramMessage(j.tgUserId, `Привет! 👋 Ты с нами уже почти месяц, и нам очень важно твоё мнение о сообществе: оно помогает делать его лучше.\n\nНапиши, пожалуйста, пару предложений прямо здесь: чем сообщество было полезно и что понравилось. Мы прочитаем и в благодарность добавим +${REVIEW_BONUS_DAYS} дня подписки.`, [[{ text: '✍️ Написать отзыв', callback_data: 'r:rv' }], [{ text: 'Главное меню', callback_data: 'u:menu' }]]).catch(() => false)
+      if (ok) setJoinField(j.token, 'reviewRequestedAt', now)
     }
   } finally {
     reviewFlowRunning = false

@@ -74,6 +74,7 @@ export const COMMUNITY_KEYBOARD = [
     { text: '🌟 Амбассадоры', callback_data: 'a:x:amb' },
     { text: '📇 Интересовались', callback_data: 'a:s:ilist:community' },
   ],
+  [{ text: '⭐ Отзывы и бонусы', callback_data: 'a:x:rvs' }],
   [{ text: '➕ Записать интерес', callback_data: 'a:s:ikind:community' }],
   [{ text: '🔌 Состояние системы', callback_data: 'a:status' }],
   BACK_ROW,

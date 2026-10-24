@@ -18,6 +18,9 @@ export const CONSENT_VERSION = '2026-10-17'
 /** Редакция отдельного согласия на публикацию отзыва (/legal/consent-publication). */
 export const PUBLICATION_CONSENT_VERSION = '2026-10-14'
 
+/** Редакция раздела «Публикация отзыва о сообществе» на той же странице. Должна совпадать с REVIEW_CONSENT_VERSION в server/lib/communityReviews.js (бот записывает её вместе с отзывом). */
+export const COMMUNITY_REVIEW_CONSENT_VERSION = '2026-10-24'
+
 /**
  * Редакция согласия на рекламные и информационные сообщения (/legal/marketing-consent): дата выкладки файла на сайт.
  * В самом документе указана своя дата (01.09.2025).

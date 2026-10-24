@@ -44,6 +44,7 @@ export const TERMS = {
   consentLog: 5 * YEAR, // журнал согласий — доказательство, пока хранятся связанные данные
   webhooks: 5 * YEAR, // журнал платёжных уведомлений Prodamus
   pendingNotices: 1 * DAY, // отложенные уведомления «не завершили оплату»
+  communityReview: 1 * YEAR, // отзыв резидента, присланный боту для бонуса (имя, ник, текст)
 }
 
 const lastOf = (...values) => Math.max(0, ...values.map((v) => Number(v) || 0))
@@ -217,6 +218,15 @@ export const SOURCES = [
       if (!paidOrder) return ctx.now > ref + TERMS.consultationNoOrder ? { action: 'delete', reason: 'заявка без заказа старше 2 лет' } : null
       return twoStage(c, ctx.now, { contactsFrom: ref, contactsAfter: TERMS.consultationAfterDone, moneyFrom: ref, money: true, label: 'консультация' })
     },
+  },
+  {
+    id: 'communityReviews',
+    title: 'Отзывы резидентов о сообществе (для бонуса)',
+    store: createJsonStore('community-reviews.json'),
+    keysOf: baseKeys,
+    personal: ['name', 'telegram', 'tgUserId', 'text'],
+    hasMoney: () => false,
+    due: (r, ctx) => (ctx.now > r.createdAt + TERMS.communityReview ? { action: 'delete', reason: 'отзыв старше 1 года' } : null),
   },
   {
     id: 'ambassadors',

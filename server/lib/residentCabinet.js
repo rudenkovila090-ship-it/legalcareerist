@@ -23,6 +23,7 @@ export function residentMenu(join, user) {
     keyboard: [
       [{ text: '📋 Моя подписка', callback_data: 'r:sub' }],
       [{ text: '🔗 Ссылка на сообщество', callback_data: 'r:link' }],
+      [{ text: '⭐ Оставить отзыв', callback_data: 'r:rv' }],
       [{ text: '🌐 Кабинет на сайте', callback_data: 'r:site' }],
       [{ text: '💬 Поддержка', callback_data: 'u:support' }, { text: '⚙️ Настройки', callback_data: 'r:set' }],
       [{ text: '⬅️ Сообщество', callback_data: 'u:community' }],
@@ -69,6 +70,22 @@ export function subscriptionScreen(join, tariffs, now = Date.now()) {
   if (!hasAccess(join, now) || join.status === 'cancelled') keyboard.push([{ text: join.status === 'cancelled' ? 'Возобновить подписку' : 'Оформить подписку', callback_data: 'u:join' }])
   keyboard.push(BACK_ROW)
   return { text: lines.join('\n'), keyboard }
+}
+
+/** «Оставить отзыв»: согласие на публикацию, затем текст пишется прямо в чате. Бонус за отзыв выдаётся один раз. */
+export function reviewScreen({ bonusDays, consentUrl, bonusGiven }) {
+  const bonus = bonusGiven ? 'Бонус за отзыв выдаётся один раз и ты его уже получал(а), но отзыв нам всё равно очень ценен.' : `Мы прочитаем его и, если всё в порядке, добавим +${bonusDays} дня к подписке в благодарность.`
+  return {
+    text: `⭐ Отзыв о сообществе\n\nНапиши пару предложений: чем сообщество было тебе полезно и что понравилось. ${bonus}\n\nОтправляя отзыв, ты соглашаешься, что мы можем опубликовать его на сайте и в соцсетях «Карьерного юриста» с подписью: твоё имя и первая буква фамилии. Другие данные не публикуются. Согласие можно отозвать в любой момент.\n\nУсловия: ${consentUrl}`,
+    keyboard: [[{ text: '✅ Согласен(на), написать отзыв', callback_data: 'r:rvgo' }], BACK_ROW],
+  }
+}
+
+export function reviewSendPrompt(minLength) {
+  return {
+    text: `Напиши свой отзыв одним сообщением (не короче ${minLength} символов). Отмена — /cancel.`,
+    keyboard: [[{ text: 'Передумал(а)', callback_data: 'r:menu' }]],
+  }
 }
 
 export function linkScreen(join, inviteLink, now = Date.now()) {
