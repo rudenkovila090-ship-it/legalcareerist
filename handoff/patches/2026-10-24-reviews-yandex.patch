@@ -1,0 +1,396 @@
+From c9a5b42e43d87b33787aeb3c7ebaef3f3aa2aba3 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 24 Oct 2026 13:13:56 +0000
+Subject: [PATCH] =?UTF-8?q?=D0=9E=D1=82=D0=B7=D1=8B=D0=B2=D1=8B=20=D0=BE?=
+ =?UTF-8?q?=20=D1=81=D0=BE=D0=BE=D0=B1=D1=89=D0=B5=D1=81=D1=82=D0=B2=D0=B5?=
+ =?UTF-8?q?:=20=D1=81=D1=81=D1=8B=D0=BB=D0=BA=D0=B0=20=D0=BD=D0=B0=20?=
+ =?UTF-8?q?=D0=AF=D0=BD=D0=B4=D0=B5=D0=BA=D1=81,=20=D1=82=D0=B5=D0=BA?=
+ =?UTF-8?q?=D1=81=D1=82=20=D0=BE=D1=82=D0=B7=D1=8B=D0=B2=D0=B0=20=D0=B0?=
+ =?UTF-8?q?=D0=B4=D0=BC=D0=B8=D0=BD=D1=83,=20=D0=B1=D0=BE=D0=BD=D1=83?=
+ =?UTF-8?q?=D1=81=20+4=20=D0=B4=D0=BD=D1=8F=20=D1=82=D0=BE=D0=BB=D1=8C?=
+ =?UTF-8?q?=D0=BA=D0=BE=20=D0=BF=D0=BE=D1=81=D0=BB=D0=B5=20=D0=BF=D1=80?=
+ =?UTF-8?q?=D0=BE=D0=B2=D0=B5=D1=80=D0=BA=D0=B8?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- Просьба об отзыве (через 30 дней после первой оплаты) ведёт на Яндекс (FEEDBACK_URL, по умолчанию страница организации),
+  рядом кнопка «Я оставил(а) отзыв»: бот просит прислать текст или скриншот и пересылает админу с кнопками
+  «Начислить +4 дня» / «Не начислять». Автоначисление через 5 часов убрано: отзыв никто не проверял.
+- В кабинете резидента в боте появилась кнопка «Оставить отзыв» (r:rv).
+- «Сообщество → Отзывы и бонусы»: ждут решения, начислено после проверки, не начислено, а также бонусы, выданные
+  автоматически раньше (с датами; текст тогда не сохранялся).
+- У подписки с автопродлением бонус записывается в карточку, дату списания не двигает (её задаёт Prodamus): админу об этом сказано в ответе на кнопку.
+- Хранилище community-reviews.json внесено в реестр персональных данных (срок 1 год, удаление по запросу), в docs/personal-data-map.md и bot-overview.md.
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_018jwNfo7VoFWeWzfVizUNNz
+---
+ docs/bot-overview.md           |   4 +-
+ docs/personal-data-map.md      |   1 +
+ server/index.js                |  75 +++++++++++++++++++++---
+ server/lib/adminCabinet.js     |   1 +
+ server/lib/botFlow.js          |   2 +-
+ server/lib/communityReviews.js | 103 +++++++++++++++++++++++++++++++++
+ server/lib/personData.js       |  10 ++++
+ server/lib/residentCabinet.js  |  16 +++++
+ 8 files changed, 201 insertions(+), 11 deletions(-)
+ create mode 100644 server/lib/communityReviews.js
+
+diff --git a/docs/bot-overview.md b/docs/bot-overview.md
+index a23fa25..9da62fa 100644
+--- a/docs/bot-overview.md
++++ b/docs/bot-overview.md
+@@ -42,10 +42,10 @@
+ Три платёжные страницы, у каждой свой домен и секретный ключ: общая (подписки), материалы (`PRODAMUS_MATERIALS_*`), мероприятия (`PRODAMUS_EVENTS_*`, подключена 21.10.2026). Вебхук: `/api/prodamus/webhook`. Засчитывается только уведомление с верной подписью. Заказ узнаётся так: билет — `order_id` вида `ev-<номер регистрации>`, материал — по токену покупки, подписка — по телефону, почте или нику. Каждое уведомление целиком пишется в `data/prodamus-webhooks.jsonl`. Ключи в чат и репозиторий не кладём; заводятся скриптом `bash scripts/setup-prodamus.sh materials|events`.
+ 
+ ## 7. Настройки (`server/.env`, в git не хранятся)
+-Токен и чаты: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_ADMIN_CHAT_ID`, `TELEGRAM_VIEWER_CHAT_IDS` (помощники только смотрят), `COMMUNITY_CHAT_ID`, `COMMUNITY_INVITE_LINK`, `BOT_USERNAME`. Почта: `SMTP_HOST/PORT/USER/PASS/FROM` (скрипты `scripts/setup-mail.sh`, `scripts/test-mail.sh`). Сайт: `SITE_URL`, `SUPPORT_HANDLE`, `FEEDBACK_URL`. Подписки: `LIFETIME_IDS`, `LIFETIME_USERNAMES` (бессрочный доступ). Ссылки доступа к материалам: `GUIDE_NOTARIAT_ACCESS_URL`, `GUIDE_GRANTS_ACCESS_URL`, `LONGLIST_EVENTS_ACCESS_URL`. Смена токена бота: только `bash scripts/setup-bot.sh` (проверяет токен, делает копию `.env`, перезапускает бота).
++Токен и чаты: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_ADMIN_CHAT_ID`, `TELEGRAM_VIEWER_CHAT_IDS` (помощники только смотрят), `COMMUNITY_CHAT_ID`, `COMMUNITY_INVITE_LINK`, `BOT_USERNAME`. Почта: `SMTP_HOST/PORT/USER/PASS/FROM` (скрипты `scripts/setup-mail.sh`, `scripts/test-mail.sh`). Сайт: `SITE_URL`, `SUPPORT_HANDLE`, `FEEDBACK_URL` (страница организации на Яндексе для отзывов; по умолчанию https://yandex.ru/profile/97325553975). Подписки: `LIFETIME_IDS`, `LIFETIME_USERNAMES` (бессрочный доступ). Ссылки доступа к материалам: `GUIDE_NOTARIAT_ACCESS_URL`, `GUIDE_GRANTS_ACCESS_URL`, `LONGLIST_EVENTS_ACCESS_URL`. Смена токена бота: только `bash scripts/setup-bot.sh` (проверяет токен, делает копию `.env`, перезапускает бота).
+ 
+ ## 8. Данные (`server/data/`, не в git)
+-`bot-users.json` (люди и метки), `pending-joins.json` (подписки), `material-purchases.json`, `material-links.json` (хэши личных ссылок), `material-pdfs/` (PDF материалов; в ежедневную копию не входит: копируйте папку отдельно), `material-files.json` (только чек-лист новичка), `material-reviews.json`, `event-leads.json` (регистрации и заявки), `promo-codes.json`, `deals.json`, `expenses.json`, `consultation-orders.json`, `reserve-candidates.json`, `interests.json`, `ambassadors.json`, `candidate-applications.json`, `todos.json` (список «Доработки» в боте), `audit.jsonl`, `consent-log.jsonl`, `lead-sources.jsonl`, `prodamus-webhooks.jsonl` и др. Каталоги вакансий, материалов и мероприятий (`*-catalog.json`) создаются при сборке сайта (`scripts/export-vacancy-catalog.mjs`) из `src/data/*`. Новое хранилище с персональными данными нужно добавить в `lib/personData.js`, иначе оно не попадёт под автосроки и удаление.
++`bot-users.json` (люди и метки), `pending-joins.json` (подписки), `material-purchases.json`, `material-links.json` (хэши личных ссылок), `material-pdfs/` (PDF материалов; в ежедневную копию не входит: копируйте папку отдельно), `material-files.json` (только чек-лист новичка), `material-reviews.json`, `community-reviews.json` (отзывы резидентов о сообществе; бонус «+4 дня» начисляется только после решения админа кнопкой, раздел «Сообщество → Отзывы и бонусы»), `event-leads.json` (регистрации и заявки), `promo-codes.json`, `deals.json`, `expenses.json`, `consultation-orders.json`, `reserve-candidates.json`, `interests.json`, `ambassadors.json`, `candidate-applications.json`, `todos.json` (список «Доработки» в боте), `audit.jsonl`, `consent-log.jsonl`, `lead-sources.jsonl`, `prodamus-webhooks.jsonl` и др. Каталоги вакансий, материалов и мероприятий (`*-catalog.json`) создаются при сборке сайта (`scripts/export-vacancy-catalog.mjs`) из `src/data/*`. Новое хранилище с персональными данными нужно добавить в `lib/personData.js`, иначе оно не попадёт под автосроки и удаление.
+ 
+ ## 9. Что не сделано по боту
+ - **Идёт в соседнем чате:** перенос людей из BotHelp и настройка бота. Людей загружает команда `/import`; сервер переключается на токен BotHelp-бота @legalcareerist_bot по `docs/bot-move.md`, без рассылки «мы переехали»; тем, кто открывал бота @LegalcareeristBot (его больше не используем), сообщение «мы переехали» отправляет `announceMove.js`.
+diff --git a/docs/personal-data-map.md b/docs/personal-data-map.md
+index 23af029..bc37837 100644
+--- a/docs/personal-data-map.md
++++ b/docs/personal-data-map.md
+@@ -259,6 +259,7 @@ Prodamus ──вебхук (ФИО, тел., почта, сумма, id под
+ | `admin-settings.json` | Тумблеры уведомлений админу | нет |
+ | `promo-codes.json` | Промокоды на билеты: код, размер скидки, число оплат с кодом (персональных данных нет; код привязывается к регистрации в `event-leads.json`) | нет |
+ | `material-reviews.json` | **Отзывы о материалах:** подпись (то, что человек сам вписал в поле «Как подписать отзыв»; не из ФИО покупки), оценка 1–5, текст, токен покупки, дата, время и редакция согласий; публикуются на странице материала. Согласие на публикацию — отдельная галочка и отдельный документ `/legal/consent-publication` | да (публикуется) |
++| `community-reviews.json` | **Отзывы резидентов о сообществе, присланные боту для бонуса «+4 дня»:** имя и ник из Telegram, Telegram id, текст отзыва (скриншот остаётся только в переписке админа с ботом), токен карточки подписки, статус (на проверке, начислено, не начислено), даты. Не публикуются; хранятся 1 год (`TERMS.communityReview` в `lib/personData.js`), удаляются по запросу | да (имя, ник, текст) |
+ | `lead-sources.jsonl` | **Журнал всех заявок с сайта для сводки «Откуда узнали»:** время, тип формы, ФИО, ответ на вопрос, UTM-метка (без телефона и почты) | да (ФИО + ответ) |
+ | `account-profile.json` | **Личный кабинет на сайте:** профиль юриста по логину — практики, уровень и опыт (тексты о делах и сделках), языки, ожидания по роли (город, формат, вилка), режим конфиденциальности и список компаний, от которых резюме скрыто; время согласия | да |
+ | `account-documents.json` и папка `account-files/` | **Резюме и документы кабинета:** названия, заметки, «для кого», версии; сами файлы лежат в `account-files/<отпечаток логина>/` под случайными именами (имя от человека на диск не попадает). Типы файлов ограничены, содержимое проверяется. **Папка `account-files/` в Telegram-копию не попадает** (крупные и личные файлы) | да (резюме) |
+diff --git a/server/index.js b/server/index.js
+index 0c5106f..c08aa2c 100644
+--- a/server/index.js
++++ b/server/index.js
+@@ -66,7 +66,8 @@ import { touchBotUser, giveConsent, setMailingConsent, getBotUser, listBotUsers,
+ import { isStartKeyword, welcomeScreen, noConsentScreen, mailingScreen, mainMenuScreen, supportPrompt, consultPrompt, genderScreen, reviewThanks, legalScreen, aboutScreen, consultScreen, consultBookedScreen, CONTACT_PROMPTS, contactCancelKeyboard, unsubscribedScreen, communityScreen, communityResidentScreen, periodsScreen, subLinkScreen, aboutClubScreen, careerScreen, achievementsScreen } from './lib/botFlow.js'
+ import { buildMonthCsv } from './lib/exportCsv.js'
+ import { vacancyOverrides, setVacancyStatus } from './lib/vacancyOverrides.js'
+-import { residentMenu, subscriptionScreen, linkScreen, settingsScreen, cancelConfirmScreen, cancelReasonPrompt, cancelDoneScreen, hasAccess } from './lib/residentCabinet.js'
++import { residentMenu, subscriptionScreen, linkScreen, settingsScreen, cancelConfirmScreen, cancelReasonPrompt, cancelDoneScreen, hasAccess, reviewScreen, reviewSendPrompt } from './lib/residentCabinet.js'
++import { REVIEW_URL, REVIEW_BONUS_DAYS, addCommunityReview, listCommunityReviews, decideCommunityReview, communityReviewsScreen, reviewForAdmin } from './lib/communityReviews.js'
+ import { logAction, recentActions } from './lib/auditLog.js'
+ import { healthLines, makeBackup, readBackupState, writeBackupState } from './lib/healthBackup.js'
+ import { listTodos, addTodo, setTodoDone, ensureTodo } from './lib/todos.js'
+@@ -1978,6 +1979,29 @@ async function extrasAction(parts, now, chatId) {
+     case 'ambdelok':
+       deleteAmbassador(arg)
+       return ambassadorsScreen(listAmbassadors())
++    case 'rvs':
++      return communityReviewsScreen(data.joins, listCommunityReviews())
++    case 'rvok': {
++      const r = decideCommunityReview(arg, 'approved')
++      if (!r) return { text: 'Этот отзыв уже обработан или не найден. Все отзывы: «Отзывы и бонусы».', keyboard: menuBack('⬅️ Отзывы и бонусы', 'a:x:rvs') }
++      const j = getJoin(r.joinToken)
++      if (j) {
++        extendSubscription(j.token, REVIEW_BONUS_DAYS)
++        setJoinField(j.token, 'reviewThankedAt', Date.now())
++      }
++      if (r.tgUserId) await sendTelegramMessage(r.tgUserId, reviewThanks(getBotUser(r.tgUserId) ?? {}), [[{ text: 'Главное меню', callback_data: 'u:menu' }]]).catch(() => false)
++      const note = !j
++        ? 'Карточка подписки не найдена, бонус только записан.'
++        : j.oneTime
++          ? `Срок разовой подписки сдвинут на ${REVIEW_BONUS_DAYS} дня.`
++          : 'У подписки с автопродлением дату списания задаёт Prodamus: бонус записан в карточку (в кабинете «Бонусные дни»), а дата списания не изменилась. Чтобы реально сдвинуть списание, сделайте это в Prodamus.'
++      return { text: `✅ Начислено +${REVIEW_BONUS_DAYS} дня: ${[r.name, r.telegram].filter(Boolean).join(', ') || r.tgUserId}. Человеку отправлено спасибо.\n\n${note}`, keyboard: menuBack('⬅️ Отзывы и бонусы', 'a:x:rvs') }
++    }
++    case 'rvno': {
++      const r = decideCommunityReview(arg, 'rejected')
++      if (!r) return { text: 'Этот отзыв уже обработан или не найден. Все отзывы: «Отзывы и бонусы».', keyboard: menuBack('⬅️ Отзывы и бонусы', 'a:x:rvs') }
++      return { text: `❌ Бонус не начислен: ${[r.name, r.telegram].filter(Boolean).join(', ') || r.tgUserId}. Человеку ничего не отправлено, при желании напишите ему сами.`, keyboard: menuBack('⬅️ Отзывы и бонусы', 'a:x:rvs') }
++    }
+     case 'kick': {
+       const j = getJoin(arg)
+       if (!j) return { text: 'Подписчик не найден.', keyboard: menuBack('⬅️ Сообщество', 'a:sec:community') }
+@@ -2547,7 +2571,7 @@ async function adminScreen(data, now, chatId) {
+ // Кнопки, которые что-то меняют или отправляют данные: помощникам (только просмотр) они недоступны, в журнал попадают только они.
+ // Кнопки, которые только открывают ввод текста или подтверждение — в журнал не пишем (запишется само действие).
+ const PROMPT_ONLY = /^a:(k:(rev|new)|s:(ikind|inew|rnew|redit|rdel)|x:(tnew|ambnew|ambdel|fexpnew|evpaid|promonew))\b/
+-const MUTATING = /^a:(k:(adv|back|q1|q0|lost|reopen|revok|rev|new|pp|pf)|s:(vst|cst|idone|iclose|isnooze|ikind|inew|rnew|redit|rdel|rdelok)|x:(grant|promonew|promodel|tnew|tdone|ambnew|ambplus|ambdel|ambdelok|kickok|cr|fexpnew|fexpdel|evst|evpaid|backup|erase|pdgo|impgo|impall)|remgo)\b/
++const MUTATING = /^a:(k:(adv|back|q1|q0|lost|reopen|revok|rev|new|pp|pf)|s:(vst|cst|idone|iclose|isnooze|ikind|inew|rnew|redit|rdel|rdelok)|x:(grant|promonew|promodel|tnew|tdone|ambnew|ambplus|ambdel|ambdelok|kickok|rvok|rvno|cr|fexpnew|fexpdel|evst|evpaid|backup|erase|pdgo|impgo|impall)|remgo)\b/
+ 
+ /** Нажатие кнопки кабинета — от админа (все кнопки) или помощника (только просмотр); остальным молча отвечаем. */
+ async function handleAdminCallback(query) {
+@@ -2887,6 +2911,36 @@ async function finishCancellation(chatId, flow, reason) {
+   }), [[{ text: '👤 Карточка человека', callback_data: `a:x:pc:${chatId}` }, { text: '✉️ Написать', url: user.username ? `https://t.me/${user.username.replace(/^@/, '')}` : `tg://user?id=${chatId}` }]])
+ }
+ 
++/**
++ * Отзыв резидента о сообществе: сохраняем, показываем админу (текст или скриншот) и ждём его решения о бонусе.
++ * Бонус сам не начисляется: Яндекс не говорит, кто написал отзыв, поэтому проверяет админ.
++ */
++async function finishReview(chatId, flow, message) {
++  const text = String(message.text ?? message.caption ?? '').trim().slice(0, 3000)
++  const hasPhoto = Boolean(message.photo || message.document)
++  if (!text && !hasPhoto) {
++    await sendTelegramMessage(chatId, 'Пришли текст отзыва или скриншот одним сообщением. Отмена — /cancel.')
++    return
++  }
++  userFlows.delete(String(chatId))
++  const join = getJoin(flow.token)
++  const user = getBotUser(chatId) ?? {}
++  const thanks = [[{ text: 'Главное меню', callback_data: 'u:menu' }]]
++  if (listCommunityReviews().some((r) => r.joinToken === flow.token && r.status === 'new')) {
++    await sendTelegramMessage(chatId, 'Твой отзыв уже на проверке, спасибо! Как только проверим, напишем сюда.', thanks)
++    return
++  }
++  const name = [user.firstName, user.lastName].filter(Boolean).join(' ') || (join?.name !== '—' ? join?.name : '') || ''
++  const telegram = user.username ? `@${user.username.replace(/^@/, '')}` : join?.telegram || ''
++  const id = addCommunityReview({ joinToken: flow.token, tgUserId: chatId, name, telegram, text, hasPhoto })
++  if (hasPhoto) {
++    await telegramFetch('copyMessage', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: ADMIN_CHAT_ID, from_chat_id: chatId, message_id: message.message_id }) }).catch(() => null)
++  }
++  const screen = reviewForAdmin({ review: { id, tgUserId: String(chatId), name, telegram, text, hasPhoto }, join })
++  await sendTelegramMessage(ADMIN_CHAT_ID, screen.text, screen.keyboard)
++  await sendTelegramMessage(chatId, `Спасибо, отзыв получили! 🙌 Мы его проверим и, если всё в порядке, добавим +${REVIEW_BONUS_DAYS} дня подписки. Напишем сюда.`, thanks)
++}
++
+ async function handleResidentCallback(query) {
+   const chatId = query.message?.chat?.id
+   void ackCallback(query)
+@@ -2908,6 +2962,11 @@ async function handleResidentCallback(query) {
+   let screen
+   if (action === 'sub') screen = subscriptionScreen(join, TARIFFS)
+   else if (action === 'link') screen = linkScreen(join, COMMUNITY_INVITE_LINK)
++  else if (action === 'rv') screen = reviewScreen(REVIEW_URL, REVIEW_BONUS_DAYS)
++  else if (action === 'rvdone') {
++    userFlows.set(String(chatId), { kind: 'review', token: join.token })
++    screen = reviewSendPrompt()
++  }
+   else if (action === 'set') screen = settingsScreen(join, user)
+   else if (action === 'mail') {
+     const updated = setMailingConsent(chatId, user.mailingConsent !== true) ?? user
+@@ -3075,9 +3134,14 @@ async function handleTelegramUpdate(update) {
+     await sendTelegramMessage(chatId, 'Отменено.', [[{ text: 'Главное меню', callback_data: 'u:menu' }]])
+     return
+   }
++  if (chatId && (message?.photo || message?.document) && userFlows.get(String(chatId))?.kind === 'review') {
++    await finishReview(chatId, userFlows.get(String(chatId)), message)
++    return
++  }
+   if (chatId && text && !text.startsWith('/') && userFlows.has(String(chatId)) && !pendingInput) {
+     const flow = userFlows.get(String(chatId))
+     if (flow.kind === 'cancel') await finishCancellation(chatId, flow, text.trim())
++    else if (flow.kind === 'review') await finishReview(chatId, flow, message)
+     else await handleContactFlowInput(chatId, text)
+     return
+   }
+@@ -3524,12 +3588,7 @@ async function processReviewFlow() {
+       const age = now - j.firstPaidAt
+       if (!j.reviewAskedAt && age >= 30 * DAY && age <= 60 * DAY && hour >= 10 && hour < 21) {
+         setJoinField(j.token, 'reviewAskedAt', now)
+-        await sendTelegramMessage(j.tgUserId, 'Нам важно твое мнение о сообществе, оно помогает нам делать сервис лучше для тебя\n\nПожалуйста оставь отзыв о своем опыте 👇\n\nВ благодарность за обратную связь подарим тебе +4 дня подписки бесплатно', [[{ text: 'Оставить обратную связь', url: process.env.FEEDBACK_URL || `${SITE_URL}/community` }], [{ text: 'Главное меню', callback_data: 'u:menu' }]]).catch(() => false)
+-      } else if (j.reviewAskedAt && !j.reviewThankedAt && now - j.reviewAskedAt >= 5 * 3600 * 1000) {
+-        setJoinField(j.token, 'reviewThankedAt', now)
+-        extendSubscription(j.token, 4)
+-        await sendTelegramMessage(j.tgUserId, reviewThanks(getBotUser(j.tgUserId) ?? {}), [[{ text: 'Главное меню', callback_data: 'u:menu' }]]).catch(() => false)
+-        await sendTelegramMessage(ADMIN_CHAT_ID, `🎁 ${[j.name, j.telegram].filter(Boolean).join(' ')}: начислено +4 дня подписки за отзыв (автоматически через 5 часов после просьбы, как в BotHelp). Проверьте, что отзыв действительно оставлен.`, undefined, quiet()).catch(() => false)
++        await sendTelegramMessage(j.tgUserId, `Нам важно твоё мнение о сообществе, оно помогает нам делать сервис лучше для тебя\n\nОставь, пожалуйста, отзыв на Яндексе 👇 Потом нажми «Я оставил(а) отзыв» и пришли сюда его текст или скриншот: мы проверим и в благодарность добавим +${REVIEW_BONUS_DAYS} дня подписки.`, [[{ text: '⭐ Оставить отзыв на Яндексе', url: REVIEW_URL }], [{ text: '✅ Я оставил(а) отзыв', callback_data: 'r:rvdone' }], [{ text: 'Главное меню', callback_data: 'u:menu' }]]).catch(() => false)
+       }
+     }
+   } finally {
+diff --git a/server/lib/adminCabinet.js b/server/lib/adminCabinet.js
+index d1e93f7..eacf0d8 100644
+--- a/server/lib/adminCabinet.js
++++ b/server/lib/adminCabinet.js
+@@ -74,6 +74,7 @@ export const COMMUNITY_KEYBOARD = [
+     { text: '🌟 Амбассадоры', callback_data: 'a:x:amb' },
+     { text: '📇 Интересовались', callback_data: 'a:s:ilist:community' },
+   ],
++  [{ text: '⭐ Отзывы и бонусы', callback_data: 'a:x:rvs' }],
+   [{ text: '➕ Записать интерес', callback_data: 'a:s:ikind:community' }],
+   [{ text: '🔌 Состояние системы', callback_data: 'a:status' }],
+   BACK_ROW,
+diff --git a/server/lib/botFlow.js b/server/lib/botFlow.js
+index 3a32de0..98101db 100644
+--- a/server/lib/botFlow.js
++++ b/server/lib/botFlow.js
+@@ -323,5 +323,5 @@ export function genderScreen(user) {
+ 
+ /** Просьба об отзыве и бонус: тексты с учётом пола. */
+ export function reviewThanks(user) {
+-  return `Вижу ты ${gv(user, 'оставил', 'оставила', 'оставил(а)')} отзыв, спасибо тебе большое 🙌 это правда важно для нас\n\nКак и обещали, уже добавили тебе +4 дня подписки 🎁`
++  return `Спасибо, что ${gv(user, 'оставил', 'оставила', 'оставил(а)')} отзыв 🙌 это правда важно для нас\n\nКак и обещали, добавили тебе +4 дня подписки 🎁`
+ }
+diff --git a/server/lib/communityReviews.js b/server/lib/communityReviews.js
+new file mode 100644
+index 0000000..5ea5a13
+--- /dev/null
++++ b/server/lib/communityReviews.js
+@@ -0,0 +1,103 @@
++// Отзывы резидентов о сообществе и бонус «+4 дня» за них. Человек оставляет отзыв на Яндексе (REVIEW_URL), нажимает
++// «Я оставил(а) отзыв» и присылает боту текст или скриншот. Бот пересылает это админу, а бонус начисляется только после
++// решения админа кнопкой. Записи: id → { joinToken, tgUserId, name, telegram, text, hasPhoto, status, createdAt, decidedAt }.
++import { createJsonStore } from './jsonStore.js'
++
++const store = createJsonStore('community-reviews.json')
++
++/** Страница организации на Яндексе: на неё ведёт кнопка «Оставить отзыв». Можно заменить в server/.env: FEEDBACK_URL. */
++export const REVIEW_URL = process.env.FEEDBACK_URL || 'https://yandex.ru/profile/97325553975'
++export const REVIEW_BONUS_DAYS = 4
++
++const MSK = 'Europe/Moscow'
++const ruDate = (ts) => new Intl.DateTimeFormat('ru-RU', { timeZone: MSK, day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(ts))
++const clip = (text, max) => (text.length > max ? `${text.slice(0, max).trimEnd()}…` : text)
++
++export function addCommunityReview({ joinToken, tgUserId, name, telegram, text, hasPhoto }) {
++  return store.create({ joinToken, tgUserId: String(tgUserId), name: name || '', telegram: telegram || '', text: String(text ?? '').trim(), hasPhoto: Boolean(hasPhoto), status: 'new' })
++}
++
++export function getCommunityReview(id) {
++  const rec = store.get(id)
++  return rec ? { id, ...rec } : null
++}
++
++export function listCommunityReviews() {
++  return store.all().map(({ token, ...rec }) => ({ id: token, ...rec }))
++}
++
++/** Решение админа. Меняет только запись, ждущую решения: повторное нажатие кнопки ничего не делает (null). */
++export function decideCommunityReview(id, status) {
++  let result = null
++  store.update(id, (rec) => {
++    if (rec.status !== 'new') return rec
++    result = { id, ...rec, status, decidedAt: Date.now() }
++    return { ...rec, status, decidedAt: result.decidedAt }
++  })
++  return result
++}
++
++const nameOf = (r) => [r.name && r.name !== '—' ? r.name : null, r.telegram || null, r.tgUserId ? `…${String(r.tgUserId).slice(-4)}` : null].filter(Boolean).join(', ') || 'без имени'
++const joinName = (j) => [j.name && j.name !== '—' ? j.name : null, j.telegram || null, j.tgUserId ? `…${String(j.tgUserId).slice(-4)}` : null].filter(Boolean).join(', ') || 'без имени'
++const quote = (r, max) => (r.text ? `«${clip(r.text.replace(/\s+/g, ' '), max)}»` : r.hasPhoto ? '(только скриншот, он был в чате с ботом)' : '(без текста)')
++
++const backRow = [{ text: '⬅️ Сообщество', callback_data: 'a:sec:community' }, { text: '🏠 Меню', callback_data: 'a:menu' }]
++
++/** Кому и за что начислены дни: ждут решения, решения админа и бонусы, выданные автоматически до проверки отзывов. */
++export function communityReviewsScreen(joins, reviews) {
++  const byJoin = new Set(reviews.filter((r) => r.status === 'approved').map((r) => r.joinToken))
++  const pending = reviews.filter((r) => r.status === 'new').sort((a, b) => a.createdAt - b.createdAt)
++  const approved = reviews.filter((r) => r.status === 'approved').sort((a, b) => (b.decidedAt ?? 0) - (a.decidedAt ?? 0))
++  const rejected = reviews.filter((r) => r.status === 'rejected').sort((a, b) => (b.decidedAt ?? 0) - (a.decidedAt ?? 0))
++  // До проверки отзывов бонус начислялся сам через 5 часов после просьбы, текст не сохранялся.
++  const legacy = joins.filter((j) => j.reviewThankedAt && !byJoin.has(j.token)).sort((a, b) => (a.reviewThankedAt ?? 0) - (b.reviewThankedAt ?? 0))
++  const asked = joins.filter((j) => j.reviewAskedAt && !j.reviewThankedAt && !reviews.some((r) => r.joinToken === j.token))
++
++  const lines = ['⭐ Отзывы и бонусы за отзыв', '']
++  lines.push(`Ждут вашего решения: ${pending.length}`)
++  for (const r of pending) lines.push(`• ${nameOf(r)} · ${ruDate(r.createdAt)}`, `   ${quote(r, 500)}`)
++  if (approved.length) {
++    lines.push('', `✅ Начислено +${REVIEW_BONUS_DAYS} дня после проверки: ${approved.length}`)
++    for (const r of approved) lines.push(`• ${nameOf(r)} · ${ruDate(r.decidedAt ?? r.createdAt)}`, `   ${quote(r, 300)}`)
++  }
++  if (rejected.length) {
++    lines.push('', `❌ Не начислено: ${rejected.length}`)
++    for (const r of rejected) lines.push(`• ${nameOf(r)} · ${ruDate(r.decidedAt ?? r.createdAt)}`, `   ${quote(r, 300)}`)
++  }
++  if (legacy.length) {
++    lines.push('', `🎁 Начислено автоматически, без проверки отзыва (так работал бот до проверки отзывов): ${legacy.length}`, 'Текст отзыва тогда не сохранялся, проверьте по Яндексу:')
++    for (const j of legacy) lines.push(`• ${joinName(j)} · просили ${j.reviewAskedAt ? ruDate(j.reviewAskedAt) : '—'}, начислено ${ruDate(j.reviewThankedAt)}${j.bonusDays ? ` · бонус +${j.bonusDays} дн.` : ''}`)
++  }
++  if (asked.length) lines.push('', `Просили отзыв, ответа пока нет: ${asked.length}`)
++  if (!reviews.length && !legacy.length && !asked.length) lines.push('', 'Пока никто не присылал отзыв, и просьб об отзыве ещё не было.')
++  lines.push('', `Отзыв оставляют на Яндексе: ${REVIEW_URL}`)
++
++  const keyboard = pending.slice(0, 8).map((r) => [
++    { text: `✅ +${REVIEW_BONUS_DAYS} дня: ${nameOf(r)}`.slice(0, 40), callback_data: `a:x:rvok:${r.id}` },
++    { text: '❌ Нет', callback_data: `a:x:rvno:${r.id}` },
++  ])
++  return { text: lines.join('\n'), keyboard: [...keyboard, backRow] }
++}
++
++/** Сообщение админу о присланном отзыве: кто, какая подписка, сам текст и кнопки решения. */
++export function reviewForAdmin({ review, join }) {
++  const lines = [
++    '⭐ Новый отзыв о сообществе',
++    '',
++    `👤 ${nameOf(review)}`,
++    join?.nextPaymentAt ? `📋 Подписка: ${join.oneTime ? 'разовая' : 'с автопродлением'}, следующее списание ${ruDate(join.nextPaymentAt)}` : null,
++    join?.reviewThankedAt ? `⚠️ Бонус за отзыв этому человеку уже начислялся ${ruDate(join.reviewThankedAt)}` : null,
++    '',
++    review.text ? `«${review.text}»` : null,
++    review.hasPhoto ? (review.text ? '📎 Скриншот в сообщении выше' : '📎 Только скриншот — он в сообщении выше') : null,
++    '',
++    `Проверьте отзыв на Яндексе (${REVIEW_URL}) и решите, начислять ли +${REVIEW_BONUS_DAYS} дня.`,
++  ].filter((l) => l !== null)
++  return {
++    text: lines.join('\n'),
++    keyboard: [
++      [{ text: `✅ Начислить +${REVIEW_BONUS_DAYS} дня`, callback_data: `a:x:rvok:${review.id}` }, { text: '❌ Не начислять', callback_data: `a:x:rvno:${review.id}` }],
++      [{ text: '👤 Карточка человека', callback_data: `a:x:pc:${review.tgUserId}` }],
++    ],
++  }
++}
+diff --git a/server/lib/personData.js b/server/lib/personData.js
+index 5060d10..5ce35ef 100644
+--- a/server/lib/personData.js
++++ b/server/lib/personData.js
+@@ -44,6 +44,7 @@ export const TERMS = {
+   consentLog: 5 * YEAR, // журнал согласий — доказательство, пока хранятся связанные данные
+   webhooks: 5 * YEAR, // журнал платёжных уведомлений Prodamus
+   pendingNotices: 1 * DAY, // отложенные уведомления «не завершили оплату»
++  communityReview: 1 * YEAR, // отзыв резидента, присланный боту для бонуса (имя, ник, текст)
+ }
+ 
+ const lastOf = (...values) => Math.max(0, ...values.map((v) => Number(v) || 0))
+@@ -218,6 +219,15 @@ export const SOURCES = [
+       return twoStage(c, ctx.now, { contactsFrom: ref, contactsAfter: TERMS.consultationAfterDone, moneyFrom: ref, money: true, label: 'консультация' })
+     },
+   },
++  {
++    id: 'communityReviews',
++    title: 'Отзывы резидентов о сообществе (для бонуса)',
++    store: createJsonStore('community-reviews.json'),
++    keysOf: baseKeys,
++    personal: ['name', 'telegram', 'tgUserId', 'text'],
++    hasMoney: () => false,
++    due: (r, ctx) => (ctx.now > r.createdAt + TERMS.communityReview ? { action: 'delete', reason: 'отзыв старше 1 года' } : null),
++  },
+   {
+     id: 'ambassadors',
+     title: 'Амбассадоры',
+diff --git a/server/lib/residentCabinet.js b/server/lib/residentCabinet.js
+index ea8f4f0..781e896 100644
+--- a/server/lib/residentCabinet.js
++++ b/server/lib/residentCabinet.js
+@@ -23,6 +23,7 @@ export function residentMenu(join, user) {
+     keyboard: [
+       [{ text: '📋 Моя подписка', callback_data: 'r:sub' }],
+       [{ text: '🔗 Ссылка на сообщество', callback_data: 'r:link' }],
++      [{ text: '⭐ Оставить отзыв', callback_data: 'r:rv' }],
+       [{ text: '🌐 Кабинет на сайте', callback_data: 'r:site' }],
+       [{ text: '💬 Поддержка', callback_data: 'u:support' }, { text: '⚙️ Настройки', callback_data: 'r:set' }],
+       [{ text: '⬅️ Сообщество', callback_data: 'u:community' }],
+@@ -71,6 +72,21 @@ export function subscriptionScreen(join, tariffs, now = Date.now()) {
+   return { text: lines.join('\n'), keyboard }
+ }
+ 
++/** «Оставить отзыв»: отзыв пишут на Яндексе, потом присылают боту текст или скриншот, чтобы получить бонус после проверки. */
++export function reviewScreen(reviewUrl, bonusDays) {
++  return {
++    text: `⭐ Отзыв о сообществе\n\nОставь отзыв на Яндексе, это помогает другим юристам нас найти.\n\nКогда оставишь, нажми «Я оставил(а) отзыв» и пришли сюда его текст или скриншот. Мы проверим и, если всё в порядке, добавим +${bonusDays} дня к подписке.`,
++    keyboard: [[{ text: '⭐ Оставить отзыв на Яндексе', url: reviewUrl }], [{ text: '✅ Я оставил(а) отзыв', callback_data: 'r:rvdone' }], BACK_ROW],
++  }
++}
++
++export function reviewSendPrompt() {
++  return {
++    text: 'Пришли одним сообщением текст своего отзыва или скриншот (можно со скриншотом и подписью). Отмена — /cancel.',
++    keyboard: [[{ text: 'Передумал(а)', callback_data: 'r:menu' }]],
++  }
++}
++
+ export function linkScreen(join, inviteLink, now = Date.now()) {
+   if (!hasAccess(join, now)) return { text: '🔗 Ссылка на сообщество доступна при действующей подписке. Если оплата прошла, а ссылки нет, напиши в поддержку.', keyboard: [[{ text: '💬 Поддержка', callback_data: 'u:support' }], BACK_ROW] }
+   if (!inviteLink) return { text: '🔗 Ссылку на сообщество пришлёт поддержка — напиши нам.', keyboard: [[{ text: '💬 Поддержка', callback_data: 'u:support' }], BACK_ROW] }
+-- 
+2.43.0
+
