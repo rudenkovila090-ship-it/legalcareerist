@@ -8,7 +8,7 @@ import { CONSENT_VERSION, PUBLICATION_CONSENT_VERSION, consentOf } from '../lib/
 const inputClass = 'w-full rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none'
 
 // Отзывы о материале: список от покупателей + форма «Оцените материал», которая открывается по ссылке
-// из письма или из бота (?review=<токен покупки>). Без ссылки форму видят только те, у кого она есть, — это защита от накрутки.
+// из письма (?review=<токен покупки>). Без ссылки форму видят только те, у кого она есть, — это защита от накрутки.
 export default function MaterialReviews({ slug }: { slug: string }) {
   const [params] = useSearchParams()
   const token = params.get('review') ?? ''
@@ -61,7 +61,7 @@ export default function MaterialReviews({ slug }: { slug: string }) {
       {access === 'ok' && <ReviewForm slug={slug} token={token} initial={mine} onSaved={() => fetchReviews(slug).then(setReviews)} />}
       {access === 'denied' && (
         <p className="mt-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">
-          Ссылка для отзыва не подошла. Отзыв можно оставить по ссылке из письма с материалом или из бота — только после покупки.
+          Ссылка для отзыва не подошла. Отзыв можно оставить по ссылке из письма с материалом — только после покупки.
         </p>
       )}
 
@@ -69,7 +69,7 @@ export default function MaterialReviews({ slug }: { slug: string }) {
         {reviews === null && <p className="text-sm text-ink/50">Загружаем отзывы…</p>}
         {reviews && reviews.length === 0 && (
           <p className="text-sm text-ink/60">
-            Отзывов пока нет{access === 'none' ? '. Купили материал? Оставить отзыв можно по ссылке из письма или из бота.' : '.'}
+            Отзывов пока нет{access === 'none' ? '. Купили материал? Оставить отзыв можно по ссылке из письма.' : '.'}
           </p>
         )}
         {reviews?.map((r) => (

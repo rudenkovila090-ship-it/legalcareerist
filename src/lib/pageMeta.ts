@@ -16,7 +16,7 @@ export function canonicalPath(pathname: string): string {
 }
 
 /** Страницы, которые поисковику не нужны: кабинеты, страницы «спасибо за оплату». */
-const NOINDEX_PATHS: RegExp[] = [/^\/(cabinet|account)(\/|$)/, /^\/materials\/(thanks|cabinet)$/, /^\/community\/success$/]
+const NOINDEX_PATHS: RegExp[] = [/^\/(cabinet|account)(\/|$)/, /^\/materials\/(thanks|cabinet|download)$/, /^\/community\/success$/]
 export const isNoindexPath = (pathname: string) => NOINDEX_PATHS.some((re) => re.test(pathname))
 
 /**

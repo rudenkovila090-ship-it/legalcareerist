@@ -1,12 +1,11 @@
-// Заявки на покупку материалов маркетплейса (по аналогии со store.js для
-// сообщества, но без бота — доступ выдаётся прямо на странице личного
-// кабинета по токену из ссылки).
+// Заявки на покупку материалов маркетплейса (по аналогии со store.js для сообщества). Покупка идёт на сайте;
+// файл покупатель получает по личной ссылке из письма (materialLinks.js).
 import { createJsonStore } from './jsonStore.js'
 
 const store = createJsonStore('material-purchases.json')
 
-export function createPendingPurchase({ materialSlug, name, phone, email, tgUserId, howHeard, consentAt, marketingAt }) {
-  return store.create({ materialSlug, name, phone, email, howHeard: howHeard || '', ...(tgUserId ? { tgUserId: String(tgUserId) } : {}), ...(consentAt ? { consentAt } : {}), ...(marketingAt ? { marketingAt } : {}) })
+export function createPendingPurchase({ materialSlug, name, phone, email, howHeard, consentAt, marketingAt }) {
+  return store.create({ materialSlug, name, phone, email, howHeard: howHeard || '', ...(consentAt ? { consentAt } : {}), ...(marketingAt ? { marketingAt } : {}) })
 }
 
 export function getPurchase(token) {
@@ -18,11 +17,6 @@ export function markPurchasePaidByPhone(phone) {
   return store.markPaidByPhone(phone)
 }
 
-/** Привязка покупки к Telegram-аккаунту покупателя (когда он открыл бота по кнопке «Получить в Telegram»). */
-export function setPurchaseTg(token, tgUserId) {
-  store.setField(token, 'tgUserId', String(tgUserId))
-}
-
 /** Сумма и время оплаты — чтобы разовые покупки попадали в финансы. */
 export function recordPurchasePayment(token, amount) {
   store.setField(token, 'amount', amount)
@@ -31,16 +25,4 @@ export function recordPurchasePayment(token, amount) {
 
 export function listPurchases() {
   return store.all()
-}
-
-/** Покупка из бота: находит самую свежую неоплаченную заявку этого Telegram-пользователя и помечает оплаченной. */
-export function markPurchasePaidByTg(tgUserId) {
-  const entry = store.all().filter((p) => String(p.tgUserId ?? '') === String(tgUserId) && !p.paid).sort((a, b) => b.createdAt - a.createdAt)[0]
-  if (!entry) return null
-  return store.update(entry.token, (x) => ({ ...x, paid: true }))
-}
-
-/** Оплаченная покупка этого материала у пользователя бота (для кнопки «Уже приобрёл»). */
-export function findPaidPurchase(tgUserId, materialSlug) {
-  return store.all().find((p) => String(p.tgUserId ?? '') === String(tgUserId) && p.paid && p.materialSlug === materialSlug) ?? null
 }

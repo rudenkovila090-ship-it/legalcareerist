@@ -26,7 +26,6 @@ export function welcomeScreen(user, siteUrl) {
       '- вступить в сообщество',
       '- зарегистрироваться на мероприятия',
       '- записаться на консультации',
-      '- приобрести полезные материалы',
       '',
       'Перед началом работы, пожалуйста, ознакомься с политикой обработки персональных данных и подтверди согласие. Это нужно, чтобы я мог комфортно и безопасно с тобой взаимодействовать.',
       '',
@@ -69,14 +68,12 @@ export function mainMenuScreen(siteUrl, user) {
       '- Вступить в сообщество',
       '- Зарегистрироваться на мероприятие',
       '- Найти работу или сотрудника',
-      '- Приобрести полезные материалы',
       '- Записаться на консультации',
       '',
       'Если у тебя возник любой вопрос по боту или сообществу — смело жми кнопку «Поддержка», я всегда на связи и с радостью помогу 💙',
     ].join('\n'),
     keyboard: [
       [{ text: 'Сообщество', callback_data: 'u:community' }],
-      [{ text: 'Маркетплейс', callback_data: 'u:market' }],
       [{ text: 'Консультации', callback_data: 'u:consult' }],
       [
         { text: 'Поддержка', callback_data: 'u:support' },
@@ -171,111 +168,6 @@ export function consultBookedScreen(number) {
   return {
     text: `Отлично, записал!${number ? ` Номер заявки №${number}.` : ''}\n\nВ ближайшее время с тобой свяжется Руденков Илья, чтобы обсудить твои запросы и предложить план работы.`,
     keyboard: [[{ text: 'В главное меню', callback_data: 'u:menu' }]],
-  }
-}
-
-/** Блок «Маркетплейс»: заголовок и описание — как на сайте (страница /marketplace). */
-export function marketScreen() {
-  return {
-    text: 'Юридический маркетплейс\n\nКаталог полезных материалов для юридической карьеры: гайды, чек-листы, лонглисты, статьи и вебинары.',
-    keyboard: [[{ text: 'Полезные материалы', callback_data: 'u:mats' }], [{ text: 'Главное меню', callback_data: 'u:menu' }]],
-  }
-}
-
-const MATERIAL_BUTTONS = {
-  'longlist-studencheskie-yuridicheskie-meropriyatiya': 'Лонглист · Студенческие юридические мероприятия',
-  'longlist-yuridicheskie-meropriyatiya': 'Лонглист · Юридические мероприятия (в разработке)',
-  'gaid-kariera-yurista-v-notariate': 'Гайд · Карьера юриста в нотариате',
-  'gaid-stipendii-i-granty': 'Гайд · Стипендии и гранты',
-}
-
-/** База знаний / Полезные материалы: описание и кнопки по материалам. */
-export function materialsListScreen(materials) {
-  return {
-    text: [
-      'Полезные материалы 📚',
-      'Здесь собраны практические гайды, чек-листы и лонглисты специально для студентов и молодых юристов.',
-      '',
-      'Что ты найдёшь внутри:',
-      '- Готовые шаблоны документов',
-      '- Чек-листы для резюме, собеседований, первого рабочего дня',
-      '- Пошаговые гайды по поиску работы и стажировок',
-      '- Лонглисты литературы, полезных ресурсов и курсов',
-      '- Материалы по soft skills и карьерному развитию',
-      '',
-      'Материалы помогут тебе учиться эффективнее, быстрее закрывать пробелы и уверенно двигаться по карьерному пути.',
-      'Выбирай нужный материал и применяй знания на практике ✨',
-    ].join('\n'),
-    keyboard: [
-      ...materials.map((m) => [{ text: (MATERIAL_BUTTONS[m.slug] ?? m.title).slice(0, 60), callback_data: `u:mat:${m.slug}` }]),
-      [{ text: 'Назад', callback_data: 'u:market' }, { text: 'Главное меню', callback_data: 'u:menu' }],
-    ],
-  }
-}
-
-/** Карточка материала: название и описание — ровно как на сайте (src/data/materials.ts → каталог для бота). */
-/** Кнопка «Оферта» для материала, на который есть оферта (страница на сайте, см. MaterialItem.offerPath). */
-const offerRow = (material, siteUrl) => (material.offerPath && siteUrl ? [[{ text: 'Оферта', url: `${siteUrl}${material.offerPath}` }]] : [])
-
-export function materialCard(material, user, siteUrl) {
-  const text = [material.title, '', material.description, material.forWhom ? `\nДля кого: ${material.forWhom}` : ''].join('\n').trim()
-  // Материал ещё не готов: покупки нет, только цена и оферта.
-  if (material.inDevelopment) {
-    return {
-      text: `${text}\n\nСтоимость: ${material.price} ₽\n🛠 В разработке. Оплата откроется, когда материал будет готов. Оферта уже опубликована — её можно прочитать по кнопке ниже.`,
-      keyboard: [...offerRow(material, siteUrl), [{ text: 'Назад', callback_data: 'u:mats' }, { text: 'Главное меню', callback_data: 'u:menu' }]],
-    }
-  }
-  return {
-    text,
-    keyboard: [
-      [{ text: `Купить за ${material.price} ₽`, callback_data: `u:buy:${material.slug}` }],
-      ...offerRow(material, siteUrl),
-      [{ text: gv(user, 'Уже приобрел', 'Уже приобрела', 'Уже приобрёл(а)'), callback_data: `u:paid:${material.slug}` }],
-      [{ text: 'Назад', callback_data: 'u:mats' }, { text: 'Главное меню', callback_data: 'u:menu' }],
-    ],
-  }
-}
-
-export function payLinkScreen(material, url, user, siteUrl) {
-  const offer = material.offerPath && siteUrl ? '\n\nНажимая «Оплатить», ты принимаешь условия оферты.' : ''
-  return {
-    text: `${material.title}\n\nОплата ${material.price} ₽ — по кнопке ниже. Материал придёт сюда сразу после оплаты.${offer}`,
-    keyboard: [[{ text: `Оплатить ${material.price} ₽`, url }], ...offerRow(material, siteUrl), [{ text: gv(user, 'Уже приобрел', 'Уже приобрела', 'Уже приобрёл(а)'), callback_data: `u:paid:${material.slug}` }], [{ text: 'Назад', callback_data: `u:mat:${material.slug}` }, { text: 'Главное меню', callback_data: 'u:menu' }]],
-  }
-}
-
-/** Тексты после оплаты по материалам (если отличаются от общего). */
-export const PAID_TEXTS = {
-  'gaid-kariera-yurista-v-notariate': 'Оплата прошла успешно 🎉\nКак и обещали, вот твой гайд «Карьера юриста в нотариате».\n\nИзучай, выбирай то, что откликается, и не бойся пробовать новое, ведь именно так строится карьера.\n\nЕсли возникнут вопросы или понадобится помощь с выбором мероприятия, мы всегда на связи',
-}
-
-/** Метки покупателей — как в BotHelp, чтобы данные после переноса не разошлись. */
-export const PAID_TAGS = {
-  'gaid-stipendii-i-granty': 'оплатил_стипендии',
-  'gaid-kariera-yurista-v-notariate': 'оплатил_лонглист_нотариат',
-}
-
-/** «Сообщение оплата стипендия»: успешная оплата. */
-export const PAID_TEXT = 'Оплата прошла успешно 👌\n\nИзучай, выбирай то, что откликается, и не бойся пробовать новое, ведь именно так строится карьера.'
-
-export function paidKeyboard() {
-  return [[{ text: 'Маркетплейс', callback_data: 'u:market' }], [{ text: 'Главное меню', callback_data: 'u:menu' }]]
-}
-
-/** «Сообщение 51»: оплата не найдена. */
-export function paymentNotFoundScreen(slug, _supportHandle) {
-  return {
-    text: 'Странно, но я не вижу подтверждения твоей оплаты 🙂\n\nЕсли оплата действительно была произведена успешно, пожалуйста, напиши нам в поддержку и приложи чек или скрин платежа, мы оперативно проверим и все уладим 👉',
-    keyboard: [[{ text: 'Поддержка', callback_data: 'u:support' }], [{ text: 'Назад', callback_data: `u:mat:${slug}` }], [{ text: 'Главное меню', callback_data: 'u:menu' }]],
-  }
-}
-
-/** «Сообщение 49»: просьба об отзыве (только согласившимся на рассылку). */
-export function reviewScreen(reviewUrl) {
-  return {
-    text: 'Надеемся, материал оказался полезным 🙌\n\nЕсли понравилось, оставь короткий отзыв',
-    keyboard: [[{ text: 'Оставить отзыв', url: reviewUrl }], [{ text: 'Главное меню', callback_data: 'u:menu' }]],
   }
 }
 
