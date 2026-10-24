@@ -141,7 +141,7 @@ export default function LeadForm({
       {description && <p className="mt-1 text-sm text-ink/60">{description}</p>}
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        <input
+        <input aria-label="ФИО"
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="ФИО"
@@ -152,6 +152,7 @@ export default function LeadForm({
           value={contact}
           onChange={(e) => setContact(e.target.value)}
           placeholder={contactLabel}
+          aria-label={contactLabel}
           required
           className="rounded-lg border border-ink/15 px-3 py-2 text-sm outline-none focus:border-ink/40"
         />
@@ -168,7 +169,7 @@ export default function LeadForm({
             />
           )}
           {showTelegram && (
-            <input
+            <input aria-label="Telegram-контакт"
               value={telegram}
               onChange={(e) => setTelegram(e.target.value)}
               placeholder="Telegram-контакт"

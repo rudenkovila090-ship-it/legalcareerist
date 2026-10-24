@@ -472,6 +472,7 @@ export default function EventsHome() {
 
   return (
     <div>
+      <h1 className="sr-only">Афиша мероприятий «Карьерного юриста»</h1>
       {/* Подменю раздела — Афиша / Создать свое событие / Заказать мероприятие / Личный кабинет.
           top-16 — сразу под шапкой сайта (h-16), как и на страницах /kadry. */}
       <div className="sticky top-16 z-20 border-b border-ink/10 bg-white/95 py-4 backdrop-blur-xl">
@@ -514,7 +515,7 @@ export default function EventsHome() {
           <section className="container-page pt-8">
             <div className="relative">
               <IconSearch className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-ink/30" />
-              <input
+              <input aria-label="Поиск по названию, городу или дате"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Поиск по названию, городу или дате"
@@ -550,40 +551,40 @@ export default function EventsHome() {
 
           <section className="container-page pt-6 pb-8">
             <div className="glass flex flex-wrap items-center gap-3 rounded-xl p-4">
-              <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as 'all' | EventItem['type'])} className="rounded-lg border border-ink/15 px-3 py-2 text-sm">
+              <select aria-label="Тип мероприятия" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as 'all' | EventItem['type'])} className="rounded-lg border border-ink/15 px-3 py-2 text-sm">
                 <option value="all">Тип мероприятия</option>
                 {eventTypeOptions.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
               </select>
-              <select value={cityFilter} onChange={(e) => setCityFilter(e.target.value)} className="rounded-lg border border-ink/15 px-3 py-2 text-sm">
+              <select aria-label="Город мероприятия" value={cityFilter} onChange={(e) => setCityFilter(e.target.value)} className="rounded-lg border border-ink/15 px-3 py-2 text-sm">
                 <option value="all">Город мероприятия</option>
                 {cities.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
-              <select value={formatFilter} onChange={(e) => setFormatFilter(e.target.value as 'all' | 'online' | 'offline')} className="rounded-lg border border-ink/15 px-3 py-2 text-sm">
+              <select aria-label="Способ участия" value={formatFilter} onChange={(e) => setFormatFilter(e.target.value as 'all' | 'online' | 'offline')} className="rounded-lg border border-ink/15 px-3 py-2 text-sm">
                 <option value="all">Способ участия</option>
                 <option value="online">Онлайн</option>
                 <option value="offline">Офлайн</option>
               </select>
-              <select value={industryFilter} onChange={(e) => setIndustryFilter(e.target.value as 'all' | Industry)} className="rounded-lg border border-ink/15 px-3 py-2 text-sm">
+              <select aria-label="Направление права" value={industryFilter} onChange={(e) => setIndustryFilter(e.target.value as 'all' | Industry)} className="rounded-lg border border-ink/15 px-3 py-2 text-sm">
                 <option value="all">Направление права</option>
                 {INDUSTRIES.map((i) => <option key={i.id} value={i.id}>{i.label}</option>)}
               </select>
-              <select value={audienceFilter} onChange={(e) => setAudienceFilter(e.target.value as 'all' | AudienceLevel)} className="rounded-lg border border-ink/15 px-3 py-2 text-sm">
+              <select aria-label="Для кого" value={audienceFilter} onChange={(e) => setAudienceFilter(e.target.value as 'all' | AudienceLevel)} className="rounded-lg border border-ink/15 px-3 py-2 text-sm">
                 <option value="all">Для кого</option>
                 {(Object.entries(audienceLabel) as [AudienceLevel, string][]).map(([id, label]) => <option key={id} value={id}>{label}</option>)}
               </select>
-              <select value={priceFilter} onChange={(e) => setPriceFilter(e.target.value as 'all' | 'free' | 'paid')} className="rounded-lg border border-ink/15 px-3 py-2 text-sm">
+              <select aria-label="Стоимость" value={priceFilter} onChange={(e) => setPriceFilter(e.target.value as 'all' | 'free' | 'paid')} className="rounded-lg border border-ink/15 px-3 py-2 text-sm">
                 <option value="all">Стоимость</option>
                 <option value="free">Бесплатные</option>
                 <option value="paid">Платные</option>
               </select>
               {hasInternational && (
-                <select value={regionFilter} onChange={(e) => setRegionFilter(e.target.value as 'all' | 'ru' | 'intl')} className="rounded-lg border border-ink/15 px-3 py-2 text-sm">
+                <select aria-label="Регион" value={regionFilter} onChange={(e) => setRegionFilter(e.target.value as 'all' | 'ru' | 'intl')} className="rounded-lg border border-ink/15 px-3 py-2 text-sm">
                   <option value="all">РФ и международные</option>
                   <option value="ru">Российские</option>
                   <option value="intl">Международные</option>
                 </select>
               )}
-              <select value={sort} onChange={(e) => setSort(e.target.value as 'date_asc' | 'popular' | 'price_asc' | 'price_desc')} className="rounded-lg border border-ink/15 px-3 py-2 text-sm">
+              <select aria-label="Сортировка" value={sort} onChange={(e) => setSort(e.target.value as 'date_asc' | 'popular' | 'price_asc' | 'price_desc')} className="rounded-lg border border-ink/15 px-3 py-2 text-sm">
                 <option value="date_asc">Ближайшие даты</option>
                 <option value="popular">Популярные</option>
                 <option value="price_asc">Сначала дешевле</option>
@@ -646,7 +647,7 @@ export default function EventsHome() {
               <LeadSuccessCard description="Мы свяжемся с вами, чтобы обсудить детали размещения." />
             ) : (
               <form onSubmit={handleEventSubmit} className="glass grid gap-3 rounded-2xl p-6">
-                <input
+                <input aria-label="ФИО"
                   value={eventForm.fio}
                   onChange={(e) => setEventForm((f) => ({ ...f, fio: e.target.value }))}
                   placeholder="ФИО"
@@ -659,7 +660,7 @@ export default function EventsHome() {
                     onChange={(value) => setEventForm((f) => ({ ...f, phone: value }))}
                     className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none focus:border-ink/40"
                   />
-                  <input
+                  <input aria-label="Почта"
                     type="email"
                     value={eventForm.email}
                     onChange={(e) => setEventForm((f) => ({ ...f, email: e.target.value }))}
@@ -667,13 +668,13 @@ export default function EventsHome() {
                     className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none focus:border-ink/40"
                   />
                 </div>
-                <input
+                <input aria-label="Telegram"
                   value={eventForm.telegram}
                   onChange={(e) => setEventForm((f) => ({ ...f, telegram: e.target.value }))}
                   placeholder="Telegram"
                   className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none focus:border-ink/40"
                 />
-                <textarea
+                <textarea aria-label="Название и описание мероприятия"
                   value={eventForm.about}
                   onChange={(e) => setEventForm((f) => ({ ...f, about: e.target.value }))}
                   placeholder="Название и описание мероприятия"
@@ -701,7 +702,7 @@ export default function EventsHome() {
               <LeadSuccessCard description="Мы свяжемся с вами, чтобы обсудить детали." />
             ) : (
               <form onSubmit={handleOrderSubmit} className="glass grid gap-3 rounded-2xl p-6">
-                <input
+                <input aria-label="ФИО"
                   value={orderForm.fio}
                   onChange={(e) => setOrderForm((f) => ({ ...f, fio: e.target.value }))}
                   placeholder="ФИО"
@@ -714,7 +715,7 @@ export default function EventsHome() {
                     onChange={(value) => setOrderForm((f) => ({ ...f, phone: value }))}
                     className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none focus:border-ink/40"
                   />
-                  <input
+                  <input aria-label="Почта"
                     type="email"
                     value={orderForm.email}
                     onChange={(e) => setOrderForm((f) => ({ ...f, email: e.target.value }))}
@@ -722,13 +723,13 @@ export default function EventsHome() {
                     className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none focus:border-ink/40"
                   />
                 </div>
-                <input
+                <input aria-label="Telegram"
                   value={orderForm.telegram}
                   onChange={(e) => setOrderForm((f) => ({ ...f, telegram: e.target.value }))}
                   placeholder="Telegram"
                   className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none focus:border-ink/40"
                 />
-                <textarea
+                <textarea aria-label="Какое мероприятие нужно"
                   value={orderForm.about}
                   onChange={(e) => setOrderForm((f) => ({ ...f, about: e.target.value }))}
                   placeholder="Какое мероприятие нужно"
@@ -756,14 +757,14 @@ export default function EventsHome() {
               <LeadSuccessCard description="Мы свяжемся с вами, чтобы обсудить формат партнерства." />
             ) : (
               <form onSubmit={handlePartnerSubmit} className="glass grid gap-3 rounded-2xl p-6">
-                <input
+                <input aria-label="ФИО"
                   value={partnerForm.fio}
                   onChange={(e) => setPartnerForm((f) => ({ ...f, fio: e.target.value }))}
                   placeholder="ФИО"
                   required
                   className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none focus:border-ink/40"
                 />
-                <input
+                <input aria-label="Компания"
                   value={partnerForm.company}
                   onChange={(e) => setPartnerForm((f) => ({ ...f, company: e.target.value }))}
                   placeholder="Компания"
@@ -776,7 +777,7 @@ export default function EventsHome() {
                     onChange={(value) => setPartnerForm((f) => ({ ...f, phone: value }))}
                     className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none focus:border-ink/40"
                   />
-                  <input
+                  <input aria-label="Почта"
                     type="email"
                     value={partnerForm.email}
                     onChange={(e) => setPartnerForm((f) => ({ ...f, email: e.target.value }))}
@@ -784,7 +785,7 @@ export default function EventsHome() {
                     className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none focus:border-ink/40"
                   />
                 </div>
-                <input
+                <input aria-label="Telegram"
                   value={partnerForm.telegram}
                   onChange={(e) => setPartnerForm((f) => ({ ...f, telegram: e.target.value }))}
                   placeholder="Telegram"
@@ -828,7 +829,7 @@ export default function EventsHome() {
               <form onSubmit={handleSupportSubmit} className="glass rounded-xl p-6">
                 <div className="font-semibold">Задать вопрос</div>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                  <input
+                  <input aria-label="ФИО"
                     value={supportForm.fio}
                     onChange={(e) => setSupportForm((f) => ({ ...f, fio: e.target.value }))}
                     placeholder="ФИО"
@@ -841,21 +842,21 @@ export default function EventsHome() {
                     required
                     className="rounded-lg border border-ink/15 px-3 py-2 text-sm outline-none focus:border-ink/40"
                   />
-                  <input
+                  <input aria-label="Почта"
                     type="email"
                     value={supportForm.email}
                     onChange={(e) => setSupportForm((f) => ({ ...f, email: e.target.value }))}
                     placeholder="Почта"
                     className="rounded-lg border border-ink/15 px-3 py-2 text-sm outline-none focus:border-ink/40"
                   />
-                  <input
+                  <input aria-label="Telegram"
                     value={supportForm.telegram}
                     onChange={(e) => setSupportForm((f) => ({ ...f, telegram: e.target.value }))}
                     placeholder="Telegram"
                     className="rounded-lg border border-ink/15 px-3 py-2 text-sm outline-none focus:border-ink/40"
                   />
                 </div>
-                <textarea
+                <textarea aria-label="Вопрос"
                   value={supportForm.question}
                   onChange={(e) => setSupportForm((f) => ({ ...f, question: e.target.value }))}
                   placeholder="Вопрос"

@@ -7,7 +7,6 @@ const typeLabel: Record<ContentType, string> = {
   article: 'База знаний',
   event: 'Мероприятие',
   material: 'Материал',
-  club: 'Клуб сообщества',
 }
 
 // Заголовки отдельных строк-групп при разбивке «Связанного» по типам.
@@ -16,9 +15,8 @@ const groupLabel: Record<ContentType, string> = {
   material: 'Материалы',
   vacancy: 'Вакансии',
   article: 'База знаний',
-  club: 'Клубы сообщества',
 }
-const groupOrder: ContentType[] = ['event', 'material', 'vacancy', 'article', 'club']
+const groupOrder: ContentType[] = ['event', 'material', 'vacancy', 'article']
 
 // Монохромная шкала — тип различается текстом лейбла, а не радугой цветов
 // (в палитре сайта только белый и фирменный синий).
@@ -27,13 +25,12 @@ const typeColor: Record<ContentType, string> = {
   article: 'bg-ink/70 text-white',
   event: 'bg-ink/45 text-white',
   material: 'bg-ink/[0.12] text-ink',
-  club: 'border border-ink/20 text-ink/70',
 }
 
 /**
  * <RelatedContent> — переиспользуемый блок «Связанное» (раздел 3.4 ТЗ).
  * Рендерится на любой детальной странице: вакансия, статья, мероприятие,
- * материал, клуб. Клик по элементу шлет аналитическое событие
+ * материал. Клик по элементу шлет аналитическое событие
  * related_content_click (раздел 8) — так измеряется, работает ли связность.
  */
 export default function RelatedContentBlock({ items, title = 'Связанное' }: { items: RelatedItem[]; title?: string }) {

@@ -1,3 +1,5 @@
+import { useMetaDescription } from '../lib/pageMeta'
+
 export default function PageHero({
   eyebrow,
   title,
@@ -16,6 +18,7 @@ export default function PageHero({
   /** Отключить ограничение ширины у описания — на всю ширину страницы, без некрасивых переносов. */
   wide?: boolean
 }) {
+  useMetaDescription(description)
   return (
     <div className={dark ? 'border-b border-white/10 bg-ink' : 'border-b border-ink/10 bg-white'}>
       <div className="container-page py-12">

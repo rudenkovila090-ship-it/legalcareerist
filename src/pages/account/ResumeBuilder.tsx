@@ -131,12 +131,12 @@ export default function ResumeBuilder() {
           <div className="glass rounded-xl p-6">
             <h2 className="mb-4 font-semibold">1. Контакты</h2>
             <div className="grid gap-3 sm:grid-cols-2">
-              <input value={form.fullName} onChange={(e) => update('fullName', e.target.value)} placeholder="ФИО" required className={inputClass} />
-              <input value={form.desiredPosition} onChange={(e) => update('desiredPosition', e.target.value)} placeholder="Желаемая должность" required className={inputClass} />
-              <input value={form.city} onChange={(e) => update('city', e.target.value)} placeholder="Город" required className={inputClass} />
+              <input aria-label="ФИО" value={form.fullName} onChange={(e) => update('fullName', e.target.value)} placeholder="ФИО" required className={inputClass} />
+              <input aria-label="Желаемая должность" value={form.desiredPosition} onChange={(e) => update('desiredPosition', e.target.value)} placeholder="Желаемая должность" required className={inputClass} />
+              <input aria-label="Город" value={form.city} onChange={(e) => update('city', e.target.value)} placeholder="Город" required className={inputClass} />
               <PhoneInput value={form.phone} onChange={(v) => update('phone', v)} required className={inputClass} />
-              <input type="email" value={form.email} onChange={(e) => update('email', e.target.value)} placeholder="Почта" required className={inputClass} />
-              <input value={form.telegram} onChange={(e) => update('telegram', e.target.value)} placeholder="Telegram" className={inputClass} />
+              <input aria-label="Почта" type="email" value={form.email} onChange={(e) => update('email', e.target.value)} placeholder="Почта" required className={inputClass} />
+              <input aria-label="Telegram" value={form.telegram} onChange={(e) => update('telegram', e.target.value)} placeholder="Telegram" className={inputClass} />
             </div>
           </div>
 
@@ -174,7 +174,7 @@ export default function ResumeBuilder() {
               </div>
               <div>
                 <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink/50">Ожидания по зарплате, ₽</div>
-                <input
+                <input aria-label="Например, 120000"
                   type="number"
                   min={0}
                   step={1000}
@@ -202,9 +202,9 @@ export default function ResumeBuilder() {
                     )}
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2">
-                    <input value={exp.company} onChange={(e) => updateExperience(exp.id, { company: e.target.value })} placeholder="Компания" className={inputClass} />
-                    <input value={exp.position} onChange={(e) => updateExperience(exp.id, { position: e.target.value })} placeholder="Должность" className={inputClass} />
-                    <input type="month" value={exp.startDate} onChange={(e) => updateExperience(exp.id, { startDate: e.target.value })} placeholder="Начало" className={inputClass} />
+                    <input aria-label="Компания" value={exp.company} onChange={(e) => updateExperience(exp.id, { company: e.target.value })} placeholder="Компания" className={inputClass} />
+                    <input aria-label="Должность" value={exp.position} onChange={(e) => updateExperience(exp.id, { position: e.target.value })} placeholder="Должность" className={inputClass} />
+                    <input aria-label="Начало" type="month" value={exp.startDate} onChange={(e) => updateExperience(exp.id, { startDate: e.target.value })} placeholder="Начало" className={inputClass} />
                     <div className="flex items-center gap-2">
                       <input
                         type="month"
@@ -219,7 +219,7 @@ export default function ResumeBuilder() {
                       </label>
                     </div>
                   </div>
-                  <textarea
+                  <textarea aria-label="Обязанности и достижения"
                     value={exp.duties}
                     onChange={(e) => updateExperience(exp.id, { duties: e.target.value })}
                     placeholder="Обязанности и достижения"
@@ -246,7 +246,7 @@ export default function ResumeBuilder() {
                     )}
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2">
-                    <input value={edu.institution} onChange={(e) => updateEducation(edu.id, { institution: e.target.value })} placeholder="Учебное заведение" className={inputClass} />
+                    <input aria-label="Учебное заведение" value={edu.institution} onChange={(e) => updateEducation(edu.id, { institution: e.target.value })} placeholder="Учебное заведение" className={inputClass} />
                     <select
                       value={edu.degree}
                       onChange={(e) => updateEducation(edu.id, { degree: e.target.value as EducationLevel })}
@@ -254,8 +254,8 @@ export default function ResumeBuilder() {
                     >
                       {EDUCATION_LEVELS.map((d) => <option key={d.id} value={d.id}>{d.label}</option>)}
                     </select>
-                    <input value={edu.faculty} onChange={(e) => updateEducation(edu.id, { faculty: e.target.value })} placeholder="Факультет" className={inputClass} />
-                    <input value={edu.graduationYear} onChange={(e) => updateEducation(edu.id, { graduationYear: e.target.value })} placeholder="Год выпуска" className={inputClass} />
+                    <input aria-label="Факультет" value={edu.faculty} onChange={(e) => updateEducation(edu.id, { faculty: e.target.value })} placeholder="Факультет" className={inputClass} />
+                    <input aria-label="Год выпуска" value={edu.graduationYear} onChange={(e) => updateEducation(edu.id, { graduationYear: e.target.value })} placeholder="Год выпуска" className={inputClass} />
                   </div>
                 </div>
               ))}
@@ -273,7 +273,7 @@ export default function ResumeBuilder() {
               ))}
             </div>
             <div className="flex gap-2">
-              <input
+              <input aria-label="Навык — и Enter"
                 value={skillInput}
                 onChange={(e) => setSkillInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addSkill() } }}
@@ -282,7 +282,7 @@ export default function ResumeBuilder() {
               />
               <button type="button" onClick={addSkill} className="rounded-lg border border-ink/15 px-4 text-sm font-medium text-ink/70 hover:border-ink/40">Добавить</button>
             </div>
-            <textarea
+            <textarea aria-label="О себе — коротко о карьерных целях и сильных сторонах"
               value={form.about}
               onChange={(e) => update('about', e.target.value)}
               placeholder="О себе — коротко о карьерных целях и сильных сторонах"

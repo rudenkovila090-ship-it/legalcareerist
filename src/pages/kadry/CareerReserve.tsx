@@ -264,7 +264,7 @@ export default function CareerReserve({ embedded = false }: { embedded?: boolean
               </div>
             ) : (
               <form className="mx-auto mt-6 grid max-w-2xl gap-3 sm:grid-cols-2" onSubmit={handlePrioritySubmit}>
-                <input
+                <input aria-label="ФИО"
                   className="rounded-lg border border-white/15 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
                   placeholder="ФИО"
                   value={priorityForm.name}
@@ -275,31 +275,31 @@ export default function CareerReserve({ embedded = false }: { embedded?: boolean
                   value={priorityForm.phone}
                   onChange={(value) => setPriorityForm((f) => ({ ...f, phone: value }))}
                 />
-                <input
+                <input aria-label="Почта"
                   className="rounded-lg border border-white/15 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
                   placeholder="Почта"
                   value={priorityForm.email}
                   onChange={(e) => setPriorityForm((f) => ({ ...f, email: e.target.value }))}
                 />
-                <input
+                <input aria-label="Telegram"
                   className="rounded-lg border border-white/15 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
                   placeholder="Telegram"
                   value={priorityForm.telegram}
                   onChange={(e) => setPriorityForm((f) => ({ ...f, telegram: e.target.value }))}
                 />
-                <input
+                <input aria-label="Город"
                   className="rounded-lg border border-white/15 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
                   placeholder="Город"
                   value={priorityForm.city}
                   onChange={(e) => setPriorityForm((f) => ({ ...f, city: e.target.value }))}
                 />
-                <input
+                <input aria-label="Университет"
                   className="rounded-lg border border-white/15 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
                   placeholder="Университет"
                   value={priorityForm.university}
                   onChange={(e) => setPriorityForm((f) => ({ ...f, university: e.target.value }))}
                 />
-                <input
+                <input aria-label="Должность"
                   className="rounded-lg border border-white/15 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
                   placeholder="Должность"
                   value={priorityForm.position}
@@ -369,19 +369,19 @@ export default function CareerReserve({ embedded = false }: { embedded?: boolean
               <LeadSuccessCard dark description="Мы свяжемся с вами, как только появится подходящая вакансия." />
             ) : (
               <form className="grid gap-3 sm:grid-cols-2" onSubmit={handleSubmit}>
-                <input
+                <input aria-label="ФИО"
                   className="rounded-lg border border-white/15 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
                   placeholder="ФИО"
                   value={form.name}
                   onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                 />
-                <input
+                <input aria-label="Специализация / позиция"
                   className="rounded-lg border border-white/15 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
                   placeholder="Специализация / позиция"
                   value={form.position}
                   onChange={(e) => setForm((f) => ({ ...f, position: e.target.value }))}
                 />
-                <input
+                <input aria-label="Почта"
                   className="rounded-lg border border-white/15 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
                   placeholder="Почта"
                   value={form.email}
@@ -392,19 +392,19 @@ export default function CareerReserve({ embedded = false }: { embedded?: boolean
                   value={form.phone}
                   onChange={(value) => setForm((f) => ({ ...f, phone: value }))}
                 />
-                <input
+                <input aria-label="Telegram"
                   className="rounded-lg border border-white/15 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
                   placeholder="Telegram"
                   value={form.telegram}
                   onChange={(e) => setForm((f) => ({ ...f, telegram: e.target.value }))}
                 />
-                <input
+                <input aria-label="Город"
                   className="rounded-lg border border-white/15 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
                   placeholder="Город"
                   value={form.city}
                   onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))}
                 />
-                <input
+                <input aria-label="Университет"
                   className="rounded-lg border border-white/15 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
                   placeholder="Университет"
                   value={form.university}

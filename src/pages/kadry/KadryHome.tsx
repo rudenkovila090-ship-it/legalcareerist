@@ -850,13 +850,13 @@ export default function KadryHome() {
                   <span className="text-base font-semibold text-ink">{candidatesTotal.toLocaleString('ru-RU')} ₽</span>
                 </div>
                 <form onSubmit={handleRequestSubmit} className="grid gap-3">
-                  <input
+                  <input aria-label="Компания"
                     value={requestForm.company}
                     onChange={(e) => setRequestForm((f) => ({ ...f, company: e.target.value }))}
                     placeholder="Компания"
                     className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
                   />
-                  <input
+                  <input aria-label="ФИО"
                     value={requestForm.contact}
                     onChange={(e) => setRequestForm((f) => ({ ...f, contact: e.target.value }))}
                     placeholder="ФИО"
@@ -869,7 +869,7 @@ export default function KadryHome() {
                       onChange={(value) => setRequestForm((f) => ({ ...f, phone: value }))}
                       className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
                     />
-                    <input
+                    <input aria-label="Почта"
                       type="email"
                       value={requestForm.email}
                       onChange={(e) => setRequestForm((f) => ({ ...f, email: e.target.value }))}
@@ -877,7 +877,7 @@ export default function KadryHome() {
                       className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
                     />
                   </div>
-                  <input
+                  <input aria-label="Telegram"
                     value={requestForm.telegram}
                     onChange={(e) => setRequestForm((f) => ({ ...f, telegram: e.target.value }))}
                     placeholder="Telegram"
@@ -1245,7 +1245,7 @@ export default function KadryHome() {
                     />
                   </div>
                   {searchGoal === CUSTOM_GOAL && (
-                    <input
+                    <input aria-label="Опишите цель поиска"
                       value={customGoal}
                       onChange={(e) => setCustomGoal(e.target.value)}
                       placeholder="Опишите цель поиска"
@@ -1272,6 +1272,7 @@ export default function KadryHome() {
                 <div className="mt-2 flex items-center gap-2">
                   <input
                     type="number"
+                    aria-label="Сумма, которую вы готовы предложить сотруднику, ₽ в месяц"
                     min={0}
                     step={1000}
                     value={salary}
@@ -1399,13 +1400,13 @@ export default function KadryHome() {
             ) : (
               <form onSubmit={handleSubmit} className="grid gap-4">
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <input
+                  <input aria-label="Компания"
                     value={form.company}
                     onChange={(e) => setForm((f) => ({ ...f, company: e.target.value }))}
                     placeholder="Компания"
                     className="rounded-lg border border-white/15 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/40 focus:border-white/40"
                   />
-                  <input
+                  <input aria-label="ФИО"
                     value={form.fio}
                     onChange={(e) => setForm((f) => ({ ...f, fio: e.target.value }))}
                     placeholder="ФИО"
@@ -1417,20 +1418,20 @@ export default function KadryHome() {
                     onChange={(value) => setForm((f) => ({ ...f, phone: value }))}
                     className="rounded-lg border border-white/15 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/40 focus:border-white/40"
                   />
-                  <input
+                  <input aria-label="Почта"
                     type="email"
                     value={form.email}
                     onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
                     placeholder="Почта"
                     className="rounded-lg border border-white/15 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/40 focus:border-white/40"
                   />
-                  <input
+                  <input aria-label="Telegram"
                     value={form.telegram}
                     onChange={(e) => setForm((f) => ({ ...f, telegram: e.target.value }))}
                     placeholder="Telegram"
                     className="rounded-lg border border-white/15 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/40 focus:border-white/40"
                   />
-                  <input
+                  <input aria-label="Кого ищем"
                     value={form.position}
                     onChange={(e) => setForm((f) => ({ ...f, position: e.target.value }))}
                     placeholder="Кого ищем"
@@ -1493,14 +1494,14 @@ export default function KadryHome() {
                   </div>
                 </div>
                 <form onSubmit={handleServiceSubmit} className="grid gap-3">
-                  <input
+                  <input aria-label="Компания"
                     value={serviceForm.company}
                     onChange={(e) => setServiceForm((f) => ({ ...f, company: e.target.value }))}
                     placeholder="Компания"
                     required
                     className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
                   />
-                  <input
+                  <input aria-label="ФИО"
                     value={serviceForm.fio}
                     onChange={(e) => setServiceForm((f) => ({ ...f, fio: e.target.value }))}
                     placeholder="ФИО"
@@ -1512,14 +1513,14 @@ export default function KadryHome() {
                     onChange={(value) => setServiceForm((f) => ({ ...f, phone: value }))}
                     className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
                   />
-                  <input
+                  <input aria-label="Почта"
                     type="email"
                     value={serviceForm.email}
                     onChange={(e) => setServiceForm((f) => ({ ...f, email: e.target.value }))}
                     placeholder="Почта"
                     className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
                   />
-                  <input
+                  <input aria-label="Telegram"
                     value={serviceForm.telegram}
                     onChange={(e) => setServiceForm((f) => ({ ...f, telegram: e.target.value }))}
                     placeholder="Telegram"

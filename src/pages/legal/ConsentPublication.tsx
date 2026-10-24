@@ -16,7 +16,7 @@ export default function ConsentPublication() {
             <h2 className="mb-3 text-lg font-semibold text-ink">
               Публикация отзыва о материале <span className="font-normal text-ink/40">· редакция от {PUBLICATION_CONSENT_VERSION.split('-').reverse().join('.')}</span>
             </h2>
-            <ol className="list-inside list-decimal space-y-2">
+            <ol className="list-outside list-decimal space-y-2 pl-5">
               <li>
                 Отмечая галочку «Даю отдельное согласие на распространение моих персональных данных» в форме отзыва, я, покупатель
                 материала, даю согласие Оператору (реквизиты — ниже) на распространение, то есть раскрытие неопределённому кругу

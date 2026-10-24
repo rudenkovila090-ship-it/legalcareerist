@@ -194,7 +194,7 @@ export default function MarketplaceHome() {
             <div className="rounded-2xl border border-ink/10 p-5">
               <div className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink/50">Цена</div>
               <div className="grid grid-cols-2 gap-2">
-                <input
+                <input aria-label="Цена от"
                   type="number"
                   min={0}
                   value={priceFrom}
@@ -202,7 +202,7 @@ export default function MarketplaceHome() {
                   placeholder="От"
                   className="rounded-lg border border-ink/15 px-3 py-2 text-sm outline-none focus:border-ink/40"
                 />
-                <input
+                <input aria-label="Цена до"
                   type="number"
                   min={0}
                   value={priceTo}
@@ -226,7 +226,7 @@ export default function MarketplaceHome() {
             <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
               <h2 className="text-2xl font-semibold">Каталог материалов</h2>
               <div className="flex flex-wrap items-center gap-3">
-                <select
+                <select aria-label="Сортировка"
                   value={sort}
                   onChange={(e) => setSort(e.target.value as 'popular' | 'price_asc' | 'price_desc')}
                   className="rounded-lg border border-ink/15 px-3 py-2 text-sm"

@@ -6,6 +6,7 @@ import { getRelatedContent } from '../../lib/related'
 import { submitLead, pingEventRegistrationClick } from '../../lib/leads'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import { useSocialMeta } from '../../lib/useSocialMeta'
+import { useNoindex } from '../../lib/pageMeta'
 import PhoneInput from '../../components/PhoneInput'
 import LeadSuccessCard from '../../components/LeadSuccessCard'
 import EventsFooter from './EventsFooter'
@@ -169,6 +170,7 @@ export default function EventDetail() {
   const event = events.find((e) => e.slug === slug)
   useDocumentTitle(event?.title ?? 'Мероприятие не найдено')
   useSocialMeta({ title: event?.title, description: event?.description, path: slug ? `/events/${slug}` : undefined })
+  useNoindex(!event)
   const views = useEventViews(slug ?? '')
   // Авторское оформление мероприятия (тёмная тема и блоки сюжета) — если для него есть запись в eventStories.
   const story = slug ? eventStories[slug] : undefined
@@ -251,15 +253,16 @@ export default function EventDetail() {
     return (
       <div>
         <div className="container-page py-16">
-          <p>Мероприятие не найдено. <Link className="underline" to="/events">Все мероприятия</Link></p>
+          <h1 className="text-2xl font-semibold">Мероприятие не найдено</h1>
+          <p className="mt-3"><Link className="underline" to="/events">Все мероприятия</Link></p>
         </div>
         <EventsFooter />
       </div>
     )
   }
 
-  // Только мероприятия и база знаний — без вакансий и клубов сообщества.
-  const related = getRelatedContent(event, 'event', event.id).filter((r) => r.type !== 'vacancy' && r.type !== 'club')
+  // Только мероприятия и база знаний — без вакансий.
+  const related = getRelatedContent(event, 'event', event.id).filter((r) => r.type !== 'vacancy')
   const tariff = event.tariffs.find((t) => t.id === tariffId) ?? event.tariffs[0]
 
   function scrollToRegister() {
@@ -553,14 +556,14 @@ export default function EventDetail() {
               </div>
             ) : (
               <form onSubmit={handlePartnerSubmit} className="mt-4 grid gap-3 rounded-2xl border border-ink/10 bg-ink/[0.02] p-5 sm:grid-cols-2">
-                <input
+                <input aria-label="ФИО"
                   value={partnerForm.fio}
                   onChange={(e) => setPartnerForm((f) => ({ ...f, fio: e.target.value }))}
                   placeholder="ФИО"
                   required
                   className="rounded-lg border border-ink/15 px-3.5 py-2.5 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40"
                 />
-                <input
+                <input aria-label="Компания"
                   value={partnerForm.company}
                   onChange={(e) => setPartnerForm((f) => ({ ...f, company: e.target.value }))}
                   placeholder="Компания"
@@ -572,7 +575,7 @@ export default function EventDetail() {
                   onChange={(value) => setPartnerForm((f) => ({ ...f, phone: value }))}
                   className="rounded-lg border border-ink/15 px-3.5 py-2.5 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40"
                 />
-                <input
+                <input aria-label="Почта"
                   type="email"
                   value={partnerForm.email}
                   onChange={(e) => setPartnerForm((f) => ({ ...f, email: e.target.value }))}
@@ -700,7 +703,7 @@ export default function EventDetail() {
                   <div className="mt-4 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">Вы зарегистрированы. Напоминание придет заранее.</div>
                 ) : (
                   <form onSubmit={handleRegister} className="mt-4 grid gap-2.5">
-                    <input
+                    <input aria-label="ФИО"
                       value={form.fio}
                       onChange={(e) => setForm((f) => ({ ...f, fio: e.target.value }))}
                       placeholder="ФИО"
@@ -717,10 +720,11 @@ export default function EventDetail() {
                       value={form.email}
                       onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
                       placeholder={tariff.price > 0 && !event.registrationLink ? 'Почта (пришлем подтверждение)' : 'Почта'}
+                      aria-label="Почта"
                       required={tariff.price > 0 && !event.registrationLink}
                       className="rounded-lg border border-ink/15 px-3.5 py-2.5 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40"
                     />
-                    <input
+                    <input aria-label="Telegram"
                       value={form.telegram}
                       onChange={(e) => setForm((f) => ({ ...f, telegram: e.target.value }))}
                       placeholder="Telegram"
@@ -729,7 +733,7 @@ export default function EventDetail() {
                     {tariff.price > 0 && !event.registrationLink && (
                       <div>
                         <div className="flex gap-2">
-                          <input
+                          <input aria-label="Промокод (если есть)"
                             value={promoInput}
                             onChange={(e) => {
                               setPromoInput(e.target.value)

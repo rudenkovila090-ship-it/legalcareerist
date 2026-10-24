@@ -71,7 +71,7 @@ export default function BlogHome() {
       {tab === 'news' && (
         <div className="container-page py-12">
           <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Блог</div>
-          <h2 className="mb-6 text-2xl font-semibold">Что нового у «Карьерного юриста»</h2>
+          <h1 className="mb-6 text-2xl font-semibold">Что нового у «Карьерного юриста»</h1>
 
           <div className="mb-8 flex flex-wrap gap-2">
             <button

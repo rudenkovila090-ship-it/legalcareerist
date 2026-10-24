@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import type { Article, CommunityClub, EventItem, MaterialItem, NewsItem, Vacancy } from '../types'
+import type { Article, EventItem, MaterialItem, NewsItem, Vacancy } from '../types'
 import { TagRow } from './Tag'
 import { useArticleViewCount } from '../lib/useArticleViews'
 import { useNewsViewCount } from '../lib/useNewsViews'
@@ -115,18 +115,6 @@ export function MaterialCard({ m }: { m: MaterialItem }) {
       <div className="mt-2 flex flex-wrap items-center gap-2 text-sm font-medium">
         <span>{m.price === 0 ? 'Бесплатно' : `${money.format(m.price)} ₽`}</span>
         {m.inDevelopment && <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-800">В разработке</span>}
-      </div>
-    </Link>
-  )
-}
-
-export function ClubCard({ c }: { c: CommunityClub }) {
-  return (
-    <Link to={`/community/clubs/${c.slug}`} className="glass block rounded-xl p-5">
-      <h3 className="font-semibold leading-snug">{c.name}</h3>
-      <p className="mt-2 text-sm text-ink/60">{c.description}</p>
-      <div className="mt-3">
-        <TagRow specialization={c.specialization} industry={c.industry} />
       </div>
     </Link>
   )

@@ -66,17 +66,17 @@ export default function MarketplaceFooter() {
       <div className="flex w-full flex-wrap justify-center gap-x-10 gap-y-8 px-6 py-12 sm:px-10 lg:px-16">
         <div>
           <div className="mb-3 text-xs font-bold uppercase leading-tight tracking-wide text-white">Маркетплейс</div>
-          <ul className="space-y-1.5 text-xs">
-            <li><Link className="hover:text-white" to="/blog?category=Маркетплейс">Блог</Link></li>
-            <li><Link className="hover:text-white" to="/news">Новости</Link></li>
+          <ul className="text-xs">
+            <li><Link className="inline-block py-1 hover:text-white" to="/blog?category=Маркетплейс">Блог</Link></li>
+            <li><Link className="inline-block py-1 hover:text-white" to="/news">Новости</Link></li>
           </ul>
         </div>
 
         <div>
           <div className="mb-3 text-xs font-bold uppercase leading-tight tracking-wide text-white">Помощь</div>
-          <ul className="space-y-1.5 text-xs">
-            <li><Link className="hover:text-white" to="/marketplace/contacts">Поддержка</Link></li>
-            <li><Link className="hover:text-white" to="/blog?category=Маркетплейс">База знаний</Link></li>
+          <ul className="text-xs">
+            <li><Link className="inline-block py-1 hover:text-white" to="/marketplace/contacts">Поддержка</Link></li>
+            <li><Link className="inline-block py-1 hover:text-white" to="/blog?category=Маркетплейс">База знаний</Link></li>
           </ul>
         </div>
 

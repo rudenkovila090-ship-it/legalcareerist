@@ -1,7 +1,7 @@
 // Демо единого аккаунта (раздел 5, /account): один пользователь одновременно
-// кандидат + участник сообщества — видит отклики, покупки и членство в клубе
-// в одном месте без повторной регистрации (критерий приемки, раздел 10).
-import type { Application, CommunityMembership, EventRegistration, MaterialPurchase, User } from '../types'
+// кандидат + участник сообщества — видит отклики и покупки в одном месте
+// без повторной регистрации (критерий приемки, раздел 10).
+import type { Application, EventRegistration, MaterialPurchase, User } from '../types'
 
 export const demoUser: User = {
   id: 'u_demo',
@@ -44,17 +44,6 @@ export const demoMaterialPurchases: (MaterialPurchase & { materialTitle: string 
     date: '2026-07-01',
     paid: true,
     accessUrl: '#',
-  },
-]
-
-export const demoMemberships: (CommunityMembership & { clubName: string })[] = [
-  {
-    id: 'mem1',
-    userId: 'u_demo',
-    tier: 'free',
-    joinedAt: '2026-04-02',
-    active: true,
-    clubName: 'Клуб налогового права',
   },
 ]
 

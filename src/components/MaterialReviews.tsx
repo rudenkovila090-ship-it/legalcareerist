@@ -153,8 +153,8 @@ function ReviewForm({ slug, token, initial, onSaved }: { slug: string; token: st
         ))}
         {rating > 0 && <span className="ml-2 text-sm text-ink/50">{rating} из 5</span>}
       </div>
-      <textarea value={text} onChange={(e) => setText(e.target.value)} maxLength={2000} rows={4} placeholder="Ваш отзыв (необязательно): как вам материал, что было полезно" className={inputClass} />
-      <input
+      <textarea aria-label="Ваш отзыв (необязательно): как вам материал, что было полезно" value={text} onChange={(e) => setText(e.target.value)} maxLength={2000} rows={4} placeholder="Ваш отзыв (необязательно): как вам материал, что было полезно" className={inputClass} />
+      <input aria-label="Как подписать отзыв — только имя, без фамилии"
         value={displayName}
         onChange={(e) => {
           setDisplayName(e.target.value)

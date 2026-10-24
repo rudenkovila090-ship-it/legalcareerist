@@ -1,9 +1,10 @@
 import { Outlet, useLocation } from 'react-router-dom'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import Header from './Header'
 import Footer from './Footer'
 import ErrorBoundary from './ErrorBoundary'
 import { noirEventSlugs } from '../data/noirEvents'
+import { useRouteMeta } from '../lib/pageMeta'
 
 // Liquid Glass: один делегированный слушатель на весь документ вместо
 // слушателя на каждой карточке — обновляет позицию блика (--mx/--my)
@@ -35,6 +36,8 @@ function useGlassCursor() {
 
 export default function Layout() {
   const { pathname, hash } = useLocation()
+  useRouteMeta(pathname)
+  const mainRef = useRef<HTMLElement>(null)
 
   useEffect(() => {
     // Переход с якорем (например, из подвала «Сообщества» на /community#join
@@ -71,11 +74,10 @@ export default function Layout() {
   // подстраницы раздела (эти пути) на общий подвал сайта не претендуют —
   // сами являются частью подвала как ссылки, и остаются на общем футере.
   const eventsStaticSubpages = [
-    '/events/knowledge', '/events/materials', '/events/contacts', '/events/documents',
+    '/events/knowledge', '/events/materials', '/events/contacts',
   ]
-  // То же для «Сообщества»: свой единый подвал (CommunityFooter: CommunityHome
-  // + детальная страница клуба), статичные подстраницы раздела остаются на
-  // общем футере сайта.
+  // То же для «Сообщества»: свой единый подвал (CommunityFooter), статичные
+  // подстраницы раздела остаются на общем футере сайта.
   const communityStaticSubpages = [
     '/community/success', '/community/contacts', '/community/documents',
   ]
@@ -96,8 +98,19 @@ export default function Layout() {
 
   return (
     <div className="flex min-h-screen flex-col">
+      {/* Для клавиатуры и экранных дикторов: первый Tab показывает ссылку, которая перепрыгивает шапку к содержимому. */}
+      <a
+        href="#main-content"
+        onClick={(e) => {
+          e.preventDefault()
+          mainRef.current?.focus()
+        }}
+        className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[100] focus:rounded-full focus:bg-ink focus:px-5 focus:py-2.5 focus:text-sm focus:font-semibold focus:text-white"
+      >
+        Перейти к содержимому
+      </a>
       {!hideHeader && <Header />}
-      <main className="flex-1">
+      <main id="main-content" ref={mainRef} tabIndex={-1} className="flex-1 outline-none">
         <ErrorBoundary key={pathname}>
           <Outlet />
         </ErrorBoundary>

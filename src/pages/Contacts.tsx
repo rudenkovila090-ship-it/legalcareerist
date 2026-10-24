@@ -73,7 +73,7 @@ export default function Contacts({ eyebrow, sourceBlock }: { eyebrow: string; so
           <form onSubmit={handleSubmit} className="glass rounded-xl p-6">
             <div className="font-semibold">Задать вопрос</div>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <input
+              <input aria-label="ФИО"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="ФИО"
@@ -86,21 +86,21 @@ export default function Contacts({ eyebrow, sourceBlock }: { eyebrow: string; so
                 required
                 className="rounded-lg border border-ink/15 px-3 py-2 text-sm outline-none focus:border-ink/40"
               />
-              <input
+              <input aria-label="Почта"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Почта"
                 className="rounded-lg border border-ink/15 px-3 py-2 text-sm outline-none focus:border-ink/40"
               />
-              <input
+              <input aria-label="Telegram"
                 value={telegram}
                 onChange={(e) => setTelegram(e.target.value)}
                 placeholder="Telegram"
                 className="rounded-lg border border-ink/15 px-3 py-2 text-sm outline-none focus:border-ink/40"
               />
             </div>
-            <textarea
+            <textarea aria-label="Вопрос"
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
               placeholder="Вопрос"

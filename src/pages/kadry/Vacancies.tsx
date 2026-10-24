@@ -73,7 +73,7 @@ export default function Vacancies() {
             фильтров все равно оказывались под карточками вакансий ниже. */}
         <div className="glass relative z-20 mb-8 space-y-4 rounded-xl p-4">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            <select
+            <select aria-label="Направление"
               value={spec}
               onChange={(e) => setSpec(e.target.value as Specialization | 'all')}
               className="rounded-lg border border-ink/15 px-3 py-2 text-sm"
@@ -86,7 +86,7 @@ export default function Vacancies() {
             </select>
             <IndustryFilter value={industrySel} onChange={setIndustrySel} />
             <EducationFilter value={educationSel} onChange={setEducationSel} />
-            <select
+            <select aria-label="Город"
               value={city}
               onChange={(e) => setCity(e.target.value)}
               className="rounded-lg border border-ink/15 px-3 py-2 text-sm"
@@ -95,7 +95,7 @@ export default function Vacancies() {
               {city && <option value="">Все города</option>}
               {cityOptions.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
-            <select
+            <select aria-label="Опыт работы"
               value={experience}
               onChange={(e) => setExperience(e.target.value as ExperienceBucket | 'any')}
               className="rounded-lg border border-ink/15 px-3 py-2 text-sm"
@@ -106,13 +106,13 @@ export default function Vacancies() {
                 <option key={b.id} value={b.id}>{b.label}</option>
               ))}
             </select>
-            <input
+            <input aria-label="Заработная плата, ₽ (например, 100 000)"
               value={salaryText}
               onChange={(e) => setSalaryText(e.target.value)}
               placeholder="Заработная плата, ₽ (например, 100 000)"
               className="rounded-lg border border-ink/15 px-3 py-2 text-sm"
             />
-            <select
+            <select aria-label="Формат"
               value={format}
               onChange={(e) => setFormat(e.target.value as WorkFormat | 'any')}
               className="rounded-lg border border-ink/15 px-3 py-2 text-sm"
@@ -123,7 +123,7 @@ export default function Vacancies() {
                 <option key={f.id} value={f.id}>{f.label}</option>
               ))}
             </select>
-            <select
+            <select aria-label="График"
               value={schedule}
               onChange={(e) => setSchedule(e.target.value as WorkSchedule | 'any')}
               className="rounded-lg border border-ink/15 px-3 py-2 text-sm"
@@ -134,7 +134,7 @@ export default function Vacancies() {
                 <option key={s.id} value={s.id}>{s.label}</option>
               ))}
             </select>
-            <select
+            <select aria-label="Занятость"
               value={employment}
               onChange={(e) => setEmployment(e.target.value as EmploymentType | 'any')}
               className="rounded-lg border border-ink/15 px-3 py-2 text-sm"

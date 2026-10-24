@@ -18,7 +18,6 @@ const KnowledgeList = lazy(() => import('./pages/KnowledgeList'))
 const ArticleDetail = lazy(() => import('./pages/ArticleDetail'))
 const CommunityHome = lazy(() => import('./pages/community/CommunityHome'))
 const JoinSuccess = lazy(() => import('./pages/community/JoinSuccess'))
-const ClubDetail = lazy(() => import('./pages/community/ClubDetail'))
 const EventsHome = lazy(() => import('./pages/events/EventsHome'))
 const EventDetail = lazy(() => import('./pages/events/EventDetail'))
 const Materials = lazy(() => import('./pages/events/Materials'))
@@ -81,15 +80,15 @@ export default function App() {
               }
             />
             <Route path="/kadry/contacts" element={<Contacts eyebrow="Кадры" sourceBlock="kadry" />} />
-            <Route path="/kadry/documents" element={<Documents eyebrow="Кадры" description="Договоры, политики и другие документы раздела «Кадры»." />} />
+            <Route path="/kadry/documents" element={<Navigate to="/legal" replace />} />
             <Route path="/vacancies/:slug" element={<VacancyDetail />} />
 
             {/* Сообщество */}
             <Route path="/community" element={<CommunityHome />} />
             <Route path="/community/success" element={<JoinSuccess />} />
-            <Route path="/community/clubs/:slug" element={<ClubDetail />} />
+            <Route path="/community/clubs/:slug" element={<Navigate to="/community" replace />} />
             <Route path="/community/contacts" element={<Contacts eyebrow="Сообщество" sourceBlock="community" />} />
-            <Route path="/community/documents" element={<Documents eyebrow="Сообщество" description="Юридические документы сообщества." legalLinks />} />
+            <Route path="/community/documents" element={<Documents />} />
 
             {/* Мероприятия */}
             <Route path="/events" element={<EventsHome />} />
@@ -111,7 +110,7 @@ export default function App() {
             <Route path="/materials/cabinet" element={<MaterialThanks />} />
             <Route path="/materials/:slug" element={<MaterialDetail />} />
             <Route path="/events/contacts" element={<Contacts eyebrow="Мероприятия" sourceBlock="events" />} />
-            <Route path="/events/documents" element={<Documents />} />
+            <Route path="/events/documents" element={<Navigate to="/legal" replace />} />
             {/* Разделы, которые ещё не написаны, не показываем «заглушками»: адреса ведут туда, где можно получить помощь. */}
             <Route path="/events/ticket-refund" element={<Navigate to="/events/contacts" replace />} />
             <Route path="/events/research" element={<Navigate to="/events" replace />} />

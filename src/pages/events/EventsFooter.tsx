@@ -80,23 +80,23 @@ export default function EventsFooter() {
       <div className="flex w-full flex-wrap justify-center gap-x-10 gap-y-8 px-6 py-12 sm:px-10 lg:px-16">
         <div>
           <div className="mb-3 text-xs font-bold uppercase leading-tight tracking-wide text-white">Мероприятия</div>
-          <ul className="space-y-1.5 text-xs">
-            <li><Link className="hover:text-white" to="/about">О нас</Link></li>
-            <li><Link className="hover:text-white" to="/blog?category=Мероприятия">Блог</Link></li>
+          <ul className="text-xs">
+            <li><Link className="inline-block py-1 hover:text-white" to="/about">О нас</Link></li>
+            <li><Link className="inline-block py-1 hover:text-white" to="/blog?category=Мероприятия">Блог</Link></li>
           </ul>
         </div>
 
         <div>
           <div className="mb-3 text-xs font-bold uppercase leading-tight tracking-wide text-white">Все события</div>
-          <ul className="space-y-1.5 text-xs">
-            <li><Link className="hover:text-white" to="/events?tab=poster">Афиша</Link></li>
+          <ul className="text-xs">
+            <li><Link className="inline-block py-1 hover:text-white" to="/events?tab=poster">Афиша</Link></li>
           </ul>
         </div>
 
         <div>
           <div className="mb-3 text-xs font-bold uppercase leading-tight tracking-wide text-white">Партнерам</div>
-          <ul className="space-y-1.5 text-xs">
-            <li><Link className="hover:text-white" to="/events?tab=partner">Стать партнером</Link></li>
+          <ul className="text-xs">
+            <li><Link className="inline-block py-1 hover:text-white" to="/events?tab=partner">Стать партнером</Link></li>
           </ul>
         </div>
 
@@ -104,17 +104,17 @@ export default function EventsFooter() {
         {SHOW_CREATE_EVENT && (
           <div>
             <div className="mb-3 text-xs font-bold uppercase leading-tight tracking-wide text-white">Организаторам</div>
-            <ul className="space-y-1.5 text-xs">
-              <li><Link className="hover:text-white" to="/events?tab=create">Создать событие</Link></li>
+            <ul className="text-xs">
+              <li><Link className="inline-block py-1 hover:text-white" to="/events?tab=create">Создать событие</Link></li>
             </ul>
           </div>
         )}
 
         <div>
           <div className="mb-3 text-xs font-bold uppercase leading-tight tracking-wide text-white">Помощь</div>
-          <ul className="space-y-1.5 text-xs">
-            <li><Link className="hover:text-white" to="/events?tab=support">Поддержка</Link></li>
-            <li><Link className="hover:text-white" to="/blog?category=Мероприятия">База знаний</Link></li>
+          <ul className="text-xs">
+            <li><Link className="inline-block py-1 hover:text-white" to="/events?tab=support">Поддержка</Link></li>
+            <li><Link className="inline-block py-1 hover:text-white" to="/blog?category=Мероприятия">База знаний</Link></li>
           </ul>
         </div>
 

@@ -104,8 +104,8 @@ export default function VacancyBuilder() {
           <div className="glass rounded-xl p-6">
             <h2 className="mb-4 font-semibold">1. Основное</h2>
             <div className="grid gap-3 sm:grid-cols-2">
-              <input value={form.title} onChange={(e) => update('title', e.target.value)} placeholder="Название должности" required className={inputClass} />
-              <input
+              <input aria-label="Название должности" value={form.title} onChange={(e) => update('title', e.target.value)} placeholder="Название должности" required className={inputClass} />
+              <input aria-label="Компания"
                 value={form.company}
                 onChange={(e) => update('company', e.target.value)}
                 placeholder="Компания"
@@ -113,7 +113,7 @@ export default function VacancyBuilder() {
                 disabled={form.anonymous}
                 className={`${inputClass} disabled:opacity-40`}
               />
-              <input value={form.city} onChange={(e) => update('city', e.target.value)} placeholder="Город" required className={inputClass} />
+              <input aria-label="Город" value={form.city} onChange={(e) => update('city', e.target.value)} placeholder="Город" required className={inputClass} />
               <label className="flex items-center gap-2 self-center text-sm text-ink/60">
                 <input type="checkbox" checked={form.anonymous} onChange={(e) => update('anonymous', e.target.checked)} />
                 Анонимная вакансия (без названия компании)
@@ -175,7 +175,7 @@ export default function VacancyBuilder() {
               <div>
                 <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink/50">Вилка зарплаты, ₽/мес</div>
                 <div className="flex items-center gap-2">
-                  <input
+                  <input aria-label="От"
                     type="number" min={0} step={5000}
                     value={form.salaryFrom || ''}
                     onChange={(e) => update('salaryFrom', Number(e.target.value) || 0)}
@@ -183,7 +183,7 @@ export default function VacancyBuilder() {
                     className={`${inputClass} w-32`}
                   />
                   <span className="text-ink/40">—</span>
-                  <input
+                  <input aria-label="До"
                     type="number" min={0} step={5000}
                     value={form.salaryTo || ''}
                     onChange={(e) => update('salaryTo', Number(e.target.value) || 0)}
@@ -237,7 +237,7 @@ export default function VacancyBuilder() {
             <h2 className="mb-4 font-semibold">4. Контакты</h2>
             <div className="grid gap-3 sm:grid-cols-2">
               <PhoneInput value={form.contactPhone} onChange={(v) => update('contactPhone', v)} required className={inputClass} />
-              <input type="email" value={form.contactEmail} onChange={(e) => update('contactEmail', e.target.value)} placeholder="Почта" required className={inputClass} />
+              <input aria-label="Почта" type="email" value={form.contactEmail} onChange={(e) => update('contactEmail', e.target.value)} placeholder="Почта" required className={inputClass} />
             </div>
           </div>
         </div>

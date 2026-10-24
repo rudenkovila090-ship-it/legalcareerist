@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import PageHero from '../components/PageHero'
 import { useDocumentTitle } from '../lib/useDocumentTitle'
+import { useNoindex } from '../lib/pageMeta'
 
 // Catch-all (path="*") — раньше несуществующий/битый адрес рендерил пустую
 // страницу внутри <Layout>: и для человека тупик без объяснений, и для
@@ -10,6 +11,7 @@ import { useDocumentTitle } from '../lib/useDocumentTitle'
 // чистом клиенте.
 export default function NotFound() {
   useDocumentTitle('Страница не найдена')
+  useNoindex()
   return (
     <div>
       <PageHero eyebrow="404" title="Страница не найдена" description="Такой страницы нет — возможно, ссылка устарела или в адресе опечатка." />

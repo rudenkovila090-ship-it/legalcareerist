@@ -401,7 +401,7 @@ export default function CommunityHome() {
               </div>
             </div>
             <div className="mt-3 flex flex-wrap gap-1.5">
-              {[...knowledgeCategories, 'Нетворкинг', 'Книжный клуб', 'Психологический клуб'].map((topic) => (
+              {[...knowledgeCategories, 'Нетворкинг'].map((topic) => (
                 <span key={topic} className="rounded-full bg-ink/[0.05] px-3 py-1 text-xs font-medium text-ink/70">
                   {topic}
                 </span>
@@ -480,7 +480,7 @@ export default function CommunityHome() {
             </div>
           ) : (
             <form onSubmit={handleAmbassadorSubmit} className="glass mx-auto grid max-w-2xl gap-3 rounded-2xl p-6 text-left sm:grid-cols-2">
-              <input
+              <input aria-label="ФИО"
                 value={ambassadorForm.name}
                 onChange={(e) => setAmbassadorForm((f) => ({ ...f, name: e.target.value }))}
                 placeholder="ФИО"
@@ -491,20 +491,20 @@ export default function CommunityHome() {
                 onChange={(value) => setAmbassadorForm((f) => ({ ...f, phone: value }))}
                 className="rounded-lg border border-ink/15 px-3 py-2 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40"
               />
-              <input
+              <input aria-label="Почта"
                 type="email"
                 value={ambassadorForm.email}
                 onChange={(e) => setAmbassadorForm((f) => ({ ...f, email: e.target.value }))}
                 placeholder="Почта"
                 className="rounded-lg border border-ink/15 px-3 py-2 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40"
               />
-              <input
+              <input aria-label="Telegram"
                 value={ambassadorForm.telegram}
                 onChange={(e) => setAmbassadorForm((f) => ({ ...f, telegram: e.target.value }))}
                 placeholder="Telegram"
                 className="rounded-lg border border-ink/15 px-3 py-2 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40"
               />
-              <textarea
+              <textarea aria-label="Напишите, почему должны выбрать вас"
                 value={ambassadorForm.about}
                 onChange={(e) => setAmbassadorForm((f) => ({ ...f, about: e.target.value }))}
                 placeholder="Напишите, почему должны выбрать вас"
@@ -697,7 +697,7 @@ export default function CommunityHome() {
                 <span className="text-base font-semibold text-ink">{tariff.priceLabel}</span>
               </div>
               <form onSubmit={handleSubmit} className="grid gap-3">
-                <input
+                <input aria-label="ФИО"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="ФИО"
@@ -711,7 +711,7 @@ export default function CommunityHome() {
                     required
                     className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
                   />
-                  <input
+                  <input aria-label="Почта"
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -720,7 +720,7 @@ export default function CommunityHome() {
                     className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
                   />
                 </div>
-                <input
+                <input aria-label="Ник в Telegram, например @ivanov"
                   value={telegram}
                   onChange={(e) => setTelegram(e.target.value)}
                   placeholder="Ник в Telegram, например @ivanov"

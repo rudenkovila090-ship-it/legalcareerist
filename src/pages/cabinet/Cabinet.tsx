@@ -26,7 +26,6 @@ const focusRing = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-
 // здесь же по своему логину), вошедший пользуется кабинетом как клиент сервиса. Разделы, которые ещё не сделаны, помечены
 // «В разработке» и перечисляют, что осталось. Ссылка из письма «задайте пароль» — /cabinet/activate?token=…
 export default function Cabinet() {
-  useDocumentTitle('Личный кабинет')
   const { section } = useParams()
   const [session, setSession] = useState<Session>({ state: 'loading' })
 
@@ -66,6 +65,7 @@ export default function Cabinet() {
   }, [authed])
 
   const page = resolvePage(section)
+  useDocumentTitle(page ? `${page.title} — Личный кабинет` : 'Личный кабинет')
   const menuId = page?.menuId ?? 'overview'
   // «Аккаунт» раскрывается по стрелке; пока человек сам не нажимал, он открыт только на страницах этой группы.
   const [accountPicked, setAccountPicked] = useState<boolean | null>(null)

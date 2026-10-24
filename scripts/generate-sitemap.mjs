@@ -3,8 +3,8 @@
 // добавлении новых верхнеуровневых страниц). Динамические — slug'и
 // вытащены простым regex'ом прямо из data/*.ts, чтобы не тащить в скрипт
 // сборки TS-компилятор ради десятка строк: как только каталоги (вакансии,
-// мероприятия, статьи, новости, клубы) наполнятся реальными данными,
-// сайтмап переген��рируется на следующей сборке сам, без ручного шага.
+// мероприятия, статьи, новости, материалы) наполнятся реальными данными,
+// сайтмап перегенерируется на следующей сборке сам, без ручного шага.
 import fs from 'node:fs'
 import path from 'node:path'
 
@@ -27,10 +27,11 @@ const staticPaths = [
   '/events/knowledge',
   '/events/materials',
   '/events/contacts',
-  '/events/documents',
+  '/community/documents',
   '/about',
   '/news',
   '/marketplace',
+  '/marketplace/contacts',
   '/blog',
   '/legal',
   '/legal/privacy',
@@ -55,8 +56,8 @@ const dynamicPaths = [
   ...extractSlugs('vacancies.ts').map((s) => `/vacancies/${s}`),
   ...extractSlugs('events.ts').map((s) => `/events/${s}`),
   ...extractSlugs('articles.ts').map((s) => `/knowledge/${s}`),
+  ...extractSlugs('materials.ts').map((s) => `/materials/${s}`),
   ...extractSlugs('news.ts').map((s) => `/news/${s}`),
-  ...extractSlugs('clubs.ts').map((s) => `/community/clubs/${s}`),
 ]
 
 const allPaths = [...staticPaths, ...dynamicPaths]

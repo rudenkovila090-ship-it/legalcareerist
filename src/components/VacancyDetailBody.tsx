@@ -160,13 +160,13 @@ export default function VacancyDetailBody({ vacancy, extra }: { vacancy: Vacancy
         <div className="mt-8 grid gap-6 sm:grid-cols-2">
           <div>
             <h2 className="font-semibold">Задачи на позиции</h2>
-            <ul className="mt-2 list-inside list-disc space-y-1 text-ink/70">
+            <ul className="mt-2 list-outside list-disc pl-5 space-y-1 text-ink/70">
               {vacancy.responsibilities.map((r) => <li key={r}>{r}</li>)}
             </ul>
           </div>
           <div>
             <h2 className="font-semibold">Требования</h2>
-            <ul className="mt-2 list-inside list-disc space-y-1 text-ink/70">
+            <ul className="mt-2 list-outside list-disc pl-5 space-y-1 text-ink/70">
               {vacancy.requirements.map((r) => <li key={r}>{r}</li>)}
             </ul>
           </div>
@@ -174,7 +174,7 @@ export default function VacancyDetailBody({ vacancy, extra }: { vacancy: Vacancy
       ) : (
         <div className="mt-8">
           <h2 className="font-semibold">Требования</h2>
-          <ul className="mt-2 list-inside list-disc space-y-1 text-ink/70">
+          <ul className="mt-2 list-outside list-disc pl-5 space-y-1 text-ink/70">
             {vacancy.requirements.map((r) => <li key={r}>{r}</li>)}
           </ul>
         </div>
@@ -182,7 +182,7 @@ export default function VacancyDetailBody({ vacancy, extra }: { vacancy: Vacancy
 
       <div className="mt-8 rounded-xl bg-ink/[0.04] p-5">
         <h2 className="font-semibold">Условия</h2>
-        <ul className="mt-2 list-inside list-disc space-y-1 text-ink/70">
+        <ul className="mt-2 list-outside list-disc pl-5 space-y-1 text-ink/70">
           {buildConditions(vacancy).map((c) => (
             <li key={c.label}><span className="font-semibold text-ink">{c.label}:</span> {c.value}</li>
           ))}
@@ -193,7 +193,7 @@ export default function VacancyDetailBody({ vacancy, extra }: { vacancy: Vacancy
       {vacancy.howToApply && vacancy.howToApply.length > 0 && !vacancy.directApply && (
         <div className="mt-8">
           <h2 className="font-semibold">Как откликнуться</h2>
-          <ol className="mt-2 list-inside list-decimal space-y-1 text-ink/70">
+          <ol className="mt-2 list-outside list-decimal pl-5 space-y-1 text-ink/70">
             {vacancy.howToApply.map((step) => <li key={step}>{linkify(step, vacancy)}</li>)}
           </ol>
         </div>

@@ -42,12 +42,12 @@ export default function Salary() {
         <div>
           <div className="glass rounded-xl p-6">
             <div className="grid gap-3 sm:grid-cols-2">
-              <select value={spec} onChange={(e) => setSpec(e.target.value as Specialization)} className="rounded-lg border border-ink/15 px-3 py-2 text-sm">
+              <select aria-label="Специализация" value={spec} onChange={(e) => setSpec(e.target.value as Specialization)} className="rounded-lg border border-ink/15 px-3 py-2 text-sm">
                 {SPECIALIZATIONS.map((s) => (
                   <option key={s.id} value={s.id}>{s.label}</option>
                 ))}
               </select>
-              <select value={city} onChange={(e) => setCity(e.target.value)} className="rounded-lg border border-ink/15 px-3 py-2 text-sm">
+              <select aria-label="Город" value={city} onChange={(e) => setCity(e.target.value)} className="rounded-lg border border-ink/15 px-3 py-2 text-sm">
                 {cities.map((c) => (
                   <option key={c} value={c}>{c}</option>
                 ))}

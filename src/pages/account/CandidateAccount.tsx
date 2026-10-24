@@ -7,7 +7,6 @@ import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import {
   demoApplications,
   demoMaterialPurchases,
-  demoMemberships,
   demoUser,
 } from '../../lib/account'
 import { getActiveRole, clearActiveRole } from '../../lib/accountRole'
@@ -266,9 +265,6 @@ export default function CandidateAccount() {
   const freeAvailable = isFreeAvailable(creditsState)
   const nextFreeAt = freeAvailableAt(creditsState)
   const canGenerateResume = canGenerate(RESUME_CREDITS_KEY)
-  // Резидент — участник с активным платным членством в сообществе (не
-  // просто зарегистрирован на бесплатном тарифе).
-  const isResident = demoMemberships.some((m) => m.active && m.tier === 'paid')
 
   const orders = [
     ...demoMaterialPurchases.map((p) => ({ id: p.id, title: p.materialTitle, date: p.date, status: p.paid ? 'Оплачено' : 'Ожидает оплаты' })),
@@ -460,14 +456,12 @@ export default function CandidateAccount() {
                     )
                   })}
                 </div>
-                {!isResident && (
-                  <Link
-                    to="/community"
-                    className="mt-3 inline-block rounded-full bg-gold-light px-4 py-2 text-center text-xs font-semibold text-ink hover:opacity-90"
-                  >
-                    Стать резидентом сообщества
-                  </Link>
-                )}
+                <Link
+                  to="/community"
+                  className="mt-3 inline-block rounded-full bg-gold-light px-4 py-2 text-center text-xs font-semibold text-ink hover:opacity-90"
+                >
+                  Стать резидентом сообщества
+                </Link>
               </div>
 
               <div className="glass rounded-xl p-5">
@@ -575,7 +569,7 @@ export default function CandidateAccount() {
                                     </button>
                                   ))}
                                 </div>
-                                <select
+                                <select aria-label="О компании"
                                   value={reviewForm.context}
                                   onChange={(e) => setReviewForm((f) => ({ ...f, context: e.target.value as ReviewContext }))}
                                   className="rounded-full border border-ink/15 bg-white px-2 py-1 text-xs text-ink/70"
@@ -584,7 +578,7 @@ export default function CandidateAccount() {
                                   <option value="interview">О собеседовании</option>
                                 </select>
                               </div>
-                              <textarea
+                              <textarea aria-label="Как прошло? Что понравилось или не понравилось?"
                                 value={reviewForm.text}
                                 onChange={(e) => setReviewForm((f) => ({ ...f, text: e.target.value }))}
                                 rows={2}
@@ -912,21 +906,6 @@ export default function CandidateAccount() {
                   ))}
                 </div>
               </section>
-
-              <section>
-                <h2 className="mb-3 text-lg font-semibold">Членство в клубах сообщества</h2>
-                <div className="glass divide-y divide-ink/10 rounded-xl">
-                  {demoMemberships.map((m) => (
-                    <div key={m.id} className="flex items-center justify-between p-4">
-                      <div>
-                        <div className="font-medium">{m.clubName}</div>
-                        <div className="text-xs text-ink/50">С {new Date(m.joinedAt).toLocaleDateString('ru-RU')}</div>
-                      </div>
-                      <span className="rounded-full bg-ink/[0.06] px-3 py-1 text-xs font-medium">{m.tier === 'paid' ? 'Платный тариф' : 'Бесплатный тариф'}</span>
-                    </div>
-                  ))}
-                </div>
-              </section>
             </div>
           )}
 
@@ -1001,14 +980,14 @@ export default function CandidateAccount() {
                 <div className="glass rounded-xl p-5">
                   <form onSubmit={handleChangePassword} className="grid gap-3 sm:max-w-sm">
                     <div className="text-sm font-semibold text-ink">Сменить пароль</div>
-                    <input
+                    <input aria-label="Текущий пароль"
                       type="password"
                       value={passwordForm.current}
                       onChange={(e) => setPasswordForm((f) => ({ ...f, current: e.target.value }))}
                       placeholder="Текущий пароль"
                       className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
                     />
-                    <input
+                    <input aria-label="Новый пароль"
                       type="password"
                       value={passwordForm.next}
                       onChange={(e) => setPasswordForm((f) => ({ ...f, next: e.target.value }))}
@@ -1092,7 +1071,7 @@ export default function CandidateAccount() {
               ))}
             </div>
             <form onSubmit={handleSendChat} className="flex gap-2 border-t border-ink/10 p-4">
-              <input
+              <input aria-label="Написать сообщение…"
                 value={chatDraft}
                 onChange={(e) => setChatDraft(e.target.value)}
                 placeholder="Написать сообщение…"
@@ -1228,7 +1207,7 @@ export default function CandidateAccount() {
               <button type="button" onClick={() => setBuyingPack(null)} className="text-ink/40 hover:text-ink" aria-label="Закрыть">✕</button>
             </div>
             <form onSubmit={handleBuySubmit} className="grid gap-3">
-              <input
+              <input aria-label="Телефон для чека, например 89990000000"
                 value={buyerPhone}
                 onChange={(e) => setBuyerPhone(e.target.value)}
                 placeholder="Телефон для чека, например 89990000000"

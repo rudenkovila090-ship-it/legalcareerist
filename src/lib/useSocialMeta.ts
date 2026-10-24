@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { useMetaDescription } from './pageMeta'
 
 const SITE_NAME = 'Карьерный Юрист'
 const SITE_URL = 'https://legalcareerist.ru'
@@ -20,9 +21,10 @@ const SITE_URL = 'https://legalcareerist.ru'
  * это server-side rendering или pre-render для ботов, отдельная задача.
  */
 export function useSocialMeta(opts: { title?: string; description?: string; path?: string }) {
+  const description = opts.description?.replace(/\s+/g, ' ').trim() || undefined
+  useMetaDescription(description)
   useEffect(() => {
     const title = opts.title ? `${opts.title} — ${SITE_NAME}` : SITE_NAME
-    const description = opts.description ?? undefined
     const url = opts.path ? `${SITE_URL}${opts.path}` : undefined
 
     const entries: [string, string][] = [
@@ -47,5 +49,5 @@ export function useSocialMeta(opts: { title?: string; description?: string; path
     return () => {
       for (const { el, value } of previous) el.setAttribute('content', value)
     }
-  }, [opts.title, opts.description, opts.path])
+  }, [opts.title, description, opts.path])
 }

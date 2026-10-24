@@ -1,5 +1,5 @@
 // Единая таксономия и модель данных — раздел 3–4 ТЗ.
-// Ось 1: специализация — обязательна на вакансиях, статьях, мероприятиях, клубах.
+// Ось 1: специализация — обязательна на вакансиях, статьях, мероприятиях.
 export type Specialization =
   | 'advocacy'
   | 'consulting'
@@ -585,26 +585,6 @@ export interface MaterialPurchase {
   date: string
   paid: boolean
   accessUrl: string
-}
-
-export interface CommunityClub extends Tagged {
-  id: string
-  slug: string
-  name: string
-  description: string
-  /** Ссылка на Telegram-чат клуба. Нет ссылки — на странице клуба нет кнопки «Вступить». */
-  telegramLink?: string
-  coordinator: string
-}
-
-export type MembershipTier = 'free' | 'paid'
-
-export interface CommunityMembership {
-  id: string
-  userId: string
-  tier: MembershipTier
-  joinedAt: string
-  active: boolean
 }
 
 export type ConsultationType = 'free' | 'paid'

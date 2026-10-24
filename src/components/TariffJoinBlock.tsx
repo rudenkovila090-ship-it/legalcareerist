@@ -164,7 +164,7 @@ export default function TariffJoinBlock() {
               <span className="text-base font-semibold text-ink">{tariff.priceLabel}</span>
             </div>
             <form onSubmit={handleSubmit} className="grid gap-3">
-              <input
+              <input aria-label="ФИО"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="ФИО"
@@ -178,7 +178,7 @@ export default function TariffJoinBlock() {
                   required
                   className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
                 />
-                <input
+                <input aria-label="Почта"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -187,7 +187,7 @@ export default function TariffJoinBlock() {
                   className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
                 />
               </div>
-              <input
+              <input aria-label="Ник в Telegram, например @ivanov"
                 value={telegram}
                 onChange={(e) => setTelegram(e.target.value)}
                 placeholder="Ник в Telegram, например @ivanov"

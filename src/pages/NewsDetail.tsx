@@ -4,11 +4,13 @@ import ArticleBody from '../components/ArticleBody'
 import { useNewsViews } from '../lib/useNewsViews'
 import { useDocumentTitle } from '../lib/useDocumentTitle'
 import { useSocialMeta } from '../lib/useSocialMeta'
+import { useNoindex } from '../lib/pageMeta'
 
 export default function NewsDetail() {
   const { slug } = useParams()
   const item = news.find((n) => n.slug === slug)
   useDocumentTitle(item?.title ?? 'Новость не найдена')
+  useNoindex(!item)
   useSocialMeta({
     title: item?.title,
     description: item?.text.replace(/[#*]/g, '').slice(0, 160),
@@ -19,7 +21,8 @@ export default function NewsDetail() {
   if (!item) {
     return (
       <div className="container-page py-16">
-        <p>Новость не найдена. <Link className="underline" to="/news">Все новости</Link></p>
+        <h1 className="text-2xl font-semibold">Новость не найдена</h1>
+        <p className="mt-3"><Link className="underline" to="/news">Все новости</Link></p>
       </div>
     )
   }

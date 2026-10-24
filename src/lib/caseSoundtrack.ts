@@ -164,10 +164,21 @@ export class CaseSoundtrack {
     this.master.connect(ctx.destination)
   }
 
-  private load() {
+  /** Посетитель уже что-нибудь нажимал на странице: только тогда браузер разрешает создать звуковой контекст без предупреждения. */
+  private hasActivation() {
+    return typeof navigator === 'undefined' || !navigator.userActivation || navigator.userActivation.hasBeenActive
+  }
+
+  /** Заранее, до первого нажатия, файлы декодируем «офлайн»: настоящий контекст не создаём, чтобы браузер не писал в консоль предупреждение. */
+  private loadBeforeGesture() {
+    if (typeof OfflineAudioContext === 'undefined') return Promise.resolve()
+    return this.load(new OfflineAudioContext(2, 1, 44100))
+  }
+
+  private load(decoder: BaseAudioContext | null = this.ctx) {
     if (this.buffers) return Promise.resolve()
     if (this.loading) return this.loading
-    const ctx = this.ctx
+    const ctx = decoder
     if (!ctx) return Promise.resolve()
     const names = Object.keys(this.sources) as (Stem | 'reveal')[]
     this.loading = Promise.all(
@@ -189,6 +200,7 @@ export class CaseSoundtrack {
 
   /** Заранее подгрузить файлы (например, когда карточка попала в зону видимости). */
   preload() {
+    if (!this.ctx && !this.hasActivation()) return this.loadBeforeGesture()
     if (!this.ctx) this.buildGraph()
     return this.load()
   }
@@ -241,6 +253,10 @@ export class CaseSoundtrack {
       this.stopTimer = null
     }
     this.isOpen = true
+    if (!this.ctx && !this.hasActivation()) {
+      // Посетитель ещё ничего не нажимал: играть всё равно нельзя. Готовим файлы, а звук включится от первого нажатия (см. eventMusic.ts).
+      return this.loadBeforeGesture().catch((err) => console.warn('CaseSoundtrack:', err))
+    }
     try {
       if (!this.ctx) this.buildGraph()
     } catch (e) {

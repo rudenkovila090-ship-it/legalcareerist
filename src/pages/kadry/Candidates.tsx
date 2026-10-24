@@ -315,7 +315,7 @@ export default function Candidates() {
                 ) : (
                   <form onSubmit={handleSupportSubmit} className="grid gap-3">
                     <p className="text-sm text-ink/60">Оставьте контакты — подскажем, какая услуга подойдет именно вам.</p>
-                    <input
+                    <input aria-label="ФИО"
                       value={supportForm.fio}
                       onChange={(e) => setSupportForm((s) => ({ ...s, fio: e.target.value }))}
                       placeholder="ФИО"
@@ -329,7 +329,7 @@ export default function Candidates() {
                       className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
                     />
                     <div className="grid gap-3 sm:grid-cols-2">
-                      <input
+                      <input aria-label="Почта"
                         type="email"
                         value={supportForm.email}
                         onChange={(e) => setSupportForm((s) => ({ ...s, email: e.target.value }))}
@@ -337,7 +337,7 @@ export default function Candidates() {
                         required
                         className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
                       />
-                      <input
+                      <input aria-label="Telegram"
                         value={supportForm.telegram}
                         onChange={(e) => setSupportForm((s) => ({ ...s, telegram: e.target.value }))}
                         placeholder="Telegram"
@@ -345,7 +345,7 @@ export default function Candidates() {
                         className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
                       />
                     </div>
-                    <textarea
+                    <textarea aria-label="Ваш вопрос (необязательно)"
                       value={supportForm.question}
                       onChange={(e) => setSupportForm((s) => ({ ...s, question: e.target.value }))}
                       placeholder="Ваш вопрос (необязательно)"
@@ -409,7 +409,7 @@ export default function Candidates() {
               фильтров все равно оказывались под карточками вакансий ниже. */}
           <div className="glass relative z-20 mb-8 space-y-4 rounded-xl p-4">
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              <select
+              <select aria-label="Направление"
                 value={spec}
                 onChange={(e) => setSpec(e.target.value as Specialization | 'all')}
                 className="rounded-lg border border-ink/15 px-3 py-2 text-sm"
@@ -422,7 +422,7 @@ export default function Candidates() {
               </select>
               <IndustryFilter value={industrySel} onChange={setIndustrySel} />
               <EducationFilter value={educationSel} onChange={setEducationSel} />
-              <select
+              <select aria-label="Город"
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
                 className="rounded-lg border border-ink/15 px-3 py-2 text-sm"
@@ -431,7 +431,7 @@ export default function Candidates() {
                 {city && <option value="">Все города</option>}
                 {CITIES.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
-              <select
+              <select aria-label="Опыт работы"
                 value={experience}
                 onChange={(e) => setExperience(e.target.value as ExperienceBucket | 'any')}
                 className="rounded-lg border border-ink/15 px-3 py-2 text-sm"
@@ -442,13 +442,13 @@ export default function Candidates() {
                   <option key={b.id} value={b.id}>{b.label}</option>
                 ))}
               </select>
-              <input
+              <input aria-label="Заработная плата, ₽ (например, 100 000)"
                 value={salaryText}
                 onChange={(e) => setSalaryText(e.target.value)}
                 placeholder="Заработная плата, ₽ (например, 100 000)"
                 className="rounded-lg border border-ink/15 px-3 py-2 text-sm"
               />
-              <select
+              <select aria-label="Формат"
                 value={format}
                 onChange={(e) => setFormat(e.target.value as WorkFormat | 'any')}
                 className="rounded-lg border border-ink/15 px-3 py-2 text-sm"
@@ -459,7 +459,7 @@ export default function Candidates() {
                   <option key={f.id} value={f.id}>{f.label}</option>
                 ))}
               </select>
-              <select
+              <select aria-label="График"
                 value={schedule}
                 onChange={(e) => setSchedule(e.target.value as WorkSchedule | 'any')}
                 className="rounded-lg border border-ink/15 px-3 py-2 text-sm"
@@ -470,7 +470,7 @@ export default function Candidates() {
                   <option key={s.id} value={s.id}>{s.label}</option>
                 ))}
               </select>
-              <select
+              <select aria-label="Занятость"
                 value={employment}
                 onChange={(e) => setEmployment(e.target.value as EmploymentType | 'any')}
                 className="rounded-lg border border-ink/15 px-3 py-2 text-sm"

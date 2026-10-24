@@ -714,7 +714,6 @@
     }
   };
 
-  if (typeof module !== 'undefined' && module.exports) module.exports = RadioFX;
   root.RadioFX = RadioFX;
 })(typeof window !== 'undefined' ? window : globalThis);
 

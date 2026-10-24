@@ -3,10 +3,9 @@ import { FooterBottom, FooterLegal } from '../../components/FooterLegal'
 import { SHOW_AMBASSADORS } from '../../lib/featureFlags'
 
 // Единый подвал раздела «Сообщество» — построен по тому же принципу, что и
-// EventsFooter (см. комментарий там): один компонент рендерится и на
-// /community, и на детальной странице клуба (ClubDetail.tsx), ссылки на
-// внутренние разделы страницы /community ведут через якоря (#id), а не
-// callback-пропсы, поэтому подвал работает одинаково с любой страницы.
+// EventsFooter (см. комментарий там): ссылки на внутренние разделы
+// страницы /community ведут через якоря (#id), а не callback-пропсы,
+// поэтому подвал работает одинаково с любой страницы.
 
 function IconTelegram() {
   return (
@@ -68,34 +67,34 @@ export default function CommunityFooter() {
       <div className="flex w-full flex-wrap justify-center gap-x-10 gap-y-8 px-6 py-12 sm:px-10 lg:px-16">
         <div>
           <div className="mb-3 text-xs font-bold uppercase leading-tight tracking-wide text-white">Сообщество</div>
-          <ul className="space-y-1.5 text-xs">
-            <li><Link className="hover:text-white" to="/community#main">О сообществе</Link></li>
-            <li><Link className="hover:text-white" to="/blog?category=Сообщество">Блог</Link></li>
+          <ul className="text-xs">
+            <li><Link className="inline-block py-1 hover:text-white" to="/community#main">О сообществе</Link></li>
+            <li><Link className="inline-block py-1 hover:text-white" to="/blog?category=Сообщество">Блог</Link></li>
           </ul>
         </div>
 
         <div>
           <div className="mb-3 text-xs font-bold uppercase leading-tight tracking-wide text-white">Вступление</div>
-          <ul className="space-y-1.5 text-xs">
-            <li><Link className="hover:text-white" to="/community#join">Тарифы</Link></li>
-            <li><Link className="hover:text-white" to="/community#benefits">Возможности</Link></li>
+          <ul className="text-xs">
+            <li><Link className="inline-block py-1 hover:text-white" to="/community#join">Тарифы</Link></li>
+            <li><Link className="inline-block py-1 hover:text-white" to="/community#benefits">Возможности</Link></li>
           </ul>
         </div>
 
         {SHOW_AMBASSADORS && (
         <div>
           <div className="mb-3 text-xs font-bold uppercase leading-tight tracking-wide text-white">Партнерам</div>
-          <ul className="space-y-1.5 text-xs">
-            <li><Link className="hover:text-white" to="/community#ambassador-form">Стать амбассадором сообщества</Link></li>
+          <ul className="text-xs">
+            <li><Link className="inline-block py-1 hover:text-white" to="/community#ambassador-form">Стать амбассадором сообщества</Link></li>
           </ul>
         </div>
         )}
 
         <div>
           <div className="mb-3 text-xs font-bold uppercase leading-tight tracking-wide text-white">Помощь</div>
-          <ul className="space-y-1.5 text-xs">
-            <li><Link className="hover:text-white" to="/community/contacts">Поддержка</Link></li>
-            <li><Link className="hover:text-white" to="/blog?category=Сообщество">База знаний</Link></li>
+          <ul className="text-xs">
+            <li><Link className="inline-block py-1 hover:text-white" to="/community/contacts">Поддержка</Link></li>
+            <li><Link className="inline-block py-1 hover:text-white" to="/blog?category=Сообщество">База знаний</Link></li>
           </ul>
         </div>
 

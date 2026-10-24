@@ -103,6 +103,7 @@ export default function PhoneInput({
       onChange={handleChange}
       onKeyDown={handleKeyDown}
       placeholder={placeholder}
+      aria-label={placeholder}
       required={required}
       className={className}
     />

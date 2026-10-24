@@ -515,7 +515,7 @@ export default function CareerConsultation({ embedded = false }: { embedded?: bo
                 )}
               </div>
 
-              <input
+              <input aria-label="Промокод (необязательно)"
                 className="mt-3 w-full rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
                 placeholder="Промокод (необязательно)"
                 value={promo}
@@ -573,13 +573,13 @@ export default function CareerConsultation({ embedded = false }: { embedded?: bo
           ) : (
             <form className="mx-auto mt-6 grid max-w-md gap-3" onSubmit={handleHelpSubmit}>
               <div className="grid gap-3 sm:grid-cols-2">
-                <input
+                <input aria-label="ФИО"
                   className="rounded-lg border border-white/15 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
                   placeholder="ФИО"
                   value={helpForm.name}
                   onChange={(e) => setHelpForm((f) => ({ ...f, name: e.target.value }))}
                 />
-                <input
+                <input aria-label="Почта"
                   className="rounded-lg border border-white/15 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
                   placeholder="Почта"
                   value={helpForm.email}
@@ -590,14 +590,14 @@ export default function CareerConsultation({ embedded = false }: { embedded?: bo
                   value={helpForm.phone}
                   onChange={(value) => setHelpForm((f) => ({ ...f, phone: value }))}
                 />
-                <input
+                <input aria-label="Telegram"
                   className="rounded-lg border border-white/15 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
                   placeholder="Telegram"
                   value={helpForm.telegram}
                   onChange={(e) => setHelpForm((f) => ({ ...f, telegram: e.target.value }))}
                 />
               </div>
-              <textarea
+              <textarea aria-label="Опишите свой вопрос"
                 className="min-h-24 rounded-lg border border-white/15 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
                 placeholder="Опишите свой вопрос"
                 value={helpForm.question}
@@ -648,7 +648,7 @@ export default function CareerConsultation({ embedded = false }: { embedded?: bo
                   </div>
                 )}
               </div>
-              <input
+              <input aria-label="Промокод (необязательно)"
                 className="mt-3 w-full rounded-lg border border-ink/15 px-3 py-2 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
                 placeholder="Промокод (необязательно)"
                 value={promo}
@@ -728,20 +728,20 @@ export default function CareerConsultation({ embedded = false }: { embedded?: bo
                 </div>
 
                 <form className="grid gap-3" onSubmit={handleSubmit}>
-                  <input
+                  <input aria-label="ФИО"
                     className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
                     placeholder="ФИО"
                     value={form.name}
                     onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                   />
                   <div className="grid gap-3 sm:grid-cols-3">
-                    <input
+                    <input aria-label="Почта"
                       className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
                       placeholder="Почта"
                       value={form.email}
                       onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
                     />
-                    <input
+                    <input aria-label="Telegram"
                       className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
                       placeholder="Telegram"
                       value={form.telegram}

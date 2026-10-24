@@ -75,44 +75,44 @@ export default function Footer() {
       <div className="flex w-full flex-wrap justify-center gap-x-10 gap-y-8 px-6 py-12 sm:px-10 lg:px-16">
         <div>
           <div className="mb-3 whitespace-nowrap text-xs font-bold uppercase leading-tight tracking-wide text-white">Карьерный юрист</div>
-          <ul className="space-y-1.5 text-xs">
-            <li><Link className="hover:text-white" to="/about">О нас</Link></li>
+          <ul className="text-xs">
+            <li><Link className="inline-block py-1 hover:text-white" to="/about">О нас</Link></li>
           </ul>
         </div>
 
         <div>
           <div className="mb-3 text-xs font-bold uppercase leading-tight tracking-wide text-white">Кадры</div>
-          <ul className="space-y-1.5 text-xs">
-            <li><Link className="hover:text-white" to="/kadry/employers">Работодателям</Link></li>
-            <li><Link className="hover:text-white" to="/kadry/candidates">Соискателям</Link></li>
+          <ul className="text-xs">
+            <li><Link className="inline-block py-1 hover:text-white" to="/kadry/employers">Работодателям</Link></li>
+            <li><Link className="inline-block py-1 hover:text-white" to="/kadry/candidates">Соискателям</Link></li>
           </ul>
         </div>
 
         <div>
           <div className="mb-3 text-xs font-bold uppercase leading-tight tracking-wide text-white">Сообщество</div>
-          <ul className="max-w-[10rem] space-y-1.5 text-xs">
-            <li><Link className="hover:text-white" to="/community">Вступить в сообщество</Link></li>
+          <ul className="max-w-[10rem] text-xs">
+            <li><Link className="inline-block py-1 hover:text-white" to="/community">Вступить в сообщество</Link></li>
           </ul>
         </div>
 
         <div>
           <div className="mb-3 text-xs font-bold uppercase leading-tight tracking-wide text-white">Мероприятия</div>
-          <ul className="space-y-1.5 text-xs">
-            <li><Link className="hover:text-white" to="/events">Все мероприятия</Link></li>
+          <ul className="text-xs">
+            <li><Link className="inline-block py-1 hover:text-white" to="/events">Все мероприятия</Link></li>
           </ul>
         </div>
 
         <div>
           <div className="mb-3 text-xs font-bold uppercase leading-tight tracking-wide text-white">Маркетплейс</div>
-          <ul className="space-y-1.5 text-xs">
-            <li><Link className="hover:text-white" to="/marketplace">Каталог</Link></li>
+          <ul className="text-xs">
+            <li><Link className="inline-block py-1 hover:text-white" to="/marketplace">Каталог</Link></li>
           </ul>
         </div>
 
         <div>
           <div className="mb-3 text-xs font-bold uppercase leading-tight tracking-wide text-white">Помощь</div>
-          <ul className="space-y-1.5 text-xs">
-            <li><Link className="hover:text-white" to="/contacts">Поддержка</Link></li>
+          <ul className="text-xs">
+            <li><Link className="inline-block py-1 hover:text-white" to="/contacts">Поддержка</Link></li>
           </ul>
         </div>
 

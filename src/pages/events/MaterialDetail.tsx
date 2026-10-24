@@ -6,6 +6,8 @@ import RelatedContentBlock from '../../components/RelatedContentBlock'
 import { getRelatedContent } from '../../lib/related'
 import { materialKindLabel as kindLabel } from '../../lib/materialLabels'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
+import { useSocialMeta } from '../../lib/useSocialMeta'
+import { useNoindex } from '../../lib/pageMeta'
 import PhoneInput from '../../components/PhoneInput'
 import HowHeardField from '../../components/HowHeardField'
 import MaterialReviews from '../../components/MaterialReviews'
@@ -21,6 +23,8 @@ export default function MaterialDetail() {
   const material = materials.find((m) => m.slug === slug)
   const ratings = useMaterialRatings()
   useDocumentTitle(material?.title ?? 'Материал не найден')
+  useSocialMeta({ title: material?.title, description: material?.description, path: slug ? `/materials/${slug}` : undefined })
+  useNoindex(!material)
   const [purchased, setPurchased] = useState(false)
 
   // Клик по любому варианту получения (бесплатно или платно) сначала открывает
@@ -55,7 +59,8 @@ export default function MaterialDetail() {
   if (!material) {
     return (
       <div className="container-page py-16">
-        <p>Материал не найден. <Link className="underline" to="/events/materials">Все материалы</Link></p>
+        <h1 className="text-2xl font-semibold">Материал не найден</h1>
+        <p className="mt-3"><Link className="underline" to="/events/materials">Все материалы</Link></p>
       </div>
     )
   }
@@ -236,7 +241,7 @@ export default function MaterialDetail() {
               <span className="shrink-0 font-semibold text-ink">{money.format(material.price)} ₽</span>
             </div>
             <form className="grid gap-3" onSubmit={handlePurchaseSubmit}>
-              <input
+              <input aria-label="ФИО"
                 required
                 placeholder="ФИО"
                 value={purchaseForm.name}
@@ -249,7 +254,7 @@ export default function MaterialDetail() {
                 onChange={(value) => setPurchaseForm((f) => ({ ...f, phone: value }))}
                 className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
               />
-              <input
+              <input aria-label="Почта — сюда пришлём файл"
                 type="email"
                 required
                 placeholder="Почта — сюда пришлём файл"
@@ -306,7 +311,7 @@ export default function MaterialDetail() {
                   Чтобы получить «{pendingLabel}», сохраните материал в личном кабинете — там же будут все ваши материалы.
                 </p>
                 <form className="grid gap-3" onSubmit={handleAccountSubmit}>
-                  <input
+                  <input aria-label="Почта"
                     type="email"
                     required
                     placeholder="Почта"
@@ -314,7 +319,7 @@ export default function MaterialDetail() {
                     onChange={(e) => setAccount((a) => ({ ...a, email: e.target.value }))}
                     className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
                   />
-                  <input
+                  <input aria-label="Пароль"
                     type="password"
                     required
                     placeholder="Пароль"

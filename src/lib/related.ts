@@ -1,14 +1,13 @@
 // RelatedContent — единый сервис подбора связанного контента по пересечению тегов
 // специализации/отрасли (раздел 3.4 ТЗ). Переиспользуется на всех детальных страницах:
-// вакансия, статья БЗ, мероприятие, материал, клуб сообщества.
+// вакансия, статья БЗ, мероприятие, материал.
 import type { Industry, Specialization, Tagged } from '../types'
 import { vacancies } from '../data/vacancies'
 import { articles } from '../data/articles'
 import { events } from '../data/events'
 import { materials } from '../data/materials'
-import { clubs } from '../data/clubs'
 
-export type ContentType = 'vacancy' | 'article' | 'event' | 'material' | 'club'
+export type ContentType = 'vacancy' | 'article' | 'event' | 'material'
 
 export interface RelatedItem {
   type: ContentType
@@ -104,23 +103,6 @@ export function getRelatedContent(
           title: m.title,
           href: `/materials/${m.slug}`,
           meta: 'Материал',
-          score: s,
-        })
-      }
-    }
-  }
-
-  if (excludeType !== 'club') {
-    for (const c of clubs) {
-      const s = score(c, tags.specialization, tags.industry)
-      if (s > 0) {
-        items.push({
-          type: 'club',
-          id: c.id,
-          slug: c.slug,
-          title: c.name,
-          href: `/community/clubs/${c.slug}`,
-          meta: 'Клуб сообщества',
           score: s,
         })
       }

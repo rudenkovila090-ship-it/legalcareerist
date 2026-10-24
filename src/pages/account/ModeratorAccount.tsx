@@ -152,7 +152,7 @@ export default function ModeratorAccount() {
 
                 {rejectingId === ev.id && (
                   <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3">
-                    <input
+                    <input aria-label="Причина отказа"
                       value={rejectReason}
                       onChange={(e) => setRejectReason(e.target.value)}
                       placeholder="Причина отказа"

@@ -7,11 +7,13 @@ import { getRelatedContent, getSimilar } from '../lib/related'
 import { trackEvent } from '../lib/leads'
 import { useDocumentTitle } from '../lib/useDocumentTitle'
 import { useSocialMeta } from '../lib/useSocialMeta'
+import { useNoindex } from '../lib/pageMeta'
 
 export default function VacancyDetail() {
   const { slug } = useParams()
   const vacancy = vacancies.find((v) => v.slug === slug)
-  useDocumentTitle(vacancy?.title)
+  useDocumentTitle(vacancy?.title ?? 'Вакансия не найдена')
+  useNoindex(!vacancy)
   useSocialMeta({
     title: vacancy?.title,
     description: vacancy ? `${vacancy.anonymous ? 'Вакансия' : vacancy.company}${vacancy.city ? ` · ${vacancy.city}` : ''}` : undefined,
@@ -21,7 +23,8 @@ export default function VacancyDetail() {
   if (!vacancy) {
     return (
       <div className="container-page py-16">
-        <p>Вакансия не найдена. <Link className="underline" to="/kadry/vacancies">Вернуться к списку</Link></p>
+        <h1 className="text-2xl font-semibold">Вакансия не найдена</h1>
+        <p className="mt-3"><Link className="underline" to="/kadry/vacancies">Вернуться к списку</Link></p>
       </div>
     )
   }

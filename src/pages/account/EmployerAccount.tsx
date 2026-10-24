@@ -978,7 +978,7 @@ export default function EmployerAccount() {
                   <p className="mb-3 text-sm text-ink/60">Это увидит кандидат на странице вакансии, в блоке «О работодателе».</p>
                   {editingCompanyProfile ? (
                     <div className="grid gap-3">
-                      <textarea
+                      <textarea aria-label="Кратко о компании"
                         value={companyProfileDraft.description}
                         onChange={(e) => setCompanyProfileDraft((f) => ({ ...f, description: e.target.value }))}
                         rows={3}
@@ -993,19 +993,19 @@ export default function EmployerAccount() {
                         {COMPANY_INDUSTRY_TREE.map((c) => <option key={c.category} value={c.category}>{c.category}</option>)}
                       </select>
                       <div className="grid gap-3 sm:grid-cols-3">
-                        <input
+                        <input aria-label="Город"
                           value={companyProfileDraft.city}
                           onChange={(e) => setCompanyProfileDraft((f) => ({ ...f, city: e.target.value }))}
                           placeholder="Город"
                           className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
                         />
-                        <input
+                        <input aria-label="Тип организации (ООО, АО…)"
                           value={companyProfileDraft.orgType}
                           onChange={(e) => setCompanyProfileDraft((f) => ({ ...f, orgType: e.target.value }))}
                           placeholder="Тип организации (ООО, АО…)"
                           className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
                         />
-                        <input
+                        <input aria-label="Сайт компании"
                           value={companyProfileDraft.website}
                           onChange={(e) => setCompanyProfileDraft((f) => ({ ...f, website: e.target.value }))}
                           placeholder="Сайт компании"
@@ -1075,14 +1075,14 @@ export default function EmployerAccount() {
                     ))}
                   </div>
                   <form onSubmit={handleAddTeamMember} className="mt-4 grid gap-3 border-t border-ink/10 pt-4 sm:grid-cols-3">
-                    <input
+                    <input aria-label="Имя сотрудника"
                       value={teamForm.name}
                       onChange={(e) => setTeamForm((f) => ({ ...f, name: e.target.value }))}
                       placeholder="Имя сотрудника"
                       required
                       className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
                     />
-                    <input
+                    <input aria-label="Должность"
                       value={teamForm.position}
                       onChange={(e) => setTeamForm((f) => ({ ...f, position: e.target.value }))}
                       placeholder="Должность"
@@ -1090,7 +1090,7 @@ export default function EmployerAccount() {
                       className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
                     />
                     <div className="flex gap-2">
-                      <input
+                      <input aria-label="Email"
                         type="email"
                         value={teamForm.email}
                         onChange={(e) => setTeamForm((f) => ({ ...f, email: e.target.value }))}
@@ -1133,7 +1133,7 @@ export default function EmployerAccount() {
                         </div>
                       ) : replyingReviewId === r.id ? (
                         <div className="mt-2 flex gap-2">
-                          <input
+                          <input aria-label="Публичный ответ на отзыв…"
                             autoFocus
                             value={replyDraft}
                             onChange={(e) => setReplyDraft(e.target.value)}
@@ -1167,27 +1167,27 @@ export default function EmployerAccount() {
                     Загрузите места вашей компании во внешних юридических рейтингах — они дают бонус к рейтингу работодателя на платформе.
                   </p>
                   <form onSubmit={handleAddRanking} className="mt-4 grid gap-3 sm:grid-cols-2">
-                    <input
+                    <input aria-label="Название рейтинга"
                       value={rankingForm.name}
                       onChange={(e) => setRankingForm((f) => ({ ...f, name: e.target.value }))}
                       placeholder="Название рейтинга"
                       required
                       className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none sm:col-span-2"
                     />
-                    <input
+                    <input aria-label="Номинация/категория"
                       value={rankingForm.category}
                       onChange={(e) => setRankingForm((f) => ({ ...f, category: e.target.value }))}
                       placeholder="Номинация/категория"
                       className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
                     />
-                    <input
+                    <input aria-label="Место, например «5 место»"
                       value={rankingForm.place}
                       onChange={(e) => setRankingForm((f) => ({ ...f, place: e.target.value }))}
                       placeholder="Место, например «5 место»"
                       required
                       className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
                     />
-                    <input
+                    <input aria-label="Год"
                       type="number"
                       value={rankingForm.year}
                       onChange={(e) => setRankingForm((f) => ({ ...f, year: Number(e.target.value) || f.year }))}
@@ -1469,7 +1469,7 @@ export default function EmployerAccount() {
                             </button>
                             {savingTemplateFor === v.id ? (
                               <span className="flex items-center gap-1.5">
-                                <input
+                                <input aria-label="Название шаблона"
                                   value={templateNameDraft}
                                   onChange={(e) => setTemplateNameDraft(e.target.value)}
                                   placeholder="Название шаблона"
@@ -1529,13 +1529,13 @@ export default function EmployerAccount() {
 
                                   {allResponsesForVacancy.length > 0 && (
                                     <div className="mb-3 flex flex-wrap items-center gap-2">
-                                      <input
+                                      <input aria-label="Поиск по имени"
                                         value={responseFilters.search}
                                         onChange={(e) => setResponseFilters((f) => ({ ...f, search: e.target.value }))}
                                         placeholder="Поиск по имени"
                                         className="rounded-full border border-ink/15 px-3 py-1.5 text-xs placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
                                       />
-                                      <select
+                                      <select aria-label="Любое направление"
                                         value={responseFilters.industry}
                                         onChange={(e) => setResponseFilters((f) => ({ ...f, industry: e.target.value as '' | Industry }))}
                                         className="rounded-full border border-ink/15 bg-white px-3 py-1.5 text-xs text-ink/70"
@@ -1543,7 +1543,7 @@ export default function EmployerAccount() {
                                         <option value="">Любое направление</option>
                                         {INDUSTRIES.map((i) => <option key={i.id} value={i.id}>{i.label}</option>)}
                                       </select>
-                                      <select
+                                      <select aria-label="Любой уровень"
                                         value={responseFilters.level}
                                         onChange={(e) => setResponseFilters((f) => ({ ...f, level: e.target.value as '' | CandidateLevel }))}
                                         className="rounded-full border border-ink/15 bg-white px-3 py-1.5 text-xs text-ink/70"
@@ -1864,7 +1864,7 @@ export default function EmployerAccount() {
                           <div key={ev.id} className="py-4">
                             {editing && eventForm ? (
                               <div className="grid gap-3">
-                                <input
+                                <input aria-label="Название мероприятия"
                                   value={eventForm.title}
                                   onChange={(e) => setEventForm((f) => f && { ...f, title: e.target.value })}
                                   placeholder="Название мероприятия"
@@ -1887,7 +1887,7 @@ export default function EmployerAccount() {
                                   </select>
                                 </div>
                                 <div className="grid gap-3 sm:grid-cols-3">
-                                  <input
+                                  <input aria-label="Город (если офлайн)"
                                     value={eventForm.city}
                                     onChange={(e) => setEventForm((f) => f && { ...f, city: e.target.value })}
                                     placeholder="Город (если офлайн)"
@@ -1899,7 +1899,7 @@ export default function EmployerAccount() {
                                     onChange={(e) => setEventForm((f) => f && { ...f, dateTime: e.target.value })}
                                     className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm focus:border-ink/40 focus:outline-none"
                                   />
-                                  <input
+                                  <input aria-label="Цена, ₽ (0 — бесплатно)"
                                     type="number"
                                     min={0}
                                     value={eventForm.price}
@@ -1908,7 +1908,7 @@ export default function EmployerAccount() {
                                     className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
                                   />
                                 </div>
-                                <textarea
+                                <textarea aria-label="Описание"
                                   value={eventForm.description}
                                   onChange={(e) => setEventForm((f) => f && { ...f, description: e.target.value })}
                                   placeholder="Описание"
@@ -1916,13 +1916,13 @@ export default function EmployerAccount() {
                                   className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
                                 />
                                 <div className="grid gap-3 sm:grid-cols-2">
-                                  <input
+                                  <input aria-label="Ссылка на регистрацию (TimePad и т.п.)"
                                     value={eventForm.registrationLink}
                                     onChange={(e) => setEventForm((f) => f && { ...f, registrationLink: e.target.value })}
                                     placeholder="Ссылка на регистрацию (TimePad и т.п.)"
                                     className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
                                   />
-                                  <input
+                                  <input aria-label="Соцсети организатора"
                                     value={eventForm.socialLinks}
                                     onChange={(e) => setEventForm((f) => f && { ...f, socialLinks: e.target.value })}
                                     placeholder="Соцсети организатора"
@@ -1995,7 +1995,7 @@ export default function EmployerAccount() {
 
                             {rejectingEventId === ev.id && (
                               <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3">
-                                <input
+                                <input aria-label="Причина отказа"
                                   value={rejectEventReason}
                                   onChange={(e) => setRejectEventReason(e.target.value)}
                                   placeholder="Причина отказа"
@@ -2233,19 +2233,19 @@ export default function EmployerAccount() {
               <div className="glass rounded-xl p-5">
                 <div className="grid gap-3 sm:max-w-sm">
                   <div className="text-sm font-semibold text-ink">Логин и контакты</div>
-                  <input
+                  <input aria-label="Логин"
                     value={loginValue}
                     onChange={(e) => setLoginValue(e.target.value)}
                     placeholder="Логин"
                     className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
                   />
-                  <input
+                  <input aria-label="Телефон"
                     value={profileFields.phone}
                     onChange={(e) => setProfileFields((f) => ({ ...f, phone: e.target.value }))}
                     placeholder="Телефон"
                     className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
                   />
-                  <input
+                  <input aria-label="Почта"
                     value={profileFields.email}
                     onChange={(e) => setProfileFields((f) => ({ ...f, email: e.target.value }))}
                     placeholder="Почта"
@@ -2255,14 +2255,14 @@ export default function EmployerAccount() {
 
                 <form onSubmit={handleChangePassword} className="mt-5 grid gap-3 border-t border-ink/10 pt-5 sm:max-w-sm">
                   <div className="text-sm font-semibold text-ink">Сменить пароль</div>
-                  <input
+                  <input aria-label="Текущий пароль"
                     type="password"
                     value={passwordForm.current}
                     onChange={(e) => setPasswordForm((f) => ({ ...f, current: e.target.value }))}
                     placeholder="Текущий пароль"
                     className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
                   />
-                  <input
+                  <input aria-label="Новый пароль"
                     type="password"
                     value={passwordForm.next}
                     onChange={(e) => setPasswordForm((f) => ({ ...f, next: e.target.value }))}
@@ -2370,7 +2370,7 @@ export default function EmployerAccount() {
               ))}
             </div>
             <form onSubmit={handleSendChat} className="flex gap-2 border-t border-ink/10 p-4">
-              <input
+              <input aria-label="Написать сообщение…"
                 value={chatDraft}
                 onChange={(e) => setChatDraft(e.target.value)}
                 placeholder="Написать сообщение…"
@@ -2396,7 +2396,7 @@ export default function EmployerAccount() {
               <button type="button" onClick={() => setBuyingPack(null)} className="text-ink/40 hover:text-ink" aria-label="Закрыть">✕</button>
             </div>
             <form onSubmit={handleBuySubmit} className="grid gap-3">
-              <input
+              <input aria-label="Телефон для чека, например 89990000000"
                 value={buyerPhone}
                 onChange={(e) => setBuyerPhone(e.target.value)}
                 placeholder="Телефон для чека, например 89990000000"
@@ -2424,7 +2424,7 @@ export default function EmployerAccount() {
               <button type="button" onClick={() => setBuyingEventPack(null)} className="text-ink/40 hover:text-ink" aria-label="Закрыть">✕</button>
             </div>
             <form onSubmit={handleBuyEventSubmit} className="grid gap-3">
-              <input
+              <input aria-label="Телефон для чека, например 89990000000"
                 value={eventBuyerPhone}
                 onChange={(e) => setEventBuyerPhone(e.target.value)}
                 placeholder="Телефон для чека, например 89990000000"
@@ -2452,7 +2452,7 @@ export default function EmployerAccount() {
               <button type="button" onClick={() => setRejectingId(null)} className="text-ink/40 hover:text-ink" aria-label="Закрыть">✕</button>
             </div>
             <form onSubmit={handleRejectSubmit} className="grid gap-3">
-              <textarea
+              <textarea aria-label="Например: не указана вилка зарплаты"
                 value={rejectReason}
                 onChange={(e) => setRejectReason(e.target.value)}
                 placeholder="Например: не указана вилка зарплаты"
