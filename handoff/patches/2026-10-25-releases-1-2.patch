@@ -1,0 +1,1825 @@
+From 88b2733b374a758fb22a62bcdeb92b356f8a9678 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sun, 25 Oct 2026 10:48:07 +0000
+Subject: [PATCH 1/2] =?UTF-8?q?=D0=A0=D0=B5=D0=BB=D0=B8=D0=B7=201:=20?=
+ =?UTF-8?q?=D0=BF=D0=B5=D1=80=D1=81=D0=BE=D0=BD=D0=B0=D0=BB=D1=8C=D0=BD?=
+ =?UTF-8?q?=D0=B0=D1=8F=20=D0=BE=D0=B4=D0=BD=D0=BE=D1=80=D0=B0=D0=B7=D0=BE?=
+ =?UTF-8?q?=D0=B2=D0=B0=D1=8F=20=D1=81=D1=81=D1=8B=D0=BB=D0=BA=D0=B0=20?=
+ =?UTF-8?q?=D0=BD=D0=B0=20=D0=B2=D1=81=D1=82=D1=83=D0=BF=D0=BB=D0=B5=D0=BD?=
+ =?UTF-8?q?=D0=B8=D0=B5,=20=D0=BF=D1=80=D0=B8=D0=B2=D1=8F=D0=B7=D0=BA?=
+ =?UTF-8?q?=D0=B0=20=D0=BF=D1=80=D0=B8=20=D0=B2=D1=81=D1=82=D1=83=D0=BF?=
+ =?UTF-8?q?=D0=BB=D0=B5=D0=BD=D0=B8=D0=B8,=20=D0=BF=D0=B8=D1=81=D1=8C?=
+ =?UTF-8?q?=D0=BC=D0=BE=20=D0=BF=D0=BE=D1=81=D0=BB=D0=B5=20=D0=BE=D0=BF?=
+ =?UTF-8?q?=D0=BB=D0=B0=D1=82=D1=8B?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- Ссылка с одобрением заявок и именем = токен подписки (7 дней, перевыпуск); выдаётся после первой оплаты, показывается на странице
+  после оплаты, в письме, в боте (после Start и в «Ссылка на сообщество») и в кабинете на сайте («Статус»).
+- Заявка на вступление несёт токен: Telegram привязывается к оплаченной подписке без Start, заявка одобряется, ссылка отзывается,
+  ставятся метки (оплатил_подписку, резидент_сообщества, вступил_в_сообщество) и дата вступления; чужая и неоплаченная ссылка отклоняются.
+- События чата (chat_member): вступление не по заявке бота и выход учитываются.
+- Письмо после первой оплаты: ссылка и её срок, сроки подписки, как отключить автопродление, ссылка на кабинет.
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_018jwNfo7VoFWeWzfVizUNNz
+---
+ server/index.js                         | 238 +++++++++++++++++++++---
+ server/lib/accountActivity.js           |   2 +-
+ server/lib/accountProfile.js            |   5 +
+ server/lib/botUsers.js                  |  14 ++
+ server/lib/communityInvite.js           |  45 +++++
+ server/lib/residentCabinet.js           |  23 ++-
+ server/lib/store.js                     |   5 +
+ server/lib/subscriptionMail.js          |  80 ++++++++
+ src/lib/cabinet.ts                      |   7 +
+ src/pages/cabinet/CommunitySections.tsx |  51 ++++-
+ src/pages/cabinet/activityInfo.tsx      |   1 +
+ src/pages/community/JoinSuccess.tsx     | 164 +++++++++++++---
+ 12 files changed, 582 insertions(+), 53 deletions(-)
+ create mode 100644 server/lib/communityInvite.js
+ create mode 100644 server/lib/subscriptionMail.js
+
+diff --git a/server/index.js b/server/index.js
+index 082d149..fc5009e 100644
+--- a/server/index.js
++++ b/server/index.js
+@@ -41,7 +41,7 @@ import cors from 'cors'
+ import multer from 'multer'
+ import { createPaymentLink, TARIFFS, tariffIdBySubscriptionId, createProductPaymentLink, MATERIALS, setSubscriptionActivity, createEventPaymentLink, allSecretKeys, payformSummary } from './lib/prodamus.js'
+ import { HmacHelper } from './lib/hmac.js'
+-import { createPendingJoin, createOrphanJoin, listJoins, setTgUserId, findJoinForPayment, recordPayment, setSubscriptionActive, markReminded, getJoin, setCancelReason, setJoinField, extendSubscription, createLifetimeJoin } from './lib/store.js'
++import { createPendingJoin, createOrphanJoin, listJoins, setTgUserId, findJoinForPayment, recordPayment, setSubscriptionActive, markReminded, getJoin, setCancelReason, setJoinField, patchJoin, extendSubscription, createLifetimeJoin } from './lib/store.js'
+ import { normalizePhone } from './lib/jsonStore.js'
+ import { createPendingPurchase, getPurchase, markPurchasePaidByPhone, recordPurchasePayment, listPurchases, grantFreeMaterial, hasMaterialAccess } from './lib/materialsStore.js'
+ import { materialInfo } from './lib/materialCatalog.js'
+@@ -62,7 +62,9 @@ import { getMaterialPdf } from './lib/materialPdfs.js'
+ import { issueMaterialLink, resolveMaterialLink, looksLikeLinkToken } from './lib/materialLinks.js'
+ import { composeMaterialMail, formatMoscowDateTime as formatMskDateTime, LINK_DAYS } from './lib/materialMail.js'
+ import { saveReview, getReviewByPurchase, ratingsSummary, publicReviews, listReviews, getReview, setReviewHidden, reviewText, reviewSignature } from './lib/materialReviews.js'
+-import { touchBotUser, giveConsent, setMailingConsent, getBotUser, listBotUsers, countConversation, updateBotUser, setGender } from './lib/botUsers.js'
++import { touchBotUser, ensureBotUser, addTag, giveConsent, setMailingConsent, getBotUser, listBotUsers, countConversation, updateBotUser, setGender } from './lib/botUsers.js'
++import { INVITE_TTL_MS, INVITE_TTL_DAYS, currentInvite, decideJoinRequest } from './lib/communityInvite.js'
++import { composeSubscriptionMail } from './lib/subscriptionMail.js'
+ import { isStartKeyword, welcomeScreen, noConsentScreen, mailingScreen, mainMenuScreen, supportPrompt, consultPrompt, genderScreen, reviewThanks, legalScreen, aboutScreen, consultScreen, consultBookedScreen, CONTACT_PROMPTS, contactCancelKeyboard, unsubscribedScreen, communityScreen, communityResidentScreen, periodsScreen, subLinkScreen, aboutClubScreen, careerScreen, achievementsScreen } from './lib/botFlow.js'
+ import { buildMonthCsv } from './lib/exportCsv.js'
+ import { vacancyOverrides, setVacancyStatus } from './lib/vacancyOverrides.js'
+@@ -120,6 +122,7 @@ const COMMUNITY_INVITE_LINK = process.env.COMMUNITY_INVITE_LINK
+ // Секретная команда открытия кабинета разработчика (можно поменять в server/.env: ADMIN_COMMAND=...).
+ const ADMIN_COMMAND = process.env.ADMIN_COMMAND || 'KQ21022025RD'
+ const SUPPORT_HANDLE = process.env.SUPPORT_HANDLE || '@legalcareerist_support'
++const BOT_USERNAME = (process.env.BOT_USERNAME || 'legalcareerist_bot').replace(/^@/, '')
+ // Chat id помощников (через запятую): видят кабинет, но не могут ничего менять. По умолчанию — никого.
+ const VIEWER_IDS = new Set(String(process.env.TELEGRAM_VIEWER_CHAT_IDS ?? '').split(',').map((v) => v.trim()).filter(Boolean))
+ 
+@@ -455,7 +458,7 @@ function formatRub(amount) {
+ }
+ 
+ /** Уведомление админу о каждой оплате подписки — первой и каждом продлении. */
+-function buildPaymentNotification({ kind, number, tariff, subscriptionName, amount, paidAt, nextPaymentAt, name, phone, email, telegram, orphan }) {
++function buildPaymentNotification({ kind, number, tariff, subscriptionName, amount, paidAt, nextPaymentAt, name, phone, email, telegram, orphan, extra = [] }) {
+   const renewal = kind === 'renewal'
+   const orphanNote = !orphan
+     ? null
+@@ -478,6 +481,7 @@ function buildPaymentNotification({ kind, number, tariff, subscriptionName, amou
+     '',
+     `💰 Сумма: ${formatRub(amount)}`,
+     nextPaymentAt ? `⏭️ Следующее списание: ${formatMoscowDateTime(new Date(nextPaymentAt).toISOString()).split(',')[0]}` : null,
++    ...extra,
+   ].filter((l) => l !== null)
+   return lines.join('\n')
+ }
+@@ -625,6 +629,22 @@ async function handleSubscriptionPayment(body, phone) {
+   const rec = result.record
+   console.log(`[prodamus] оплата учтена: ${rec.token} (${result.kind}, платёж №${result.number}), следующее списание:`, nextPaymentAt ? new Date(nextPaymentAt).toISOString() : 'неизвестно')
+ 
++  // Первая оплата: личная ссылка на вступление и письмо с ней (и сроками, и тем, как отключить подписку).
++  const adminLines = []
++  let invite = null
++  if (result.kind === 'first') {
++    try {
++      const full = getJoin(rec.token) ?? rec
++      invite = await issueInvite(full)
++      adminLines.push(invite ? `🔗 Личная ссылка на вступление выдана (до ${ruDay(invite.expiresAt)})` : '⚠️ Личную ссылку на вступление выдать не удалось (бот должен быть администратором чата): человеку пришлите ссылку вручную')
++      const mail = await sendSubscriptionMail(full, invite, { amount, paidAt })
++      adminLines.push(mailStatusLine(mail))
++    } catch (err) {
++      console.error('[prodamus] ссылка/письмо после первой оплаты:', err)
++    }
++    if (rec.tgUserId) for (const tag of ['оплатил_подписку', 'резидент_сообщества']) addTag(rec.tgUserId, tag)
++  }
++
+   await sendTelegramMessage(
+     ADMIN_CHAT_ID,
+     buildPaymentNotification({
+@@ -640,16 +660,36 @@ async function handleSubscriptionPayment(body, phone) {
+       email: rec.email || email,
+       telegram: rec.telegram,
+       orphan,
++      extra: adminLines,
+     }),
+   )
+ 
+   if (result.kind === 'first' && rec.tgUserId) {
+-    await sendInviteLink(rec.tgUserId)
++    await sendInviteLink(rec.tgUserId, getJoin(rec.token) ?? rec)
+   } else if (result.kind === 'renewal' && rec.tgUserId) {
+     await sendTelegramMessage(rec.tgUserId, 'Подписка продлена, продолжай пользоваться всеми возможностями сообщества.', REMINDER_KEYBOARD).catch(() => false)
+   }
+ }
+ 
++/** Письмо после оплаты: личная ссылка на вступление (invite или null), сроки, как отключить, кабинет. Возвращает { ok, error? }. */
++async function sendSubscriptionMail(join, invite, { amount, paidAt } = {}) {
++  if (!join.email) return { ok: false, error: 'no_email' }
++  const last = (join.payments ?? []).at(-1)
++  const mail = composeSubscriptionMail({
++    name: join.name,
++    tariff: TARIFFS[join.tariffId]?.label ?? last?.subscriptionName ?? 'Подписка на сообщество',
++    amount: amount ?? last?.amount,
++    paidAt: paidAt ?? last?.at ?? Date.now(),
++    nextPaymentAt: join.nextPaymentAt,
++    oneTime: Boolean(join.oneTime),
++    invite,
++    siteUrl: SITE_URL,
++    botUsername: BOT_USERNAME,
++    supportHandle: SUPPORT_HANDLE,
++  })
++  return sendMail({ to: join.email, ...mail })
++}
++
+ /**
+  * Состояние подписки из любого вебхука с блоком subscription: если человек
+  * или менеджер отключил подписку (active_user / active_manager = 0), а мы
+@@ -691,46 +731,150 @@ async function handleSubscriptionState(body) {
+ const COMMUNITY_CHAT_ID = process.env.COMMUNITY_CHAT_ID || '-1002520943910'
+ const REMINDER_KEYBOARD = [[{ text: 'Главное меню', callback_data: 'u:menu' }]]
+ 
+-async function sendInviteLink(chatId) {
+-  // Если человека раньше исключали из чата, снимаем блокировку — иначе заявка не пройдёт.
+-  await telegramFetch('unbanChatMember', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: COMMUNITY_CHAT_ID, user_id: chatId, only_if_banned: true }) }).catch(() => null)
++const inviteInFlight = new Map()
++
++/**
++ * Персональная ссылка на вступление для оплаченной подписки: выданную берём, пока она годна, иначе (или при force) выпускаем новую.
++ * Это ссылка с одобрением заявок и именем = токен карточки: по нему handleJoinRequest узнаёт, чья это подписка. Прежнюю отзываем.
++ * Возвращает { url, expiresAt } или null, если Telegram ссылку не выдал (бот не администратор чата и т. п.).
++ */
++function issueInvite(join, { force = false } = {}) {
++  const key = join.token
++  if (inviteInFlight.has(key)) return inviteInFlight.get(key) // два запроса подряд (страница и вебхук) не выпускают по ссылке
++  const work = (async () => {
++    const fresh = getJoin(key) ?? join
++    const existing = currentInvite(fresh)
++    if (existing && !force) return existing
++    if (!BOT_TOKEN) return null
++    const post = (method, body) => telegramFetch(method, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
++    if (fresh.inviteUrl) await post('revokeChatInviteLink', { chat_id: COMMUNITY_CHAT_ID, invite_link: fresh.inviteUrl }).catch(() => null)
++    // Если человека раньше исключали из чата, снимаем блокировку: иначе заявка не пройдёт.
++    if (fresh.tgUserId) await post('unbanChatMember', { chat_id: COMMUNITY_CHAT_ID, user_id: Number(fresh.tgUserId), only_if_banned: true }).catch(() => null)
++    const expiresAt = Date.now() + INVITE_TTL_MS
++    try {
++      const res = await post('createChatInviteLink', { chat_id: COMMUNITY_CHAT_ID, name: key, expire_date: Math.floor(expiresAt / 1000), creates_join_request: true })
++      const body = await res.json().catch(() => null)
++      const url = body?.result?.invite_link
++      if (!res.ok || !url) {
++        console.error('[telegram] createChatInviteLink ошибка:', JSON.stringify(body))
++        return null
++      }
++      patchJoin(key, { inviteUrl: url, inviteExpiresAt: expiresAt, inviteIssuedAt: Date.now() })
++      return { url, expiresAt }
++    } catch (err) {
++      console.error('[telegram] createChatInviteLink сбой:', err.message)
++      return null
++    }
++  })().finally(() => inviteInFlight.delete(key))
++  inviteInFlight.set(key, work)
++  return work
++}
++
++const ruDay = (ts) => new Intl.DateTimeFormat('ru-RU', { timeZone: 'Europe/Moscow', day: 'numeric', month: 'long' }).format(new Date(ts))
++
++/** Бот присылает ссылку на вступление: после оплаты и по /start access_…. Нет личной ссылки (Telegram не выдал) — запасная общая. */
++async function sendInviteLink(chatId, join, { force = false } = {}) {
++  if (join?.joinedAt && !force) {
++    await sendTelegramMessage(chatId, 'Подписка привязана ✅ Ты уже в закрытом чате сообщества. Если выходил(а) и хочешь вернуться, нажми «Новая ссылка».', [[{ text: '🔄 Новая ссылка', callback_data: 'r:newlink' }], [{ text: 'Личный кабинет', callback_data: 'r:menu' }]])
++    return
++  }
++  const invite = join ? await issueInvite(join, { force }) : null
++  const url = invite?.url ?? COMMUNITY_INVITE_LINK
++  const note = invite ? ` Ссылка личная и одноразовая, действует ${INVITE_TTL_DAYS} дней (до ${ruDay(invite.expiresAt)}).` : ''
+   await sendTelegramMessage(
+     chatId,
+-    'Отлично! Оплата получена ✅\n\nНажми кнопку «Подать заявку», и я сразу приму тебя в сообщество.\n\nЖду тебя внутри!',
+-    COMMUNITY_INVITE_LINK ? [[{ text: 'Подать заявку', url: COMMUNITY_INVITE_LINK }]] : undefined,
++    `Отлично! Оплата получена ✅\n\nНажми кнопку «Вступить в сообщество» и подай заявку, я сразу её приму.${note}\n\nЖду тебя внутри!`,
++    url ? [[{ text: 'Вступить в сообщество', url }], [{ text: 'Личный кабинет', callback_data: 'r:menu' }]] : undefined,
+   )
+-  if (!COMMUNITY_INVITE_LINK) await sendTelegramMessage(ADMIN_CHAT_ID, `⚠️ Оплата получена, но COMMUNITY_INVITE_LINK не задана: пришлите человеку (chat id ${chatId}) ссылку на сообщество вручную.`)
++  if (!url) await sendTelegramMessage(ADMIN_CHAT_ID, `⚠️ Оплата получена, но ссылку на вступление выдать не удалось (бот должен быть администратором чата с правом приглашать, либо задайте COMMUNITY_INVITE_LINK): пришлите человеку (chat id ${chatId}) ссылку вручную.`)
++}
++
++/** Метки и дата вступления: в карточке подписки и в карточке человека в боте (её заводим, если человек ещё не нажимал Start). */
++function markJoined(from, join, at) {
++  patchJoin(join.token, { joinedAt: join.joinedAt ?? at, lastJoinedAt: at, leftAt: undefined })
++  if (!from?.id) return
++  ensureBotUser(from)
++  for (const tag of ['оплатил_подписку', 'резидент_сообщества', 'вступил_в_сообщество']) addTag(from.id, tag)
++  updateBotUser(from.id, { communityJoinedAt: join.joinedAt ?? at })
+ }
+ 
+-/** Заявка на вступление в чат сообщества: одобряем оплатившим резидентам и присылаем приветствие с чек-листом. */
++/**
++ * Заявка на вступление в чат сообщества. Заявка по личной ссылке несёт токен подписки: по нему привязываем Telegram к оплате (даже если
++ * человек ни разу не нажимал Start), одобряем, отзываем ссылку, ставим метки и дату вступления. Чужую ссылку отклоняем. Общая ссылка
++ * работает, как раньше: одобряем тех, чей Telegram уже привязан к оплаченной подписке.
++ */
+ async function handleJoinRequest(request) {
+   if (String(request.chat?.id) !== String(COMMUNITY_CHAT_ID)) return
+   const userId = request.from?.id
+-  const resident = residentByTelegramId(userId)
+   const name = [request.from?.first_name, request.from?.last_name].filter(Boolean).join(' ')
++  const who = `${name || 'без имени'}${request.from?.username ? ` (@${request.from.username})` : ''}, id ${userId}`
+   const dmChat = request.user_chat_id ?? userId
+-  if (!resident || resident.status !== 'active') {
+-    await sendTelegramMessage(ADMIN_CHAT_ID, `⚠️ Заявка на вступление в сообщество без найденной оплаты: ${name || 'без имени'}${request.from?.username ? ` (@${request.from.username})` : ''}, id ${userId}.\nЗаявка не одобрена — проверьте оплату и, если всё в порядке, одобрите вручную в чате.`)
+-    await sendTelegramMessage(dmChat, 'Не вижу подтверждения твоей оплаты 🙂 Если оплата прошла, напиши в поддержку и приложи чек — мы быстро проверим и всё уладим.', [[{ text: 'Поддержка', url: `https://t.me/${SUPPORT_HANDLE.replace(/^@/, '')}` }]]).catch(() => false)
++  const supportButton = [[{ text: 'Поддержка', url: `https://t.me/${SUPPORT_HANDLE.replace(/^@/, '')}` }]]
++  const post = (method, body) => telegramFetch(method, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
++  const verdict = decideJoinRequest({ inviteName: request.invite_link?.name, from: request.from, getJoin, residentByTelegramId, hasAccess })
++
++  if (verdict.action === 'decline') {
++    await post('declineChatJoinRequest', { chat_id: COMMUNITY_CHAT_ID, user_id: userId }).catch(() => null)
++    const why = { unpaid: 'оплата по этой подписке не подтверждена', expired: 'срок подписки закончился', foreign: 'ссылка выдана другому человеку (её передали или переслали)' }[verdict.reason]
++    await sendTelegramMessage(ADMIN_CHAT_ID, `⚠️ Заявка на вступление отклонена: ${who}.\nПричина: ${why}.\nЛичная ссылка подписки: ${[verdict.join?.name, verdict.join?.telegram, verdict.join?.email].filter(Boolean).join(', ') || 'без имени'}.`)
++    await sendTelegramMessage(dmChat, verdict.reason === 'foreign' ? 'Эта ссылка выдана другому человеку, поэтому заявку принять не можем. Получи свою ссылку в боте или в личном кабинете после оплаты, а если что-то не так, напиши в поддержку.' : 'Не получилось принять заявку: подписка не действует. Если оплата прошла, напиши в поддержку и приложи чек, мы быстро проверим.', supportButton).catch(() => false)
+     return
+   }
+-  const res = await telegramFetch('approveChatJoinRequest', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: COMMUNITY_CHAT_ID, user_id: userId }) })
++  if (verdict.action === 'unpaid') {
++    await sendTelegramMessage(ADMIN_CHAT_ID, `⚠️ Заявка на вступление в сообщество без найденной оплаты: ${who}.\nЗаявка не одобрена — проверьте оплату и, если всё в порядке, одобрите вручную в чате.`)
++    await sendTelegramMessage(dmChat, 'Не вижу подтверждения твоей оплаты 🙂 Если оплата прошла, напиши в поддержку и приложи чек — мы быстро проверим и всё уладим.', supportButton).catch(() => false)
++    return
++  }
++
++  if (verdict.bind) setTgUserId(verdict.join.token, String(userId))
++  const res = await post('approveChatJoinRequest', { chat_id: COMMUNITY_CHAT_ID, user_id: userId })
+   if (!res.ok) {
+     console.error('[telegram] approveChatJoinRequest ошибка:', await res.text())
+     await sendTelegramMessage(ADMIN_CHAT_ID, `⚠️ Не удалось одобрить заявку ${name} (id ${userId}). Бот должен быть администратором чата сообщества с правом приглашать пользователей.`)
+     return
+   }
+-  const days = resident.nextPaymentAt ? Math.max(1, Math.round((resident.nextPaymentAt - Date.now()) / 86400000)) : (TARIFFS[resident.tariffId]?.months ?? 1) * 30
++  const resident = getJoin(verdict.join.token)
++  const now = Date.now()
++  markJoined(request.from, resident, now)
++  // Личная ссылка отработала: отзываем её, чтобы ею нельзя было воспользоваться ещё раз.
++  if (verdict.viaLink && request.invite_link?.invite_link) {
++    await post('revokeChatInviteLink', { chat_id: COMMUNITY_CHAT_ID, invite_link: request.invite_link.invite_link }).catch(() => null)
++    patchJoin(resident.token, { inviteUrl: undefined, inviteExpiresAt: undefined, inviteUsedAt: now })
++  }
++  const note = [verdict.bind ? 'Telegram привязан к подписке по личной ссылке' : null, verdict.nickMismatch ? `⚠️ ник на сайте ${resident.telegram}, в Telegram @${request.from.username}: проверьте, что это тот человек` : null].filter(Boolean).join('; ')
++  await sendTelegramMessage(ADMIN_CHAT_ID, `✅ Вступил(а) в сообщество: ${who}${note ? `\n${note}` : ''}`, undefined, quiet()).catch(() => false)
++
++  const days = resident.nextPaymentAt ? Math.max(1, Math.round((resident.nextPaymentAt - now) / 86400000)) : (TARIFFS[resident.tariffId]?.months ?? 1) * 30
++  const dmChat2 = dmChat
+   setTimeout(async () => {
+-    await sendTelegramMessage(dmChat, `Поздравляю! 🎉\nТеперь ты — полноценная часть нашего сообщества! 💗\n\nУ тебя есть ${days} дней вместе с нами. Наслаждайся общением, пользой и крутыми ребятами ✨\n\nЕсли будут вопросы — всегда пиши мне.`, [[{ text: 'Поддержка', url: `https://t.me/${SUPPORT_HANDLE.replace(/^@/, '')}` }, { text: 'Главное меню', callback_data: 'u:menu' }]]).catch(() => false)
++    await sendTelegramMessage(dmChat2, `Поздравляю! 🎉\nТеперь ты — полноценная часть нашего сообщества! 💗\n\nУ тебя есть ${days} дней вместе с нами. Наслаждайся общением, пользой и крутыми ребятами ✨\n\nЕсли будут вопросы — всегда пиши мне.`, [[{ text: 'Поддержка', url: `https://t.me/${SUPPORT_HANDLE.replace(/^@/, '')}` }, { text: 'Главное меню', callback_data: 'u:menu' }]]).catch(() => false)
+     setTimeout(async () => {
+-      await sendTelegramMessage(dmChat, 'Хотим, чтобы твое включение в сообщество прошло легко и с пользой с самого старта. Прикладываем чек-лист — пройдись по нему в удобное время, это займет пару минут', REMINDER_KEYBOARD).catch(() => false)
++      await sendTelegramMessage(dmChat2, 'Хотим, чтобы твое включение в сообщество прошло легко и с пользой с самого старта. Прикладываем чек-лист — пройдись по нему в удобное время, это займет пару минут', REMINDER_KEYBOARD).catch(() => false)
+       const file = getMaterialFile(CHECKLIST_SLUG)
+-      if (file) await sendTelegramDocumentById(dmChat, file.fileId).catch(() => false)
++      if (file) await sendTelegramDocumentById(dmChat2, file.fileId).catch(() => false)
+     }, 10000)
+   }, 10000)
+ }
+ 
++/** События чата: вступление и выход тех, кто попал в чат не через нашу заявку (вручную, по общей ссылке), и любой выход резидента. */
++async function handleChatMember(event) {
++  if (String(event.chat?.id) !== String(COMMUNITY_CHAT_ID)) return
++  const user = event.new_chat_member?.user
++  if (!user || user.is_bot) return
++  const inChat = (s) => s === 'member' || s === 'administrator' || s === 'creator'
++  const was = event.old_chat_member?.status
++  const now = event.new_chat_member?.status
++  const resident = residentByTelegramId(user.id)
++  if (!resident) return
++  if (!inChat(was) && inChat(now) && !resident.joinedAt && !event.via_join_request) { // вступившие по заявке уже учтены в handleJoinRequest
++    markJoined(user, resident, Date.now())
++    await sendTelegramMessage(ADMIN_CHAT_ID, `✅ Вступил(а) в сообщество (не по заявке бота): ${[user.first_name, user.last_name].filter(Boolean).join(' ')}${user.username ? ` (@${user.username})` : ''}`, undefined, quiet()).catch(() => false)
++  } else if (inChat(was) && (now === 'left' || now === 'kicked')) {
++    patchJoin(resident.token, { leftAt: Date.now() })
++    addTag(user.id, 'вышел_из_сообщества')
++  }
++}
++
+ // Открытие страницы вакансии → +1 к счётчику просмотров. Считаем реальные
+ // заходы (не демо-число), но не завязываем это на успех/провал остального
+ // стека — счётчик пишется сам по себе, до всех проверок ниже.
+@@ -1135,6 +1279,18 @@ app.get('/api/account/subscription', (req, res) => {
+ 
+ const subscriptionAttempts = new Map()
+ 
++/** Новая личная ссылка на вступление из кабинета резидента (кнопка в разделе «Статус»). */
++app.post('/api/account/subscription/invite', async (req, res) => {
++  const cfg = requireAccount(req, res)
++  if (!cfg) return
++  if (hitLimit(subscriptionAttempts, `i:${cfg.login}`, 5, HOUR_MS)) return res.status(429).json({ ok: false, error: 'too_many_attempts' })
++  const join = residentJoin(cfg.tgId, cfg.email)
++  if (!join || join.lifetime || !hasAccess(join)) return res.status(404).json({ ok: false, error: 'no_subscription' })
++  const invite = await issueInvite(join, { force: true })
++  logActivity(cfg.login, 'invite_issued')
++  res.json(invite ? { ok: true, invite } : { ok: false, error: 'link_unavailable' })
++})
++
+ /** Отключение автопродления из кабинета: тот же путь, что в боте (Prodamus setActivity), доступ остаётся до конца оплаченного периода. */
+ app.post('/api/account/subscription/cancel', async (req, res) => {
+   const cfg = requireAccount(req, res)
+@@ -1570,6 +1726,33 @@ app.get('/api/payment/status', (req, res) => {
+   res.json(none)
+ })
+ 
++// Страница после оплаты подписки: личная ссылка на вступление по токену из ссылки возврата с оплаты (его знает только заплативший).
++// Пока вебхук Prodamus не дошёл, paid=false, и страница опрашивает снова. Ссылку выпускаем при первом обращении после оплаты.
++const accessAttempts = new Map()
++app.get('/api/community/access', async (req, res) => {
++  res.set('Cache-Control', 'no-store')
++  const token = String(req.query.token ?? '')
++  if (!PAY_TOKEN_RE.test(token)) return res.json({ ok: true, known: false, paid: false })
++  if (hitLimit(accessAttempts, `g:${token}`, 240, HOUR_MS)) return res.status(429).json({ ok: false, error: 'too_many_attempts' })
++  const join = getJoin(token)
++  if (!join || join.lifetime) return res.json({ ok: true, known: false, paid: false })
++  if (!join.paid) return res.json({ ok: true, known: true, paid: false })
++  const joined = Boolean(join.joinedAt)
++  const invite = !joined && hasAccess(join) ? await issueInvite(join) : null
++  res.json({ ok: true, known: true, paid: true, joined, invite, botUrl: `https://t.me/${BOT_USERNAME}` })
++})
++
++// Новая личная ссылка (прежняя отзывается): истёк срок, потеряли письмо или вышли из чата.
++app.post('/api/community/access/reissue', async (req, res) => {
++  const token = String(req.body?.token ?? '')
++  if (!PAY_TOKEN_RE.test(token)) return res.status(400).json({ ok: false, error: 'bad_token' })
++  if (hitLimit(accessAttempts, `r:${token}`, 5, HOUR_MS)) return res.status(429).json({ ok: false, error: 'too_many_attempts' })
++  const join = getJoin(token)
++  if (!join?.paid || join.lifetime || !hasAccess(join)) return res.status(404).json({ ok: false, error: 'no_access' })
++  const invite = await issueInvite(join, { force: true })
++  res.json(invite ? { ok: true, invite } : { ok: false, error: 'link_unavailable' })
++})
++
+ // Чек об оплате билета для страницы возврата с оплаты: сайт показывает «печатающийся» чек с именем гостя, билетом и номером.
+ // Токен — из ссылки возврата (urlSuccess), её получает только заплативший. Отдаём ровно то, что напечатано на чеке: без почты и телефона.
+ // known=false — такого заказа нет (чек показывать не нужно); paid=false при known=true — оплата ещё не подтверждена вебхуком Prodamus.
+@@ -2965,7 +3148,12 @@ async function handleResidentCallback(query) {
+   const user = getBotUser(chatId) ?? fromUser ?? {}
+   let screen
+   if (action === 'sub') screen = subscriptionScreen(join, TARIFFS)
+-  else if (action === 'link') screen = linkScreen(join, COMMUNITY_INVITE_LINK)
++  else if (action === 'link' || action === 'newlink') {
++    // Вступивший без нажатия «Новая ссылка» ссылку не получает: она ему не нужна. Основатель ходит по общей ссылке.
++    const wantNew = action === 'newlink' || !join.joinedAt
++    const invite = join.lifetime || !hasAccess(join) ? null : wantNew ? await issueInvite(join, { force: action === 'newlink' }) : currentInvite(join)
++    screen = linkScreen(join, invite, COMMUNITY_INVITE_LINK)
++  }
+   else if (action === 'rv') screen = reviewScreen({ bonusDays: REVIEW_BONUS_DAYS, consentUrl: `${SITE_URL}/legal/consent-publication`, bonusGiven: Boolean(join.reviewThankedAt) })
+   else if (action === 'rvgo') {
+     userFlows.set(String(chatId), { kind: 'review', token: join.token })
+@@ -3039,6 +3227,10 @@ async function handleTelegramUpdate(update) {
+     await handleJoinRequest(update.chat_join_request)
+     return
+   }
++  if (update?.chat_member) {
++    await handleChatMember(update.chat_member)
++    return
++  }
+   if (isOutsidePrivateChat(update?.message?.chat) || isOutsidePrivateChat(update?.callback_query?.message?.chat)) {
+     console.log('[tg] групповой чат — бот там не отвечает:', update?.message?.chat?.id ?? update?.callback_query?.message?.chat?.id)
+     return
+@@ -3219,7 +3411,7 @@ async function handleTelegramUpdate(update) {
+   }
+ 
+   if (join.paid) {
+-    await sendInviteLink(chatId)
++    await sendInviteLink(chatId, getJoin(token))
+   } else {
+     await sendTelegramMessage(chatId, 'Ждём подтверждения оплаты от банка — обычно это занимает меньше минуты. Как только оплата пройдёт, здесь появится ссылка на вступление.')
+   }
+@@ -3668,7 +3860,7 @@ async function pollTelegramUpdates() {
+   console.log('[telegram] приём сообщений боту: опрос getUpdates')
+   for (;;) {
+     try {
+-      const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getUpdates?timeout=30&offset=${offset}&allowed_updates=${encodeURIComponent(JSON.stringify(['message', 'callback_query', 'chat_join_request']))}`, { signal: AbortSignal.timeout(45000) })
++      const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getUpdates?timeout=30&offset=${offset}&allowed_updates=${encodeURIComponent(JSON.stringify(['message', 'callback_query', 'chat_join_request', 'chat_member']))}`, { signal: AbortSignal.timeout(45000) })
+       const data = await res.json()
+       if (!Array.isArray(data.result)) {
+         console.error('[telegram] getUpdates ответил неожиданно:', JSON.stringify(data).slice(0, 200))
+diff --git a/server/lib/accountActivity.js b/server/lib/accountActivity.js
+index dfdbca3..b65f696 100644
+--- a/server/lib/accountActivity.js
++++ b/server/lib/accountActivity.js
+@@ -14,7 +14,7 @@ export const ACTIVITY_TTL_MS = 365 * 24 * 3600 * 1000
+ export const KINDS = new Set([
+   'login', 'password_set', 'password_reset', 'password_changed', 'telegram_linked', 'telegram_unlinked',
+   'profile_saved', 'contact_updated', 'document_added', 'document_deleted', 'marketing_changed',
+-  'data_exported', 'deletion_requested', 'support_message', 'support_reply', 'subscription_cancelled', 'card_change_requested',
++  'data_exported', 'deletion_requested', 'support_message', 'support_reply', 'subscription_cancelled', 'card_change_requested', 'invite_issued',
+ ])
+ const META_KEYS = ['value', 'docType', 'part']
+ 
+diff --git a/server/lib/accountProfile.js b/server/lib/accountProfile.js
+index df6f96c..4f01a3d 100644
+--- a/server/lib/accountProfile.js
++++ b/server/lib/accountProfile.js
+@@ -3,6 +3,7 @@ import { listJoins } from './store.js'
+ import { getBotUser } from './botUsers.js'
+ import { TARIFFS } from './prodamus.js'
+ import { getProfile } from './accountStore.js'
++import { currentInvite } from './communityInvite.js'
+ 
+ const DAY = 24 * 3600 * 1000
+ 
+@@ -69,6 +70,10 @@ export function subscriptionDetails(tgId, email = '', now = Date.now()) {
+     period: tariff?.period ?? null,
+     nextPayment: renews ? Number(join.nextPaymentAt) || null : null,
+     canCancel: renews && !join.lifetime,
++    // Личная ссылка на вступление: выданная и ещё годная; вступил ли человек в чат (тогда ссылка нужна, только если он вышел).
++    invite: join.lifetime ? null : currentInvite(join),
++    joined: Boolean(join.joinedAt),
++    joinedAt: join.joinedAt ?? null,
+     payments,
+   }
+ }
+diff --git a/server/lib/botUsers.js b/server/lib/botUsers.js
+index edb9072..43d637b 100644
+--- a/server/lib/botUsers.js
++++ b/server/lib/botUsers.js
+@@ -56,6 +56,20 @@ export function touchBotUser(from, startParam) {
+   return user
+ }
+ 
++/**
++ * Карточка человека, который попал к нам не через /start (подал заявку на вступление в чат по ссылке из оплаты): чтобы повесить метки.
++ * В отличие от touchBotUser не отмечает, что человек писал боту (lastSeenAt), и согласий не ставит.
++ */
++export function ensureBotUser(from) {
++  const data = load()
++  const id = String(from.id)
++  if (!data[id]) {
++    data[id] = { id, tags: [], createdAt: Date.now(), conversationsCount: 0, firstName: from.first_name || '', lastName: from.last_name || '', username: from.username ? `@${from.username}` : '' }
++    save(data)
++  }
++  return data[id]
++}
++
+ /** Считает начало диалога (/start): счётчик «диалогов» из карточки BotHelp. */
+ export function countConversation(tgId) {
+   const data = load()
+diff --git a/server/lib/communityInvite.js b/server/lib/communityInvite.js
+new file mode 100644
+index 0000000..83a2f44
+--- /dev/null
++++ b/server/lib/communityInvite.js
+@@ -0,0 +1,45 @@
++// Персональная одноразовая ссылка на вступление в закрытый чат сообщества. Ссылку выдаём каждому оплатившему отдельно: в Telegram
++// это ссылка с одобрением заявок (creates_join_request) и именем = токен карточки подписки. Когда человек подаёт заявку, в ней приходит
++// это имя, и бот по нему привязывает Telegram к оплаченной подписке (даже если человек ни разу не нажимал Start), одобряет заявку
++// и отзывает ссылку. Здесь только чистая логика (тестируется без Telegram); сами запросы к Telegram — в server/index.js.
++
++export const INVITE_TTL_DAYS = 7
++export const INVITE_TTL_MS = INVITE_TTL_DAYS * 24 * 3600 * 1000
++/** Если до конца срока ссылки осталось меньше, при следующем показе выдаём новую: человек не должен получить почти истёкшую. */
++export const INVITE_MIN_LEFT_MS = 12 * 3600 * 1000
++
++const TOKEN_RE = /^[0-9a-f]{24}$/
++
++/** Выданная и ещё годная ссылка в карточке: { url, expiresAt } или null. */
++export function currentInvite(join, now = Date.now()) {
++  if (!join?.inviteUrl || !join.inviteExpiresAt) return null
++  return join.inviteExpiresAt - now >= INVITE_MIN_LEFT_MS ? { url: join.inviteUrl, expiresAt: join.inviteExpiresAt } : null
++}
++
++const nick = (v) => String(v ?? '').trim().replace(/^@/, '').toLowerCase()
++
++/**
++ * Что делать с заявкой на вступление. Вход: имя ссылки (токен карточки или пусто — общая ссылка), Telegram-аккаунт подавшего,
++ * поиск карточки по токену, поиск резидента по Telegram id и проверка «подписка в силе».
++ * Результат: { action, join, bind, viaLink, nickMismatch }
++ *   approve — одобрить; bind — сначала привязать Telegram к карточке;
++ *   decline — отклонить (reason: unpaid | expired | foreign), join — чья это ссылка;
++ *   unpaid — оплаты не нашли (заявку не трогаем, админу сообщение, как раньше).
++ */
++export function decideJoinRequest({ inviteName, from, getJoin, residentByTelegramId, hasAccess }) {
++  const uid = String(from?.id ?? '')
++  if (inviteName && TOKEN_RE.test(inviteName)) {
++    const join = getJoin(inviteName)
++    if (join) {
++      if (!join.paid) return { action: 'decline', reason: 'unpaid', join }
++      if (!hasAccess(join)) return { action: 'decline', reason: 'expired', join }
++      if (join.tgUserId && String(join.tgUserId) !== uid) return { action: 'decline', reason: 'foreign', join }
++      // Ник из заявки на сайте и в Telegram мог не совпасть из-за опечатки: заявку одобряем, но админу об этом скажем.
++      const nickMismatch = Boolean(!join.tgUserId && nick(join.telegram) && nick(from?.username) && nick(join.telegram) !== nick(from.username))
++      return { action: 'approve', join, bind: !join.tgUserId, viaLink: true, nickMismatch }
++    }
++  }
++  const resident = residentByTelegramId(uid)
++  if (resident && hasAccess(resident)) return { action: 'approve', join: resident, bind: false, viaLink: false, nickMismatch: false }
++  return { action: 'unpaid', join: resident ?? null }
++}
+diff --git a/server/lib/residentCabinet.js b/server/lib/residentCabinet.js
+index e7eac51..56a4ae5 100644
+--- a/server/lib/residentCabinet.js
++++ b/server/lib/residentCabinet.js
+@@ -88,10 +88,25 @@ export function reviewSendPrompt(minLength) {
+   }
+ }
+ 
+-export function linkScreen(join, inviteLink, now = Date.now()) {
+-  if (!hasAccess(join, now)) return { text: '🔗 Ссылка на сообщество доступна при действующей подписке. Если оплата прошла, а ссылки нет, напиши в поддержку.', keyboard: [[{ text: '💬 Поддержка', callback_data: 'u:support' }], BACK_ROW] }
+-  if (!inviteLink) return { text: '🔗 Ссылку на сообщество пришлёт поддержка — напиши нам.', keyboard: [[{ text: '💬 Поддержка', callback_data: 'u:support' }], BACK_ROW] }
+-  return { text: `🔗 Ссылка на вступление в закрытое сообщество:\n${inviteLink}`, keyboard: [BACK_ROW] }
++/**
++ * «Ссылка на сообщество». invite — личная одноразовая ссылка { url, expiresAt } или null; fallbackUrl — общая ссылка (основатель, либо
++ * Telegram не выдал личную). Уже вступившему ссылку не навязываем: она нужна, только если он вышел или потерял доступ.
++ */
++export function linkScreen(join, invite, fallbackUrl, now = Date.now()) {
++  const support = [{ text: '💬 Поддержка', callback_data: 'u:support' }]
++  if (!hasAccess(join, now)) return { text: '🔗 Ссылка на сообщество доступна при действующей подписке. Если оплата прошла, а ссылки нет, напиши в поддержку.', keyboard: [support, BACK_ROW] }
++  if (join.lifetime) return fallbackUrl ? { text: `🔗 Ссылка на вступление в закрытое сообщество:\n${fallbackUrl}`, keyboard: [BACK_ROW] } : { text: '🔗 Ссылку на сообщество пришлёт поддержка — напиши нам.', keyboard: [support, BACK_ROW] }
++  if (invite) {
++    return {
++      text: `🔗 Твоя личная ссылка на вступление в закрытое сообщество:\n${invite.url}\n\nПодай заявку по ссылке, и я сразу её приму. Ссылка личная и одноразовая, действует до ${ruDate(invite.expiresAt)}. Не передавай её другим.`,
++      keyboard: [[{ text: '🔄 Новая ссылка', callback_data: 'r:newlink' }], BACK_ROW],
++    }
++  }
++  if (join.joinedAt) {
++    return { text: `🔗 Ты уже в закрытом чате сообщества (с ${ruDate(join.joinedAt)}) ✅\n\nЕсли вышел(ла) из чата и хочешь вернуться, получи новую личную ссылку.`, keyboard: [[{ text: '🔄 Новая ссылка', callback_data: 'r:newlink' }], BACK_ROW] }
++  }
++  if (fallbackUrl) return { text: `🔗 Ссылка на вступление в закрытое сообщество:\n${fallbackUrl}`, keyboard: [BACK_ROW] }
++  return { text: '🔗 Ссылку на сообщество пришлёт поддержка — напиши нам.', keyboard: [support, BACK_ROW] }
+ }
+ 
+ /** «Настройки»: рассылка и отключение подписки (внизу, чтобы до него доходили только намеренно). */
+diff --git a/server/lib/store.js b/server/lib/store.js
+index 097208c..5841dae 100644
+--- a/server/lib/store.js
++++ b/server/lib/store.js
+@@ -157,6 +157,11 @@ export function setJoinField(token, field, value) {
+   return store.setField(token, field, value)
+ }
+ 
++/** Несколько полей карточки за одну запись; undefined убирает поле. */
++export function patchJoin(token, fields) {
++  return store.update(token, (join) => ({ ...join, ...fields }))
++}
++
+ /** Продлевает срок разовой подписки на days дней (бонус) и копит бонусные дни. */
+ export function extendSubscription(token, days) {
+   return store.update(token, (join) => ({
+diff --git a/server/lib/subscriptionMail.js b/server/lib/subscriptionMail.js
+new file mode 100644
+index 0000000..d54529f
+--- /dev/null
++++ b/server/lib/subscriptionMail.js
+@@ -0,0 +1,80 @@
++// Письмо после оплаты подписки на сообщество: личная ссылка на вступление и её срок, сроки подписки, как отключить автопродление,
++// ссылка на кабинет резидента. Собирается здесь, а шлёт его сервер после первой оплаты (и повторно по запросу из кабинета и бота).
++import { INVITE_TTL_DAYS } from './communityInvite.js'
++
++const MSK = 'Europe/Moscow'
++const date = (ts) => new Intl.DateTimeFormat('ru-RU', { timeZone: MSK, day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(ts)).replace(/ г\./g, '')
++const dateTime = (ts) => new Intl.DateTimeFormat('ru-RU', { timeZone: MSK, day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(ts)).replace(/ г\./g, '')
++const rub = (n) => `${Math.round(n).toLocaleString('ru-RU')} ₽`
++const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c])
++
++/**
++ * Возвращает { subject, text, html }.
++ * invite — { url, expiresAt } или null (ссылку не удалось выдать: письмо честно говорит, что её пришлёт поддержка).
++ * tariff — название тарифа; amount — сумма платежа; nextPaymentAt — дата следующего списания (null — автопродления нет);
++ * oneTime — разовая подписка: доступ до nextPaymentAt, списаний нет.
++ */
++export function composeSubscriptionMail({ name, tariff, amount, paidAt, nextPaymentAt, oneTime, invite, siteUrl, botUsername, supportHandle }) {
++  const hello = name && name !== '—' ? `Здравствуйте, ${name}!` : 'Здравствуйте!'
++  const cabinetUrl = `${siteUrl}/cabinet`
++  const botUrl = `https://t.me/${botUsername}`
++  const supportUrl = `https://t.me/${String(supportHandle).replace(/^@/, '')}`
++  const paid = 'Оплата получена — подписка на сообщество «Карьерный юрист» оформлена.'
++
++  const inviteText = invite
++    ? [
++        'Ваша личная ссылка на вступление в закрытый чат сообщества:',
++        invite.url,
++        `Нажмите на ссылку и подайте заявку, мы одобрим её автоматически. Ссылка личная и одноразовая: действует ${INVITE_TTL_DAYS} дней, до ${dateTime(invite.expiresAt)} (мск). Не передавайте её другим: вступит тот, кто нажмёт первым.`,
++        `Ссылка не открывается или срок вышел? Новую можно получить в личном кабинете (${cabinetUrl}) или в боте (${botUrl}), либо написать в поддержку: ${supportHandle}.`,
++      ]
++    : [`Ссылку на вступление в чат пришлёт поддержка в ближайшее время. Если ждать не хочется, напишите: ${supportHandle}.`]
++
++  const term = oneTime
++    ? `Доступ действует до ${nextPaymentAt ? date(nextPaymentAt) : 'конца оплаченного периода'}, автопродления нет.`
++    : nextPaymentAt
++      ? `Следующее списание ${rub(amount)}: ${date(nextPaymentAt)}. Подписка продлевается автоматически.`
++      : 'Подписка продлевается автоматически.'
++  const subLines = [`Тариф: ${tariff}`, amount ? `Оплачено: ${rub(amount)}, ${date(paidAt)}` : null, term].filter(Boolean)
++
++  const cancel = oneTime
++    ? 'Подписка разовая, автосписаний нет: доступ закончится в указанный день. Продлить его можно на сайте, в разделе «Сообщество».'
++    : `Как отключить автопродление: в личном кабинете (${cabinetUrl}) раздел «Сообщество» → «Отключить автопродление», либо в боте: «Личный кабинет» → «Настройки» → «Отменить подписку». Доступ сохранится до конца оплаченного периода. Войти в кабинет можно по этой почте.`
++
++  const text = [
++    hello,
++    paid,
++    '',
++    ...inviteText,
++    '',
++    'Ваша подписка:',
++    ...subLines,
++    '',
++    cancel,
++    '',
++    `Личный кабинет резидента: ${cabinetUrl}`,
++    `Бот с уведомлениями и кабинетом в Telegram: ${botUrl}`,
++    '',
++    `Вопросы — ${supportHandle}`,
++    '',
++    'Карьерный юрист',
++  ].join('\n')
++
++  const p = (inner) => `<p style="margin:0 0 16px">${inner}</p>`
++  const link = (href, label) => `<a href="${esc(href)}" style="color:#45608a">${esc(label)}</a>`
++  const button = (href, label) => `<a href="${esc(href)}" style="display:inline-block;background:#283953;color:#ffffff;text-decoration:none;padding:12px 22px;border-radius:24px;font-weight:bold">${esc(label)}</a>`
++  const html = `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.5;color:#283953">${[
++    p(`<b>${esc(hello)}<br>${esc(paid)}</b>`),
++    invite
++      ? p(`<b>Ваша личная ссылка на вступление в закрытый чат:</b><br><br>${button(invite.url, 'Вступить в сообщество')}<br><br><span style="font-size:13px;color:#5d6b82">${esc(invite.url)}</span>`) +
++        p(`Нажмите на ссылку и подайте заявку, мы одобрим её автоматически. Ссылка личная и одноразовая: действует ${INVITE_TTL_DAYS} дней, до ${esc(dateTime(invite.expiresAt))} (мск). Не передавайте её другим: вступит тот, кто нажмёт первым.`) +
++        p(`Ссылка не открывается или срок вышел? Новую можно получить в ${link(cabinetUrl, 'личном кабинете')} или в ${link(botUrl, 'боте')}, либо написать в поддержку: ${link(supportUrl, supportHandle)}.`)
++      : p(`Ссылку на вступление в чат пришлёт поддержка в ближайшее время. Если ждать не хочется, напишите: ${link(supportUrl, supportHandle)}.`),
++    p(`<b>Ваша подписка</b><br>${subLines.map(esc).join('<br>')}`),
++    p(oneTime ? esc(cancel) : `<b>Как отключить автопродление.</b> В ${link(cabinetUrl, 'личном кабинете')}: раздел «Сообщество» → «Отключить автопродление», либо в боте: «Личный кабинет» → «Настройки» → «Отменить подписку». Доступ сохранится до конца оплаченного периода. Войти в кабинет можно по этой почте.`),
++    p(`${link(cabinetUrl, 'Личный кабинет резидента')} · ${link(botUrl, 'Бот в Telegram')} · ${link(supportUrl, supportHandle)}`),
++    p('Карьерный юрист'),
++  ].join('')}</div>`
++
++  return { subject: 'Вы в сообществе «Карьерный юрист»: ссылка на вступление', text, html }
++}
+diff --git a/src/lib/cabinet.ts b/src/lib/cabinet.ts
+index 7643c87..8ab4e8f 100644
+--- a/src/lib/cabinet.ts
++++ b/src/lib/cabinet.ts
+@@ -414,10 +414,17 @@ export interface SubscriptionInfo extends ResidentInfo {
+   nextPayment?: number | null
+   /** Автопродление можно отключить из кабинета. */
+   canCancel?: boolean
++  /** Личная одноразовая ссылка на вступление в закрытый чат: выданная и ещё действующая (null — нет). */
++  invite?: { url: string; expiresAt: number } | null
++  /** Человек уже вступил в чат (тогда ссылка нужна, только если он вышел). */
++  joined?: boolean
++  joinedAt?: number | null
+   payments: SubscriptionPayment[]
+ }
+ 
+ export const fetchSubscription = () => api<{ subscription: SubscriptionInfo }>('/api/account/subscription')
++/** Новая личная ссылка на вступление (прежняя отзывается). */
++export const issueInvite = () => api<{ invite: { url: string; expiresAt: number } }>('/api/account/subscription/invite', { method: 'POST', body: '{}' })
+ /** Отключение автопродления: доступ сохраняется до конца оплаченного периода. confirmed — подтверждено ли отключение в платёжной системе. */
+ export const cancelSubscription = (reason: string) => api<{ confirmed: boolean; test: boolean; endsAt: number | null }>('/api/account/subscription/cancel', { method: 'POST', body: JSON.stringify({ reason }) })
+ /** Запрос смены карты: уходит в чат поддержки с данными подписки. */
+diff --git a/src/pages/cabinet/CommunitySections.tsx b/src/pages/cabinet/CommunitySections.tsx
+index 919080f..8ebc273 100644
+--- a/src/pages/cabinet/CommunitySections.tsx
++++ b/src/pages/cabinet/CommunitySections.tsx
+@@ -1,6 +1,6 @@
+ import { useEffect, useState, type FormEvent } from 'react'
+ import { Link } from 'react-router-dom'
+-import { cancelSubscription, fetchEvents, fetchSubscription, linkTelegram, requestCardChange, unlinkTelegram, type CabinetEvent, type CabinetUser, type SubscriptionInfo } from '../../lib/cabinet'
++import { cancelSubscription, fetchEvents, fetchSubscription, issueInvite, linkTelegram, requestCardChange, unlinkTelegram, type CabinetEvent, type CabinetUser, type SubscriptionInfo } from '../../lib/cabinet'
+ import { events as catalogEvents } from '../../data/events'
+ import { eventStories } from '../../data/eventStories'
+ import { articles } from '../../data/articles'
+@@ -269,6 +269,7 @@ export function StatusSection({ user, onRefresh }: { user: CabinetUser; onRefres
+   const [busy, setBusy] = useState(false)
+   const [error, setError] = useState('')
+   const [done, setDone] = useState<{ kind: 'cancel' | 'card'; text: string } | null>(null)
++  const [copied, setCopied] = useState(false)
+ 
+   useEffect(() => {
+     let active = true
+@@ -319,6 +320,28 @@ export function StatusSection({ user, onRefresh }: { user: CabinetUser; onRefres
+     await onRefresh()
+   }
+ 
++  async function getInvite() {
++    setBusy(true)
++    setError('')
++    const r = await issueInvite()
++    setBusy(false)
++    if (!r.ok) {
++      setError(r.error === 'too_many_attempts' ? 'Слишком много попыток. Попробуйте через час или напишите в чат поддержки.' : 'Не получилось выдать ссылку. Напишите в чат поддержки, мы пришлём вручную.')
++      return
++    }
++    setSub((prev) => (prev ? { ...prev, invite: r.data.invite } : prev))
++  }
++
++  async function copyInvite(url: string) {
++    try {
++      await navigator.clipboard.writeText(url)
++      setCopied(true)
++      window.setTimeout(() => setCopied(false), 2000)
++    } catch {
++      // буфер недоступен: ссылка видна на странице
++    }
++  }
++
+   async function doCard() {
+     setBusy(true)
+     setError('')
+@@ -369,6 +392,32 @@ export function StatusSection({ user, onRefresh }: { user: CabinetUser; onRefres
+               {sub.since && <Fact label="Резидент с" value={longDate(sub.since)} />}
+             </dl>
+ 
++            {active && !lifetime && (
++              <div className="mt-6 rounded-xl border border-ink/10 p-4">
++                <h3 className="text-sm font-semibold">Ссылка на вступление в закрытый чат</h3>
++                {sub.invite ? (
++                  <>
++                    <p className="mt-1 text-sm text-ink/70">
++                      Личная и одноразовая, действует до {new Date(sub.invite.expiresAt).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })} (мск). Подайте заявку по ссылке, и мы одобрим её автоматически. Не передавайте её другим.
++                    </p>
++                    <div className="mt-3 flex flex-wrap items-center gap-2.5">
++                      <a href={sub.invite.url} target="_blank" rel="noopener noreferrer" className="rounded-full bg-ink px-5 py-2 text-sm font-semibold text-white hover:bg-ink/90">Вступить в сообщество</a>
++                      <button type="button" onClick={() => void copyInvite(sub.invite!.url)} className="rounded-full border border-ink/15 px-5 py-2 text-sm font-semibold text-ink/70 hover:text-ink">{copied ? 'Скопировано' : 'Скопировать ссылку'}</button>
++                      <button type="button" disabled={busy} onClick={() => void getInvite()} className="text-sm font-semibold text-ink/60 underline hover:text-ink disabled:opacity-60">{busy ? 'Выдаём…' : 'Новая ссылка'}</button>
++                    </div>
++                  </>
++                ) : (
++                  <>
++                    <p className="mt-1 text-sm text-ink/70">
++                      {sub.joined ? `Вы в закрытом чате${sub.joinedAt ? ` с ${longDate(sub.joinedAt)}` : ''}. Если вышли из чата и хотите вернуться, получите новую личную ссылку.` : 'Ссылка ещё не получена или срок её действия закончился. Получите новую: она личная и одноразовая.'}
++                    </p>
++                    <button type="button" disabled={busy} onClick={() => void getInvite()} className="mt-3 rounded-full bg-ink px-5 py-2 text-sm font-semibold text-white hover:bg-ink/90 disabled:opacity-60">{busy ? 'Выдаём…' : sub.joined ? 'Получить новую ссылку' : 'Получить ссылку на вступление'}</button>
++                  </>
++                )}
++                {error && panel === 'none' && <p role="alert" className="mt-2 text-sm text-red-600">{error}</p>}
++              </div>
++            )}
++
+             <div className="mt-6 flex flex-wrap gap-2.5">
+               <ActionButton on={panel === 'history'} onClick={() => toggle('history')}>История оплат</ActionButton>
+               {sub.canCancel && <ActionButton on={panel === 'cancel'} onClick={() => toggle('cancel')} danger>Отключить автопродление</ActionButton>}
+diff --git a/src/pages/cabinet/activityInfo.tsx b/src/pages/cabinet/activityInfo.tsx
+index 5e49022..6160968 100644
+--- a/src/pages/cabinet/activityInfo.tsx
++++ b/src/pages/cabinet/activityInfo.tsx
+@@ -25,6 +25,7 @@ export function activityLabel(e: ActivityEntry): string {
+     case 'support_reply': return 'Ответ поддержки'
+     case 'subscription_cancelled': return 'Отключено автопродление подписки'
+     case 'card_change_requested': return 'Запрошена смена карты для списаний'
++    case 'invite_issued': return 'Выдана ссылка на вступление в сообщество'
+     default: return 'Действие в кабинете'
+   }
+ }
+diff --git a/src/pages/community/JoinSuccess.tsx b/src/pages/community/JoinSuccess.tsx
+index cfdba63..1b2108b 100644
+--- a/src/pages/community/JoinSuccess.tsx
++++ b/src/pages/community/JoinSuccess.tsx
+@@ -1,48 +1,164 @@
++import { useEffect, useState } from 'react'
+ import { useSearchParams } from 'react-router-dom'
+ import PageHero from '../../components/PageHero'
+ import { openTelegramBot } from '../../lib/telegram'
+ import { useDocumentTitle } from '../../lib/useDocumentTitle'
+ import { usePaymentGoal } from '../../lib/paymentGoal'
+ 
+-// Страница, на которую Prodamus возвращает человека после успешной оплаты
+-// подписки (urlSuccess в server/lib/prodamus.js). Токен связывает оплату
+-// с заявкой в server/lib/store.js — по нему бот узнает, что показывать
+-// после Start.
++// Страница, на которую Prodamus возвращает человека после успешной оплаты подписки (urlSuccess в server/index.js).
++// Токен из адреса связывает оплату с карточкой подписки. Страница опрашивает сервер, пока вебхук Prodamus не подтвердит оплату,
++// и показывает личную одноразовую ссылку на вступление в закрытый чат (она же уходит на почту и в бота). Бот остаётся запасным
++// и дополнительным каналом: уведомления и кабинет в Telegram.
++interface Invite {
++  url: string
++  expiresAt: number
++}
++interface Access {
++  known: boolean
++  paid: boolean
++  joined?: boolean
++  invite?: Invite | null
++}
++
++const TOKEN_RE = /^[0-9a-f]{8,64}$/i
++const POLL_MS = 3000
++const MAX_ATTEMPTS = 40
++
++const until = (ts: number) => new Date(ts).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })
++
+ export default function JoinSuccess() {
+   useDocumentTitle('Оплата прошла успешно')
+   const [params] = useSearchParams()
+   const token = params.get('token')
++  const valid = Boolean(token && TOKEN_RE.test(token))
+   usePaymentGoal('community', token)
+ 
+-  function handleContinue() {
+-    if (token) openTelegramBot(`access_${token}`)
++  const [access, setAccess] = useState<Access | null>(null)
++  const [gaveUp, setGaveUp] = useState(false)
++  const [busy, setBusy] = useState(false)
++  const [error, setError] = useState('')
++  const [copied, setCopied] = useState(false)
++
++  useEffect(() => {
++    if (!valid) return
++    let cancelled = false
++    let timer: number | undefined
++    let attempts = 0
++    const check = async () => {
++      attempts += 1
++      try {
++        const res = await fetch(`/api/community/access?token=${token}`)
++        const data = (await res.json()) as Access & { ok?: boolean }
++        if (cancelled) return
++        if (data.ok !== false) {
++          setAccess(data)
++          if (!data.known || data.paid) return
++        }
++      } catch {
++        // сеть или сервер недоступны: повторим
++      }
++      if (cancelled) return
++      if (attempts < MAX_ATTEMPTS) timer = window.setTimeout(check, POLL_MS)
++      else setGaveUp(true)
++    }
++    void check()
++    return () => {
++      cancelled = true
++      window.clearTimeout(timer)
++    }
++  }, [token, valid])
++
++  async function reissue() {
++    setBusy(true)
++    setError('')
++    try {
++      const res = await fetch('/api/community/access/reissue', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token }) })
++      const data = (await res.json()) as { ok?: boolean; invite?: Invite; error?: string }
++      if (data.ok && data.invite) setAccess((a) => ({ known: true, paid: true, ...a, joined: false, invite: data.invite }))
++      else setError(data.error === 'too_many_attempts' ? 'Слишком много попыток. Попробуйте через час или напишите в поддержку.' : 'Не получилось выдать ссылку. Напишите в поддержку, мы пришлём вручную.')
++    } catch {
++      setError('Нет связи с сервером. Попробуйте ещё раз.')
++    }
++    setBusy(false)
++  }
++
++  async function copy(url: string) {
++    try {
++      await navigator.clipboard.writeText(url)
++      setCopied(true)
++      window.setTimeout(() => setCopied(false), 2000)
++    } catch {
++      // буфер недоступен: ссылка видна на странице
++    }
++  }
++
++  const btn = 'rounded-full bg-ink px-8 py-3 text-sm font-semibold text-white hover:bg-ink/90 disabled:opacity-60'
++  const ghost = 'rounded-full border border-ink/15 px-6 py-2.5 text-sm font-semibold text-ink/70 hover:text-ink'
++
++  let body
++  if (!valid || (access && !access.known)) {
++    body = <p className="text-sm text-red-600">Не нашли данные об оплате. Если ссылка не сработала, напишите нам в поддержку.</p>
++  } else if (!access?.paid) {
++    body = (
++      <p className="text-sm leading-relaxed text-ink/70" role="status">
++        {gaveUp
++          ? 'Оплата ещё не подтвердилась. Обычно это занимает меньше минуты: ссылка на вступление придёт на почту и в бота. Если письма нет, напишите нам в поддержку.'
++          : 'Подтверждаем оплату, обычно это занимает меньше минуты…'}
++      </p>
++    )
++  } else if (access.joined) {
++    body = (
++      <>
++        <p className="text-sm leading-relaxed text-ink/70">Вы уже в закрытом сообществе. Если вышли из чата и хотите вернуться, получите новую личную ссылку.</p>
++        <div className="mt-5 flex flex-wrap justify-center gap-3">
++          <button type="button" onClick={() => void reissue()} disabled={busy} className={btn}>{busy ? 'Выдаём…' : 'Получить новую ссылку'}</button>
++        </div>
++      </>
++    )
++  } else if (access.invite) {
++    const invite = access.invite
++    body = (
++      <>
++        <p className="text-sm leading-relaxed text-ink/70">Подписка оформлена. Нажмите кнопку, подайте заявку на вступление, и мы одобрим её автоматически.</p>
++        <a href={invite.url} target="_blank" rel="noopener noreferrer" className={`mt-6 inline-block ${btn}`}>Вступить в сообщество</a>
++        <p className="mt-4 break-all text-xs text-ink/50">{invite.url}</p>
++        <button type="button" onClick={() => void copy(invite.url)} className="mt-2 text-xs font-semibold text-ink/70 underline hover:text-ink">{copied ? 'Скопировано' : 'Скопировать ссылку'}</button>
++        <p className="mx-auto mt-5 max-w-md text-xs leading-relaxed text-ink/60">
++          Ссылка личная и одноразовая, действует до {until(invite.expiresAt)} (мск). Не передавайте её другим: вступит тот, кто нажмёт первым. Мы продублировали её на почту и пришлём в бота, как только вы его запустите.
++        </p>
++        <button type="button" onClick={() => void reissue()} disabled={busy} className="mt-3 text-xs font-semibold text-ink/70 underline hover:text-ink disabled:opacity-60">{busy ? 'Выдаём…' : 'Нужна новая ссылка?'}</button>
++      </>
++    )
++  } else {
++    body = (
++      <>
++        <p className="text-sm leading-relaxed text-ink/70">Подписка оформлена, но ссылку на вступление не получилось выдать автоматически. Нажмите кнопку ниже, чтобы получить её ещё раз, или напишите в поддержку: мы пришлём вручную.</p>
++        <div className="mt-5 flex flex-wrap justify-center gap-3">
++          <button type="button" onClick={() => void reissue()} disabled={busy} className={btn}>{busy ? 'Выдаём…' : 'Получить ссылку'}</button>
++        </div>
++      </>
++    )
+   }
+ 
+   return (
+     <div>
+-      <PageHero
+-        eyebrow="Сообщество"
+-        title="Оплата прошла успешно"
+-        description="Осталось получить доступ — это займет одну минуту в Telegram."
+-      />
++      <PageHero eyebrow="Сообщество" title="Оплата прошла успешно" description="Осталось вступить в закрытый чат сообщества, это займёт одну минуту." />
+       <section className="container-page pb-16">
+         <div className="glass mx-auto max-w-xl rounded-2xl p-8 text-center">
+           <div className="mb-3 flex justify-center">
+             <span className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-2xl text-emerald-600">✓</span>
+           </div>
+-          <p className="text-sm leading-relaxed text-ink/70">
+-            Подписка оформлена. Нажмите кнопку ниже, чтобы открыть чат с ботом — как только нажмете там Start,
+-            бот пришлет ссылку на вступление в закрытое сообщество.
+-          </p>
+-          <button
+-            type="button"
+-            onClick={handleContinue}
+-            disabled={!token}
+-            className="mt-6 rounded-full bg-ink px-8 py-3 text-sm font-semibold text-white hover:bg-ink/90 disabled:opacity-50"
+-          >
+-            Перейти в бота
+-          </button>
+-          {!token && <p className="mt-3 text-xs text-red-600">Не нашли данные об оплате — напишите нам, если ссылка не сработала.</p>}
++          {body}
++          {error && <p role="alert" className="mt-3 text-sm text-red-600">{error}</p>}
++          {valid && access?.paid && (
++            <div className="mt-8 border-t border-ink/10 pt-6">
++              <p className="text-xs leading-relaxed text-ink/60">Бот пришлёт напоминания о списании и откроет личный кабинет резидента в Telegram. Запускать его необязательно: подписка уже учтена.</p>
++              <div className="mt-4 flex flex-wrap justify-center gap-3">
++                <button type="button" onClick={() => openTelegramBot(`access_${token}`)} className={ghost}>Открыть бота</button>
++                <a href="/cabinet" className={ghost}>Личный кабинет</a>
++              </div>
++            </div>
++          )}
+         </div>
+       </section>
+     </div>
+-- 
+2.43.0
+
+
+From 743184c197caa92835fa177dae89dd9f14af46ca Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sun, 25 Oct 2026 10:59:56 +0000
+Subject: [PATCH 2/2] =?UTF-8?q?=D0=A0=D0=B5=D0=BB=D0=B8=D0=B7=202:=20?=
+ =?UTF-8?q?=D0=B1=D0=BE=D1=82=20=D0=B1=D0=B5=D0=B7=20=D0=BE=D0=BF=D0=BB?=
+ =?UTF-8?q?=D0=B0=D1=82=D1=8B=20=D0=B8=20=D0=BB=D0=B8=D1=88=D0=BD=D0=B8?=
+ =?UTF-8?q?=D1=85=20=D0=B2=D0=B5=D1=82=D0=BE=D0=BA,=20=D1=81=D0=B2=D0=B5?=
+ =?UTF-8?q?=D1=80=D0=BA=D0=B0=20=D0=BA=D0=B0=D0=B1=D0=B8=D0=BD=D0=B5=D1=82?=
+ =?UTF-8?q?=D0=BE=D0=B2,=20=D0=BD=D0=B0=D0=BF=D0=BE=D0=BC=D0=B8=D0=BD?=
+ =?UTF-8?q?=D0=B0=D0=BD=D0=B8=D1=8F=20=D0=B2=20=D0=B1=D0=BE=D1=82=20=D0=B8?=
+ =?UTF-8?q?=20=D0=BD=D0=B0=20=D0=BF=D0=BE=D1=87=D1=82=D1=83?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- Оплата подписки только на сайте: из бота убраны выбор тарифа и ссылки на оплату, кнопки «на сайте» ведут на /community#join с UTM
+  (utm_source=telegram, utm_medium=bot, utm_campaign=bot_*). Убраны консультации и «Карьерные возможности» (вакансии, мероприятия).
+  «Правовая информация» — одна кнопка на /legal сайта. Остаются «Сообщество», «О КЮ», «Поддержка», личный кабинет резидента.
+- Кабинет в боте = кабинет на сайте: «Осталось N дней», история оплат; одну и ту же карточку выбирает residentJoin.
+- Напоминания о списании за 2 и за 1 день, «списание прошло» и «списание не прошло» уходят и в бота, и на почту (служебные
+  сообщения, согласие на рассылку не нужно); неудачное списание ставит метку 🟡 и пишет админу. Выключатели: AUTO_RESIDENT_REMINDERS,
+  CHARGE_FAILED_NOTICES. Тем, у кого списание просрочено, просьба об отзыве не уходит.
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_018jwNfo7VoFWeWzfVizUNNz
+---
+ docs/bot-overview.md           |   9 ++
+ docs/personal-data-map.md      |   2 +-
+ server/index.js                | 167 ++++++++++++++++++---------------
+ server/lib/adminCabinet.js     |   9 +-
+ server/lib/botFlow.js          | 159 +++++++------------------------
+ server/lib/communityReviews.js |   2 +
+ server/lib/residentCabinet.js  |  29 +++++-
+ server/lib/residentNotices.js  |  31 ++++++
+ server/lib/subscriptionMail.js |  50 ++++++++++
+ src/lib/telegram.ts            |   4 +-
+ 10 files changed, 248 insertions(+), 214 deletions(-)
+ create mode 100644 server/lib/residentNotices.js
+
+diff --git a/docs/bot-overview.md b/docs/bot-overview.md
+index 0537ac0..7e9a9c3 100644
+--- a/docs/bot-overview.md
++++ b/docs/bot-overview.md
+@@ -35,6 +35,14 @@
+ Клиенту: `/start`, `/start access_<токен>` (после оплаты подписки на сайте), `/menu` или `/cabinet`, `/stop_newsletter` (отказаться от рекламы), `/id`, `/link` (код для привязки Telegram к кабинету на сайте; то же делает `/start link` и кнопка «🌐 Кабинет на сайте» в боте у резидентов), `/unlink` (снять привязку). Код: 8 знаков, 10 минут, один раз; ввод — в кабинете, раздел «Telegram-бот». **Чат поддержки кабинета:** сообщение человека приходит админу в бота («💬 Чат поддержки на сайте»); админ отвечает обычным Reply на это сообщение — ответ уходит в чат кабинета, человеку на почту и, если Telegram привязан, в бота; боту ответ подтверждается («✅ Ответ добавлен…»). Reply от помощников (только просмотр) и на другие сообщения в чат не попадает.
+ Администратору: главное меню «Кадры / Сообщество / Мероприятия / Финансы / Найти человека / Сводка дня / Система»; `/report`; файл с подписью `/import` (загрузка выгрузки BotHelp); файл с подписью `/material checklist-novichka` (чек-лист новичка сообщества; PDF материалов маркетплейса бот не принимает: их загружают на сайт командой `scripts/upload-material.sh`); `/forget` с телефоном, почтой, ником или id (удаление данных); `/cancel` (отмена ввода). Секретная команда открытия кабинета разработчика задаётся `ADMIN_COMMAND` в `server/.env`, в документах её нет.
+ 
++### Ссылка на вступление, привязка и меню бота (25.10.2026)
++- **Оплата только на сайте.** В боте нет выбора тарифа и ссылок на оплату: кнопки «Оформить подписку на сайте», «Продлить на сайте» ведут на `/community#join` с метками `utm_source=telegram&utm_medium=bot&utm_campaign=bot_community|bot_cabinet|bot_renew|bot_expiry` (в Метрике видно, сколько пришло из бота). Старые кнопки `u:join`, `u:sub:*` ведут на экран «Сообщество».
++- **Персональная одноразовая ссылка на вступление** (`lib/communityInvite.js`, `issueInvite` в `index.js`): ссылка Telegram с одобрением заявок, имя = токен карточки подписки, срок 7 дней, перевыпуск (прежняя отзывается). Выдаётся после первой оплаты и показывается на странице после оплаты (`/api/community/access`), приходит письмом, в боте (после Start и в «Ссылка на сообщество»), в кабинете на сайте («Статус»). Если Telegram не выдал личную ссылку, бот шлёт запасную общую `COMMUNITY_INVITE_LINK`.
++- **Привязка при вступлении.** Заявка на вступление несёт имя ссылки: по нему Telegram привязывается к оплаченной подписке (Start не нужен), заявка одобряется, ссылка отзывается, в карточке ставятся `joinedAt` и метки `оплатил_подписку`, `резидент_сообщества`, `вступил_в_сообщество`, дата вступления в карточке человека (`communityJoinedAt`). Чужая и неоплаченная ссылки отклоняются, админу пишется причина. Если ник на сайте и в Telegram не совпал, заявка одобряется, а админу идёт предупреждение. События чата `chat_member` учитывают вступивших не по заявке и выход (`leftAt`, метка `вышел_из_сообщества`).
++- **Письма:** после первой оплаты (ссылка и срок, сроки подписки, как отключить, кабинет), напоминания за 2 и за 1 день до списания, «списание прошло», «списание не прошло» (`lib/subscriptionMail.js`); те же сообщения идут в бота (`lib/residentNotices.js`). Это служебные сообщения о подписке, согласие на рассылку не нужно. Нужен настроенный SMTP.
++- **Меню бота:** «Сообщество» (информация, «Оформить подписку на сайте», личный кабинет резидента), «О КЮ» (о нас, достижения, отзывы, контакты), «Поддержка», «Правовая информация» (одна кнопка на `/legal` сайта). Консультации, вакансии («Карьерные возможности»), запись на мероприятия и оплата из бота убраны.
++- **Кабинет резидента:** в боте и на сайте срок («Действует до», «Осталось N дней»), история оплат, отключение автопродления с причиной, ссылка на вступление. Карточку для бота и сайта выбирает одна функция (`residentJoin`).
++
+ ## 5. Автоматика (таймеры в `index.js`)
+ Раз в минуту проверяются: ежедневный отчёт, отложенные уведомления «заявка без оплаты», месячная сводка «Кадры», напоминания резидентам о списании (10 ч), окончание подписок (10 ч), запрос отзыва, напоминания о мероприятии за день (10 ч, письма), утренняя сводка (9 ч), автосроки хранения ПД (4 ч), резервная копия данных (3 ч). Отключается `DISABLE_DAILY_REPORT=1` / `DISABLE_BACKUP=1`; часть задач — своими переключателями (`EXPIRY_NOTICES=0`, `REVIEW_FLOW=0`, `AUTO_RESIDENT_REMINDERS=0`, `CANCEL_SURVEY=0`, `AUTO_EXCLUDE=1`, `RETENTION_AUTO=1`).
+ 
+@@ -42,6 +50,7 @@
+ Три платёжные страницы, у каждой свой домен и секретный ключ: общая (подписки), материалы (`PRODAMUS_MATERIALS_*`), мероприятия (`PRODAMUS_EVENTS_*`, подключена 21.10.2026). Вебхук: `/api/prodamus/webhook`. Засчитывается только уведомление с верной подписью. Заказ узнаётся так: билет — `order_id` вида `ev-<номер регистрации>`, материал — по токену покупки, подписка — по телефону, почте или нику. Каждое уведомление целиком пишется в `data/prodamus-webhooks.jsonl`. Ключи в чат и репозиторий не кладём; заводятся скриптом `bash scripts/setup-prodamus.sh materials|events`.
+ 
+ ## 7. Настройки (`server/.env`, в git не хранятся)
++Переключатели напоминаний: `AUTO_RESIDENT_REMINDERS=0` выключает напоминания о списании и о неудачном списании, `CHARGE_FAILED_NOTICES=0` только о неудачном, `EXPIRY_NOTICES=0` напоминания об окончании разовых подписок, `REVIEW_FLOW=0` просьбу об отзыве. Включить: убрать строку из `server/.env` и выполнить `pm2 restart legalcareerist-api --update-env`.
+ Токен и чаты: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_ADMIN_CHAT_ID`, `TELEGRAM_VIEWER_CHAT_IDS` (помощники только смотрят), `COMMUNITY_CHAT_ID`, `COMMUNITY_INVITE_LINK`, `BOT_USERNAME`. Почта: `SMTP_HOST/PORT/USER/PASS/FROM` (скрипты `scripts/setup-mail.sh`, `scripts/test-mail.sh`). Сайт: `SITE_URL`, `SUPPORT_HANDLE`. Подписки: `LIFETIME_IDS`, `LIFETIME_USERNAMES` (бессрочный доступ). Ссылки доступа к материалам: `GUIDE_NOTARIAT_ACCESS_URL`, `GUIDE_GRANTS_ACCESS_URL`, `LONGLIST_EVENTS_ACCESS_URL`. Смена токена бота: только `bash scripts/setup-bot.sh` (проверяет токен, делает копию `.env`, перезапускает бота).
+ 
+ ## 8. Данные (`server/data/`, не в git)
+diff --git a/docs/personal-data-map.md b/docs/personal-data-map.md
+index 47191dd..85b3fa2 100644
+--- a/docs/personal-data-map.md
++++ b/docs/personal-data-map.md
+@@ -144,7 +144,7 @@ Prodamus ──вебхук (ФИО, тел., почта, сумма, id под
+ 
+ **Мы получаем от Prodamus** в вебхуке (полностью дописывается в журнал `prodamus-webhooks.jsonl`, а также в лог процесса pm2): статус оплаты, сумма, id заказа и подписки, номер платежа, **телефон, e-mail, ФИО/`customer_extra`**, Telegram id, id профиля плательщика, дата следующего списания, тип оплаты. Данные банковской карты мы не получаем и не храним [код: нет таких полей в обработчике; **[проверить]** фактический состав вебхука по журналу после первых платежей].
+ 
+-Карточка подписчика (`pending-joins.json`) хранит: ФИО, телефон, e-mail, Telegram-ник и id, тариф, статус, историю платежей (дата, сумма, номер), id подписки/профиля Prodamus, даты начала/окончания/следующего списания, причину отписки, бонус-дни, служебные отметки. Для «бессрочных резидентов» — карточка без платежей.
++Карточка подписчика (`pending-joins.json`) хранит: ФИО, телефон, e-mail, Telegram-ник и id, тариф, статус, историю платежей (дата, сумма, номер), id подписки/профиля Prodamus, даты начала/окончания/следующего списания, причину отписки, бонус-дни, служебные отметки, личную ссылку на вступление в закрытый чат и срок её действия (`inviteUrl`, `inviteExpiresAt`; после вступления ссылка удаляется), даты вступления и выхода из чата (`joinedAt`, `leftAt`), жёлтую метку «на контроле списания» (`watch`). Для «бессрочных резидентов» — карточка без платежей.
+ 
+ ### 3.5. Учёт на стороне администратора (кабинет в боте)
+ 
+diff --git a/server/index.js b/server/index.js
+index fc5009e..767e3d0 100644
+--- a/server/index.js
++++ b/server/index.js
+@@ -64,11 +64,12 @@ import { composeMaterialMail, formatMoscowDateTime as formatMskDateTime, LINK_DA
+ import { saveReview, getReviewByPurchase, ratingsSummary, publicReviews, listReviews, getReview, setReviewHidden, reviewText, reviewSignature } from './lib/materialReviews.js'
+ import { touchBotUser, ensureBotUser, addTag, giveConsent, setMailingConsent, getBotUser, listBotUsers, countConversation, updateBotUser, setGender } from './lib/botUsers.js'
+ import { INVITE_TTL_MS, INVITE_TTL_DAYS, currentInvite, decideJoinRequest } from './lib/communityInvite.js'
+-import { composeSubscriptionMail } from './lib/subscriptionMail.js'
+-import { isStartKeyword, welcomeScreen, noConsentScreen, mailingScreen, mainMenuScreen, supportPrompt, consultPrompt, genderScreen, reviewThanks, legalScreen, aboutScreen, consultScreen, consultBookedScreen, CONTACT_PROMPTS, contactCancelKeyboard, unsubscribedScreen, communityScreen, communityResidentScreen, periodsScreen, subLinkScreen, aboutClubScreen, careerScreen, achievementsScreen } from './lib/botFlow.js'
++import { composeSubscriptionMail, composeChargeReminderMail, composeChargeDoneMail, composeChargeFailedMail } from './lib/subscriptionMail.js'
++import { CABINET_KEYBOARD, CHARGE_FAILED_KEYBOARD, chargeDoneText, chargeFailedText } from './lib/residentNotices.js'
++import { isStartKeyword, welcomeScreen, noConsentScreen, mailingScreen, mainMenuScreen, supportPrompt, genderScreen, reviewThanks, legalScreen, aboutScreen, CONTACT_PROMPTS, contactCancelKeyboard, unsubscribedScreen, communityScreen, communityResidentScreen, aboutClubScreen, achievementsScreen, siteLink } from './lib/botFlow.js'
+ import { buildMonthCsv } from './lib/exportCsv.js'
+ import { vacancyOverrides, setVacancyStatus } from './lib/vacancyOverrides.js'
+-import { residentMenu, subscriptionScreen, linkScreen, settingsScreen, cancelConfirmScreen, cancelReasonPrompt, cancelDoneScreen, hasAccess, reviewScreen, reviewSendPrompt } from './lib/residentCabinet.js'
++import { residentMenu, subscriptionScreen, paymentsScreen, linkScreen, settingsScreen, cancelConfirmScreen, cancelReasonPrompt, cancelDoneScreen, hasAccess, reviewScreen, reviewSendPrompt } from './lib/residentCabinet.js'
+ import { REVIEW_BONUS_DAYS, REVIEW_MIN_LENGTH, reviewRequestDue, addCommunityReview, listCommunityReviews, decideCommunityReview, communityReviewsScreen, approvedReviewsScreen, reviewForAdmin } from './lib/communityReviews.js'
+ import { logAction, recentActions } from './lib/auditLog.js'
+ import { healthLines, makeBackup, readBackupState, writeBackupState } from './lib/healthBackup.js'
+@@ -101,7 +102,7 @@ import { renderTicketPdf, hasTicketImage, maskEmail } from './lib/ticketImage.js
+ import { composeTicketMail, composeReminderMail } from './lib/ticketMail.js'
+ import { buildDailyReport, mskDayKey, parseReportPeriod } from './lib/dailyReport.js'
+ import { logWebhook, lastWebhook } from './lib/webhookLog.js'
+-import { FINANCE_KEYBOARD, COMMUNITY_KEYBOARD, sectionScreen, menuScreen, subscribersScreen, planScreen, dueScreen, cancelledScreen, reminderMenuScreen, reminderPreviewScreen, reminderTargets, reminderMessage } from './lib/adminCabinet.js'
++import { FINANCE_KEYBOARD, COMMUNITY_KEYBOARD, sectionScreen, menuScreen, subscribersScreen, planScreen, dueScreen, cancelledScreen, reminderMenuScreen, reminderPreviewScreen, reminderTargets, reminderMessage, planAmount } from './lib/adminCabinet.js'
+ import crypto from 'node:crypto'
+ import fs from 'node:fs'
+ import path from 'node:path'
+@@ -666,8 +667,9 @@ async function handleSubscriptionPayment(body, phone) {
+ 
+   if (result.kind === 'first' && rec.tgUserId) {
+     await sendInviteLink(rec.tgUserId, getJoin(rec.token) ?? rec)
+-  } else if (result.kind === 'renewal' && rec.tgUserId) {
+-    await sendTelegramMessage(rec.tgUserId, 'Подписка продлена, продолжай пользоваться всеми возможностями сообщества.', REMINDER_KEYBOARD).catch(() => false)
++  } else if (result.kind === 'renewal') {
++    const full = getJoin(rec.token) ?? rec
++    await notifyResident(full, { text: chargeDoneText(amount, nextPaymentAt), keyboard: CABINET_KEYBOARD }, composeChargeDoneMail({ name: full.name, amount, paidAt, nextPaymentAt, ...mailContext() })).catch((err) => console.error('[prodamus] уведомление о списании:', err))
+   }
+ }
+ 
+@@ -2728,18 +2730,18 @@ async function adminScreen(data, now, chatId) {
+   if (action === 'rem') return arg ? reminderPreviewScreen(joins, now, Number(arg)) : reminderMenuScreen()
+   if (action === 'remgo') {
+     const days = Number(arg)
+-    const { reachable } = reminderTargets(joins, now, days)
++    const targets = reminderTargets(joins, now, days)
+     let sent = 0
+     const failed = []
+-    for (const join of reachable) {
+-      const ok = await sendTelegramMessage(join.tgUserId, reminderMessage(join, SUPPORT_HANDLE, days), REMINDER_KEYBOARD).catch(() => false)
+-      if (ok) {
++    for (const join of [...targets.reachable, ...targets.unreachable]) {
++      const r = await notifyResident(join, { text: reminderMessage(join, SUPPORT_HANDLE, days, TARIFFS), keyboard: CABINET_KEYBOARD }, composeChargeReminderMail({ name: join.name, days, amount: planAmount(join, TARIFFS), chargeAt: join.nextPaymentAt, ...mailContext() }))
++      if (r.bot || r.mail) {
+         markReminded(join.token, `${join.nextPaymentAt}:${days}`)
+         sent += 1
+       } else failed.push(join)
+     }
+     const lines = [`✅ Напоминаний отправлено: ${sent}`]
+-    if (failed.length) lines.push('', 'Не дошло (человек не начинал диалог с ботом или заблокировал его):', ...failed.map((j) => `• ${[j.name, j.telegram, j.phone].filter(Boolean).join(', ')}`))
++    if (failed.length) lines.push('', 'Не дошло (нет почты, а в бота человек не заходил или заблокировал его):', ...failed.map((j) => `• ${[j.name, j.telegram, j.phone].filter(Boolean).join(', ')}`))
+     return { text: lines.join('\n'), keyboard: COMMUNITY_KEYBOARD }
+   }
+   if (action === 'status') {
+@@ -2789,13 +2791,10 @@ async function handleAdminCallback(query) {
+ 
+ /** Один апдейт от Telegram — общий для вебхука и для опроса (getUpdates). */
+ /** Подписчик, чей Telegram уже привязан к оплаченной подписке (иначе кабинет не открывается). */
+-// Если у человека несколько карточек (старые тестовые, бессрочная, действующая), выбираем самую «сильную»:
+-// бессрочная, затем активная, затем остальные по дате последней оплаты.
++// Если у человека несколько карточек (старые тестовые, бессрочная, действующая), выбираем ту же, что в кабинете на сайте
++// (residentJoin в lib/accountProfile.js): бессрочная, иначе та, что действует дольше всех. Так срок и история одинаковы в боте и на сайте.
+ function residentByTelegramId(tgId) {
+-  const rank = (j) => (j.lifetime ? 2 : j.status === 'active' ? 1 : 0)
+-  return listJoins()
+-    .filter((j) => j.paid && String(j.tgUserId ?? '') === String(tgId))
+-    .sort((a, b) => rank(b) - rank(a) || (b.lastPaidAt ?? 0) - (a.lastPaidAt ?? 0))[0] ?? null
++  return residentJoin(tgId)
+ }
+ 
+ // Основатель и другие «вечные» резиденты: доступ без оплаты и без срока (env LIFETIME_USERNAMES=ник1,ник2).
+@@ -2836,7 +2835,7 @@ function flowScreen(user) {
+   if (!user.consentAt) return welcomeScreen(user, SITE_URL)
+   if (!user.gender) return genderScreen(user)
+   if (user.mailingConsent === undefined) return mailingScreen(SITE_URL, user)
+-  return mainMenuScreen(SITE_URL, user)
++  return mainMenuScreen(SITE_URL, user, Boolean(residentByTelegramId(user.id)))
+ }
+ 
+ async function sendFlowStep(chatId, user) {
+@@ -2877,11 +2876,6 @@ function ackCallback(query, text, alert = false) {
+   return telegramFetch('answerCallbackQuery', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ callback_query_id: query.id, ...(text ? { text, show_alert: alert } : {}) }) }).catch(() => null)
+ }
+ 
+-/** «Печатает…» на время долгих действий (создание ссылки на оплату и т. п.). */
+-function typing(chatId) {
+-  telegramFetch('sendChatAction', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: chatId, action: 'typing' }) }).catch(() => null)
+-}
+-
+ /** Проверка доступа бота к чату сообщества (getMe + getChat + getChatMember). */
+ async function checkCommunityChat() {
+   try {
+@@ -2914,7 +2908,7 @@ async function askNextContactStep(chatId, user, flow, query) {
+   flow.step = step
+   if (!step) return finishContactFlow(chatId, user, flow)
+   userFlows.set(String(chatId), flow)
+-  const screen = step === 'question' ? (flow.kind === 'consult' ? consultPrompt(user) : supportPrompt(user)) : { text: CONTACT_PROMPTS.contact, keyboard: contactCancelKeyboard() }
++  const screen = step === 'question' ? supportPrompt(user) : { text: CONTACT_PROMPTS.contact, keyboard: contactCancelKeyboard() }
+   if (query) await editOrSend(query, screen)
+   else await sendTelegramMessage(chatId, screen.text, screen.keyboard)
+ }
+@@ -2932,7 +2926,7 @@ async function handleContactFlowInput(chatId, text) {
+   await askNextContactStep(chatId, user, flow)
+ }
+ 
+-/** Завершение диалога: обращение в поддержку или заявка на консультацию — админу приходит уведомление в том же оформлении, что с сайта, с номером заявки. */
++/** Завершение диалога: обращение в поддержку. Админу приходит уведомление в том же оформлении, что с сайта, с номером обращения. */
+ async function finishContactFlow(chatId, user, flow) {
+   userFlows.delete(String(chatId))
+   const d = flow.data
+@@ -2940,32 +2934,24 @@ async function finishContactFlow(chatId, user, flow) {
+   const phone = d.phone || user.phone
+   const email = d.email || user.email
+   updateBotUser(chatId, { phone: d.phone, email: d.email })
+-  const isConsult = flow.kind === 'consult'
+-  const consultation = isConsult ? createConsultation({ kind: 'question', services: [`Запрос: ${d.question}`], name, phone, email, telegram: user.username, source: 'бот' }) : null
+-  const number = consultation ? consultation.number : nextTicketNumber()
++  const number = nextTicketNumber()
+   const text = buildKadryRichNotification({
+-    template: isConsult ? 'kadry-candidate' : 'support',
+-    direction: isConsult ? 'Кадры → Соискатель' : 'Бот → Поддержка',
+-    service: isConsult ? 'Карьерная консультация — заявка из бота' : 'Обращение в поддержку',
++    template: 'support',
++    direction: 'Бот → Поддержка',
++    service: 'Обращение в поддержку',
+     date: new Date().toISOString(),
+     name,
+     phone,
+     email,
+     telegram: user.username,
+-    details: [`${isConsult ? 'Запрос' : 'Вопрос'}: ${d.question}`],
++    details: [`Вопрос: ${d.question}`],
+     ticketNumber: String(number),
+     origin: 'из бота',
+   })
+   await sendTelegramMessage(ADMIN_CHAT_ID, text, [
+-    ...(consultation ? [[{ text: `📂 Открыть консультацию №${consultation.number}`, callback_data: `a:s:con:${consultation.number}` }]] : []),
+     [{ text: '👤 Карточка человека', callback_data: `a:x:pc:${chatId}` }, { text: '✉️ Написать', url: user.username ? `https://t.me/${user.username.replace(/^@/, '')}` : `tg://user?id=${chatId}` }],
+   ])
+-  if (isConsult) {
+-    const screen = consultBookedScreen(number)
+-    await sendTelegramMessage(chatId, screen.text, screen.keyboard)
+-  } else {
+-    await sendTelegramMessage(chatId, `${user.firstName ? `${user.firstName}, спасибо` : 'Спасибо'}! Вопрос принят, номер обращения №${number}. Мы свяжемся с тобой в ближайшее время.`, [[{ text: 'Главное меню', callback_data: 'u:menu' }]])
+-  }
++  await sendTelegramMessage(chatId, `${user.firstName ? `${user.firstName}, спасибо` : 'Спасибо'}! Вопрос принят, номер обращения №${number}. Мы свяжемся с тобой в ближайшее время.`, [[{ text: 'Главное меню', callback_data: 'u:menu' }]])
+ }
+ 
+ async function handleUserCallback(query) {
+@@ -2977,7 +2963,7 @@ async function handleUserCallback(query) {
+   let user = touchBotUser(query.from)
+   ensureLifetimeResident(user)
+   const reply = (screen) => editOrSend(query, screen)
+-  if (action !== 'support' && action !== 'contact' && action !== 'book') userFlows.delete(String(chatId))
++  if (action !== 'support' && action !== 'contact') userFlows.delete(String(chatId))
+   if (action === 'nc') return reply(noConsentScreen(user))
+   if (action === 'consent') user = giveConsent(query.from.id) ?? user
+   if (action === 'g') user = setGender(query.from.id, arg) ?? user
+@@ -2996,43 +2982,20 @@ async function handleUserCallback(query) {
+       return reply(legalScreen(SITE_URL))
+     case 'about':
+       return reply(aboutScreen(SITE_URL, SUPPORT_HANDLE))
+-    case 'consult':
+-      return reply(consultScreen(SUPPORT_HANDLE))
+     case 'cancelflow':
+       return reply(mainMenuScreen(SITE_URL, user))
+     case 'unsub': {
+       setMailingConsent(query.from.id, false)
+       return reply(unsubscribedScreen({ ...user, mailingConsent: false }))
+     }
+-    case 'book':
+-      return askNextContactStep(chatId, user, { kind: 'consult', data: {} }, query)
+-    case 'community': {
+-      const resident = residentByTelegramId(chatId)
+-      return reply(hasAccess(resident) ? communityResidentScreen() : communityScreen(Boolean(resident)))
+-    }
+-    case 'join':
+-      return reply(periodsScreen())
++    case 'community':
++    case 'join': // кнопки «Хочу вступить» и выбора срока в старых сообщениях: оплата теперь только на сайте
+     case 'sub': {
+-      const tariff = TARIFFS[arg]
+-      if (!tariff) return reply(periodsScreen())
+-      typing(chatId)
+-      try {
+-        // Заявка привязывается к Telegram-аккаунту: по tg_user_id из вебхука оплата найдёт её, а бот сам пришлёт ссылку на вступление.
+-        // Повторные нажатия не плодят карточки: берём уже созданную неоплаченную заявку этого человека на этот тариф.
+-        const existing = listJoins().find((j) => !j.paid && j.tariffId === arg && String(j.tgUserId ?? '') === String(chatId))
+-        const token = existing?.token ?? createPendingJoin({ tariffId: arg, name: [user.firstName, user.lastName].filter(Boolean).join(' '), phone: '', email: '', telegram: user.username })
+-        if (!existing) setTgUserId(token, String(chatId))
+-        const url = await createPaymentLink({ tariffId: arg, tgUserId: String(chatId), name: user.firstName, telegram: user.username, urlSuccess: `${SITE_URL}/community/success?token=${token}` })
+-        return reply(subLinkScreen(tariff.period, tariff.price, url))
+-      } catch (err) {
+-        console.error('[bot] ошибка ссылки на оплату подписки:', err)
+-        return sendTelegramMessage(chatId, `Не получилось создать ссылку на оплату. Напиши в поддержку — ${SUPPORT_HANDLE}, поможем.`)
+-      }
++      const resident = residentByTelegramId(chatId)
++      return reply(hasAccess(resident) ? communityResidentScreen() : communityScreen(Boolean(resident), SITE_URL))
+     }
+     case 'aboutclub':
+       return reply(aboutClubScreen(SITE_URL))
+-    case 'career':
+-      return reply(careerScreen())
+     case 'ach':
+       return reply(achievementsScreen('u:aboutclub'))
+     case 'achabout':
+@@ -3147,7 +3110,8 @@ async function handleResidentCallback(query) {
+   }
+   const user = getBotUser(chatId) ?? fromUser ?? {}
+   let screen
+-  if (action === 'sub') screen = subscriptionScreen(join, TARIFFS)
++  if (action === 'hist') screen = paymentsScreen(join)
++  else if (action === 'sub') screen = subscriptionScreen(join, TARIFFS, Date.now(), siteLink(SITE_URL, '/community', 'bot_cabinet', '#join'))
+   else if (action === 'link' || action === 'newlink') {
+     // Вступивший без нажатия «Новая ссылка» ссылку не получает: она ему не нужна. Основатель ходит по общей ссылке.
+     const wantNew = action === 'newlink' || !join.joinedAt
+@@ -3724,7 +3688,7 @@ async function runDailyOnce(key, minHour, work) {
+ /** Исключение из чата сообщества: сообщение подписчику, «кик» (блокировка и сразу разблокировка) и отметка в учёте. */
+ async function kickAndNotify(join) {
+   if (!join.tgUserId) return false
+-  await sendTelegramMessage(join.tgUserId, 'Привет!\nК сожалению, твоя подписка истекла, а оплата не прошла вовремя, поэтому мне пришлось временно исключить тебя из сообщества 😔\n\nНо это легко исправить!\nТы в любой момент можешь продлить подписку и сразу вернуться назад. С радостью приму тебя обратно 💗\n\nЖдем тебя снова!', [[{ text: 'Продлить подписку', callback_data: 'u:join' }], [{ text: 'Главное меню', callback_data: 'u:menu' }]]).catch(() => false)
++  await sendTelegramMessage(join.tgUserId, 'Привет!\nК сожалению, твоя подписка истекла, а оплата не прошла вовремя, поэтому мне пришлось временно исключить тебя из сообщества 😔\n\nНо это легко исправить!\nТы в любой момент можешь продлить подписку и сразу вернуться назад. С радостью приму тебя обратно 💗\n\nЖдем тебя снова!', [[{ text: 'Продлить подписку на сайте', url: siteLink(SITE_URL, '/community', 'bot_renew', '#join') }], [{ text: 'Главное меню', callback_data: 'u:menu' }]]).catch(() => false)
+   const call = (method, extra = {}) => telegramFetch(method, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: COMMUNITY_CHAT_ID, user_id: Number(join.tgUserId), ...extra }) })
+   const banned = await call('banChatMember')
+   await call('unbanChatMember', { only_if_banned: true }).catch(() => null)
+@@ -3756,7 +3720,7 @@ async function processExpiry() {
+     const key = `${j.nextPaymentAt}:${daysLeft}`
+     if (EXPIRY_TEXTS[daysLeft] && j.tgUserId && j.expiryRemindedFor !== key && process.env.EXPIRY_NOTICES !== '0') {
+       setJoinField(j.token, 'expiryRemindedFor', key)
+-      await sendTelegramMessage(j.tgUserId, EXPIRY_TEXTS[daysLeft], [[{ text: 'Продлить', callback_data: 'u:join' }], [{ text: 'Главное меню', callback_data: 'u:menu' }]]).catch(() => false)
++      await sendTelegramMessage(j.tgUserId, EXPIRY_TEXTS[daysLeft], [[{ text: 'Продлить на сайте', url: siteLink(SITE_URL, '/community', 'bot_expiry', '#join') }], [{ text: 'Главное меню', callback_data: 'u:menu' }]]).catch(() => false)
+     } else if (daysLeft <= 0 && j.expiryAlertedFor !== j.nextPaymentAt) {
+       setJoinField(j.token, 'expiryAlertedFor', j.nextPaymentAt)
+       if (process.env.AUTO_EXCLUDE === '1') {
+@@ -3795,24 +3759,71 @@ async function processReviewFlow() {
+   }
+ }
+ 
+-/** Автонапоминания резидентам о списании: за 2 дня и за день, только тем, кто общался с ботом. Отключить: AUTO_RESIDENT_REMINDERS=0. */
++/** Общие данные для писем резиденту. */
++const mailContext = () => ({ siteUrl: SITE_URL, botUsername: BOT_USERNAME, supportHandle: SUPPORT_HANDLE })
++
++/**
++ * Сообщение резиденту по двум каналам: в бот (если он запускал бота) и на почту (если она есть). Это служебные сообщения о его подписке,
++ * а не реклама, поэтому согласие на рассылку не нужно. Возвращает { bot, mail }: true — доставлено, false — не вышло, null — канала нет.
++ */
++async function notifyResident(join, { text, keyboard }, mail) {
++  const bot = join.tgUserId ? await sendTelegramMessage(join.tgUserId, text, keyboard).catch(() => false) : null
++  const mailResult = join.email && mail ? await sendMail({ to: join.email, ...mail }) : null
++  return { bot, mail: mailResult ? mailResult.ok : null }
++}
++
++/**
++ * Автонапоминания резидентам о списании: за 2 дня и за день, в бота и на почту, один раз на каждую дату списания.
++ * Не получившим (ни бота, ни почты) пишет админ вручную: они видны в «Сообщество → Напоминания». Отключить: AUTO_RESIDENT_REMINDERS=0.
++ * Заодно оповещает тех, у кого списание не прошло (sendChargeFailedNotices).
++ */
+ async function sendAutoResidentReminders() {
+   if (process.env.AUTO_RESIDENT_REMINDERS === '0') return true
+   const now = Date.now()
+-  let sent = 0
+-  let failed = 0
++  const count = { bot: 0, mail: 0, none: 0 }
+   for (const days of [2, 1]) {
+-    for (const join of reminderTargets(listJoins(), now, days).reachable) {
+-      const ok = await sendTelegramMessage(join.tgUserId, reminderMessage(join, SUPPORT_HANDLE, days), REMINDER_KEYBOARD).catch(() => false)
++    const targets = reminderTargets(listJoins(), now, days)
++    for (const join of [...targets.reachable, ...targets.unreachable]) {
++      const r = await notifyResident(join, { text: reminderMessage(join, SUPPORT_HANDLE, days, TARIFFS), keyboard: CABINET_KEYBOARD }, composeChargeReminderMail({ name: join.name, days, amount: planAmount(join, TARIFFS), chargeAt: join.nextPaymentAt, ...mailContext() }))
+       markReminded(join.token, `${join.nextPaymentAt}:${days}`) // отмечаем и при неудаче, чтобы не пытаться каждую минуту
+-      if (ok) sent += 1
+-      else failed += 1
++      if (r.bot) count.bot += 1
++      if (r.mail) count.mail += 1
++      if (!r.bot && !r.mail) count.none += 1
+     }
+   }
+-  if (sent || failed) await sendTelegramMessage(ADMIN_CHAT_ID, `🔔 Автонапоминания резидентам о списании: отправлено ${sent}${failed ? `, не дошло ${failed}` : ''}.`, undefined, quiet())
++  const failedCount = await sendChargeFailedNotices(now)
++  const lines = []
++  if (count.bot || count.mail || count.none) lines.push(`🔔 Напоминания о списании: в бот ${count.bot}, на почту ${count.mail}${count.none ? `, не дошло никуда ${count.none}` : ''}.`)
++  if (failedCount) lines.push(`🟡 Списание не прошло: предупредили ${failedCount}.`)
++  if (lines.length) await sendTelegramMessage(ADMIN_CHAT_ID, lines.join('\n'), undefined, quiet())
+   return true
+ }
+ 
++/**
++ * Списание не прошло: время списания вышло больше 12 часов назад (первая повторная попытка Prodamus тоже не удалась), а оплаты нет, и прошло
++ * не больше 4 суток (дальше попыток нет). Человеку уходит «не получилось списать, проверьте карту», подписчика отмечаем жёлтой меткой
++ * 🟡 (её снимает следующая оплата). Один раз на дату списания. Только если вебхуки Prodamus сейчас доходят: иначе «не прошло» могло бы быть
++ * неправдой. Отключить: CHARGE_FAILED_NOTICES=0.
++ */
++async function sendChargeFailedNotices(now) {
++  if (process.env.CHARGE_FAILED_NOTICES === '0') return 0
++  const last = lastWebhook()
++  let sent = 0
++  for (const j of listJoins()) {
++    if (j.status !== 'active' || j.oneTime || j.lifetime || !j.nextPaymentAt) continue
++    const late = now - j.nextPaymentAt
++    if (late < 12 * 3600 * 1000 || late > 4 * 24 * 3600 * 1000 || j.chargeFailedNoticeFor === j.nextPaymentAt) continue
++    if (!last || last.at < j.nextPaymentAt) continue // после времени списания от Prodamus не было ни одного уведомления: возможно, не доходят они, а не платёж не прошёл
++    const amount = planAmount(j, TARIFFS)
++    const r = await notifyResident(j, { text: chargeFailedText(amount, j.nextPaymentAt), keyboard: CHARGE_FAILED_KEYBOARD }, composeChargeFailedMail({ name: j.name, amount, chargeAt: j.nextPaymentAt, ...mailContext() }))
++    patchJoin(j.token, { chargeFailedNoticeFor: j.nextPaymentAt, watch: 'charge' })
++    if (j.tgUserId) addTag(j.tgUserId, 'контроль_списания')
++    sent += 1
++    await sendTelegramMessage(ADMIN_CHAT_ID, `🟡 Списание не прошло: ${[j.name, j.telegram, j.phone].filter(Boolean).join(', ')} · ${amount ? `${amount} ₽` : 'сумма неизвестна'}\nЧеловека предупредили: ${r.bot ? 'бот ✅' : r.bot === false ? 'бот ❌' : 'бота нет'}, ${r.mail ? 'почта ✅' : r.mail === false ? 'почта ❌' : 'почты нет'}.`, undefined, quiet()).catch(() => false)
++  }
++  return sent
++}
++
+ // Приём сообщений боту через getUpdates (long polling): нужно только
+ // исходящее соединение с Telegram. С хостинга сервера входящие запросы от
+ // Telegram (вебхук) не доходили — в nginx не было ни одного, а Telegram
+diff --git a/server/lib/adminCabinet.js b/server/lib/adminCabinet.js
+index bfaeb41..24b349b 100644
+--- a/server/lib/adminCabinet.js
++++ b/server/lib/adminCabinet.js
+@@ -2,6 +2,7 @@
+ // знает про Telegram API и хранилище — получает карточки подписчиков и
+ // возвращает { text, keyboard }, чтобы это можно было проверять отдельно.
+ import { mskDayKey } from './dailyReport.js'
++import { chargeReminderText } from './residentNotices.js'
+ import { kadryTop, kadrySection } from './kadryCabinet.js'
+ import { seekersSection } from './seekersCabinet.js'
+ 
+@@ -329,9 +330,7 @@ export function reminderPreviewScreen(joins, now, days) {
+   return { text: lines.join('\n'), keyboard }
+ }
+ 
+-/** Текст напоминания подписчику. */
+-export function reminderMessage(join, supportHandle, days = 1) {
+-  // Тексты — из воронки BotHelp («Списание 2 дня» / «Списание 1 день»)
+-  const when = days === 1 ? 'Завтра произойдёт списание за подписку.' : `Через ${days} ${days < 5 ? 'дня' : 'дней'} произойдёт списание за подписку.`
+-  return ['Привет! 👋', when, '', 'Спасибо, что остаёшься с нами! 🧡'].join('\n')
++/** Текст напоминания подписчику (дата и сумма списания, как отключить). */
++export function reminderMessage(join, _supportHandle, days = 1, tariffs = {}) {
++  return chargeReminderText(join, days, planAmount(join, tariffs))
+ }
+diff --git a/server/lib/botFlow.js b/server/lib/botFlow.js
+index 7ce9aaf..4d4c186 100644
+--- a/server/lib/botFlow.js
++++ b/server/lib/botFlow.js
+@@ -17,15 +17,24 @@ export function isStartKeyword(text) {
+   return START_KEYWORD_RES.some((re) => re.test(t))
+ }
+ 
++/**
++ * Ссылка из бота на страницу сайта с UTM-метками: оплата только на сайте, и в Метрике видно, сколько людей пришло из бота
++ * (utm_source=telegram, utm_medium=bot, utm_campaign — какая кнопка). hash — якорь на странице («#join»).
++ */
++export function siteLink(siteUrl, path, campaign, hash = '') {
++  return `${siteUrl}${path}?utm_source=telegram&utm_medium=bot&utm_campaign=${campaign}${hash}`
++}
++
+ /** Сообщение 2: приветствие и просьба подтвердить согласие на обработку персональных данных. */
+ export function welcomeScreen(user, siteUrl) {
+   return {
+     text: [
+       `Привет, ${user.firstName || 'друг'}! 👋`,
+       'Я — чат-бот «Карьерный юрист». Помогаю тебе:',
+-      '- вступить в сообщество',
+-      '- зарегистрироваться на мероприятия',
+-      '- записаться на консультации',
++      '- узнать о сообществе и оформить подписку на сайте',
++      '- пользоваться личным кабинетом резидента',
++      '- получать уведомления о подписке',
++      '- связаться с нами',
+       '',
+       'Перед началом работы, пожалуйста, ознакомься с политикой обработки персональных данных и подтверди согласие. Это нужно, чтобы я мог комфортно и безопасно с тобой взаимодействовать.',
+       '',
+@@ -58,28 +67,28 @@ export function mailingScreen(siteUrl, user) {
+   }
+ }
+ 
+-/** Главное меню. Строка «Мой кабинет» добавляется только резидентам сообщества. */
+-export function mainMenuScreen(siteUrl, user) {
++/**
++ * Главное меню. Бот теперь информационный и сервисный: оплата, материалы, мероприятия и вакансии живут на сайте, здесь остаются
++ * сообщество (информация и личный кабинет резидента), «О КЮ», поддержка и ссылка на правовые документы сайта.
++ */
++export function mainMenuScreen(siteUrl, user, hasCabinet = false) {
+   return {
+     text: [
+       `Привет, ${user.firstName || 'друг'}! 👋`,
+-      'Добро пожаловать в главное меню!',
+-      'Здесь ты можешь:',
+-      '- Вступить в сообщество',
+-      '- Зарегистрироваться на мероприятие',
+-      '- Найти работу или сотрудника',
+-      '- Записаться на консультации',
++      'Это бот «Карьерный юрист». Здесь ты можешь:',
++      '- узнать о сообществе и оформить подписку на сайте',
++      '- открыть личный кабинет резидента: срок подписки, оплаты, ссылка на сообщество',
++      '- получать уведомления о подписке',
++      '- связаться с нами',
++      '',
++      'Мероприятия, материалы и вакансии — на сайте legalcareerist.ru.',
+       '',
+       'Если у тебя возник любой вопрос по боту или сообществу — смело жми кнопку «Поддержка», я всегда на связи и с радостью помогу 💙',
+     ].join('\n'),
+     keyboard: [
+-      [{ text: 'Сообщество', callback_data: 'u:community' }],
+-      [{ text: 'Консультации', callback_data: 'u:consult' }],
+-      [
+-        { text: 'Поддержка', callback_data: 'u:support' },
+-        { text: 'Правовая информация', callback_data: 'u:legal' },
+-        { text: 'О КЮ', callback_data: 'u:about' },
+-      ],
++      hasCabinet ? [{ text: '💼 Личный кабинет', callback_data: 'r:menu' }, { text: 'Сообщество', callback_data: 'u:community' }] : [{ text: 'Сообщество', callback_data: 'u:community' }],
++      [{ text: 'О КЮ', callback_data: 'u:about' }, { text: 'Поддержка', callback_data: 'u:support' }],
++      [{ text: 'Правовая информация', url: `${siteUrl}/legal` }],
+     ],
+   }
+ }
+@@ -92,20 +101,11 @@ export function supportPrompt(user) {
+   }
+ }
+ 
+-/** Временный блок: тексты «Правовой информации» и «О КЮ» ещё не переданы — даём ссылки на страницы сайта. */
++/** «Правовая информация»: все документы (политика, согласия, оферты) собраны на сайте, бот только ведёт туда. */
+ export function legalScreen(siteUrl) {
+   return {
+-    text: 'Правовая информация',
+-    keyboard: [
+-      [{ text: 'Политика обработки персональных данных', url: `${siteUrl}/legal/privacy` }],
+-      [{ text: 'Согласие на обработку персональных данных', url: `${siteUrl}/legal/consent` }],
+-      [{ text: 'Оферта: Лонглист «Студенческие юридические мероприятия»', url: `${siteUrl}/legal/offer` }],
+-      [{ text: 'Оферта: Лонглист «Юридические мероприятия»', url: `${siteUrl}/legal/offer-longlist-yuridicheskie-meropriyatiya` }],
+-      [{ text: 'Оферта: Гайд «Карьера юриста в нотариате»', url: `${siteUrl}/legal/offer-gaid-kariera-yurista-v-notariate` }],
+-      [{ text: 'Оферта: Гайд «Стипендии и гранты»', url: `${siteUrl}/legal/offer-gaid-stipendii-i-granty` }],
+-      [{ text: 'Оферта: Джазовый вечер для юристов 2', url: `${siteUrl}/legal/offer-legal-night-jazz-2` }],
+-      [{ text: 'Главное меню', callback_data: 'u:menu' }],
+-    ],
++    text: 'Правовая информация: политика обработки персональных данных, согласия, оферты и другие документы собраны на сайте.',
++    keyboard: [[{ text: 'Открыть документы на сайте', url: `${siteUrl}/legal` }], [{ text: 'Главное меню', callback_data: 'u:menu' }]],
+   }
+ }
+ 
+@@ -137,50 +137,16 @@ export function aboutScreen(siteUrl, _supportHandle) {
+   }
+ }
+ 
+-/** Блок «Консультации / Главное меню». */
+-export function consultScreen(_supportHandle) {
+-  return {
+-    text: [
+-      'Карьерный юрист | Консультации — твой надежный помощник в построении успешной карьеры.',
+-      '',
+-      '• Руденков Илья — карьерный консультант и основатель сообщества. Помогает с карьерным планированием, поиском работы, составлением сильного резюме и подготовкой к собеседованиям.',
+-    ].join('\n'),
+-    keyboard: [
+-      [{ text: 'Получить карьерную консультацию', callback_data: 'u:book' }],
+-      [
+-        { text: 'Поддержка', callback_data: 'u:support' },
+-        { text: 'Главное меню', callback_data: 'u:menu' },
+-      ],
+-    ],
+-  }
+-}
+-
+-/** Просьба описать запрос на консультацию — следующее сообщение уходит админу как заявка. */
+-export function consultPrompt(user) {
+-  return {
+-    text: `${user.firstName || 'Друг'}, расскажи в паре предложений, с каким запросом хочешь прийти на консультацию — так Илья подготовится и предложит план работы.`,
+-    keyboard: [[{ text: 'Главное меню', callback_data: 'u:menu' }]],
+-  }
+-}
+-
+-/** Блок «Консультации / Ответ на запись». */
+-export function consultBookedScreen(number) {
+-  return {
+-    text: `Отлично, записал!${number ? ` Номер заявки №${number}.` : ''}\n\nВ ближайшее время с тобой свяжется Руденков Илья, чтобы обсудить твои запросы и предложить план работы.`,
+-    keyboard: [[{ text: 'В главное меню', callback_data: 'u:menu' }]],
+-  }
+-}
+-
+ // ---- Сообщество ----
+ 
+ const COMMUNITY_TEXT = 'Мы создали комфортное пространство для студентов и молодых юристов, которые хотят развиваться, находить работу и уверенно строить карьеру в поддерживающей и дружеской среде 💗'
+ 
+-/** «Сообщество» для тех, у кого нет действующей подписки. Личный кабинет показываем, если подписка когда-либо была. */
+-export function communityScreen(hasCabinet = false) {
++/** «Сообщество» для тех, у кого нет действующей подписки: оплата только на сайте. Личный кабинет показываем, если подписка когда-либо была. */
++export function communityScreen(hasCabinet = false, siteUrl = '') {
+   return {
+-    text: COMMUNITY_TEXT,
++    text: `${COMMUNITY_TEXT}\n\nПодписка оформляется на сайте: там тарифы, оплата и личная ссылка на вступление.`,
+     keyboard: [
+-      [{ text: 'Хочу вступить', callback_data: 'u:join' }],
++      [{ text: 'Оформить подписку на сайте', url: siteLink(siteUrl, '/community', 'bot_community', '#join') }],
+       [{ text: 'О сообществе', callback_data: 'u:aboutclub' }],
+       ...(hasCabinet ? [[{ text: '💼 Личный кабинет', callback_data: 'r:menu' }]] : []),
+       [{ text: 'Главное меню', callback_data: 'u:menu' }],
+@@ -205,7 +171,6 @@ export function aboutClubScreen(siteUrl) {
+   return {
+     text: `О сообществе\n\n${COMMUNITY_TEXT}`,
+     keyboard: [
+-      [{ text: 'Карьерные возможности', callback_data: 'u:career' }],
+       [{ text: 'Достижения', callback_data: 'u:ach' }],
+       [{ text: 'Читать на сайте', url: `${siteUrl}/community#main` }],
+       [{ text: '⬅️ Сообщество', callback_data: 'u:community' }, { text: 'Главное меню', callback_data: 'u:menu' }],
+@@ -213,68 +178,12 @@ export function aboutClubScreen(siteUrl) {
+   }
+ }
+ 
+-/** «Сообщество | Периоды подписки»: выбор срока подписки. */
+-export function periodsScreen() {
+-  return {
+-    text: [
+-      'Тут ты можешь выбрать на какой период оплатить подписку.',
+-      '',
+-      '• 1 месяц — 690 ₽',
+-      '• 3 месяца — 1770 ₽ (590 ₽/мес)',
+-      '• 6 месяцев — 3180 ₽ (530 ₽/мес)',
+-      '',
+-      'Нажимая оплатить Вы соглашаетесь с офертой',
+-      '',
+-      '💭 Если что-то непонятно или остались вопросы — просто напиши нам. Мы всегда на связи и готовы помочь, чтобы всё прошло легко и без лишних шагов.',
+-    ].join('\n'),
+-    keyboard: [
+-      [{ text: '1 месяц', callback_data: 'u:sub:1m' }, { text: '3 месяца', callback_data: 'u:sub:3m' }, { text: '6 месяцев', callback_data: 'u:sub:6m' }],
+-      [{ text: 'Меню', callback_data: 'u:menu' }],
+-    ],
+-  }
+-}
+-
+-export function subLinkScreen(label, price, url) {
+-  return { text: `${label} — ${price} ₽\n\nОплата по кнопке ниже. Нажимая «Оплатить», ты соглашаешься с офертой. Ссылка на вступление в сообщество придёт сюда сразу после оплаты.`, keyboard: [[{ text: `Оплатить ${price} ₽`, url }], [{ text: 'Назад', callback_data: 'u:join' }, { text: 'Меню', callback_data: 'u:menu' }]] }
+-}
+-
+ export const CANCEL_REQUESTED_TEXT = 'Запрос на отмену подписки принят. Мы отключим автопродление и напишем тебе, когда всё будет готово. Подписку можно будет активировать снова в разделе «Сообщество».'
+ 
+ const RESIDENT_NAV = (backTo) => [
+   [{ text: backTo === 'u:about' ? '⬅️ О КЮ' : '⬅️ О сообществе', callback_data: backTo }, { text: 'Главное меню', callback_data: 'u:menu' }],
+ ]
+ 
+-/** Раздел «Карьерные возможности» (для резидентов). */
+-export function careerScreen() {
+-  return {
+-    text: [
+-      'Карьерные возможности — это раздел, где резидент получает доступ к вакансиям, карьерным консультациям, развитию личного бренда, мероприятиям, базе знаний и взаимопомощи, то есть ко всему, что нужно для роста в юридической профессии в одном месте.',
+-      '',
+-      '💼 Вакансии',
+-      'ежемесячные закрытые предложения о работе',
+-      '',
+-      '📈 Построение карьеры',
+-      'обсуждение карьерных вопросов, стратегий, опыта',
+-      '',
+-      '🌟 Личный бренд',
+-      'развитие репутации, статьи, публичность',
+-      '',
+-      '🗓 Мероприятия',
+-      'анонсы мероприятий и партнеров, поиск команды для конкурсов и муткортов',
+-      '',
+-      '📚 База знаний',
+-      'статьи, гайды, чек-листы, подкасты, видео, вебинары, курсы, книги',
+-      '',
+-      '🤝 Нетворкинг',
+-      'общение обо всем и ни о чем',
+-      '',
+-      '⚖️ Юридические вопросы',
+-      'взаимопомощь в практике',
+-    ].join('\n'),
+-    keyboard: RESIDENT_NAV('u:aboutclub'),
+-  }
+-}
+-
+ /** Раздел «Достижения» (из «Сообщества» для резидентов и из «О КЮ»). */
+ export function achievementsScreen(backTo = 'u:aboutclub') {
+   return {
+diff --git a/server/lib/communityReviews.js b/server/lib/communityReviews.js
+index a567d21..a47a5c0 100644
+--- a/server/lib/communityReviews.js
++++ b/server/lib/communityReviews.js
+@@ -51,6 +51,8 @@ const DAY = 24 * 3600 * 1000
+ export function reviewRequestDue(join, reviews, now) {
+   if (!join.paid || !join.tgUserId || join.status !== 'active' || join.lifetime || join.reviewRequestedAt || join.reviewThankedAt) return false
+   if (reviews.some((r) => r.joinToken === join.token)) return false
++  // Тем, у кого списание не прошло или просрочено, про отзыв не пишем: им сейчас важнее другое.
++  if (join.watch || (join.nextPaymentAt && join.nextPaymentAt < now)) return false
+   if (join.reviewTriedAt && now - join.reviewTriedAt < DAY) return false
+   const first = (join.payments ?? []).filter((p) => !p.estimated && p.kind === 'first' && p.at).sort((a, b) => a.at - b.at)[0]
+   if (!first) return false
+diff --git a/server/lib/residentCabinet.js b/server/lib/residentCabinet.js
+index 56a4ae5..57304db 100644
+--- a/server/lib/residentCabinet.js
++++ b/server/lib/residentCabinet.js
+@@ -8,6 +8,8 @@ const rub = (n) => `${Math.round(n).toLocaleString('ru-RU')} ₽`
+ export const ruDate = (ts) => new Intl.DateTimeFormat('ru-RU', { timeZone: MSK, day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(ts))
+ 
+ const BACK_ROW = [{ text: '⬅️ Кабинет', callback_data: 'r:menu' }]
++const DAY = 24 * 3600 * 1000
++const plural = (n, [one, few, many]) => (n % 10 === 1 && n % 100 !== 11 ? one : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? few : many)
+ 
+ /** Подписка «в силе»: бессрочная, активная или отключена, но оплаченный период ещё не закончился. */
+ export function hasAccess(join, now = Date.now()) {
+@@ -32,7 +34,7 @@ export function residentMenu(join, user) {
+ }
+ 
+ /** «Моя подписка»: статус, тариф, когда подключена, последняя оплата, дата следующего списания. */
+-export function subscriptionScreen(join, tariffs, now = Date.now()) {
++export function subscriptionScreen(join, tariffs, now = Date.now(), payUrl = '') {
+   if (join.lifetime) {
+     const lines = [
+       '📋 Моя подписка',
+@@ -66,8 +68,14 @@ export function subscriptionScreen(join, tariffs, now = Date.now()) {
+     paid.length ? `Всего оплат: ${paid.length}` : null,
+     join.bonusDays ? `Бонусные дни: +${join.bonusDays}` : null,
+   ].filter((l) => l !== null)
+-  const keyboard = []
+-  if (!hasAccess(join, now) || join.status === 'cancelled') keyboard.push([{ text: join.status === 'cancelled' ? 'Возобновить подписку' : 'Оформить подписку', callback_data: 'u:join' }])
++  // Те же «Осталось N дней», что в кабинете на сайте: до конца оплаченного периода, округляем вверх.
++  if (endsAt && endsAt > now && hasAccess(join, now)) {
++    const left = Math.ceil((endsAt - now) / DAY)
++    const at = lines.findIndex((l) => l.startsWith('Действует до'))
++    lines.splice(at >= 0 ? at + 1 : lines.length, 0, `Осталось: ${left} ${plural(left, ['день', 'дня', 'дней'])}`)
++  }
++  const keyboard = [[{ text: '📜 История оплат', callback_data: 'r:hist' }]]
++  if ((!hasAccess(join, now) || join.status === 'cancelled') && payUrl) keyboard.push([{ text: join.status === 'cancelled' ? 'Возобновить подписку на сайте' : 'Оформить подписку на сайте', url: payUrl }])
+   keyboard.push(BACK_ROW)
+   return { text: lines.join('\n'), keyboard }
+ }
+@@ -88,6 +96,21 @@ export function reviewSendPrompt(minLength) {
+   }
+ }
+ 
++/** «История оплат»: как в кабинете на сайте, новые сверху; суммы, перенесённые из прежней системы, помечены ≈. */
++export function paymentsScreen(join) {
++  const list = (join.payments ?? [])
++    .filter((p) => Number(p.amount) > 0 || p.estimated)
++    .sort((a, b) => (Number(b.at) || 0) - (Number(a.at) || 0))
++  const shown = list.slice(0, 15)
++  const lines = ['📜 История оплат', '']
++  if (!list.length) lines.push('Оплат пока нет.')
++  for (const p of shown) lines.push(`• ${p.at ? ruDate(p.at) : 'дата неизвестна'} — ${Number(p.amount) > 0 ? `${rub(p.amount)}${p.estimated ? ' ≈' : ''}` : '—'}`)
++  if (list.length > shown.length) lines.push(`…и ещё ${list.length - shown.length}`)
++  if (list.some((p) => p.estimated)) lines.push('', '≈ сумма примерная: перенесена из прежней системы.')
++  lines.push('', 'Чек каждой оплаты приходит на почту, указанную при оплате.')
++  return { text: lines.join('\n'), keyboard: [BACK_ROW] }
++}
++
+ /**
+  * «Ссылка на сообщество». invite — личная одноразовая ссылка { url, expiresAt } или null; fallbackUrl — общая ссылка (основатель, либо
+  * Telegram не выдал личную). Уже вступившему ссылку не навязываем: она нужна, только если он вышел или потерял доступ.
+diff --git a/server/lib/residentNotices.js b/server/lib/residentNotices.js
+new file mode 100644
+index 0000000..73c091d
+--- /dev/null
++++ b/server/lib/residentNotices.js
+@@ -0,0 +1,31 @@
++// Сообщения резиденту в бот о списаниях: напоминание, списание прошло, списание не прошло. То же самое уходит и письмом
++// (lib/subscriptionMail.js). Только тексты и кнопки; отправка и отметки «уже напоминали» — в server/index.js.
++
++const MSK = 'Europe/Moscow'
++const day = (ts) => new Intl.DateTimeFormat('ru-RU', { timeZone: MSK, day: 'numeric', month: 'long' }).format(new Date(ts))
++const rub = (n) => `${Math.round(n).toLocaleString('ru-RU')} ₽`
++
++export const CABINET_KEYBOARD = [[{ text: '💼 Личный кабинет', callback_data: 'r:menu' }], [{ text: 'Главное меню', callback_data: 'u:menu' }]]
++
++/** Напоминание о списании за days дней (2 или 1). */
++export function chargeReminderText(join, days, amount) {
++  const when = days === 1 ? 'Завтра' : `Через ${days} ${days < 5 ? 'дня' : 'дней'}`
++  const date = join?.nextPaymentAt ? ` (${day(join.nextPaymentAt)})` : ''
++  return ['Привет! 👋', `${when}${date} произойдёт списание за подписку${amount ? `: ${rub(amount)}` : ''}.`, '', 'Спасибо, что остаёшься с нами! 🧡', 'Если планы изменились, отключить автопродление можно в личном кабинете.'].join('\n')
++}
++
++export function chargeDoneText(amount, nextPaymentAt) {
++  return ['Списание прошло ✅', amount ? `Оплачено: ${rub(amount)} за подписку на сообщество.` : 'Подписка на сообщество продлена.', nextPaymentAt ? `Следующее списание: ${day(nextPaymentAt)}.` : null, '', 'Спасибо, что ты с нами! 💗'].filter((l) => l !== null).join('\n')
++}
++
++export function chargeFailedText(amount, chargeAt) {
++  return [
++    'Привет! Не получилось списать оплату за подписку на сообщество' + (amount ? ` (${rub(amount)}, ${day(chargeAt)})` : '') + '.',
++    '',
++    'Возможно, банк отклонил платёж или у карты закончился срок. Проверь карту и баланс: платёжная система повторит попытку в ближайшие дни.',
++    '',
++    'Если карту нужно сменить, напиши в поддержку: поможем, чтобы подписка не прервалась.',
++  ].join('\n')
++}
++
++export const CHARGE_FAILED_KEYBOARD = [[{ text: '💬 Поддержка', callback_data: 'u:support' }], [{ text: '💼 Личный кабинет', callback_data: 'r:menu' }]]
+diff --git a/server/lib/subscriptionMail.js b/server/lib/subscriptionMail.js
+index d54529f..eb5450b 100644
+--- a/server/lib/subscriptionMail.js
++++ b/server/lib/subscriptionMail.js
+@@ -78,3 +78,53 @@ export function composeSubscriptionMail({ name, tariff, amount, paidAt, nextPaym
+ 
+   return { subject: 'Вы в сообществе «Карьерный юрист»: ссылка на вступление', text, html }
+ }
++
++// ---- Письма о списаниях: напоминание, списание прошло, списание не прошло ----
++
++function shell({ name, siteUrl, botUsername, supportHandle, title, lines, extraHtml = '' }) {
++  const hello = name && name !== '—' ? `Здравствуйте, ${name}!` : 'Здравствуйте!'
++  const cabinetUrl = `${siteUrl}/cabinet`
++  const botUrl = `https://t.me/${botUsername}`
++  const supportUrl = `https://t.me/${String(supportHandle).replace(/^@/, '')}`
++  const text = [hello, title, '', ...lines, '', `Личный кабинет резидента: ${cabinetUrl}`, `Бот в Telegram: ${botUrl}`, `Вопросы: ${supportHandle}`, '', 'Карьерный юрист'].join('\n')
++  const p = (inner) => `<p style="margin:0 0 16px">${inner}</p>`
++  const link = (href, label) => `<a href="${esc(href)}" style="color:#45608a">${esc(label)}</a>`
++  const html = `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.5;color:#283953">${[
++    p(`<b>${esc(hello)}<br>${esc(title)}</b>`),
++    p(lines.map(esc).join('<br>')),
++    extraHtml,
++    p(`${link(cabinetUrl, 'Личный кабинет резидента')} · ${link(botUrl, 'Бот в Telegram')} · ${link(supportUrl, supportHandle)}`),
++    p('Карьерный юрист'),
++  ].join('')}</div>`
++  return { text, html }
++}
++
++const CANCEL_HINT = 'Если планы изменились, отключите автопродление в личном кабинете: раздел «Сообщество» → «Отключить автопродление» (или в боте: «Личный кабинет» → «Настройки» → «Отменить подписку»). Доступ сохранится до конца оплаченного периода.'
++
++/** Напоминание о списании за days дней (1 или 2). chargeAt — момент списания. */
++export function composeChargeReminderMail({ name, days, amount, chargeAt, siteUrl, botUsername, supportHandle }) {
++  const when = days === 1 ? 'завтра' : `через ${days} ${days < 5 ? 'дня' : 'дней'}`
++  const title = `Напоминаем: ${when}, ${date(chargeAt)}, произойдёт списание за подписку на сообщество «Карьерный юрист»${amount ? ` — ${rub(amount)}` : ''}.`
++  const lines = ['Убедитесь, что на карте достаточно средств: тогда подписка продлится сама и доступ к сообществу сохранится.', CANCEL_HINT]
++  const { text, html } = shell({ name, siteUrl, botUsername, supportHandle, title, lines })
++  return { subject: `Скоро списание за подписку: ${date(chargeAt)}`, text, html }
++}
++
++/** Списание прошло, подписка продлена. */
++export function composeChargeDoneMail({ name, amount, paidAt, nextPaymentAt, siteUrl, botUsername, supportHandle }) {
++  const title = `Списание прошло${amount ? `: ${rub(amount)}` : ''}, подписка на сообщество продлена.`
++  const lines = [amount ? `Оплачено: ${rub(amount)}, ${date(paidAt)}.` : null, nextPaymentAt ? `Следующее списание: ${date(nextPaymentAt)}.` : null, 'Чек об оплате придёт от платёжной системы на почту, указанную при оплате.', CANCEL_HINT].filter(Boolean)
++  const { text, html } = shell({ name, siteUrl, botUsername, supportHandle, title, lines })
++  return { subject: 'Подписка продлена', text, html }
++}
++
++/** Списание не прошло: что проверить и как не потерять доступ. */
++export function composeChargeFailedMail({ name, amount, chargeAt, siteUrl, botUsername, supportHandle }) {
++  const title = `Не получилось списать оплату за подписку на сообщество «Карьерный юрист»${amount ? ` (${rub(amount)})` : ''}, списание было назначено на ${date(chargeAt)}.`
++  const lines = [
++    'Возможно, банк отклонил платёж или у карты закончился срок. Проверьте карту и баланс: платёжная система повторяет попытки списания несколько дней.',
++    `Если карта устарела или её нужно сменить, напишите в поддержку (${supportHandle}) или нажмите «Сменить карту» в личном кабинете: мы поможем, чтобы подписка не прервалась.`,
++  ]
++  const { text, html } = shell({ name, siteUrl, botUsername, supportHandle, title, lines })
++  return { subject: 'Не удалось списать оплату за подписку', text, html }
++}
+diff --git a/src/lib/telegram.ts b/src/lib/telegram.ts
+index 51cdf24..85c8f7f 100644
+--- a/src/lib/telegram.ts
++++ b/src/lib/telegram.ts
+@@ -2,8 +2,8 @@
+ // Это обязательный шаг: по правилам платформы бот не может первым написать
+ // пользователю, который ни разу не нажал Start в чате с ним — обхода нет.
+ // Параметр startParam долетает до бота как payload команды /start —
+-// бэкенд (server/index.js, /api/telegram/webhook) разбирает его и для
+-// resident_<tariffId> сразу присылает подписанную ссылку на оплату подписки.
++// бэкенд (server/index.js) разбирает его: access_<токен> привязывает Telegram к оплаченной подписке и присылает личную ссылку на вступление.
++// Оплата только на сайте: бот ссылок на оплату не выдаёт.
+ export const TELEGRAM_BOT_USERNAME = 'legalcareerist_bot'
+ export const TELEGRAM_BOT_DISPLAY_NAME = 'Карьерный юрист | Помощник'
+ 
+-- 
+2.43.0
+
