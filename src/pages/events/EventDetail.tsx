@@ -548,7 +548,8 @@ export default function EventDetail() {
           <div id="partner" className="mt-8 scroll-mt-24">
             <h2 className="text-xl font-semibold">Стать партнером мероприятия</h2>
             <p className="mt-2 text-sm text-ink/60">
-              Оставьте заявку — мы свяжемся, чтобы обсудить формат партнерства для этого мероприятия.
+              Оставьте заявку — мы свяжемся, чтобы обсудить формат партнерства для этого мероприятия.{' '}
+              <Link to="/events?tab=partner" className="underline hover:no-underline">Форматы партнерства и стоимость</Link>
             </p>
             {partnerSent ? (
               <div className="mt-4">

@@ -76,7 +76,7 @@ export default function Footer() {
         <div>
           <div className="mb-3 whitespace-nowrap text-xs font-bold uppercase leading-tight tracking-wide text-white">Карьерный юрист</div>
           <ul className="text-xs">
-            <li><Link className="inline-block py-1 hover:text-white" to="/about">О нас</Link></li>
+            <li><Link className="inline-block py-1 hover:text-white" to="/">О нас</Link></li>
           </ul>
         </div>
 

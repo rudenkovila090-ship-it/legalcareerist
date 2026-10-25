@@ -28,7 +28,6 @@ const staticPaths = [
   '/events/materials',
   '/events/contacts',
   '/community/documents',
-  '/about',
   '/news',
   '/marketplace',
   '/marketplace/contacts',

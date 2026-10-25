@@ -1,7 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import PageHero from '../../components/PageHero'
-import Testimonials from '../../components/Testimonials'
 import FAQSection from '../../components/FAQSection'
 import SectionRail from '../../components/SectionRail'
 import { submitLead, uploadDocument } from '../../lib/leads'
@@ -82,7 +81,6 @@ const railItems = [
   { id: 'how', label: 'Как это работает' },
   { id: 'access', label: 'Доступ к вакансиям' },
   { id: 'positions', label: 'Позиции' },
-  { id: 'reviews', label: 'Отзывы' },
   { id: 'faq', label: 'FAQ' },
 ]
 
@@ -175,12 +173,12 @@ export default function CareerReserve({ embedded = false }: { embedded?: boolean
         </div>
       )}
 
-      {/* Что такое кадровый резерв — вводный блок, наполнение уточняется */}
+      {/* Что такое кадровый резерв — вводный блок (текст владельца) */}
       <section className="container-page pt-10">
         <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Что такое кадровый резерв</div>
-        <div className="rounded-2xl border border-dashed border-ink/15 p-10 text-center text-sm text-ink/30">
-          Временно недоступно. В разработке.
-        </div>
+        <p className="max-w-3xl text-lg leading-relaxed text-ink/80">
+          Это закрытая база проверенных кандидатов, которых мы знаем лично или по результатам отбора. Когда работодателю нужен сотрудник, мы предлагаем ему людей из резерва, а не ищем с нуля. Кандидаты узнают о подходящих вакансиях раньше открытой публикации.
+        </p>
       </section>
 
       {/* Соц. доказательства */}
@@ -342,11 +340,6 @@ export default function CareerReserve({ embedded = false }: { embedded?: boolean
           ))}
         </div>
       </section>
-
-      {/* Отзывы */}
-      <div id="reviews">
-        <Testimonials />
-      </div>
 
       {/* FAQ */}
       <div id="faq">

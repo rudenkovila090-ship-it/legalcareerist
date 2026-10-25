@@ -23,19 +23,13 @@ import CareerReserve from './CareerReserve'
 import CareerConsultation from './CareerConsultation'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import { pluralRu } from '../../lib/plural'
+import { useVacancyViewCounts } from '../../lib/useVacancyViews'
 import { SHOW_PERSONAL_ACCOUNTS } from '../../lib/featureFlags'
 import KadryFooter from './KadryFooter'
 import HowHeardField from '../../components/HowHeardField'
 import ConsentCheck from '../../components/ConsentCheck'
 import { consentOf } from '../../lib/consent'
 
-
-// Демо-счетчик просмотров вакансии — детерминированный (по id), чтобы не
-// прыгал при каждом ререндере.
-function vacancyViews(id: string | number) {
-  const n = String(id).split('').reduce((a, c) => a + c.charCodeAt(0), 0)
-  return 60 + (n * 37) % 380
-}
 
 const benefits = [
   { title: 'Подбор работы без лишних хлопот', text: 'Берем переговоры с работодателем на себя и сопровождаем вас от заявки до выхода на позицию.' },
@@ -189,6 +183,8 @@ export default function Candidates() {
   }
   const [selectedVacancySlug, setSelectedVacancySlug] = useState<string | null>(null)
   const selectedVacancy = vacancies.find((v) => v.slug === selectedVacancySlug) ?? null
+  // Просмотры в списке — реальные, те же, что на странице вакансии; перечитываем, когда человек вернулся из вакансии в список.
+  const viewCounts = useVacancyViewCounts(selectedVacancySlug)
   useDocumentTitle(selectedVacancy?.title ?? 'Кадры — Соискателям')
   // Открытие конкретной вакансии подменяет список ее карточкой прямо на месте
   // (без перехода по роуту) — список короче карточки, поэтому без сброса
@@ -506,7 +502,11 @@ export default function Candidates() {
                 <div className="mt-3">
                   <TagRow specialization={v.specialization} industry={v.industry} />
                 </div>
-                <div className="mt-3 text-xs text-ink/40">{vacancyViews(v.id)} просмотров</div>
+                {viewCounts && (
+                  <div className="mt-3 text-xs text-ink/40">
+                    {viewCounts[v.slug] ?? 0} {pluralRu(viewCounts[v.slug] ?? 0, ['просмотр', 'просмотра', 'просмотров'])}
+                  </div>
+                )}
               </button>
             ))}
             {filteredVacancies.length === 0 && <p className="text-ink/50">По заданным фильтрам вакансий не найдено.</p>}

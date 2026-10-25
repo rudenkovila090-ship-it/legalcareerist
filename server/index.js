@@ -890,6 +890,13 @@ app.post('/api/vacancy/:slug/view', (req, res) => {
   res.json({ ok: true, ...stats })
 })
 
+// Только чтение — просмотры всех вакансий разом, для карточек в списке «Соискателям» (не увеличивает счётчик).
+// Так число в списке совпадает с тем, что человек увидит на странице вакансии.
+app.get('/api/vacancies/views', (_req, res) => {
+  res.set('Cache-Control', 'no-store')
+  res.json(Object.fromEntries(Object.entries(allVacancyStats()).map(([slug, v]) => [slug, Number(v.views) || 0])))
+})
+
 // Открытие статьи базы знаний → +1 к счётчику просмотров (тот же принцип,
 // что у вакансий: реальный счётчик, а не демо-число).
 app.post('/api/article/:slug/view', (req, res) => {

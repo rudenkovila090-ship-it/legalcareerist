@@ -15,6 +15,8 @@ import { eventStories } from '../../data/eventStories'
 import { pluralRu } from '../../lib/plural'
 import ConsentCheck from '../../components/ConsentCheck'
 import { consentOf } from '../../lib/consent'
+import PartnershipPackages from '../../components/PartnershipPackages'
+import { PARTNERSHIP_UNDECIDED, partnershipFormatLabel, partnershipPackages } from '../../data/partnershipPackages'
 
 const money = new Intl.NumberFormat('ru-RU')
 
@@ -417,23 +419,29 @@ export default function EventsHome() {
 
   // «Стать партнером» — лид-заявка на партнерство (общая, не по конкретному
   // мероприятию — для этого есть отдельная форма на странице мероприятия).
-  const [partnerForm, setPartnerForm] = useState({ company: '', fio: '', phone: '', email: '', telegram: '', howHeard: '' })
+  // Поля: компания, контактное лицо, почта, телефон и интересующий формат (один из пакетов или «пока не определились»).
+  const [partnerForm, setPartnerForm] = useState({ company: '', fio: '', phone: '', email: '', format: '', howHeard: '' })
   const [partnerSent, setPartnerSent] = useState(false)
+
+  function choosePartnerFormat(id: string) {
+    setPartnerForm((f) => ({ ...f, format: id }))
+    document.getElementById('partner-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
 
   function handlePartnerSubmit(e: FormEvent) {
     e.preventDefault()
     const consent = consentOf(e)
-    if (!partnerForm.fio.trim() || !partnerForm.company.trim() || (!partnerForm.phone.trim() && !partnerForm.email.trim())) return
+    if (!partnerForm.fio.trim() || !partnerForm.company.trim() || !partnerForm.phone.trim() || !partnerForm.email.trim() || !partnerForm.format) return
     submitLead({
       sourceBlock: 'events',
       formType: 'partner_application',
       name: partnerForm.fio,
-      contact: [partnerForm.phone, partnerForm.email, partnerForm.telegram].filter(Boolean).join(' / '),
-      phone: partnerForm.phone || undefined,
-      email: partnerForm.email || undefined,
-      telegram: partnerForm.telegram || undefined,
+      company: partnerForm.company,
+      contact: [partnerForm.phone, partnerForm.email].join(' / '),
+      phone: partnerForm.phone,
+      email: partnerForm.email,
       howHeard: partnerForm.howHeard,
-      interest: [partnerForm.company],
+      interest: [`Компания: ${partnerForm.company}`, `Формат партнёрства: ${partnershipFormatLabel(partnerForm.format)}`],
       consent,
     })
     setPartnerSent(true)
@@ -493,14 +501,13 @@ export default function EventsHome() {
                 {t.label}
               </button>
             ))}
-            {/* Реальной формы партнёрства из этого меню пока нет (форма есть
-                только в подвале/на странице мероприятия) — кнопка неактивна,
-                текст подсказки виден по наведению. */}
+            {/* Партнёрство: пакеты с ценами и заявка (вкладка ?tab=partner, на неё же ведёт подвал). */}
             <button
               type="button"
-              disabled
-              title="Временно недоступно. В разработке."
-              className="flex cursor-not-allowed items-center gap-2 rounded-full border border-ink/10 px-5 py-2.5 text-sm font-semibold text-ink/30"
+              onClick={() => setTab('partner')}
+              className={`flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition-colors ${
+                tab === 'partner' ? 'bg-ink text-white' : 'border border-ink/15 text-ink/60 hover:text-ink'
+              }`}
             >
               <IconHandshake />
               Стать партнером мероприятия
@@ -750,20 +757,17 @@ export default function EventsHome() {
       {tab === 'partner' && (
         <section className="container-page py-12">
           <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Партнерам</div>
-          <h2 className="mb-6 text-2xl font-semibold">Стать партнером мероприятий «Карьерного юриста»</h2>
+          <h2 className="text-2xl font-semibold">Стать партнером мероприятий «Карьерного юриста»</h2>
+          <p className="mb-6 mt-3 max-w-3xl text-ink/70">Мы рассматриваем следующие партнерства:</p>
 
-          <div className="mx-auto max-w-xl">
+          <PartnershipPackages selected={partnerForm.format} onSelect={choosePartnerFormat} />
+
+          <div id="partner-form" className="mx-auto mt-12 max-w-xl scroll-mt-40">
+            <h3 className="mb-4 text-xl font-semibold">Оставить заявку</h3>
             {partnerSent ? (
               <LeadSuccessCard description="Мы свяжемся с вами, чтобы обсудить формат партнерства." />
             ) : (
               <form onSubmit={handlePartnerSubmit} className="glass grid gap-3 rounded-2xl p-6">
-                <input aria-label="ФИО"
-                  value={partnerForm.fio}
-                  onChange={(e) => setPartnerForm((f) => ({ ...f, fio: e.target.value }))}
-                  placeholder="ФИО"
-                  required
-                  className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none focus:border-ink/40"
-                />
                 <input aria-label="Компания"
                   value={partnerForm.company}
                   onChange={(e) => setPartnerForm((f) => ({ ...f, company: e.target.value }))}
@@ -771,26 +775,41 @@ export default function EventsHome() {
                   required
                   className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none focus:border-ink/40"
                 />
+                <input aria-label="Контактное лицо"
+                  value={partnerForm.fio}
+                  onChange={(e) => setPartnerForm((f) => ({ ...f, fio: e.target.value }))}
+                  placeholder="Контактное лицо"
+                  required
+                  className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none focus:border-ink/40"
+                />
                 <div className="grid gap-3 sm:grid-cols-2">
                   <PhoneInput
+                    required
                     value={partnerForm.phone}
                     onChange={(value) => setPartnerForm((f) => ({ ...f, phone: value }))}
                     className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none focus:border-ink/40"
                   />
                   <input aria-label="Почта"
                     type="email"
+                    required
                     value={partnerForm.email}
                     onChange={(e) => setPartnerForm((f) => ({ ...f, email: e.target.value }))}
                     placeholder="Почта"
                     className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none focus:border-ink/40"
                   />
                 </div>
-                <input aria-label="Telegram"
-                  value={partnerForm.telegram}
-                  onChange={(e) => setPartnerForm((f) => ({ ...f, telegram: e.target.value }))}
-                  placeholder="Telegram"
-                  className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none focus:border-ink/40"
-                />
+                <select aria-label="Формат партнерства"
+                  value={partnerForm.format}
+                  onChange={(e) => setPartnerForm((f) => ({ ...f, format: e.target.value }))}
+                  required
+                  className="rounded-lg border border-ink/15 bg-white px-3 py-2.5 text-sm outline-none focus:border-ink/40"
+                >
+                  <option value="" disabled>Какой формат партнерства вам интересен</option>
+                  {partnershipPackages.map((p) => (
+                    <option key={p.id} value={p.id}>{partnershipFormatLabel(p.id)}</option>
+                  ))}
+                  <option value={PARTNERSHIP_UNDECIDED}>{partnershipFormatLabel(PARTNERSHIP_UNDECIDED)}</option>
+                </select>
                 <HowHeardField value={partnerForm.howHeard} onChange={(v) => setPartnerForm((f) => ({ ...f, howHeard: v }))} className="rounded-lg border border-ink/15 px-3 py-2.5 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40" />
                 <ConsentCheck />
                 <button type="submit" className="rounded-lg bg-ink py-2.5 text-sm font-semibold text-white hover:bg-ink/90">
