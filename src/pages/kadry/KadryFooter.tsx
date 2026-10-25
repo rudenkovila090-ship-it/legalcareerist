@@ -69,7 +69,7 @@ export default function KadryFooter() {
         <div>
           <div className="mb-3 text-xs font-bold uppercase leading-tight tracking-wide text-white">Кадры</div>
           <ul className="text-xs">
-            <li><Link className="inline-block py-1 hover:text-white" to="/about">О нас</Link></li>
+            <li><Link className="inline-block py-1 hover:text-white" to="/">О нас</Link></li>
             <li><Link className="inline-block py-1 hover:text-white" to="/blog?category=Кадры">Блог</Link></li>
             <li><Link className="inline-block py-1 hover:text-white" to="/news">Новости</Link></li>
           </ul>

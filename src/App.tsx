@@ -45,7 +45,6 @@ const OfferLawyers = lazy(() => import('./pages/legal/OfferLawyers'))
 const OfferGuideNotary = lazy(() => import('./pages/legal/OfferGuideNotary'))
 const OfferGuideScholarships = lazy(() => import('./pages/legal/OfferGuideScholarships'))
 const OfferEventJazz2 = lazy(() => import('./pages/legal/OfferEventJazz2'))
-const About = lazy(() => import('./pages/About'))
 const News = lazy(() => import('./pages/News'))
 const NewsDetail = lazy(() => import('./pages/NewsDetail'))
 const Documents = lazy(() => import('./pages/Documents'))
@@ -121,7 +120,8 @@ export default function App() {
             <Route path="/events/advertising" element={<Navigate to="/events" replace />} />
 
             {/* Общие информационные страницы */}
-            <Route path="/about" element={<About />} />
+            {/* «О нас» объединена с главной (решение владельца 25.10.2026): отдельной страницы нет */}
+            <Route path="/about" element={<Navigate to="/" replace />} />
             <Route path="/news" element={<News />} />
             <Route path="/news/:slug" element={<NewsDetail />} />
 

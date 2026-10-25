@@ -81,7 +81,7 @@ export default function EventsFooter() {
         <div>
           <div className="mb-3 text-xs font-bold uppercase leading-tight tracking-wide text-white">Мероприятия</div>
           <ul className="text-xs">
-            <li><Link className="inline-block py-1 hover:text-white" to="/about">О нас</Link></li>
+            <li><Link className="inline-block py-1 hover:text-white" to="/">О нас</Link></li>
             <li><Link className="inline-block py-1 hover:text-white" to="/blog?category=Мероприятия">Блог</Link></li>
           </ul>
         </div>
