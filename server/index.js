@@ -41,7 +41,7 @@ import cors from 'cors'
 import multer from 'multer'
 import { createPaymentLink, TARIFFS, tariffIdBySubscriptionId, createProductPaymentLink, MATERIALS, setSubscriptionActivity, createEventPaymentLink, allSecretKeys, payformSummary } from './lib/prodamus.js'
 import { HmacHelper } from './lib/hmac.js'
-import { createPendingJoin, createOrphanJoin, listJoins, setTgUserId, findJoinForPayment, recordPayment, setSubscriptionActive, markReminded, getJoin, setCancelReason, setJoinField, patchJoin, extendSubscription, createLifetimeJoin } from './lib/store.js'
+import { createPendingJoin, createOrphanJoin, listJoins, setTgUserId, findJoinForPayment, findPaidJoin, recordPayment, setSubscriptionActive, markReminded, getJoin, setCancelReason, setJoinField, patchJoin, extendSubscription, createLifetimeJoin } from './lib/store.js'
 import { normalizePhone } from './lib/jsonStore.js'
 import { createPendingPurchase, getPurchase, markPurchasePaidByPhone, recordPurchasePayment, listPurchases, grantFreeMaterial, hasMaterialAccess } from './lib/materialsStore.js'
 import { materialInfo } from './lib/materialCatalog.js'
@@ -669,6 +669,42 @@ async function handleSubscriptionPayment(body, phone) {
   } else if (result.kind === 'renewal') {
     const full = getJoin(rec.token) ?? rec
     await notifyResident(full, { text: chargeDoneText(amount, nextPaymentAt), keyboard: CABINET_KEYBOARD }, composeChargeDoneMail({ name: full.name, amount, paidAt, nextPaymentAt, ...mailContext() })).catch((err) => console.error('[prodamus] уведомление о списании:', err))
+  }
+}
+
+/**
+ * Уведомление Prodamus о неудачном автосписании: subscription.type = notification, notification_code = auto_payment, error, current_attempt,
+ * last_attempt (yes — попытка последняя), date_next_payment — когда будет следующая попытка. Попытки идут раз в 8 часов, до 10.
+ * Первое такое уведомление по этой дате списания: человеку «не получилось списать, проверьте карту» (бот и почта), подписчику жёлтая метка 🟡,
+ * админу сообщение. Последняя неудачная попытка: сообщение админу, решать ему. Повторные уведомления по той же дате молча пропускаются.
+ */
+async function handleChargeFailure(body) {
+  const sub = body.subscription
+  const join = findPaidJoin({ profileId: sub.profile_id, tgUserId: body.tg_user_id, phone: body.customer_phone || body.phone, email: body.customer_email })
+  const attempt = Number(sub.current_attempt) || Number(body.attempt) || null
+  const last = String(sub.last_attempt) === 'yes'
+  if (!join) {
+    console.error('[prodamus] неудачное списание: подписчик не найден в учёте, подписка', sub.id, 'профиль', sub.profile_id)
+    await sendTelegramMessage(ADMIN_CHAT_ID, `🟡 Списание не прошло, но подписчика нет в учёте: подписка Prodamus ${sub.id}, профиль ${sub.profile_id}${body.customer_phone ? `, ${body.customer_phone}` : ''}. Проверьте в Prodamus.`, undefined, quiet()).catch(() => false)
+    return
+  }
+  const dueAt = join.nextPaymentAt
+  const amount = Number(sub.cost) || planAmount(join, TARIFFS)
+  const label = [join.name, join.telegram, join.phone].filter(Boolean).join(', ')
+  const reason = [sub.error, sub.error_code].filter(Boolean).join(' / ')
+  patchJoin(join.token, { watch: 'charge', lastChargeFailure: { at: Date.now(), attempt, last, error: reason } })
+  if (join.tgUserId) addTag(join.tgUserId, 'контроль_списания')
+  const firstNotice = join.chargeFailedNoticeFor !== dueAt
+  if (firstNotice) {
+    patchJoin(join.token, { chargeFailedNoticeFor: dueAt })
+    const notices = process.env.AUTO_RESIDENT_REMINDERS !== '0' && process.env.CHARGE_FAILED_NOTICES !== '0'
+    const r = notices ? await notifyResident(join, { text: chargeFailedText(amount, dueAt), keyboard: CHARGE_FAILED_KEYBOARD }, composeChargeFailedMail({ name: join.name, amount, chargeAt: dueAt, ...mailContext() })) : null
+    const told = r ? `${r.bot ? 'бот ✅' : r.bot === false ? 'бот ❌' : 'бота нет'}, ${r.mail ? 'почта ✅' : r.mail === false ? 'почта ❌' : 'почты нет'}` : 'уведомления клиентам выключены'
+    await sendTelegramMessage(ADMIN_CHAT_ID, `🟡 Списание не прошло: ${label} · ${amount ? `${amount} ₽` : 'сумма неизвестна'}\nПричина: ${reason || 'не указана'}. Попытка ${attempt ?? '?'}${last ? ' (последняя)' : `, следующая: ${sub.date_next_payment ?? 'неизвестно'} мск`}.\nЧеловека предупредили: ${told}.`, undefined, quiet()).catch(() => false)
+  }
+  if (last && join.chargeLastAttemptFor !== dueAt) {
+    patchJoin(join.token, { chargeLastAttemptFor: dueAt })
+    await sendTelegramMessage(ADMIN_CHAT_ID, `🟡 Последняя попытка списания не удалась: ${label}${amount ? ` · ${amount} ₽` : ''}. Prodamus больше не будет пытаться: напишите человеку и решите, что делать с доступом (раздел «Просрочено»).`, undefined, quiet()).catch(() => false)
   }
 }
 
@@ -3456,6 +3492,12 @@ app.post('/api/prodamus/webhook', async (req, res) => {
 
   await afterResponse('prodamus/webhook', async () => {
     if (body.subscription) await handleSubscriptionState(body)
+
+    // Prodamus сам сообщает о неудачном автосписании (без payment_status): предупреждаем человека сразу, не дожидаясь суток.
+    if (body.subscription?.notification_code === 'auto_payment' && body.payment_status !== 'success') {
+      await handleChargeFailure(body)
+      return
+    }
 
     if (body.payment_status !== 'success') {
       console.log('[prodamus] статус не success — пропускаю:', body.payment_status)

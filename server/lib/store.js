@@ -77,6 +77,27 @@ export function findJoinForPayment({ phone, email, telegram, tgUserId, profileId
 }
 
 /**
+ * Оплаченная карточка подписчика для уведомления Prodamus, которое не про оплату (например, неудачное автосписание): по profile_id,
+ * Telegram id, телефону, почте. Неоплаченные заявки не берём: в отличие от findJoinForPayment здесь это не первая оплата.
+ */
+export function findPaidJoin({ profileId, tgUserId, phone, email }) {
+  const paid = store.all().filter((j) => j.paid && !j.lifetime).sort((a, b) => (b.lastPaidAt ?? b.createdAt ?? 0) - (a.lastPaidAt ?? a.createdAt ?? 0))
+  const phoneKey = normalizePhone(phone)
+  const emailKey = String(email ?? '').trim().toLowerCase()
+  const by = [
+    (j) => profileId && String(j.prodamusProfileId ?? '') === String(profileId),
+    (j) => tgUserId && String(j.tgUserId ?? '') === String(tgUserId),
+    (j) => phoneKey && normalizePhone(j.phone) === phoneKey,
+    (j) => emailKey && String(j.email ?? '').trim().toLowerCase() === emailKey,
+  ]
+  for (const match of by) {
+    const join = paid.find(match)
+    if (join) return join
+  }
+  return null
+}
+
+/**
  * Записывает оплату в карточку. Возвращает { duplicate, kind, number, record }:
  * kind — "first" (первая оплата) или "renewal" (продление), number — номер
  * платежа по счёту. Повторный вебхук с тем же orderKey (Prodamus может
