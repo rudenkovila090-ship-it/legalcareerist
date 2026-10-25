@@ -157,6 +157,11 @@ export function setJoinField(token, field, value) {
   return store.setField(token, field, value)
 }
 
+/** Несколько полей карточки за одну запись; undefined убирает поле. */
+export function patchJoin(token, fields) {
+  return store.update(token, (join) => ({ ...join, ...fields }))
+}
+
 /** Продлевает срок разовой подписки на days дней (бонус) и копит бонусные дни. */
 export function extendSubscription(token, days) {
   return store.update(token, (join) => ({

@@ -3,6 +3,7 @@ import { listJoins } from './store.js'
 import { getBotUser } from './botUsers.js'
 import { TARIFFS } from './prodamus.js'
 import { getProfile } from './accountStore.js'
+import { currentInvite } from './communityInvite.js'
 
 const DAY = 24 * 3600 * 1000
 
@@ -69,6 +70,10 @@ export function subscriptionDetails(tgId, email = '', now = Date.now()) {
     period: tariff?.period ?? null,
     nextPayment: renews ? Number(join.nextPaymentAt) || null : null,
     canCancel: renews && !join.lifetime,
+    // Личная ссылка на вступление: выданная и ещё годная; вступил ли человек в чат (тогда ссылка нужна, только если он вышел).
+    invite: join.lifetime ? null : currentInvite(join),
+    joined: Boolean(join.joinedAt),
+    joinedAt: join.joinedAt ?? null,
     payments,
   }
 }

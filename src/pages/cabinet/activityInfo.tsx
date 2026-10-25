@@ -25,6 +25,7 @@ export function activityLabel(e: ActivityEntry): string {
     case 'support_reply': return 'Ответ поддержки'
     case 'subscription_cancelled': return 'Отключено автопродление подписки'
     case 'card_change_requested': return 'Запрошена смена карты для списаний'
+    case 'invite_issued': return 'Выдана ссылка на вступление в сообщество'
     default: return 'Действие в кабинете'
   }
 }

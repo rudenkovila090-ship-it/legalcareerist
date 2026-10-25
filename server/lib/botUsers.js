@@ -56,6 +56,20 @@ export function touchBotUser(from, startParam) {
   return user
 }
 
+/**
+ * Карточка человека, который попал к нам не через /start (подал заявку на вступление в чат по ссылке из оплаты): чтобы повесить метки.
+ * В отличие от touchBotUser не отмечает, что человек писал боту (lastSeenAt), и согласий не ставит.
+ */
+export function ensureBotUser(from) {
+  const data = load()
+  const id = String(from.id)
+  if (!data[id]) {
+    data[id] = { id, tags: [], createdAt: Date.now(), conversationsCount: 0, firstName: from.first_name || '', lastName: from.last_name || '', username: from.username ? `@${from.username}` : '' }
+    save(data)
+  }
+  return data[id]
+}
+
 /** Считает начало диалога (/start): счётчик «диалогов» из карточки BotHelp. */
 export function countConversation(tgId) {
   const data = load()

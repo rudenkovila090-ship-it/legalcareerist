@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { cancelSubscription, fetchEvents, fetchSubscription, linkTelegram, requestCardChange, unlinkTelegram, type CabinetEvent, type CabinetUser, type SubscriptionInfo } from '../../lib/cabinet'
+import { cancelSubscription, fetchEvents, fetchSubscription, issueInvite, linkTelegram, requestCardChange, unlinkTelegram, type CabinetEvent, type CabinetUser, type SubscriptionInfo } from '../../lib/cabinet'
 import { events as catalogEvents } from '../../data/events'
 import { eventStories } from '../../data/eventStories'
 import { articles } from '../../data/articles'
@@ -269,6 +269,7 @@ export function StatusSection({ user, onRefresh }: { user: CabinetUser; onRefres
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [done, setDone] = useState<{ kind: 'cancel' | 'card'; text: string } | null>(null)
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -317,6 +318,28 @@ export function StatusSection({ user, onRefresh }: { user: CabinetUser; onRefres
     const refreshed = await fetchSubscription()
     if (refreshed.ok) setSub(refreshed.data.subscription)
     await onRefresh()
+  }
+
+  async function getInvite() {
+    setBusy(true)
+    setError('')
+    const r = await issueInvite()
+    setBusy(false)
+    if (!r.ok) {
+      setError(r.error === 'too_many_attempts' ? 'Слишком много попыток. Попробуйте через час или напишите в чат поддержки.' : 'Не получилось выдать ссылку. Напишите в чат поддержки, мы пришлём вручную.')
+      return
+    }
+    setSub((prev) => (prev ? { ...prev, invite: r.data.invite } : prev))
+  }
+
+  async function copyInvite(url: string) {
+    try {
+      await navigator.clipboard.writeText(url)
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // буфер недоступен: ссылка видна на странице
+    }
   }
 
   async function doCard() {
@@ -368,6 +391,32 @@ export function StatusSection({ user, onRefresh }: { user: CabinetUser; onRefres
               />
               {sub.since && <Fact label="Резидент с" value={longDate(sub.since)} />}
             </dl>
+
+            {active && !lifetime && (
+              <div className="mt-6 rounded-xl border border-ink/10 p-4">
+                <h3 className="text-sm font-semibold">Ссылка на вступление в закрытый чат</h3>
+                {sub.invite ? (
+                  <>
+                    <p className="mt-1 text-sm text-ink/70">
+                      Личная и одноразовая, действует до {new Date(sub.invite.expiresAt).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })} (мск). Подайте заявку по ссылке, и мы одобрим её автоматически. Не передавайте её другим.
+                    </p>
+                    <div className="mt-3 flex flex-wrap items-center gap-2.5">
+                      <a href={sub.invite.url} target="_blank" rel="noopener noreferrer" className="rounded-full bg-ink px-5 py-2 text-sm font-semibold text-white hover:bg-ink/90">Вступить в сообщество</a>
+                      <button type="button" onClick={() => void copyInvite(sub.invite!.url)} className="rounded-full border border-ink/15 px-5 py-2 text-sm font-semibold text-ink/70 hover:text-ink">{copied ? 'Скопировано' : 'Скопировать ссылку'}</button>
+                      <button type="button" disabled={busy} onClick={() => void getInvite()} className="text-sm font-semibold text-ink/60 underline hover:text-ink disabled:opacity-60">{busy ? 'Выдаём…' : 'Новая ссылка'}</button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p className="mt-1 text-sm text-ink/70">
+                      {sub.joined ? `Вы в закрытом чате${sub.joinedAt ? ` с ${longDate(sub.joinedAt)}` : ''}. Если вышли из чата и хотите вернуться, получите новую личную ссылку.` : 'Ссылка ещё не получена или срок её действия закончился. Получите новую: она личная и одноразовая.'}
+                    </p>
+                    <button type="button" disabled={busy} onClick={() => void getInvite()} className="mt-3 rounded-full bg-ink px-5 py-2 text-sm font-semibold text-white hover:bg-ink/90 disabled:opacity-60">{busy ? 'Выдаём…' : sub.joined ? 'Получить новую ссылку' : 'Получить ссылку на вступление'}</button>
+                  </>
+                )}
+                {error && panel === 'none' && <p role="alert" className="mt-2 text-sm text-red-600">{error}</p>}
+              </div>
+            )}
 
             <div className="mt-6 flex flex-wrap gap-2.5">
               <ActionButton on={panel === 'history'} onClick={() => toggle('history')}>История оплат</ActionButton>

@@ -41,7 +41,7 @@ import cors from 'cors'
 import multer from 'multer'
 import { createPaymentLink, TARIFFS, tariffIdBySubscriptionId, createProductPaymentLink, MATERIALS, setSubscriptionActivity, createEventPaymentLink, allSecretKeys, payformSummary } from './lib/prodamus.js'
 import { HmacHelper } from './lib/hmac.js'
-import { createPendingJoin, createOrphanJoin, listJoins, setTgUserId, findJoinForPayment, recordPayment, setSubscriptionActive, markReminded, getJoin, setCancelReason, setJoinField, extendSubscription, createLifetimeJoin } from './lib/store.js'
+import { createPendingJoin, createOrphanJoin, listJoins, setTgUserId, findJoinForPayment, recordPayment, setSubscriptionActive, markReminded, getJoin, setCancelReason, setJoinField, patchJoin, extendSubscription, createLifetimeJoin } from './lib/store.js'
 import { normalizePhone } from './lib/jsonStore.js'
 import { createPendingPurchase, getPurchase, markPurchasePaidByPhone, recordPurchasePayment, listPurchases, grantFreeMaterial, hasMaterialAccess } from './lib/materialsStore.js'
 import { materialInfo } from './lib/materialCatalog.js'
@@ -62,7 +62,9 @@ import { getMaterialPdf } from './lib/materialPdfs.js'
 import { issueMaterialLink, resolveMaterialLink, looksLikeLinkToken } from './lib/materialLinks.js'
 import { composeMaterialMail, formatMoscowDateTime as formatMskDateTime, LINK_DAYS } from './lib/materialMail.js'
 import { saveReview, getReviewByPurchase, ratingsSummary, publicReviews, listReviews, getReview, setReviewHidden, reviewText, reviewSignature } from './lib/materialReviews.js'
-import { touchBotUser, giveConsent, setMailingConsent, getBotUser, listBotUsers, countConversation, updateBotUser, setGender } from './lib/botUsers.js'
+import { touchBotUser, ensureBotUser, addTag, giveConsent, setMailingConsent, getBotUser, listBotUsers, countConversation, updateBotUser, setGender } from './lib/botUsers.js'
+import { INVITE_TTL_MS, INVITE_TTL_DAYS, currentInvite, decideJoinRequest } from './lib/communityInvite.js'
+import { composeSubscriptionMail } from './lib/subscriptionMail.js'
 import { isStartKeyword, welcomeScreen, noConsentScreen, mailingScreen, mainMenuScreen, supportPrompt, consultPrompt, genderScreen, reviewThanks, legalScreen, aboutScreen, consultScreen, consultBookedScreen, CONTACT_PROMPTS, contactCancelKeyboard, unsubscribedScreen, communityScreen, communityResidentScreen, periodsScreen, subLinkScreen, aboutClubScreen, careerScreen, achievementsScreen } from './lib/botFlow.js'
 import { buildMonthCsv } from './lib/exportCsv.js'
 import { vacancyOverrides, setVacancyStatus } from './lib/vacancyOverrides.js'
@@ -120,6 +122,7 @@ const COMMUNITY_INVITE_LINK = process.env.COMMUNITY_INVITE_LINK
 // Секретная команда открытия кабинета разработчика (можно поменять в server/.env: ADMIN_COMMAND=...).
 const ADMIN_COMMAND = process.env.ADMIN_COMMAND || 'KQ21022025RD'
 const SUPPORT_HANDLE = process.env.SUPPORT_HANDLE || '@legalcareerist_support'
+const BOT_USERNAME = (process.env.BOT_USERNAME || 'legalcareerist_bot').replace(/^@/, '')
 // Chat id помощников (через запятую): видят кабинет, но не могут ничего менять. По умолчанию — никого.
 const VIEWER_IDS = new Set(String(process.env.TELEGRAM_VIEWER_CHAT_IDS ?? '').split(',').map((v) => v.trim()).filter(Boolean))
 
@@ -455,7 +458,7 @@ function formatRub(amount) {
 }
 
 /** Уведомление админу о каждой оплате подписки — первой и каждом продлении. */
-function buildPaymentNotification({ kind, number, tariff, subscriptionName, amount, paidAt, nextPaymentAt, name, phone, email, telegram, orphan }) {
+function buildPaymentNotification({ kind, number, tariff, subscriptionName, amount, paidAt, nextPaymentAt, name, phone, email, telegram, orphan, extra = [] }) {
   const renewal = kind === 'renewal'
   const orphanNote = !orphan
     ? null
@@ -478,6 +481,7 @@ function buildPaymentNotification({ kind, number, tariff, subscriptionName, amou
     '',
     `💰 Сумма: ${formatRub(amount)}`,
     nextPaymentAt ? `⏭️ Следующее списание: ${formatMoscowDateTime(new Date(nextPaymentAt).toISOString()).split(',')[0]}` : null,
+    ...extra,
   ].filter((l) => l !== null)
   return lines.join('\n')
 }
@@ -625,6 +629,22 @@ async function handleSubscriptionPayment(body, phone) {
   const rec = result.record
   console.log(`[prodamus] оплата учтена: ${rec.token} (${result.kind}, платёж №${result.number}), следующее списание:`, nextPaymentAt ? new Date(nextPaymentAt).toISOString() : 'неизвестно')
 
+  // Первая оплата: личная ссылка на вступление и письмо с ней (и сроками, и тем, как отключить подписку).
+  const adminLines = []
+  let invite = null
+  if (result.kind === 'first') {
+    try {
+      const full = getJoin(rec.token) ?? rec
+      invite = await issueInvite(full)
+      adminLines.push(invite ? `🔗 Личная ссылка на вступление выдана (до ${ruDay(invite.expiresAt)})` : '⚠️ Личную ссылку на вступление выдать не удалось (бот должен быть администратором чата): человеку пришлите ссылку вручную')
+      const mail = await sendSubscriptionMail(full, invite, { amount, paidAt })
+      adminLines.push(mailStatusLine(mail))
+    } catch (err) {
+      console.error('[prodamus] ссылка/письмо после первой оплаты:', err)
+    }
+    if (rec.tgUserId) for (const tag of ['оплатил_подписку', 'резидент_сообщества']) addTag(rec.tgUserId, tag)
+  }
+
   await sendTelegramMessage(
     ADMIN_CHAT_ID,
     buildPaymentNotification({
@@ -640,14 +660,34 @@ async function handleSubscriptionPayment(body, phone) {
       email: rec.email || email,
       telegram: rec.telegram,
       orphan,
+      extra: adminLines,
     }),
   )
 
   if (result.kind === 'first' && rec.tgUserId) {
-    await sendInviteLink(rec.tgUserId)
+    await sendInviteLink(rec.tgUserId, getJoin(rec.token) ?? rec)
   } else if (result.kind === 'renewal' && rec.tgUserId) {
     await sendTelegramMessage(rec.tgUserId, 'Подписка продлена, продолжай пользоваться всеми возможностями сообщества.', REMINDER_KEYBOARD).catch(() => false)
   }
+}
+
+/** Письмо после оплаты: личная ссылка на вступление (invite или null), сроки, как отключить, кабинет. Возвращает { ok, error? }. */
+async function sendSubscriptionMail(join, invite, { amount, paidAt } = {}) {
+  if (!join.email) return { ok: false, error: 'no_email' }
+  const last = (join.payments ?? []).at(-1)
+  const mail = composeSubscriptionMail({
+    name: join.name,
+    tariff: TARIFFS[join.tariffId]?.label ?? last?.subscriptionName ?? 'Подписка на сообщество',
+    amount: amount ?? last?.amount,
+    paidAt: paidAt ?? last?.at ?? Date.now(),
+    nextPaymentAt: join.nextPaymentAt,
+    oneTime: Boolean(join.oneTime),
+    invite,
+    siteUrl: SITE_URL,
+    botUsername: BOT_USERNAME,
+    supportHandle: SUPPORT_HANDLE,
+  })
+  return sendMail({ to: join.email, ...mail })
 }
 
 /**
@@ -691,44 +731,148 @@ async function handleSubscriptionState(body) {
 const COMMUNITY_CHAT_ID = process.env.COMMUNITY_CHAT_ID || '-1002520943910'
 const REMINDER_KEYBOARD = [[{ text: 'Главное меню', callback_data: 'u:menu' }]]
 
-async function sendInviteLink(chatId) {
-  // Если человека раньше исключали из чата, снимаем блокировку — иначе заявка не пройдёт.
-  await telegramFetch('unbanChatMember', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: COMMUNITY_CHAT_ID, user_id: chatId, only_if_banned: true }) }).catch(() => null)
-  await sendTelegramMessage(
-    chatId,
-    'Отлично! Оплата получена ✅\n\nНажми кнопку «Подать заявку», и я сразу приму тебя в сообщество.\n\nЖду тебя внутри!',
-    COMMUNITY_INVITE_LINK ? [[{ text: 'Подать заявку', url: COMMUNITY_INVITE_LINK }]] : undefined,
-  )
-  if (!COMMUNITY_INVITE_LINK) await sendTelegramMessage(ADMIN_CHAT_ID, `⚠️ Оплата получена, но COMMUNITY_INVITE_LINK не задана: пришлите человеку (chat id ${chatId}) ссылку на сообщество вручную.`)
+const inviteInFlight = new Map()
+
+/**
+ * Персональная ссылка на вступление для оплаченной подписки: выданную берём, пока она годна, иначе (или при force) выпускаем новую.
+ * Это ссылка с одобрением заявок и именем = токен карточки: по нему handleJoinRequest узнаёт, чья это подписка. Прежнюю отзываем.
+ * Возвращает { url, expiresAt } или null, если Telegram ссылку не выдал (бот не администратор чата и т. п.).
+ */
+function issueInvite(join, { force = false } = {}) {
+  const key = join.token
+  if (inviteInFlight.has(key)) return inviteInFlight.get(key) // два запроса подряд (страница и вебхук) не выпускают по ссылке
+  const work = (async () => {
+    const fresh = getJoin(key) ?? join
+    const existing = currentInvite(fresh)
+    if (existing && !force) return existing
+    if (!BOT_TOKEN) return null
+    const post = (method, body) => telegramFetch(method, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+    if (fresh.inviteUrl) await post('revokeChatInviteLink', { chat_id: COMMUNITY_CHAT_ID, invite_link: fresh.inviteUrl }).catch(() => null)
+    // Если человека раньше исключали из чата, снимаем блокировку: иначе заявка не пройдёт.
+    if (fresh.tgUserId) await post('unbanChatMember', { chat_id: COMMUNITY_CHAT_ID, user_id: Number(fresh.tgUserId), only_if_banned: true }).catch(() => null)
+    const expiresAt = Date.now() + INVITE_TTL_MS
+    try {
+      const res = await post('createChatInviteLink', { chat_id: COMMUNITY_CHAT_ID, name: key, expire_date: Math.floor(expiresAt / 1000), creates_join_request: true })
+      const body = await res.json().catch(() => null)
+      const url = body?.result?.invite_link
+      if (!res.ok || !url) {
+        console.error('[telegram] createChatInviteLink ошибка:', JSON.stringify(body))
+        return null
+      }
+      patchJoin(key, { inviteUrl: url, inviteExpiresAt: expiresAt, inviteIssuedAt: Date.now() })
+      return { url, expiresAt }
+    } catch (err) {
+      console.error('[telegram] createChatInviteLink сбой:', err.message)
+      return null
+    }
+  })().finally(() => inviteInFlight.delete(key))
+  inviteInFlight.set(key, work)
+  return work
 }
 
-/** Заявка на вступление в чат сообщества: одобряем оплатившим резидентам и присылаем приветствие с чек-листом. */
+const ruDay = (ts) => new Intl.DateTimeFormat('ru-RU', { timeZone: 'Europe/Moscow', day: 'numeric', month: 'long' }).format(new Date(ts))
+
+/** Бот присылает ссылку на вступление: после оплаты и по /start access_…. Нет личной ссылки (Telegram не выдал) — запасная общая. */
+async function sendInviteLink(chatId, join, { force = false } = {}) {
+  if (join?.joinedAt && !force) {
+    await sendTelegramMessage(chatId, 'Подписка привязана ✅ Ты уже в закрытом чате сообщества. Если выходил(а) и хочешь вернуться, нажми «Новая ссылка».', [[{ text: '🔄 Новая ссылка', callback_data: 'r:newlink' }], [{ text: 'Личный кабинет', callback_data: 'r:menu' }]])
+    return
+  }
+  const invite = join ? await issueInvite(join, { force }) : null
+  const url = invite?.url ?? COMMUNITY_INVITE_LINK
+  const note = invite ? ` Ссылка личная и одноразовая, действует ${INVITE_TTL_DAYS} дней (до ${ruDay(invite.expiresAt)}).` : ''
+  await sendTelegramMessage(
+    chatId,
+    `Отлично! Оплата получена ✅\n\nНажми кнопку «Вступить в сообщество» и подай заявку, я сразу её приму.${note}\n\nЖду тебя внутри!`,
+    url ? [[{ text: 'Вступить в сообщество', url }], [{ text: 'Личный кабинет', callback_data: 'r:menu' }]] : undefined,
+  )
+  if (!url) await sendTelegramMessage(ADMIN_CHAT_ID, `⚠️ Оплата получена, но ссылку на вступление выдать не удалось (бот должен быть администратором чата с правом приглашать, либо задайте COMMUNITY_INVITE_LINK): пришлите человеку (chat id ${chatId}) ссылку вручную.`)
+}
+
+/** Метки и дата вступления: в карточке подписки и в карточке человека в боте (её заводим, если человек ещё не нажимал Start). */
+function markJoined(from, join, at) {
+  patchJoin(join.token, { joinedAt: join.joinedAt ?? at, lastJoinedAt: at, leftAt: undefined })
+  if (!from?.id) return
+  ensureBotUser(from)
+  for (const tag of ['оплатил_подписку', 'резидент_сообщества', 'вступил_в_сообщество']) addTag(from.id, tag)
+  updateBotUser(from.id, { communityJoinedAt: join.joinedAt ?? at })
+}
+
+/**
+ * Заявка на вступление в чат сообщества. Заявка по личной ссылке несёт токен подписки: по нему привязываем Telegram к оплате (даже если
+ * человек ни разу не нажимал Start), одобряем, отзываем ссылку, ставим метки и дату вступления. Чужую ссылку отклоняем. Общая ссылка
+ * работает, как раньше: одобряем тех, чей Telegram уже привязан к оплаченной подписке.
+ */
 async function handleJoinRequest(request) {
   if (String(request.chat?.id) !== String(COMMUNITY_CHAT_ID)) return
   const userId = request.from?.id
-  const resident = residentByTelegramId(userId)
   const name = [request.from?.first_name, request.from?.last_name].filter(Boolean).join(' ')
+  const who = `${name || 'без имени'}${request.from?.username ? ` (@${request.from.username})` : ''}, id ${userId}`
   const dmChat = request.user_chat_id ?? userId
-  if (!resident || resident.status !== 'active') {
-    await sendTelegramMessage(ADMIN_CHAT_ID, `⚠️ Заявка на вступление в сообщество без найденной оплаты: ${name || 'без имени'}${request.from?.username ? ` (@${request.from.username})` : ''}, id ${userId}.\nЗаявка не одобрена — проверьте оплату и, если всё в порядке, одобрите вручную в чате.`)
-    await sendTelegramMessage(dmChat, 'Не вижу подтверждения твоей оплаты 🙂 Если оплата прошла, напиши в поддержку и приложи чек — мы быстро проверим и всё уладим.', [[{ text: 'Поддержка', url: `https://t.me/${SUPPORT_HANDLE.replace(/^@/, '')}` }]]).catch(() => false)
+  const supportButton = [[{ text: 'Поддержка', url: `https://t.me/${SUPPORT_HANDLE.replace(/^@/, '')}` }]]
+  const post = (method, body) => telegramFetch(method, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+  const verdict = decideJoinRequest({ inviteName: request.invite_link?.name, from: request.from, getJoin, residentByTelegramId, hasAccess })
+
+  if (verdict.action === 'decline') {
+    await post('declineChatJoinRequest', { chat_id: COMMUNITY_CHAT_ID, user_id: userId }).catch(() => null)
+    const why = { unpaid: 'оплата по этой подписке не подтверждена', expired: 'срок подписки закончился', foreign: 'ссылка выдана другому человеку (её передали или переслали)' }[verdict.reason]
+    await sendTelegramMessage(ADMIN_CHAT_ID, `⚠️ Заявка на вступление отклонена: ${who}.\nПричина: ${why}.\nЛичная ссылка подписки: ${[verdict.join?.name, verdict.join?.telegram, verdict.join?.email].filter(Boolean).join(', ') || 'без имени'}.`)
+    await sendTelegramMessage(dmChat, verdict.reason === 'foreign' ? 'Эта ссылка выдана другому человеку, поэтому заявку принять не можем. Получи свою ссылку в боте или в личном кабинете после оплаты, а если что-то не так, напиши в поддержку.' : 'Не получилось принять заявку: подписка не действует. Если оплата прошла, напиши в поддержку и приложи чек, мы быстро проверим.', supportButton).catch(() => false)
     return
   }
-  const res = await telegramFetch('approveChatJoinRequest', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: COMMUNITY_CHAT_ID, user_id: userId }) })
+  if (verdict.action === 'unpaid') {
+    await sendTelegramMessage(ADMIN_CHAT_ID, `⚠️ Заявка на вступление в сообщество без найденной оплаты: ${who}.\nЗаявка не одобрена — проверьте оплату и, если всё в порядке, одобрите вручную в чате.`)
+    await sendTelegramMessage(dmChat, 'Не вижу подтверждения твоей оплаты 🙂 Если оплата прошла, напиши в поддержку и приложи чек — мы быстро проверим и всё уладим.', supportButton).catch(() => false)
+    return
+  }
+
+  if (verdict.bind) setTgUserId(verdict.join.token, String(userId))
+  const res = await post('approveChatJoinRequest', { chat_id: COMMUNITY_CHAT_ID, user_id: userId })
   if (!res.ok) {
     console.error('[telegram] approveChatJoinRequest ошибка:', await res.text())
     await sendTelegramMessage(ADMIN_CHAT_ID, `⚠️ Не удалось одобрить заявку ${name} (id ${userId}). Бот должен быть администратором чата сообщества с правом приглашать пользователей.`)
     return
   }
-  const days = resident.nextPaymentAt ? Math.max(1, Math.round((resident.nextPaymentAt - Date.now()) / 86400000)) : (TARIFFS[resident.tariffId]?.months ?? 1) * 30
+  const resident = getJoin(verdict.join.token)
+  const now = Date.now()
+  markJoined(request.from, resident, now)
+  // Личная ссылка отработала: отзываем её, чтобы ею нельзя было воспользоваться ещё раз.
+  if (verdict.viaLink && request.invite_link?.invite_link) {
+    await post('revokeChatInviteLink', { chat_id: COMMUNITY_CHAT_ID, invite_link: request.invite_link.invite_link }).catch(() => null)
+    patchJoin(resident.token, { inviteUrl: undefined, inviteExpiresAt: undefined, inviteUsedAt: now })
+  }
+  const note = [verdict.bind ? 'Telegram привязан к подписке по личной ссылке' : null, verdict.nickMismatch ? `⚠️ ник на сайте ${resident.telegram}, в Telegram @${request.from.username}: проверьте, что это тот человек` : null].filter(Boolean).join('; ')
+  await sendTelegramMessage(ADMIN_CHAT_ID, `✅ Вступил(а) в сообщество: ${who}${note ? `\n${note}` : ''}`, undefined, quiet()).catch(() => false)
+
+  const days = resident.nextPaymentAt ? Math.max(1, Math.round((resident.nextPaymentAt - now) / 86400000)) : (TARIFFS[resident.tariffId]?.months ?? 1) * 30
+  const dmChat2 = dmChat
   setTimeout(async () => {
-    await sendTelegramMessage(dmChat, `Поздравляю! 🎉\nТеперь ты — полноценная часть нашего сообщества! 💗\n\nУ тебя есть ${days} дней вместе с нами. Наслаждайся общением, пользой и крутыми ребятами ✨\n\nЕсли будут вопросы — всегда пиши мне.`, [[{ text: 'Поддержка', url: `https://t.me/${SUPPORT_HANDLE.replace(/^@/, '')}` }, { text: 'Главное меню', callback_data: 'u:menu' }]]).catch(() => false)
+    await sendTelegramMessage(dmChat2, `Поздравляю! 🎉\nТеперь ты — полноценная часть нашего сообщества! 💗\n\nУ тебя есть ${days} дней вместе с нами. Наслаждайся общением, пользой и крутыми ребятами ✨\n\nЕсли будут вопросы — всегда пиши мне.`, [[{ text: 'Поддержка', url: `https://t.me/${SUPPORT_HANDLE.replace(/^@/, '')}` }, { text: 'Главное меню', callback_data: 'u:menu' }]]).catch(() => false)
     setTimeout(async () => {
-      await sendTelegramMessage(dmChat, 'Хотим, чтобы твое включение в сообщество прошло легко и с пользой с самого старта. Прикладываем чек-лист — пройдись по нему в удобное время, это займет пару минут', REMINDER_KEYBOARD).catch(() => false)
+      await sendTelegramMessage(dmChat2, 'Хотим, чтобы твое включение в сообщество прошло легко и с пользой с самого старта. Прикладываем чек-лист — пройдись по нему в удобное время, это займет пару минут', REMINDER_KEYBOARD).catch(() => false)
       const file = getMaterialFile(CHECKLIST_SLUG)
-      if (file) await sendTelegramDocumentById(dmChat, file.fileId).catch(() => false)
+      if (file) await sendTelegramDocumentById(dmChat2, file.fileId).catch(() => false)
     }, 10000)
   }, 10000)
+}
+
+/** События чата: вступление и выход тех, кто попал в чат не через нашу заявку (вручную, по общей ссылке), и любой выход резидента. */
+async function handleChatMember(event) {
+  if (String(event.chat?.id) !== String(COMMUNITY_CHAT_ID)) return
+  const user = event.new_chat_member?.user
+  if (!user || user.is_bot) return
+  const inChat = (s) => s === 'member' || s === 'administrator' || s === 'creator'
+  const was = event.old_chat_member?.status
+  const now = event.new_chat_member?.status
+  const resident = residentByTelegramId(user.id)
+  if (!resident) return
+  if (!inChat(was) && inChat(now) && !resident.joinedAt && !event.via_join_request) { // вступившие по заявке уже учтены в handleJoinRequest
+    markJoined(user, resident, Date.now())
+    await sendTelegramMessage(ADMIN_CHAT_ID, `✅ Вступил(а) в сообщество (не по заявке бота): ${[user.first_name, user.last_name].filter(Boolean).join(' ')}${user.username ? ` (@${user.username})` : ''}`, undefined, quiet()).catch(() => false)
+  } else if (inChat(was) && (now === 'left' || now === 'kicked')) {
+    patchJoin(resident.token, { leftAt: Date.now() })
+    addTag(user.id, 'вышел_из_сообщества')
+  }
 }
 
 // Открытие страницы вакансии → +1 к счётчику просмотров. Считаем реальные
@@ -1134,6 +1278,18 @@ app.get('/api/account/subscription', (req, res) => {
 })
 
 const subscriptionAttempts = new Map()
+
+/** Новая личная ссылка на вступление из кабинета резидента (кнопка в разделе «Статус»). */
+app.post('/api/account/subscription/invite', async (req, res) => {
+  const cfg = requireAccount(req, res)
+  if (!cfg) return
+  if (hitLimit(subscriptionAttempts, `i:${cfg.login}`, 5, HOUR_MS)) return res.status(429).json({ ok: false, error: 'too_many_attempts' })
+  const join = residentJoin(cfg.tgId, cfg.email)
+  if (!join || join.lifetime || !hasAccess(join)) return res.status(404).json({ ok: false, error: 'no_subscription' })
+  const invite = await issueInvite(join, { force: true })
+  logActivity(cfg.login, 'invite_issued')
+  res.json(invite ? { ok: true, invite } : { ok: false, error: 'link_unavailable' })
+})
 
 /** Отключение автопродления из кабинета: тот же путь, что в боте (Prodamus setActivity), доступ остаётся до конца оплаченного периода. */
 app.post('/api/account/subscription/cancel', async (req, res) => {
@@ -1568,6 +1724,33 @@ app.get('/api/payment/status', (req, res) => {
     return res.json(purchase?.paid && Number(purchase.amount) > 0 ? { ok: true, paid: true, amount: Number(purchase.amount), order: orderRef(kind, token) } : none)
   }
   res.json(none)
+})
+
+// Страница после оплаты подписки: личная ссылка на вступление по токену из ссылки возврата с оплаты (его знает только заплативший).
+// Пока вебхук Prodamus не дошёл, paid=false, и страница опрашивает снова. Ссылку выпускаем при первом обращении после оплаты.
+const accessAttempts = new Map()
+app.get('/api/community/access', async (req, res) => {
+  res.set('Cache-Control', 'no-store')
+  const token = String(req.query.token ?? '')
+  if (!PAY_TOKEN_RE.test(token)) return res.json({ ok: true, known: false, paid: false })
+  if (hitLimit(accessAttempts, `g:${token}`, 240, HOUR_MS)) return res.status(429).json({ ok: false, error: 'too_many_attempts' })
+  const join = getJoin(token)
+  if (!join || join.lifetime) return res.json({ ok: true, known: false, paid: false })
+  if (!join.paid) return res.json({ ok: true, known: true, paid: false })
+  const joined = Boolean(join.joinedAt)
+  const invite = !joined && hasAccess(join) ? await issueInvite(join) : null
+  res.json({ ok: true, known: true, paid: true, joined, invite, botUrl: `https://t.me/${BOT_USERNAME}` })
+})
+
+// Новая личная ссылка (прежняя отзывается): истёк срок, потеряли письмо или вышли из чата.
+app.post('/api/community/access/reissue', async (req, res) => {
+  const token = String(req.body?.token ?? '')
+  if (!PAY_TOKEN_RE.test(token)) return res.status(400).json({ ok: false, error: 'bad_token' })
+  if (hitLimit(accessAttempts, `r:${token}`, 5, HOUR_MS)) return res.status(429).json({ ok: false, error: 'too_many_attempts' })
+  const join = getJoin(token)
+  if (!join?.paid || join.lifetime || !hasAccess(join)) return res.status(404).json({ ok: false, error: 'no_access' })
+  const invite = await issueInvite(join, { force: true })
+  res.json(invite ? { ok: true, invite } : { ok: false, error: 'link_unavailable' })
 })
 
 // Чек об оплате билета для страницы возврата с оплаты: сайт показывает «печатающийся» чек с именем гостя, билетом и номером.
@@ -2965,7 +3148,12 @@ async function handleResidentCallback(query) {
   const user = getBotUser(chatId) ?? fromUser ?? {}
   let screen
   if (action === 'sub') screen = subscriptionScreen(join, TARIFFS)
-  else if (action === 'link') screen = linkScreen(join, COMMUNITY_INVITE_LINK)
+  else if (action === 'link' || action === 'newlink') {
+    // Вступивший без нажатия «Новая ссылка» ссылку не получает: она ему не нужна. Основатель ходит по общей ссылке.
+    const wantNew = action === 'newlink' || !join.joinedAt
+    const invite = join.lifetime || !hasAccess(join) ? null : wantNew ? await issueInvite(join, { force: action === 'newlink' }) : currentInvite(join)
+    screen = linkScreen(join, invite, COMMUNITY_INVITE_LINK)
+  }
   else if (action === 'rv') screen = reviewScreen({ bonusDays: REVIEW_BONUS_DAYS, consentUrl: `${SITE_URL}/legal/consent-publication`, bonusGiven: Boolean(join.reviewThankedAt) })
   else if (action === 'rvgo') {
     userFlows.set(String(chatId), { kind: 'review', token: join.token })
@@ -3037,6 +3225,10 @@ async function unlinkCabinet(chatId) {
 async function handleTelegramUpdate(update) {
   if (update?.chat_join_request) {
     await handleJoinRequest(update.chat_join_request)
+    return
+  }
+  if (update?.chat_member) {
+    await handleChatMember(update.chat_member)
     return
   }
   if (isOutsidePrivateChat(update?.message?.chat) || isOutsidePrivateChat(update?.callback_query?.message?.chat)) {
@@ -3219,7 +3411,7 @@ async function handleTelegramUpdate(update) {
   }
 
   if (join.paid) {
-    await sendInviteLink(chatId)
+    await sendInviteLink(chatId, getJoin(token))
   } else {
     await sendTelegramMessage(chatId, 'Ждём подтверждения оплаты от банка — обычно это занимает меньше минуты. Как только оплата пройдёт, здесь появится ссылка на вступление.')
   }
@@ -3668,7 +3860,7 @@ async function pollTelegramUpdates() {
   console.log('[telegram] приём сообщений боту: опрос getUpdates')
   for (;;) {
     try {
-      const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getUpdates?timeout=30&offset=${offset}&allowed_updates=${encodeURIComponent(JSON.stringify(['message', 'callback_query', 'chat_join_request']))}`, { signal: AbortSignal.timeout(45000) })
+      const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getUpdates?timeout=30&offset=${offset}&allowed_updates=${encodeURIComponent(JSON.stringify(['message', 'callback_query', 'chat_join_request', 'chat_member']))}`, { signal: AbortSignal.timeout(45000) })
       const data = await res.json()
       if (!Array.isArray(data.result)) {
         console.error('[telegram] getUpdates ответил неожиданно:', JSON.stringify(data).slice(0, 200))
