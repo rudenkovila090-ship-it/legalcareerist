@@ -639,6 +639,9 @@ async function handleSubscriptionPayment(body, phone) {
       adminLines.push(invite ? '🔗 Ссылка на вступление показана на странице оплаты и отправлена в письме' : '⚠️ COMMUNITY_INVITE_LINK не задана: ссылку на вступление человеку пришлите вручную')
       const mail = await sendSubscriptionMail(full, invite, { amount, paidAt })
       adminLines.push(mailStatusLine(mail))
+      // Новая подписка при уже действующей: человек мог заплатить заново, когда старая не списалась, а потом старая всё же списалась.
+      const others = listJoins().filter((j) => j.token !== rec.token && j.paid && !j.lifetime && j.status === 'active' && j.nextPaymentAt && samePerson(j, full))
+      if (others.length) adminLines.push(`⚠️ У человека уже есть действующая подписка (${others.map((j) => `${planAmount(j, TARIFFS) || '?'} ₽, списание ${ruDateShort(j.nextPaymentAt)}`).join('; ')}): возможен дубль. Проверьте в Prodamus и при необходимости отключите лишнюю подписку и верните деньги`)
     } catch (err) {
       console.error('[prodamus] ссылка/письмо после первой оплаты:', err)
     }
@@ -706,6 +709,15 @@ async function handleChargeFailure(body) {
     patchJoin(join.token, { chargeLastAttemptFor: dueAt })
     await sendTelegramMessage(ADMIN_CHAT_ID, `🟡 Последняя попытка списания не удалась: ${label}${amount ? ` · ${amount} ₽` : ''}. Prodamus больше не будет пытаться: напишите человеку и решите, что делать с доступом (раздел «Просрочено»).`, undefined, quiet()).catch(() => false)
   }
+}
+
+const ruDateShort = (ts) => new Intl.DateTimeFormat('ru-RU', { timeZone: 'Europe/Moscow', day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(ts))
+
+/** Две карточки — один человек: совпал Telegram id, телефон или почта. */
+function samePerson(a, b) {
+  const phone = (v) => normalizePhone(v)
+  const mail = (v) => String(v ?? '').trim().toLowerCase()
+  return Boolean((a.tgUserId && a.tgUserId === b.tgUserId) || (phone(a.phone) && phone(a.phone) === phone(b.phone)) || (mail(a.email) && mail(a.email) === mail(b.email)))
 }
 
 /** Письмо после оплаты: ссылка на вступление (invite { url } или null), сроки, как отключить, кабинет. Возвращает { ok, error? }. */
