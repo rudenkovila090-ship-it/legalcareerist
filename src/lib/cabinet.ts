@@ -414,8 +414,8 @@ export interface SubscriptionInfo extends ResidentInfo {
   nextPayment?: number | null
   /** Автопродление можно отключить из кабинета. */
   canCancel?: boolean
-  /** Личная одноразовая ссылка на вступление в закрытый чат: выданная и ещё действующая (null — нет). */
-  invite?: { url: string; expiresAt: number } | null
+  /** Ссылка на вступление в закрытый чат (общая: заявку одобряет бот, и только оплатившим); null — не задана или подписка не действует. */
+  invite?: { url: string } | null
   /** Человек уже вступил в чат (тогда ссылка нужна, только если он вышел). */
   joined?: boolean
   joinedAt?: number | null
@@ -423,8 +423,6 @@ export interface SubscriptionInfo extends ResidentInfo {
 }
 
 export const fetchSubscription = () => api<{ subscription: SubscriptionInfo }>('/api/account/subscription')
-/** Новая личная ссылка на вступление (прежняя отзывается). */
-export const issueInvite = () => api<{ invite: { url: string; expiresAt: number } }>('/api/account/subscription/invite', { method: 'POST', body: '{}' })
 /** Отключение автопродления: доступ сохраняется до конца оплаченного периода. confirmed — подтверждено ли отключение в платёжной системе. */
 export const cancelSubscription = (reason: string) => api<{ confirmed: boolean; test: boolean; endsAt: number | null }>('/api/account/subscription/cancel', { method: 'POST', body: JSON.stringify({ reason }) })
 /** Запрос смены карты: уходит в чат поддержки с данными подписки. */

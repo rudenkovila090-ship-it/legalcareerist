@@ -7,24 +7,20 @@ import { usePaymentGoal } from '../../lib/paymentGoal'
 
 // Страница, на которую Prodamus возвращает человека после успешной оплаты подписки (urlSuccess в server/index.js).
 // Токен из адреса связывает оплату с карточкой подписки. Страница опрашивает сервер, пока вебхук Prodamus не подтвердит оплату,
-// и показывает личную одноразовую ссылку на вступление в закрытый чат (она же уходит на почту и в бота). Бот остаётся запасным
-// и дополнительным каналом: уведомления и кабинет в Telegram.
-interface Invite {
-  url: string
-  expiresAt: number
-}
+// и показывает ссылку на вступление в закрытый чат (она же уходит на почту и в бота). Ссылка общая: заявку одобряет бот, и только
+// оплатившим, опознавая человека по нику, который он указал при оплате. Бот остаётся запасным каналом: Start привязывает подписку к
+// аккаунту без ника, дальше он присылает уведомления и открывает кабинет в Telegram.
 interface Access {
   known: boolean
   paid: boolean
   joined?: boolean
-  invite?: Invite | null
+  telegram?: string
+  invite?: { url: string } | null
 }
 
 const TOKEN_RE = /^[0-9a-f]{8,64}$/i
 const POLL_MS = 3000
 const MAX_ATTEMPTS = 40
-
-const until = (ts: number) => new Date(ts).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })
 
 export default function JoinSuccess() {
   useDocumentTitle('Оплата прошла успешно')
@@ -35,8 +31,6 @@ export default function JoinSuccess() {
 
   const [access, setAccess] = useState<Access | null>(null)
   const [gaveUp, setGaveUp] = useState(false)
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState('')
   const [copied, setCopied] = useState(false)
 
   useEffect(() => {
@@ -68,20 +62,6 @@ export default function JoinSuccess() {
     }
   }, [token, valid])
 
-  async function reissue() {
-    setBusy(true)
-    setError('')
-    try {
-      const res = await fetch('/api/community/access/reissue', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token }) })
-      const data = (await res.json()) as { ok?: boolean; invite?: Invite; error?: string }
-      if (data.ok && data.invite) setAccess((a) => ({ known: true, paid: true, ...a, joined: false, invite: data.invite }))
-      else setError(data.error === 'too_many_attempts' ? 'Слишком много попыток. Попробуйте через час или напишите в поддержку.' : 'Не получилось выдать ссылку. Напишите в поддержку, мы пришлём вручную.')
-    } catch {
-      setError('Нет связи с сервером. Попробуйте ещё раз.')
-    }
-    setBusy(false)
-  }
-
   async function copy(url: string) {
     try {
       await navigator.clipboard.writeText(url)
@@ -92,7 +72,7 @@ export default function JoinSuccess() {
     }
   }
 
-  const btn = 'rounded-full bg-ink px-8 py-3 text-sm font-semibold text-white hover:bg-ink/90 disabled:opacity-60'
+  const btn = 'rounded-full bg-ink px-8 py-3 text-sm font-semibold text-white hover:bg-ink/90'
   const ghost = 'rounded-full border border-ink/15 px-6 py-2.5 text-sm font-semibold text-ink/70 hover:text-ink'
 
   let body
@@ -106,38 +86,24 @@ export default function JoinSuccess() {
           : 'Подтверждаем оплату, обычно это занимает меньше минуты…'}
       </p>
     )
-  } else if (access.joined) {
-    body = (
-      <>
-        <p className="text-sm leading-relaxed text-ink/70">Вы уже в закрытом сообществе. Если вышли из чата и хотите вернуться, получите новую личную ссылку.</p>
-        <div className="mt-5 flex flex-wrap justify-center gap-3">
-          <button type="button" onClick={() => void reissue()} disabled={busy} className={btn}>{busy ? 'Выдаём…' : 'Получить новую ссылку'}</button>
-        </div>
-      </>
-    )
   } else if (access.invite) {
     const invite = access.invite
     body = (
       <>
-        <p className="text-sm leading-relaxed text-ink/70">Подписка оформлена. Нажмите кнопку, подайте заявку на вступление, и мы одобрим её автоматически.</p>
+        <p className="text-sm leading-relaxed text-ink/70">
+          {access.joined ? 'Вы уже в закрытом сообществе. Ссылка нужна, только если вышли из чата и хотите вернуться.' : 'Подписка оформлена. Нажмите кнопку и подайте заявку на вступление: бот одобрит её автоматически.'}
+        </p>
         <a href={invite.url} target="_blank" rel="noopener noreferrer" className={`mt-6 inline-block ${btn}`}>Вступить в сообщество</a>
         <p className="mt-4 break-all text-xs text-ink/50">{invite.url}</p>
         <button type="button" onClick={() => void copy(invite.url)} className="mt-2 text-xs font-semibold text-ink/70 underline hover:text-ink">{copied ? 'Скопировано' : 'Скопировать ссылку'}</button>
         <p className="mx-auto mt-5 max-w-md text-xs leading-relaxed text-ink/60">
-          Ссылка личная и одноразовая, действует до {until(invite.expiresAt)} (мск). Не передавайте её другим: вступит тот, кто нажмёт первым. Мы продублировали её на почту и пришлём в бота, как только вы его запустите.
+          {access.telegram ? `Подавайте заявку с Telegram-аккаунта ${access.telegram} (ник указан при оплате): так бот узнает вашу оплату. ` : 'Подавайте заявку со своего Telegram-аккаунта. '}
+          Если ник другой или его нет, откройте бота и нажмите Start: подписка привяжется к вашему аккаунту. Ссылку мы также отправили на почту.
         </p>
-        <button type="button" onClick={() => void reissue()} disabled={busy} className="mt-3 text-xs font-semibold text-ink/70 underline hover:text-ink disabled:opacity-60">{busy ? 'Выдаём…' : 'Нужна новая ссылка?'}</button>
       </>
     )
   } else {
-    body = (
-      <>
-        <p className="text-sm leading-relaxed text-ink/70">Подписка оформлена, но ссылку на вступление не получилось выдать автоматически. Нажмите кнопку ниже, чтобы получить её ещё раз, или напишите в поддержку: мы пришлём вручную.</p>
-        <div className="mt-5 flex flex-wrap justify-center gap-3">
-          <button type="button" onClick={() => void reissue()} disabled={busy} className={btn}>{busy ? 'Выдаём…' : 'Получить ссылку'}</button>
-        </div>
-      </>
-    )
+    body = <p className="text-sm leading-relaxed text-ink/70">Подписка оформлена. Ссылку на вступление в чат пришлёт поддержка в ближайшее время. Если ждать не хочется, напишите нам.</p>
   }
 
   return (
@@ -149,7 +115,6 @@ export default function JoinSuccess() {
             <span className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-2xl text-emerald-600">✓</span>
           </div>
           {body}
-          {error && <p role="alert" className="mt-3 text-sm text-red-600">{error}</p>}
           {valid && access?.paid && (
             <div className="mt-8 border-t border-ink/10 pt-6">
               <p className="text-xs leading-relaxed text-ink/60">Бот пришлёт напоминания о списании и откроет личный кабинет резидента в Telegram. Запускать его необязательно: подписка уже учтена.</p>

@@ -111,25 +111,17 @@ export function paymentsScreen(join) {
   return { text: lines.join('\n'), keyboard: [BACK_ROW] }
 }
 
-/**
- * «Ссылка на сообщество». invite — личная одноразовая ссылка { url, expiresAt } или null; fallbackUrl — общая ссылка (основатель, либо
- * Telegram не выдал личную). Уже вступившему ссылку не навязываем: она нужна, только если он вышел или потерял доступ.
- */
-export function linkScreen(join, invite, fallbackUrl, now = Date.now()) {
+/** «Ссылка на сообщество»: общая ссылка на вступление; заявку принимает бот, если подписка оплачена. url — ссылка (пусто, если не задана). */
+export function linkScreen(join, url, now = Date.now()) {
   const support = [{ text: '💬 Поддержка', callback_data: 'u:support' }]
   if (!hasAccess(join, now)) return { text: '🔗 Ссылка на сообщество доступна при действующей подписке. Если оплата прошла, а ссылки нет, напиши в поддержку.', keyboard: [support, BACK_ROW] }
-  if (join.lifetime) return fallbackUrl ? { text: `🔗 Ссылка на вступление в закрытое сообщество:\n${fallbackUrl}`, keyboard: [BACK_ROW] } : { text: '🔗 Ссылку на сообщество пришлёт поддержка — напиши нам.', keyboard: [support, BACK_ROW] }
-  if (invite) {
-    return {
-      text: `🔗 Твоя личная ссылка на вступление в закрытое сообщество:\n${invite.url}\n\nПодай заявку по ссылке, и я сразу её приму. Ссылка личная и одноразовая, действует до ${ruDate(invite.expiresAt)}. Не передавай её другим.`,
-      keyboard: [[{ text: '🔄 Новая ссылка', callback_data: 'r:newlink' }], BACK_ROW],
-    }
+  if (!url) return { text: '🔗 Ссылку на сообщество пришлёт поддержка, напиши нам.', keyboard: [support, BACK_ROW] }
+  if (join.lifetime) return { text: `🔗 Ссылка на вступление в закрытое сообщество:\n${url}`, keyboard: [BACK_ROW] }
+  const joined = join.joinedAt ? `Ты уже в закрытом чате сообщества (с ${ruDate(join.joinedAt)}) ✅ Ссылка нужна, только если вышел(ла) из чата и хочешь вернуться.\n\n` : ''
+  return {
+    text: `🔗 ${joined}Ссылка на вступление в закрытое сообщество:\n${url}\n\nПодай заявку по ссылке, и я сразу её приму: подписка у тебя оплачена.`,
+    keyboard: [[{ text: 'Вступить в сообщество', url }], BACK_ROW],
   }
-  if (join.joinedAt) {
-    return { text: `🔗 Ты уже в закрытом чате сообщества (с ${ruDate(join.joinedAt)}) ✅\n\nЕсли вышел(ла) из чата и хочешь вернуться, получи новую личную ссылку.`, keyboard: [[{ text: '🔄 Новая ссылка', callback_data: 'r:newlink' }], BACK_ROW] }
-  }
-  if (fallbackUrl) return { text: `🔗 Ссылка на вступление в закрытое сообщество:\n${fallbackUrl}`, keyboard: [BACK_ROW] }
-  return { text: '🔗 Ссылку на сообщество пришлёт поддержка — напиши нам.', keyboard: [support, BACK_ROW] }
 }
 
 /** «Настройки»: рассылка и отключение подписки (внизу, чтобы до него доходили только намеренно). */

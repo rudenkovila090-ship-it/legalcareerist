@@ -1,45 +1,29 @@
-// Персональная одноразовая ссылка на вступление в закрытый чат сообщества. Ссылку выдаём каждому оплатившему отдельно: в Telegram
-// это ссылка с одобрением заявок (creates_join_request) и именем = токен карточки подписки. Когда человек подаёт заявку, в ней приходит
-// это имя, и бот по нему привязывает Telegram к оплаченной подписке (даже если человек ни разу не нажимал Start), одобряет заявку
-// и отзывает ссылку. Здесь только чистая логика (тестируется без Telegram); сами запросы к Telegram — в server/index.js.
+// Ссылка на вступление в закрытый чат сообщества: одна общая ссылка с одобрением заявок (COMMUNITY_INVITE_LINK в server/.env).
+// Нажать её может кто угодно, но заявку одобряет бот и только оплатившим, поэтому ссылку не нужно прятать или выпускать каждому отдельно.
+// Человека в заявке опознаём по Telegram id (подписка уже привязана к боту: Start, /start access_…, прошлое вступление) или, если бота он не
+// запускал, по нику Telegram, который он указал при оплате на сайте. Здесь только чистая логика (проверяется без Telegram).
 
-export const INVITE_TTL_DAYS = 7
-export const INVITE_TTL_MS = INVITE_TTL_DAYS * 24 * 3600 * 1000
-/** Если до конца срока ссылки осталось меньше, при следующем показе выдаём новую: человек не должен получить почти истёкшую. */
-export const INVITE_MIN_LEFT_MS = 12 * 3600 * 1000
-
-const TOKEN_RE = /^[0-9a-f]{24}$/
-
-/** Выданная и ещё годная ссылка в карточке: { url, expiresAt } или null. */
-export function currentInvite(join, now = Date.now()) {
-  if (!join?.inviteUrl || !join.inviteExpiresAt) return null
-  return join.inviteExpiresAt - now >= INVITE_MIN_LEFT_MS ? { url: join.inviteUrl, expiresAt: join.inviteExpiresAt } : null
-}
+/** Общая ссылка на вступление или пустая строка, если не задана. Читается при каждом обращении: после правки .env хватит перезапуска. */
+export const communityInviteUrl = () => String(process.env.COMMUNITY_INVITE_LINK ?? '').trim()
 
 const nick = (v) => String(v ?? '').trim().replace(/^@/, '').toLowerCase()
 
 /**
- * Что делать с заявкой на вступление. Вход: имя ссылки (токен карточки или пусто — общая ссылка), Telegram-аккаунт подавшего,
- * поиск карточки по токену, поиск резидента по Telegram id и проверка «подписка в силе».
- * Результат: { action, join, bind, viaLink, nickMismatch }
- *   approve — одобрить; bind — сначала привязать Telegram к карточке;
- *   decline — отклонить (reason: unpaid | expired | foreign), join — чья это ссылка;
- *   unpaid — оплаты не нашли (заявку не трогаем, админу сообщение, как раньше).
+ * Что делать с заявкой на вступление. Вход: Telegram-аккаунт подавшего, поиск резидента по Telegram id, все карточки подписок и проверка
+ * «подписка в силе». Результат: { action, join, bind }
+ *   approve — одобрить; bind — сначала привязать Telegram к карточке (нашли по нику с сайта);
+ *   unpaid — оплаты не нашли (заявку не трогаем, админу сообщение).
  */
-export function decideJoinRequest({ inviteName, from, getJoin, residentByTelegramId, hasAccess }) {
-  const uid = String(from?.id ?? '')
-  if (inviteName && TOKEN_RE.test(inviteName)) {
-    const join = getJoin(inviteName)
-    if (join) {
-      if (!join.paid) return { action: 'decline', reason: 'unpaid', join }
-      if (!hasAccess(join)) return { action: 'decline', reason: 'expired', join }
-      if (join.tgUserId && String(join.tgUserId) !== uid) return { action: 'decline', reason: 'foreign', join }
-      // Ник из заявки на сайте и в Telegram мог не совпасть из-за опечатки: заявку одобряем, но админу об этом скажем.
-      const nickMismatch = Boolean(!join.tgUserId && nick(join.telegram) && nick(from?.username) && nick(join.telegram) !== nick(from.username))
-      return { action: 'approve', join, bind: !join.tgUserId, viaLink: true, nickMismatch }
-    }
+export function decideJoinRequest({ from, residentByTelegramId, joins, hasAccess }) {
+  const known = residentByTelegramId(String(from?.id ?? ''))
+  if (known && hasAccess(known)) return { action: 'approve', join: known, bind: false }
+  const username = nick(from?.username)
+  if (username) {
+    // Ник с сайта сверяем только с карточками, у которых Telegram ещё не привязан: чужой привязанный аккаунт так не перехватить.
+    const byNick = joins
+      .filter((j) => j.paid && !j.lifetime && !j.tgUserId && nick(j.telegram) === username && hasAccess(j))
+      .sort((a, b) => (b.lastPaidAt ?? b.createdAt ?? 0) - (a.lastPaidAt ?? a.createdAt ?? 0))[0]
+    if (byNick) return { action: 'approve', join: byNick, bind: true }
   }
-  const resident = residentByTelegramId(uid)
-  if (resident && hasAccess(resident)) return { action: 'approve', join: resident, bind: false, viaLink: false, nickMismatch: false }
-  return { action: 'unpaid', join: resident ?? null }
+  return { action: 'unpaid', join: known ?? null }
 }
