@@ -605,6 +605,9 @@ async function handleSubscriptionPayment(body, phone) {
 
   let match = findJoinForPayment({ phone, email, telegram: extra.telegram, tgUserId, profileId, tariffId })
   const orphan = !match
+  // Карточка уже оплачена и действует: если это «первая оплата» (платёж №1) по новой подписке, у человека могут быть две подписки.
+  const prior = match?.join
+  const alreadyActive = Boolean(prior?.paid && prior.status === 'active' && !prior.lifetime && (prior.payments?.length ?? 0) > 0 && paymentNum === 1)
   if (!match) {
     const token = createOrphanJoin({ tariffId, name: extra.name, phone, email, telegram: extra.telegram })
     match = { join: { token }, isFirst: true }
@@ -641,7 +644,8 @@ async function handleSubscriptionPayment(body, phone) {
       adminLines.push(mailStatusLine(mail))
       // Новая подписка при уже действующей: человек мог заплатить заново, когда старая не списалась, а потом старая всё же списалась.
       const others = listJoins().filter((j) => j.token !== rec.token && j.paid && !j.lifetime && j.status === 'active' && j.nextPaymentAt && samePerson(j, full))
-      if (others.length) adminLines.push(`⚠️ У человека уже есть действующая подписка (${others.map((j) => `${planAmount(j, TARIFFS) || '?'} ₽, списание ${ruDateShort(j.nextPaymentAt)}`).join('; ')}): возможен дубль. Проверьте в Prodamus и при необходимости отключите лишнюю подписку и верните деньги`)
+      const known = [...others, ...(alreadyActive ? [prior] : [])]
+      if (known.length) adminLines.push(`⚠️ У человека уже есть действующая подписка (${known.map((j) => `${planAmount(j, TARIFFS) || '?'} ₽${j.nextPaymentAt ? `, списание ${ruDateShort(j.nextPaymentAt)}` : ''}`).join('; ')}): возможен дубль. Проверьте в Prodamus и при необходимости отключите лишнюю подписку и верните деньги`)
     } catch (err) {
       console.error('[prodamus] ссылка/письмо после первой оплаты:', err)
     }

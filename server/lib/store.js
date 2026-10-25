@@ -178,6 +178,11 @@ export function setJoinField(token, field, value) {
   return store.setField(token, field, value)
 }
 
+/** Убирает карточку совсем (после слияния дублей, scripts/mergeCards.js). */
+export function removeJoin(token) {
+  return store.remove(token)
+}
+
 /** Несколько полей карточки за одну запись; undefined убирает поле. */
 export function patchJoin(token, fields) {
   return store.update(token, (join) => ({ ...join, ...fields }))
