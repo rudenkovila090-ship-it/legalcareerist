@@ -2,6 +2,7 @@
 // знает про Telegram API и хранилище — получает карточки подписчиков и
 // возвращает { text, keyboard }, чтобы это можно было проверять отдельно.
 import { mskDayKey } from './dailyReport.js'
+import { chargeReminderText } from './residentNotices.js'
 import { kadryTop, kadrySection } from './kadryCabinet.js'
 import { seekersSection } from './seekersCabinet.js'
 
@@ -329,9 +330,7 @@ export function reminderPreviewScreen(joins, now, days) {
   return { text: lines.join('\n'), keyboard }
 }
 
-/** Текст напоминания подписчику. */
-export function reminderMessage(join, supportHandle, days = 1) {
-  // Тексты — из воронки BotHelp («Списание 2 дня» / «Списание 1 день»)
-  const when = days === 1 ? 'Завтра произойдёт списание за подписку.' : `Через ${days} ${days < 5 ? 'дня' : 'дней'} произойдёт списание за подписку.`
-  return ['Привет! 👋', when, '', 'Спасибо, что остаёшься с нами! 🧡'].join('\n')
+/** Текст напоминания подписчику (дата и сумма списания, как отключить). */
+export function reminderMessage(join, _supportHandle, days = 1, tariffs = {}) {
+  return chargeReminderText(join, days, planAmount(join, tariffs))
 }

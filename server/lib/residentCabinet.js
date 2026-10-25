@@ -8,6 +8,8 @@ const rub = (n) => `${Math.round(n).toLocaleString('ru-RU')} ₽`
 export const ruDate = (ts) => new Intl.DateTimeFormat('ru-RU', { timeZone: MSK, day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(ts))
 
 const BACK_ROW = [{ text: '⬅️ Кабинет', callback_data: 'r:menu' }]
+const DAY = 24 * 3600 * 1000
+const plural = (n, [one, few, many]) => (n % 10 === 1 && n % 100 !== 11 ? one : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? few : many)
 
 /** Подписка «в силе»: бессрочная, активная или отключена, но оплаченный период ещё не закончился. */
 export function hasAccess(join, now = Date.now()) {
@@ -32,7 +34,7 @@ export function residentMenu(join, user) {
 }
 
 /** «Моя подписка»: статус, тариф, когда подключена, последняя оплата, дата следующего списания. */
-export function subscriptionScreen(join, tariffs, now = Date.now()) {
+export function subscriptionScreen(join, tariffs, now = Date.now(), payUrl = '') {
   if (join.lifetime) {
     const lines = [
       '📋 Моя подписка',
@@ -66,8 +68,14 @@ export function subscriptionScreen(join, tariffs, now = Date.now()) {
     paid.length ? `Всего оплат: ${paid.length}` : null,
     join.bonusDays ? `Бонусные дни: +${join.bonusDays}` : null,
   ].filter((l) => l !== null)
-  const keyboard = []
-  if (!hasAccess(join, now) || join.status === 'cancelled') keyboard.push([{ text: join.status === 'cancelled' ? 'Возобновить подписку' : 'Оформить подписку', callback_data: 'u:join' }])
+  // Те же «Осталось N дней», что в кабинете на сайте: до конца оплаченного периода, округляем вверх.
+  if (endsAt && endsAt > now && hasAccess(join, now)) {
+    const left = Math.ceil((endsAt - now) / DAY)
+    const at = lines.findIndex((l) => l.startsWith('Действует до'))
+    lines.splice(at >= 0 ? at + 1 : lines.length, 0, `Осталось: ${left} ${plural(left, ['день', 'дня', 'дней'])}`)
+  }
+  const keyboard = [[{ text: '📜 История оплат', callback_data: 'r:hist' }]]
+  if ((!hasAccess(join, now) || join.status === 'cancelled') && payUrl) keyboard.push([{ text: join.status === 'cancelled' ? 'Возобновить подписку на сайте' : 'Оформить подписку на сайте', url: payUrl }])
   keyboard.push(BACK_ROW)
   return { text: lines.join('\n'), keyboard }
 }
@@ -86,6 +94,21 @@ export function reviewSendPrompt(minLength) {
     text: `Напиши свой отзыв одним сообщением (не короче ${minLength} символов). Отмена — /cancel.`,
     keyboard: [[{ text: 'Передумал(а)', callback_data: 'r:menu' }]],
   }
+}
+
+/** «История оплат»: как в кабинете на сайте, новые сверху; суммы, перенесённые из прежней системы, помечены ≈. */
+export function paymentsScreen(join) {
+  const list = (join.payments ?? [])
+    .filter((p) => Number(p.amount) > 0 || p.estimated)
+    .sort((a, b) => (Number(b.at) || 0) - (Number(a.at) || 0))
+  const shown = list.slice(0, 15)
+  const lines = ['📜 История оплат', '']
+  if (!list.length) lines.push('Оплат пока нет.')
+  for (const p of shown) lines.push(`• ${p.at ? ruDate(p.at) : 'дата неизвестна'} — ${Number(p.amount) > 0 ? `${rub(p.amount)}${p.estimated ? ' ≈' : ''}` : '—'}`)
+  if (list.length > shown.length) lines.push(`…и ещё ${list.length - shown.length}`)
+  if (list.some((p) => p.estimated)) lines.push('', '≈ сумма примерная: перенесена из прежней системы.')
+  lines.push('', 'Чек каждой оплаты приходит на почту, указанную при оплате.')
+  return { text: lines.join('\n'), keyboard: [BACK_ROW] }
 }
 
 /**

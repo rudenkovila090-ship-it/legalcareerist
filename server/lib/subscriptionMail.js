@@ -78,3 +78,53 @@ export function composeSubscriptionMail({ name, tariff, amount, paidAt, nextPaym
 
   return { subject: 'Вы в сообществе «Карьерный юрист»: ссылка на вступление', text, html }
 }
+
+// ---- Письма о списаниях: напоминание, списание прошло, списание не прошло ----
+
+function shell({ name, siteUrl, botUsername, supportHandle, title, lines, extraHtml = '' }) {
+  const hello = name && name !== '—' ? `Здравствуйте, ${name}!` : 'Здравствуйте!'
+  const cabinetUrl = `${siteUrl}/cabinet`
+  const botUrl = `https://t.me/${botUsername}`
+  const supportUrl = `https://t.me/${String(supportHandle).replace(/^@/, '')}`
+  const text = [hello, title, '', ...lines, '', `Личный кабинет резидента: ${cabinetUrl}`, `Бот в Telegram: ${botUrl}`, `Вопросы: ${supportHandle}`, '', 'Карьерный юрист'].join('\n')
+  const p = (inner) => `<p style="margin:0 0 16px">${inner}</p>`
+  const link = (href, label) => `<a href="${esc(href)}" style="color:#45608a">${esc(label)}</a>`
+  const html = `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.5;color:#283953">${[
+    p(`<b>${esc(hello)}<br>${esc(title)}</b>`),
+    p(lines.map(esc).join('<br>')),
+    extraHtml,
+    p(`${link(cabinetUrl, 'Личный кабинет резидента')} · ${link(botUrl, 'Бот в Telegram')} · ${link(supportUrl, supportHandle)}`),
+    p('Карьерный юрист'),
+  ].join('')}</div>`
+  return { text, html }
+}
+
+const CANCEL_HINT = 'Если планы изменились, отключите автопродление в личном кабинете: раздел «Сообщество» → «Отключить автопродление» (или в боте: «Личный кабинет» → «Настройки» → «Отменить подписку»). Доступ сохранится до конца оплаченного периода.'
+
+/** Напоминание о списании за days дней (1 или 2). chargeAt — момент списания. */
+export function composeChargeReminderMail({ name, days, amount, chargeAt, siteUrl, botUsername, supportHandle }) {
+  const when = days === 1 ? 'завтра' : `через ${days} ${days < 5 ? 'дня' : 'дней'}`
+  const title = `Напоминаем: ${when}, ${date(chargeAt)}, произойдёт списание за подписку на сообщество «Карьерный юрист»${amount ? ` — ${rub(amount)}` : ''}.`
+  const lines = ['Убедитесь, что на карте достаточно средств: тогда подписка продлится сама и доступ к сообществу сохранится.', CANCEL_HINT]
+  const { text, html } = shell({ name, siteUrl, botUsername, supportHandle, title, lines })
+  return { subject: `Скоро списание за подписку: ${date(chargeAt)}`, text, html }
+}
+
+/** Списание прошло, подписка продлена. */
+export function composeChargeDoneMail({ name, amount, paidAt, nextPaymentAt, siteUrl, botUsername, supportHandle }) {
+  const title = `Списание прошло${amount ? `: ${rub(amount)}` : ''}, подписка на сообщество продлена.`
+  const lines = [amount ? `Оплачено: ${rub(amount)}, ${date(paidAt)}.` : null, nextPaymentAt ? `Следующее списание: ${date(nextPaymentAt)}.` : null, 'Чек об оплате придёт от платёжной системы на почту, указанную при оплате.', CANCEL_HINT].filter(Boolean)
+  const { text, html } = shell({ name, siteUrl, botUsername, supportHandle, title, lines })
+  return { subject: 'Подписка продлена', text, html }
+}
+
+/** Списание не прошло: что проверить и как не потерять доступ. */
+export function composeChargeFailedMail({ name, amount, chargeAt, siteUrl, botUsername, supportHandle }) {
+  const title = `Не получилось списать оплату за подписку на сообщество «Карьерный юрист»${amount ? ` (${rub(amount)})` : ''}, списание было назначено на ${date(chargeAt)}.`
+  const lines = [
+    'Возможно, банк отклонил платёж или у карты закончился срок. Проверьте карту и баланс: платёжная система повторяет попытки списания несколько дней.',
+    `Если карта устарела или её нужно сменить, напишите в поддержку (${supportHandle}) или нажмите «Сменить карту» в личном кабинете: мы поможем, чтобы подписка не прервалась.`,
+  ]
+  const { text, html } = shell({ name, siteUrl, botUsername, supportHandle, title, lines })
+  return { subject: 'Не удалось списать оплату за подписку', text, html }
+}

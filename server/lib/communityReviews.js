@@ -51,6 +51,8 @@ const DAY = 24 * 3600 * 1000
 export function reviewRequestDue(join, reviews, now) {
   if (!join.paid || !join.tgUserId || join.status !== 'active' || join.lifetime || join.reviewRequestedAt || join.reviewThankedAt) return false
   if (reviews.some((r) => r.joinToken === join.token)) return false
+  // Тем, у кого списание не прошло или просрочено, про отзыв не пишем: им сейчас важнее другое.
+  if (join.watch || (join.nextPaymentAt && join.nextPaymentAt < now)) return false
   if (join.reviewTriedAt && now - join.reviewTriedAt < DAY) return false
   const first = (join.payments ?? []).filter((p) => !p.estimated && p.kind === 'first' && p.at).sort((a, b) => a.at - b.at)[0]
   if (!first) return false
