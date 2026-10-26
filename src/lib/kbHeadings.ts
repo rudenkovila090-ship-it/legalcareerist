@@ -22,3 +22,14 @@ export function kbHeadings(md: string): KbHeading[] {
   return out
 }
 
+export function scrollToHeading(id: string) {
+  const el = document.getElementById(id)
+  if (!el) return
+  const calm = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+  el.scrollIntoView({ behavior: calm ? 'auto' : 'smooth', block: 'start' })
+  try {
+    window.history.replaceState(window.history.state, '', `${window.location.pathname}${window.location.search}#${id}`)
+  } catch {
+    // адрес не обновился — переход всё равно выполнен
+  }
+}

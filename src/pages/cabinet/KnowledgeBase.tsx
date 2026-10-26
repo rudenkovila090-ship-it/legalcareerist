@@ -1,57 +1,34 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import KbMarkdown from '../../components/KbMarkdown'
-import { kbHeadings } from '../../lib/kbHeadings'
-import { fetchKb, fetchKbPage, searchKb, type KbChild, type KbIndex, type KbNode, type KbPage, type KbSearchResult } from '../../lib/knowledge'
+import { KbCard } from '../../components/kb/KbCard'
+import { KbIcon } from '../../components/kb/KbIcon'
+import KbOutline from '../../components/kb/KbOutline'
+import KbPalette from '../../components/kb/KbPalette'
+import { kbHeadings, scrollToHeading } from '../../lib/kbHeadings'
+import { useKbMarks, type KbMarks } from '../../lib/kbState'
+import { fetchKb, fetchKbPage, kbHref, type KbIndex, type KbNode, type KbPage } from '../../lib/knowledge'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import { pluralRu } from '../../lib/plural'
 import type { CabinetUser } from '../../lib/cabinet'
 import { icon as cabinetIcon } from './sections'
 
-// Закрытая база знаний резидентов: /cabinet/knowledge. Слева панель с разделами (дерево, счётчики страниц, поиск), справа страница.
-// На телефоне панель раскрывается кнопкой «Разделы». Тексты и порядок — на сервере (server/content/knowledge, docs/knowledge-base.md).
+// Закрытая база знаний резидентов: /cabinet/knowledge. Слева панель разделов (дерево, счётчики, избранное, быстрый поиск ⌘K),
+// в центре страница, справа «На странице». Отметки читателя (избранное, прочитано, недавние) живут в его браузере.
+// Тексты и порядок — на сервере (server/content/knowledge, docs/knowledge-base.md).
 
 const focusRing = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink/40'
 const OPEN_KEY = 'ky_kb_open'
+const START_ID = 'nachalo-raboty'
 
-// ---- значки разделов: тонкая линия, как во всём кабинете ----
-const ICONS: Record<string, ReactNode> = {
-  flag: <path d="M6 20V4.5M6 5h11l-2 3.5 2 3.5H6" />,
-  briefcase: <><rect x="4" y="7.5" width="16" height="12" rx="2" /><path d="M9 7.5V6a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 15 6v1.5M4 12.5h16" /></>,
-  scales: <><path d="M12 4v16M7 20h10M5 8h14" /><path d="m5 8-2.5 6a3 3 0 0 0 5 0L5 8Zm14 0-2.5 6a3 3 0 0 0 5 0L19 8Z" /></>,
-  cap: <><path d="m3 9 9-4.5L21 9l-9 4.5L3 9Z" /><path d="M7 11.5V16c0 1 2.2 2.5 5 2.5s5-1.5 5-2.5v-4.5M21 9v5" /></>,
-  compass: <><circle cx="12" cy="12" r="8.5" /><path d="m15.5 8.5-2 5-5 2 2-5 5-2Z" /></>,
-  book: <><path d="M5 5.5A1.5 1.5 0 0 1 6.5 4H19v14H6.5A1.5 1.5 0 0 0 5 19.5v-14Z" /><path d="M5 19.5A1.5 1.5 0 0 0 6.5 21H19v-3M9 8h6" /></>,
-  pen: <><path d="M5 19l1-4L16.5 4.5a2 2 0 0 1 3 3L9 18l-4 1Z" /><path d="m14.5 6.5 3 3" /></>,
-  spark: <path d="M12 3.5 13.8 9l5.7 1.8-5.7 1.8L12 18l-1.8-5.4L4.5 10.8 10.2 9 12 3.5Z" />,
-  trend: <><path d="M4 17l5-5 3.5 3.5L20 8" /><path d="M15 8h5v5" /></>,
-  coins: <><ellipse cx="12" cy="7" rx="7" ry="3" /><path d="M5 7v5c0 1.7 3.1 3 7 3s7-1.3 7-3V7M5 12v5c0 1.7 3.1 3 7 3s7-1.3 7-3v-5" /></>,
-  grid: <><rect x="4" y="4" width="7" height="7" rx="1.5" /><rect x="13" y="4" width="7" height="7" rx="1.5" /><rect x="4" y="13" width="7" height="7" rx="1.5" /><rect x="13" y="13" width="7" height="7" rx="1.5" /></>,
-  leaf: <><path d="M5 19c0-8 5-13 14-14 0 9-5 14-13 14" /><path d="M5 19c2-4 5-7 9-9" /></>,
-  chip: <><rect x="7" y="7" width="10" height="10" rx="2" /><path d="M10 3.5v3.5M14 3.5v3.5M10 17v3.5M14 17v3.5M3.5 10H7M3.5 14H7M17 10h3.5M17 14h3.5" /></>,
-  users: <><circle cx="9" cy="9" r="3.2" /><path d="M3.5 19c0-3 2.5-5 5.5-5s5.5 2 5.5 5M16 6.2a3 3 0 0 1 0 5.6M17 14.2c2 .5 3.5 2.2 3.5 4.8" /></>,
-  folder: <path d="M3.5 7a1.5 1.5 0 0 1 1.5-1.5h4l2 2.5h8a1.5 1.5 0 0 1 1.5 1.5V17a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 17V7Z" />,
-  doc: <><path d="M7 3.5h7l4 4V20a.5.5 0 0 1-.5.5h-10.5a.5.5 0 0 1-.5-.5V4a.5.5 0 0 1 .5-.5Z" /><path d="M14 3.5V8h4M9.5 12h5M9.5 15.5h5" /></>,
-  search: <><circle cx="11" cy="11" r="6.5" /><path d="m16 16 4 4" /></>,
-  chevron: <path d="m9 6 6 6-6 6" />,
-  close: <path d="m6 6 12 12M18 6 6 18" />,
-  menu: <path d="M4 7h16M4 12h16M4 17h16" />,
-  arrow: <path d="M5 12h14m-5-5 5 5-5 5" />,
-}
-
-function KbIcon({ name, fallback, className = 'h-[1.125rem] w-[1.125rem]' }: { name?: string; fallback: 'folder' | 'doc'; className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className={`${className} shrink-0`} aria-hidden="true">
-      {ICONS[name && ICONS[name] ? name : fallback]}
-    </svg>
-  )
-}
+type PageState = { id: string; state: 'ok'; data: KbPage } | { id: string; state: 'missing' | 'error' }
 
 const dateRu = (iso: string | null) => {
   const ts = iso ? Date.parse(iso) : NaN
   return Number.isNaN(ts) ? '' : new Date(ts).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })
 }
 const pagesWord = (n: number) => `${n} ${pluralRu(n, ['страница', 'страницы', 'страниц'])}`
+const minWord = (n: number) => `≈ ${n} ${pluralRu(n, ['минута', 'минуты', 'минут'])}`
 
 function loadOpen(): Set<string> {
   try {
@@ -62,10 +39,12 @@ function loadOpen(): Set<string> {
   }
 }
 
-function Highlight({ text, words }: { text: string; words: string[] }) {
-  if (!words.length) return <>{text}</>
-  const re = new RegExp(`(${words.map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'gi')
-  return <>{text.split(re).map((part, i) => (i % 2 ? <mark key={i} className="rounded bg-gold-light/30 px-0.5 text-ink">{part}</mark> : part))}</>
+function saveOpen(ids: Set<string>) {
+  try {
+    localStorage.setItem(OPEN_KEY, JSON.stringify([...ids]))
+  } catch {
+    // без сохранения — просто не запомним
+  }
 }
 
 function Locked({ status }: { status?: string }) {
@@ -86,10 +65,10 @@ function Locked({ status }: { status?: string }) {
 }
 
 export default function KnowledgeBase({ user }: { user: CabinetUser }) {
-  void user
   const [params] = useSearchParams()
   const [index, setIndex] = useState<{ state: 'loading' } | { state: 'ready'; data: KbIndex } | { state: 'locked'; status?: string } | { state: 'auth' } | { state: 'error' }>({ state: 'loading' })
   const [reload, setReload] = useState(0)
+  const marks = useKbMarks(user.login)
 
   useEffect(() => {
     let active = true
@@ -108,7 +87,8 @@ export default function KnowledgeBase({ user }: { user: CabinetUser }) {
   const requested = params.get('p')
   const ready = index.state === 'ready' ? index.data : null
   const pageId = requested ?? ready?.firstId ?? null
-  const [page, setPage] = useState<{ id: string; state: 'ok'; data: KbPage } | { id: string; state: 'missing' | 'error' } | null>(null)
+  const [page, setPage] = useState<PageState | null>(null)
+  const { visit } = marks
 
   useEffect(() => {
     if (!pageId || !ready) return
@@ -116,12 +96,13 @@ export default function KnowledgeBase({ user }: { user: CabinetUser }) {
     fetchKbPage(pageId).then((r) => {
       if (!active) return
       setPage(r.ok ? { id: pageId, state: 'ok', data: r.data } : { id: pageId, state: r.error === 'not_found' ? 'missing' : 'error' })
+      if (r.ok && !r.data.folder) visit(pageId)
       window.scrollTo({ top: 0 })
     })
     return () => {
       active = false
     }
-  }, [pageId, ready])
+  }, [pageId, ready, visit])
 
   const current = page && page.id === pageId ? page : null
   useDocumentTitle(current?.state === 'ok' ? `${current.data.title} — База знаний` : 'База знаний — Личный кабинет')
@@ -143,10 +124,10 @@ export default function KnowledgeBase({ user }: { user: CabinetUser }) {
       </div>
     )
   }
-  return <Workspace data={index.data} pageId={pageId} current={current} />
+  return <Workspace data={index.data} pageId={pageId} current={current} marks={marks} />
 }
 
-function Workspace({ data, pageId, current }: { data: KbIndex; pageId: string | null; current: { id: string; state: 'ok'; data: KbPage } | { id: string; state: 'missing' | 'error' } | null }) {
+function Workspace({ data, pageId, current, marks }: { data: KbIndex; pageId: string | null; current: PageState | null; marks: KbMarks }) {
   const { tree, admin } = data
   const byId = useMemo(() => new Map(tree.map((n) => [n.id, n])), [tree])
   const byParent = useMemo(() => {
@@ -154,6 +135,17 @@ function Workspace({ data, pageId, current }: { data: KbIndex; pageId: string | 
     for (const n of tree) m.set(n.parent, [...(m.get(n.parent) ?? []), n])
     return m
   }, [tree])
+  // Страницы (не разделы) под каждым разделом — для прогресса «прочитано».
+  const pagesUnder = useMemo(() => {
+    const out = new Map<string, string[]>()
+    const walk = (id: string): string[] => {
+      const ids = (byParent.get(id) ?? []).flatMap((n) => (n.folder ? walk(n.id) : [n.id]))
+      out.set(id, ids)
+      return ids
+    }
+    for (const n of byParent.get(null) ?? []) if (n.folder) walk(n.id)
+    return out
+  }, [byParent])
 
   // Раскрытые разделы: что человек оставил открытым + путь к текущей странице.
   const [opened, setOpened] = useState<Set<string>>(loadOpen)
@@ -168,45 +160,48 @@ function Workspace({ data, pageId, current }: { data: KbIndex; pageId: string | 
       const next = new Set(prev)
       if (isOpen(id)) next.delete(id)
       else next.add(id)
-      // раздел с текущей страницей закрыть нельзя, пока она открыта: он остаётся раскрытым по пути
-      try {
-        localStorage.setItem(OPEN_KEY, JSON.stringify([...next]))
-      } catch {
-        // без сохранения — просто не запомним
-      }
+      saveOpen(next)
       return next
     })
   }
+  const collapseAll = () => {
+    const none = new Set<string>()
+    saveOpen(none)
+    setOpened(none)
+  }
 
-  // Поиск: через четверть секунды после ввода.
-  const [query, setQuery] = useState('')
-  const [results, setResults] = useState<KbSearchResult[] | null>(null)
-  const [searching, setSearching] = useState(false)
-  const words = useMemo(() => query.toLowerCase().split(/\s+/).filter((w) => w.length >= 2), [query])
+  // Быстрый поиск: ⌘K / Ctrl+K или «/» вне полей ввода.
+  const [paletteOpen, setPaletteOpen] = useState(false)
   useEffect(() => {
-    const q = query.trim()
-    if (q.length < 2) return
-    let active = true
-    const timer = window.setTimeout(() => {
-      setSearching(true)
-      searchKb(q).then((r) => {
-        if (!active) return
-        setSearching(false)
-        setResults(r.ok ? r.data : [])
-      })
-    }, 250)
-    return () => {
-      active = false
-      window.clearTimeout(timer)
+    const onKey = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement | null
+      const typing = !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setPaletteOpen(true)
+      } else if (e.key === '/' && !typing && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        e.preventDefault()
+        setPaletteOpen(true)
+      }
     }
-  }, [query])
-  const showResults = query.trim().length >= 2
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+  const mac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.userAgent)
 
   const [panelOpen, setPanelOpen] = useState(false)
-  const articleRef = useRef<HTMLElement>(null)
-  const currentTitle = current?.state === 'ok' ? current.data.title : ''
-
+  const currentPage = current?.state === 'ok' ? current.data : null
   const empty = tree.length === 0
+  const headings = useMemo(() => (currentPage ? kbHeadings(currentPage.body) : []), [currentPage])
+  const outline = headings.filter((h) => h.level === 2).length >= 3
+
+  const resume = useMemo(() => {
+    if (pageId !== START_ID) return null
+    const id = marks.recent.find((r) => r !== pageId && byId.get(r) && !byId.get(r)!.folder)
+    return id ? byId.get(id) ?? null : null
+  }, [pageId, marks.recent, byId])
+
+  const favNodes = marks.favorites.map((id) => byId.get(id)).filter((n): n is KbNode => !!n)
 
   return (
     <div className="ym-hide-content container-page py-6 lg:py-8">
@@ -216,77 +211,79 @@ function Workspace({ data, pageId, current }: { data: KbIndex; pageId: string | 
         <span className="text-ink/80">База знаний</span>
       </nav>
 
-      <div className="grid gap-6 lg:grid-cols-[18.5rem_minmax(0,1fr)]">
+      <div className={`grid gap-6 lg:gap-8 lg:grid-cols-[19.5rem_minmax(0,1fr)] ${outline ? 'xl:grid-cols-[19.5rem_minmax(0,1fr)_13.5rem]' : ''}`}>
         {/* Панель разделов */}
         <aside className="min-w-0 lg:sticky lg:top-24 lg:self-start">
-          <button
-            type="button"
-            aria-expanded={panelOpen}
-            aria-controls="kb-panel"
-            onClick={() => setPanelOpen((v) => !v)}
-            className={`flex w-full items-center gap-3 rounded-2xl bg-ink/[0.045] px-4 py-3 text-left text-sm font-semibold lg:hidden ${focusRing}`}
-          >
-            <KbIcon name="menu" fallback="doc" />
-            <span className="min-w-0 flex-1 truncate">{currentTitle || 'Разделы'}</span>
-            <span className="text-xs font-medium text-ink/50">{panelOpen ? 'Скрыть' : 'Разделы'}</span>
-          </button>
+          <div className="flex gap-2 lg:hidden">
+            <button
+              type="button"
+              aria-expanded={panelOpen}
+              aria-controls="kb-panel"
+              onClick={() => setPanelOpen((v) => !v)}
+              className={`flex min-w-0 flex-1 items-center gap-3 rounded-2xl bg-ink/[0.045] px-4 py-3 text-left text-sm font-semibold ${focusRing}`}
+            >
+              <KbIcon name="menu" />
+              <span className="min-w-0 flex-1 truncate">{currentPage?.title || 'Разделы'}</span>
+              <span className="text-xs font-medium text-ink/50">{panelOpen ? 'Скрыть' : 'Разделы'}</span>
+            </button>
+            <button type="button" aria-label="Поиск по базе знаний" onClick={() => setPaletteOpen(true)} className={`flex w-12 shrink-0 items-center justify-center rounded-2xl bg-ink/[0.045] ${focusRing}`}>
+              <KbIcon name="search" className="h-5 w-5" />
+            </button>
+          </div>
 
           <div id="kb-panel" className={`${panelOpen ? 'mt-3 block' : 'hidden'} rounded-2xl bg-ink/[0.045] p-3 lg:block lg:max-h-[calc(100vh-8rem)] lg:overflow-y-auto`}>
             <div className="flex items-center gap-2.5 px-2 pb-3 pt-1">
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-ink shadow-[0_1px_2px_rgba(40,57,83,0.08)]"><KbIcon name="book" fallback="doc" /></span>
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-ink shadow-[0_1px_2px_rgba(40,57,83,0.08)]"><KbIcon name="book" /></span>
               <div className="min-w-0">
                 <div className="text-sm font-semibold leading-tight">База знаний</div>
                 <div className="text-xs text-ink/50">{pagesWord(data.stats.pages)}</div>
               </div>
             </div>
 
-            <div className="relative">
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink/40"><KbIcon name="search" fallback="doc" className="h-4 w-4" /></span>
-              <input
-                type="search"
-                aria-label="Поиск по базе знаний"
-                placeholder="Поиск"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                className="w-full rounded-xl border border-transparent bg-white py-2.5 pl-9 pr-9 text-base shadow-[0_1px_2px_rgba(40,57,83,0.06)] placeholder:text-ink/40 focus:border-ink/25 focus:outline-none sm:text-sm [&::-webkit-search-cancel-button]:hidden"
-              />
-              {query && (
-                <button type="button" aria-label="Очистить поиск" onClick={() => { setQuery(''); setResults(null) }} className={`absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-ink/40 hover:bg-ink/[0.06] hover:text-ink ${focusRing}`}>
-                  <KbIcon name="close" fallback="doc" className="h-3.5 w-3.5" />
-                </button>
-              )}
-            </div>
+            <button
+              type="button"
+              onClick={() => { setPanelOpen(false); setPaletteOpen(true) }}
+              className={`flex w-full items-center gap-2.5 rounded-xl bg-white px-3 py-2.5 text-left text-sm text-ink/45 shadow-[0_1px_2px_rgba(40,57,83,0.06)] transition-shadow hover:shadow-[0_2px_8px_-2px_rgba(40,57,83,0.18)] ${focusRing}`}
+            >
+              <KbIcon name="search" className="h-4 w-4 text-ink/40" />
+              <span className="flex-1">Поиск</span>
+              <kbd className="rounded-md bg-ink/[0.06] px-1.5 py-0.5 font-sans text-[11px] font-medium text-ink/45">{mac ? '⌘ K' : 'Ctrl K'}</kbd>
+            </button>
 
-            {showResults ? (
-              <div className="mt-4" aria-live="polite">
-                <div className="px-2 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-ink/40">
-                  {searching || results === null ? 'Ищем…' : results.length ? `Найдено: ${results.length}` : 'Ничего не найдено'}
-                </div>
-                <ul className="space-y-1">
-                  {(results ?? []).map((r) => (
-                    <li key={r.id}>
+            {favNodes.length > 0 && (
+              <>
+                <div className="px-2 pb-1.5 pt-4 text-[11px] font-semibold uppercase tracking-wider text-ink/40">Избранное</div>
+                <ul className="space-y-0.5">
+                  {favNodes.map((n) => (
+                    <li key={n.id}>
                       <Link
-                        to={`/cabinet/knowledge?p=${encodeURIComponent(r.id)}`}
+                        to={kbHref(n.id)}
+                        aria-current={n.id === pageId ? 'page' : undefined}
                         onClick={() => setPanelOpen(false)}
-                        className={`block rounded-xl px-3 py-2.5 transition-colors hover:bg-white/80 ${r.id === pageId ? 'bg-white shadow-[0_1px_2px_rgba(40,57,83,0.08)]' : ''} ${focusRing}`}
+                        className={`flex min-w-0 items-center gap-2.5 rounded-xl px-2.5 py-2 text-sm transition-colors ${focusRing} ${n.id === pageId ? 'bg-white font-semibold text-ink shadow-[0_1px_2px_rgba(40,57,83,0.08)]' : 'text-ink/75 hover:bg-white/70 hover:text-ink'}`}
                       >
-                        {r.crumbs.length > 0 && <div className="truncate text-[11px] text-ink/45">{r.crumbs.join(' › ')}</div>}
-                        <div className="text-sm font-semibold leading-snug"><Highlight text={r.title} words={words} /></div>
-                        <div className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-ink/60"><Highlight text={r.snippet} words={words} /></div>
+                        <KbIcon name="star" className="h-4 w-4 fill-gold-light/60 text-gold" />
+                        <span className="min-w-0 flex-1 truncate">{n.title}</span>
                       </Link>
                     </li>
                   ))}
                 </ul>
-              </div>
-            ) : (
-              <>
-                <div className="px-2 pb-1.5 pt-4 text-[11px] font-semibold uppercase tracking-wider text-ink/40">Разделы</div>
-                {empty ? (
-                  <p className="px-2 py-2 text-sm text-ink/50">Пока пусто.</p>
-                ) : (
-                  <Branch nodes={byParent.get(null) ?? []} byParent={byParent} depth={0} pageId={pageId} isOpen={isOpen} toggle={toggle} onNavigate={() => setPanelOpen(false)} />
-                )}
               </>
+            )}
+
+            <div className="flex items-center justify-between px-2 pb-1.5 pt-4">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-ink/40">Разделы</span>
+              {opened.size > 0 && (
+                <button type="button" onClick={collapseAll} className={`flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium text-ink/45 hover:bg-white/70 hover:text-ink ${focusRing}`}>
+                  <KbIcon name="collapse" className="h-3 w-3" strokeWidth={2} />
+                  Свернуть все
+                </button>
+              )}
+            </div>
+            {empty ? (
+              <p className="px-2 py-2 text-sm text-ink/50">Пока пусто.</p>
+            ) : (
+              <Branch nodes={byParent.get(null) ?? []} byParent={byParent} depth={0} pageId={pageId} marks={marks} isOpen={isOpen} toggle={toggle} onNavigate={() => setPanelOpen(false)} />
             )}
 
             {admin && <p className="mt-4 rounded-xl bg-white/70 px-3 py-2 text-xs leading-relaxed text-ink/60">Режим администратора: черновики и пустые разделы видны только вам.</p>}
@@ -294,14 +291,40 @@ function Workspace({ data, pageId, current }: { data: KbIndex; pageId: string | 
         </aside>
 
         {/* Страница */}
-        <article ref={articleRef} className="min-w-0">
-          {empty ? <EmptyBase admin={admin} /> : !pageId || !current ? <div className="py-16 text-center text-sm text-ink/50">Открываем страницу…</div> : current.state === 'ok' ? <PageBody page={current.data} /> : (
+        <article className="min-w-0">
+          {empty ? <EmptyBase admin={admin} /> : !pageId || !current ? <PageSkeleton /> : currentPage ? (
+            <PageBody page={currentPage} byId={byId} pagesUnder={pagesUnder} tree={tree} marks={marks} resume={resume} outlineShown={outline} />
+          ) : (
             <div className="py-16 text-center">
               <h1 className="text-xl font-semibold">{current.state === 'missing' ? 'Страница не найдена' : 'Не получилось открыть страницу'}</h1>
-              <p className="mt-2 text-sm text-ink/60">{current.state === 'missing' ? 'Возможно, её переименовали или убрали. Выберите страницу слева.' : 'Попробуйте обновить страницу через минуту.'}</p>
+              <p className="mt-2 text-sm text-ink/60">{current.state === 'missing' ? 'Возможно, её переименовали или убрали. Выберите страницу слева или найдите её поиском.' : 'Попробуйте обновить страницу через минуту.'}</p>
+              {current.state === 'missing' && <button type="button" onClick={() => setPaletteOpen(true)} className={`mt-4 rounded-full border border-ink/15 px-5 py-2 text-sm font-semibold text-ink/70 hover:text-ink ${focusRing}`}>Открыть поиск</button>}
             </div>
           )}
         </article>
+
+        {/* На странице */}
+        {outline && (
+          <div className="hidden xl:block">
+            <div className="sticky top-24"><KbOutline key={currentPage?.id} headings={headings} /></div>
+          </div>
+        )}
+      </div>
+
+      {paletteOpen && <KbPalette onClose={() => setPaletteOpen(false)} tree={tree} recent={marks.recent} favorites={marks.favorites} />}
+    </div>
+  )
+}
+
+function PageSkeleton() {
+  return (
+    <div className="max-w-3xl motion-safe:animate-pulse" aria-busy="true" aria-label="Открываем страницу">
+      <div className="h-4 w-48 rounded bg-ink/[0.07]" />
+      <div className="mt-5 h-10 w-3/4 rounded-lg bg-ink/[0.08]" />
+      <div className="mt-6 space-y-3">
+        <div className="h-4 rounded bg-ink/[0.06]" />
+        <div className="h-4 w-11/12 rounded bg-ink/[0.06]" />
+        <div className="h-4 w-4/5 rounded bg-ink/[0.06]" />
       </div>
     </div>
   )
@@ -310,7 +333,7 @@ function Workspace({ data, pageId, current }: { data: KbIndex; pageId: string | 
 function EmptyBase({ admin }: { admin: boolean }) {
   return (
     <div className="glass mx-auto max-w-xl rounded-2xl p-8 text-center">
-      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-ink/[0.06] text-ink/70"><KbIcon name="book" fallback="doc" className="h-6 w-6" /></div>
+      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-ink/[0.06] text-ink/70"><KbIcon name="book" className="h-6 w-6" /></div>
       <h1 className="mt-4 text-xl font-semibold">База знаний наполняется</h1>
       <p className="mt-2 text-sm text-ink/70">Материалы по карьере юриста появятся здесь, как только будут готовы. Мы сообщим в сообществе.</p>
       {admin && <p className="mt-3 text-xs text-ink/50">Администратор: страницы без пометки «черновик» и с текстом сразу станут видны резидентам.</p>}
@@ -318,49 +341,49 @@ function EmptyBase({ admin }: { admin: boolean }) {
   )
 }
 
-function Branch({ nodes, byParent, depth, pageId, isOpen, toggle, onNavigate }: {
+function Branch({ nodes, byParent, depth, pageId, marks, isOpen, toggle, onNavigate }: {
   nodes: KbNode[]
   byParent: Map<string | null, KbNode[]>
   depth: number
   pageId: string | null
+  marks: KbMarks
   isOpen: (id: string) => boolean
   toggle: (id: string) => void
   onNavigate: () => void
 }) {
   return (
-    <ul className={depth ? 'ml-[1.15rem] mt-0.5 space-y-0.5 border-l border-ink/10 pl-2' : 'space-y-0.5'}>
+    <ul className={depth ? 'ml-[1.05rem] mt-0.5 space-y-0.5 border-l border-ink/10 pl-1.5' : 'space-y-0.5'}>
       {nodes.map((n) => {
         const kids = byParent.get(n.id) ?? []
         const open = n.folder && kids.length > 0 && isOpen(n.id)
         const selected = n.id === pageId
-        const label = (
-          <>
-            <span className={selected ? 'text-ink' : 'text-ink/55'}><KbIcon name={n.icon} fallback={n.folder ? 'folder' : 'doc'} /></span>
-            <span className="min-w-0 flex-1 truncate">{n.title}</span>
-            {n.draft && <span className="shrink-0 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800">черновик</span>}
-            {n.folder && <span className="shrink-0 text-xs tabular-nums text-ink/35">{n.pages ?? 0}</span>}
-          </>
-        )
-        const rowCls = `flex min-w-0 flex-1 items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-sm transition-colors ${focusRing} ${
-          selected ? 'bg-white font-semibold text-ink shadow-[0_1px_2px_rgba(40,57,83,0.08),0_6px_14px_-8px_rgba(40,57,83,0.25)]' : 'text-ink/75 hover:bg-white/70 hover:text-ink'
-        }`
+        const done = !n.folder && marks.read.has(n.id)
         return (
           <li key={n.id}>
             <div className="flex items-center">
               {n.folder && kids.length > 0 ? (
                 <button type="button" aria-label={`${open ? 'Свернуть' : 'Развернуть'}: ${n.title}`} aria-expanded={open} onClick={() => toggle(n.id)} className={`mr-0.5 flex h-7 w-6 shrink-0 items-center justify-center rounded-lg text-ink/40 hover:bg-white/70 hover:text-ink ${focusRing}`}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`h-3.5 w-3.5 transition-transform ${open ? 'rotate-90' : ''}`} aria-hidden="true">{ICONS.chevron}</svg>
+                  <KbIcon name="chevron" strokeWidth={2} className={`h-3.5 w-3.5 transition-transform ${open ? 'rotate-90' : ''}`} />
                 </button>
               ) : (
                 <span className="mr-0.5 h-7 w-6 shrink-0" aria-hidden="true" />
               )}
-              {n.hasBody || !n.folder ? (
-                <Link to={`/cabinet/knowledge?p=${encodeURIComponent(n.id)}`} aria-current={selected ? 'page' : undefined} onClick={() => { if (n.folder && !isOpen(n.id)) toggle(n.id); onNavigate() }} className={rowCls}>{label}</Link>
-              ) : (
-                <button type="button" onClick={() => toggle(n.id)} className={rowCls}>{label}</button>
-              )}
+              <Link
+                to={kbHref(n.id)}
+                aria-current={selected ? 'page' : undefined}
+                onClick={() => { if (n.folder && kids.length > 0 && !isOpen(n.id)) toggle(n.id); onNavigate() }}
+                className={`flex min-w-0 flex-1 items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-sm transition-colors ${focusRing} ${
+                  selected ? 'bg-white font-semibold text-ink shadow-[0_1px_2px_rgba(40,57,83,0.08),0_6px_14px_-8px_rgba(40,57,83,0.25)]' : 'text-ink/75 hover:bg-white/70 hover:text-ink'
+                }`}
+              >
+                <span className={selected ? 'text-ink' : 'text-ink/55'}><KbIcon name={n.icon} fallback={n.folder ? 'folder' : 'doc'} /></span>
+                <span className="line-clamp-2 min-w-0 flex-1 hyphens-auto leading-snug">{n.title}</span>
+                {n.draft && <span className="shrink-0 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800">черновик</span>}
+                {done && <span className="shrink-0 text-gold" title="Прочитано"><KbIcon name="check" strokeWidth={2.2} className="h-3.5 w-3.5" /><span className="sr-only">прочитано</span></span>}
+                {n.folder && <span className="shrink-0 text-xs tabular-nums text-ink/35">{n.pages ?? 0}</span>}
+              </Link>
             </div>
-            {open && <Branch nodes={kids} byParent={byParent} depth={depth + 1} pageId={pageId} isOpen={isOpen} toggle={toggle} onNavigate={onNavigate} />}
+            {open && <Branch nodes={kids} byParent={byParent} depth={depth + 1} pageId={pageId} marks={marks} isOpen={isOpen} toggle={toggle} onNavigate={onNavigate} />}
           </li>
         )
       })}
@@ -368,76 +391,263 @@ function Branch({ nodes, byParent, depth, pageId, isOpen, toggle, onNavigate }: 
   )
 }
 
-function ChildCard({ c }: { c: KbChild }) {
+/** Карточки разделов (директива «::: sections» на странице «Начало работы»). */
+function SectionGrid({ tree, pagesUnder, marks, skipId }: { tree: KbNode[]; pagesUnder: Map<string, string[]>; marks: KbMarks; skipId: string }) {
+  const top = tree.filter((n) => !n.parent && n.folder && n.id !== skipId)
+  if (!top.length) return null
   return (
-    <Link to={`/cabinet/knowledge?p=${encodeURIComponent(c.id)}`} className={`glass flex min-w-0 items-center gap-3 rounded-xl p-4 ${focusRing}`}>
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-ink/[0.06] text-ink/70"><KbIcon name={c.icon} fallback={c.folder ? 'folder' : 'doc'} className="h-5 w-5" /></span>
-      <span className="min-w-0">
-        <span className="block font-semibold leading-snug">{c.title}{c.draft && <span className="ml-2 rounded-full bg-amber-100 px-1.5 py-0.5 align-middle text-[10px] font-semibold text-amber-800">черновик</span>}</span>
-        <span className="block text-xs text-ink/50">{c.folder ? pagesWord(c.pages ?? 0) : 'Статья'}</span>
-      </span>
-    </Link>
+    <div className="grid gap-3 sm:grid-cols-2">
+      {top.map((n) => {
+        const ids = pagesUnder.get(n.id) ?? []
+        const read = ids.filter((id) => marks.read.has(id)).length
+        return (
+          <KbCard
+            key={n.id}
+            id={n.id}
+            title={n.title}
+            icon={n.icon}
+            folder
+            summary={n.summary}
+            draft={n.draft}
+            large
+            progress={ids.length ? read / ids.length : undefined}
+            meta={ids.length ? `${pagesWord(ids.length)}${read ? ` · прочитано ${read}` : ''}` : 'Скоро'}
+          />
+        )
+      })}
+    </div>
   )
 }
 
-function PageBody({ page }: { page: KbPage }) {
+function ActionButton({ onClick, pressed, label, children }: { onClick: () => void; pressed?: boolean; label: string; children: ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={pressed}
+      className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium transition-colors ${pressed ? 'bg-gold-light/20 text-gold' : 'text-ink/55 hover:bg-ink/[0.06] hover:text-ink'} ${focusRing}`}
+    >
+      {children}
+      <span>{label}</span>
+    </button>
+  )
+}
+
+function PageBody({ page, byId, pagesUnder, tree, marks, resume, outlineShown }: {
+  page: KbPage
+  byId: Map<string, KbNode>
+  pagesUnder: Map<string, string[]>
+  tree: KbNode[]
+  marks: KbMarks
+  resume: KbNode | null
+  outlineShown: boolean
+}) {
   const headings = useMemo(() => kbHeadings(page.body), [page.body])
   const toc = headings.filter((h) => h.level === 2)
   const updated = dateRu(page.updated)
+  const isRead = marks.read.has(page.id)
+  const fav = marks.favorites.includes(page.id)
+  const parent = page.crumbs[page.crumbs.length - 1]
+  const [copied, setCopied] = useState<'' | 'ok' | 'fail'>('')
+  const copyTimer = useRef(0)
+  const endRef = useRef<HTMLDivElement>(null)
+  const { setRead } = marks
+  const readable = !page.folder && page.body.length > 0
+
+  // Дочитал до конца (конец текста показался в окне) — отмечаем страницу прочитанной; снять отметку можно кнопкой внизу.
+  useEffect(() => {
+    const el = endRef.current
+    if (!readable || !el) return
+    let frame = 0
+    const check = () => {
+      frame = 0
+      if (el.getBoundingClientRect().top <= window.innerHeight) {
+        setRead(page.id, true)
+        window.removeEventListener('scroll', onScroll)
+      }
+    }
+    const onScroll = () => {
+      if (!frame) frame = window.requestAnimationFrame(check)
+    }
+    frame = window.requestAnimationFrame(check)
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => {
+      window.removeEventListener('scroll', onScroll)
+      if (frame) window.cancelAnimationFrame(frame)
+    }
+  }, [readable, page.id, setRead])
+
+  useEffect(() => () => window.clearTimeout(copyTimer.current), [])
+  const copyLink = async () => {
+    window.clearTimeout(copyTimer.current)
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}${kbHref(page.id)}`)
+      setCopied('ok')
+    } catch {
+      setCopied('fail')
+    }
+    copyTimer.current = window.setTimeout(() => setCopied(''), 2200)
+  }
+
+  const folderStats = page.folder ? pagesUnder.get(page.id) ?? [] : []
+  const folderRead = folderStats.filter((id) => marks.read.has(id)).length
+  const isStart = page.id === START_ID
+
   return (
     <div className="max-w-3xl">
-      {page.crumbs.length > 0 && (
-        <nav aria-label="Путь" className="mb-3 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-ink/50">
-          {page.crumbs.map((c) => (
-            <span key={c.id} className="flex items-center gap-1.5">
-              <Link to={`/cabinet/knowledge?p=${encodeURIComponent(c.id)}`} className={`rounded hover:text-ink ${focusRing}`}>{c.title}</Link>
-              <span aria-hidden="true">›</span>
-            </span>
-          ))}
-        </nav>
-      )}
-      <div className="flex items-start gap-4">
-        <span className="mt-1 hidden h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-ink/[0.06] text-ink/70 sm:flex"><KbIcon name={page.icon} fallback={page.folder ? 'folder' : 'doc'} className="h-6 w-6" /></span>
-        <div className="min-w-0">
-          <h1 className="text-balance text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">{page.title}</h1>
-          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink/50">
-            {page.body && <span>≈ {page.readMin} {pluralRu(page.readMin, ['минута', 'минуты', 'минут'])} чтения</span>}
-            {updated && <span>Обновлено {updated}</span>}
-            {page.draft && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">Черновик — видите только вы</span>}
-          </div>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+        {page.crumbs.length > 0 ? (
+          <nav aria-label="Путь" className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-ink/50">
+            {page.crumbs.map((c, i) => (
+              <span key={c.id} className="flex items-center gap-1.5">
+                {i > 0 && <span aria-hidden="true">›</span>}
+                <Link to={kbHref(c.id)} className={`rounded hover:text-ink ${focusRing}`}>{c.title}</Link>
+              </span>
+            ))}
+          </nav>
+        ) : <span />}
+        <div className="-mr-2 flex items-center gap-0.5">
+          {!page.folder && (
+            <ActionButton onClick={() => marks.toggleFavorite(page.id)} pressed={fav} label={fav ? 'В избранном' : 'В избранное'}>
+              <KbIcon name="star" className={`h-4 w-4 ${fav ? 'fill-gold-light/60' : ''}`} />
+            </ActionButton>
+          )}
+          <ActionButton onClick={copyLink} label="Ссылка"><KbIcon name="link" className="h-4 w-4" /></ActionButton>
+          <span role="status" className="sr-only">{copied === 'ok' ? 'Ссылка скопирована' : copied === 'fail' ? 'Не удалось скопировать ссылку' : ''}</span>
+          {copied && <span aria-hidden="true" className="ml-1 rounded-md bg-ink px-2 py-1 text-xs font-medium text-white">{copied === 'ok' ? 'Скопировано' : 'Не вышло'}</span>}
         </div>
       </div>
 
+      {resume && (
+        <Link to={kbHref(resume.id)} className={`group mb-6 flex items-center gap-3 rounded-2xl border border-gold-light/40 bg-gold-light/[0.12] px-4 py-3 transition-colors hover:bg-gold-light/[0.2] ${focusRing}`}>
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gold-light/30 text-gold"><KbIcon name="resume" className="h-5 w-5" /></span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-xs text-ink/55">Продолжить чтение</span>
+            <span className="block truncate font-semibold">{resume.title}</span>
+          </span>
+          <KbIcon name="arrow" className="h-4 w-4 text-ink/40 transition-transform group-hover:translate-x-0.5" />
+        </Link>
+      )}
+
+      {page.folder ? (
+        <header className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-ink/[0.09] via-ink/[0.04] to-gold-light/25 px-6 py-8 sm:px-9 sm:py-10">
+          <KbIcon name={page.icon} fallback="folder" strokeWidth={1} className="pointer-events-none absolute -right-5 -top-5 h-48 w-48 text-ink/[0.07]" />
+          <div className="relative">
+            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-ink shadow-[0_2px_8px_-2px_rgba(40,57,83,0.25)]"><KbIcon name={page.icon} fallback="folder" className="h-6 w-6" /></span>
+            <h1 className="mt-5 text-balance text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">{page.title}</h1>
+            {page.summary && <p className="mt-3 max-w-2xl text-pretty leading-relaxed text-ink/70">{page.summary}</p>}
+            <div className="mt-5 flex flex-wrap gap-2 text-sm">
+              {folderStats.length > 0 && <span className="rounded-full bg-white/80 px-3 py-1 font-medium text-ink/70">{pagesWord(folderStats.length)}</span>}
+              {folderRead > 0 && <span className="rounded-full bg-gold-light/30 px-3 py-1 font-medium text-gold">Прочитано {folderRead} из {folderStats.length}</span>}
+              {page.draft && <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold leading-5 text-amber-800">Черновик — видите только вы</span>}
+            </div>
+          </div>
+        </header>
+      ) : (
+        <header>
+          <div className="flex items-start gap-4">
+            <span className="mt-1 hidden h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-ink/[0.06] text-ink/70 sm:flex"><KbIcon name={page.icon} fallback="doc" className="h-6 w-6" /></span>
+            <h1 className="min-w-0 text-balance text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">{page.title}</h1>
+          </div>
+          {page.summary && <p className="mt-4 text-pretty text-lg leading-relaxed text-ink/65">{page.summary}</p>}
+          <div className="mt-5 flex flex-wrap items-center gap-2 text-sm text-ink/60">
+            {parent && (
+              <Link to={kbHref(parent.id)} className={`flex items-center gap-1.5 rounded-full bg-ink/[0.06] px-3 py-1 hover:bg-ink/10 hover:text-ink ${focusRing}`}>
+                <KbIcon name={byId.get(parent.id)?.icon} fallback="folder" className="h-3.5 w-3.5" />
+                {parent.title}
+              </Link>
+            )}
+            {page.body && <span className="flex items-center gap-1.5 rounded-full bg-ink/[0.06] px-3 py-1"><KbIcon name="clock" className="h-3.5 w-3.5" />{minWord(page.readMin)} чтения</span>}
+            {updated && <span className="rounded-full bg-ink/[0.06] px-3 py-1">Обновлено {updated}</span>}
+            {isRead && <span className="flex items-center gap-1.5 rounded-full bg-gold-light/25 px-3 py-1 font-medium text-gold"><KbIcon name="check" strokeWidth={2.2} className="h-3.5 w-3.5" />Прочитано</span>}
+            {page.draft && <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold leading-5 text-amber-800">Черновик — видите только вы</span>}
+          </div>
+        </header>
+      )}
+
       {toc.length >= 3 && (
-        <details className="group mt-6 rounded-2xl bg-ink/[0.035] px-5 py-3">
+        <details className={`group mt-6 rounded-2xl bg-ink/[0.035] px-5 py-3 ${outlineShown ? 'xl:hidden' : ''}`}>
           <summary className={`flex cursor-pointer list-none items-center gap-2 rounded text-sm font-semibold ${focusRing}`}>
-            Содержание <span className="text-ink/40 transition-transform group-open:rotate-90" aria-hidden="true">›</span>
+            Содержание <KbIcon name="chevron" strokeWidth={2} className="h-3.5 w-3.5 text-ink/40 transition-transform group-open:rotate-90" />
           </summary>
           <ul className="mt-2 space-y-1.5 pb-1">
-            {toc.map((h) => <li key={h.id}><a href={`#${h.id}`} className={`rounded text-sm text-ink/70 hover:text-ink hover:underline ${focusRing}`}>{h.text}</a></li>)}
+            {toc.map((h) => <li key={h.id}><a href={`#${h.id}`} onClick={(e) => { e.preventDefault(); scrollToHeading(h.id) }} className={`rounded text-sm text-ink/70 hover:text-ink hover:underline ${focusRing}`}>{h.text}</a></li>)}
           </ul>
         </details>
       )}
 
-      {page.body ? <div className="mt-6"><KbMarkdown source={page.body} /></div> : page.folder && page.children.length === 0 && <p className="mt-8 text-ink/60">В этом разделе пока нет страниц.</p>}
+      {page.body && (
+        <div className="mt-6">
+          <KbMarkdown source={page.body} sections={isStart ? <SectionGrid tree={tree} pagesUnder={pagesUnder} marks={marks} skipId={page.id} /> : undefined} />
+        </div>
+      )}
 
       {page.children.length > 0 && (
-        <section className="mt-10" aria-label="В этом разделе">
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink/50">{page.folder ? 'В этом разделе' : 'Дальше'}</h2>
-          <div className="grid gap-3 sm:grid-cols-2">{page.children.map((c) => <ChildCard key={c.id} c={c} />)}</div>
+        <section className="mt-10" aria-label={page.folder ? 'В этом разделе' : 'Дальше'}>
+          {(!page.folder || page.body) && <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink/50">{page.folder ? 'В этом разделе' : 'Дальше'}</h2>}
+          <div className="grid gap-3 sm:grid-cols-2">
+            {page.children.map((c) => {
+              const ids = c.folder ? pagesUnder.get(c.id) ?? [] : []
+              const read = ids.filter((id) => marks.read.has(id)).length
+              return (
+                <KbCard
+                  key={c.id}
+                  id={c.id}
+                  title={c.title}
+                  icon={c.icon}
+                  folder={c.folder}
+                  summary={c.summary}
+                  draft={c.draft}
+                  done={!c.folder && marks.read.has(c.id)}
+                  progress={c.folder && ids.length ? read / ids.length : undefined}
+                  meta={c.folder ? `${pagesWord(c.pages ?? 0)}${read ? ` · прочитано ${read}` : ''}` : c.readMin ? `${minWord(c.readMin)} чтения` : 'Статья'}
+                />
+              )
+            })}
+          </div>
+        </section>
+      )}
+
+      {page.folder && page.children.length === 0 && !page.body && <p className="mt-8 text-ink/60">В этом разделе пока нет страниц.</p>}
+
+      <div ref={endRef} aria-hidden="true" />
+
+      {readable && (
+        <div className="mt-10 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-ink/[0.035] px-5 py-4">
+          <p className="text-sm text-ink/60">{isRead ? 'Страница отмечена прочитанной.' : 'Дочитали? Отметьте страницу, чтобы видеть прогресс по разделу.'}</p>
+          <button
+            type="button"
+            aria-pressed={isRead}
+            onClick={() => marks.setRead(page.id, !isRead)}
+            className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-colors ${isRead ? 'border border-ink/15 text-ink/60 hover:text-ink' : 'bg-ink text-white hover:bg-ink/90'} ${focusRing}`}
+          >
+            <KbIcon name="check" strokeWidth={2.2} className="h-4 w-4" />
+            {isRead ? 'Снять отметку' : 'Отметить прочитанным'}
+          </button>
+        </div>
+      )}
+
+      {page.related.length > 0 && (
+        <section className="mt-10" aria-label="Смотрите также">
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink/50">Смотрите также</h2>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {page.related.map((r) => (
+              <KbCard key={r.id} id={r.id} title={r.title} icon={r.icon} folder={false} summary={r.summary} crumbs={r.crumbs.join(' › ')} done={marks.read.has(r.id)} meta={`${minWord(r.readMin)} чтения`} />
+            ))}
+          </div>
         </section>
       )}
 
       {(page.prev || page.next) && (
-        <nav aria-label="Соседние страницы" className="mt-12 grid gap-3 border-t border-ink/10 pt-6 sm:grid-cols-2">
+        <nav aria-label="Соседние страницы" className="mt-10 grid gap-3 border-t border-ink/10 pt-6 sm:grid-cols-2">
           {page.prev ? (
-            <Link to={`/cabinet/knowledge?p=${encodeURIComponent(page.prev.id)}`} className={`group rounded-xl border border-ink/10 px-4 py-3 transition-colors hover:border-ink/30 ${focusRing}`}>
+            <Link to={kbHref(page.prev.id)} className={`group rounded-xl border border-ink/10 px-4 py-3 transition-colors hover:border-ink/30 ${focusRing}`}>
               <span className="block text-xs text-ink/50">← Назад</span>
               <span className="mt-0.5 block text-sm font-semibold leading-snug">{page.prev.title}</span>
             </Link>
           ) : <span />}
           {page.next && (
-            <Link to={`/cabinet/knowledge?p=${encodeURIComponent(page.next.id)}`} className={`group rounded-xl border border-ink/10 px-4 py-3 text-right transition-colors hover:border-ink/30 ${focusRing}`}>
+            <Link to={kbHref(page.next.id)} className={`group rounded-xl border border-ink/10 px-4 py-3 text-right transition-colors hover:border-ink/30 ${focusRing}`}>
               <span className="block text-xs text-ink/50">Дальше →</span>
               <span className="mt-0.5 block text-sm font-semibold leading-snug">{page.next.title}</span>
             </Link>

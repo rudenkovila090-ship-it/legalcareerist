@@ -2,20 +2,26 @@ import { getToken } from './cabinet'
 
 // Закрытая база знаний резидентов: запросы к серверу (server/lib/knowledgeBase.js). Доступ проверяет сервер при каждом запросе.
 
+/** Адрес страницы базы в кабинете. */
+export const kbHref = (id: string) => `/cabinet/knowledge?p=${encodeURIComponent(id).replace(/%2F/gi, '/')}`
+
 export interface KbNode {
   id: string
   parent: string | null
   title: string
   icon: string
   folder: boolean
+  /** Краткое описание раздела (для карточек); у страниц не передаётся. */
+  summary?: string
   draft?: boolean
   hasBody: boolean
   /** Для раздела — сколько страниц внутри. */
   pages?: number
 }
 
-export interface KbChild { id: string; title: string; icon: string; folder: boolean; draft?: boolean; pages?: number }
+export interface KbChild { id: string; title: string; icon: string; folder: boolean; summary?: string; draft?: boolean; pages?: number; readMin?: number }
 export interface KbNear { id: string; title: string }
+export interface KbRelated { id: string; title: string; icon: string; summary?: string; readMin: number; crumbs: string[] }
 
 export interface KbPage {
   id: string
@@ -23,16 +29,18 @@ export interface KbPage {
   icon: string
   folder: boolean
   draft?: boolean
+  summary?: string
   body: string
   updated: string | null
   readMin: number
   crumbs: { id: string; title: string }[]
   children: KbChild[]
+  related: KbRelated[]
   prev: KbNear | null
   next: KbNear | null
 }
 
-export interface KbSearchResult { id: string; title: string; crumbs: string[]; snippet: string; draft?: boolean }
+export interface KbSearchResult { id: string; title: string; icon?: string; crumbs: string[]; snippet: string; draft?: boolean }
 
 export interface KbIndex {
   admin: boolean
