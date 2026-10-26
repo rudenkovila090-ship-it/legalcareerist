@@ -93,7 +93,8 @@ import { logActivity, listActivity } from './lib/accountActivity.js'
 import { getThread, markSeen, addUserMessage, addSupportReply, linkAdminMessage, loginByAdminMessage, MAX_TEXT as SUPPORT_MAX_TEXT } from './lib/supportChat.js'
 import { accountDashboard } from './lib/accountDashboard.js'
 import { composeAccountMail, composeSupportReplyMail } from './lib/accountMail.js'
-import { accountProfile, residentJoin, subscriptionDetails } from './lib/accountProfile.js'
+import { accountProfile, residentJoin, residentStatus, subscriptionDetails } from './lib/accountProfile.js'
+import { knowledgeTree, knowledgePage, knowledgeSearch, knowledgeFirstId, knowledgeStats } from './lib/knowledgeBase.js'
 import { getProfile, saveProfile, grantConsent, addRequest, lastRequest, PRACTICES, LEVELS } from './lib/accountStore.js'
 import { DOC_TYPES, LIMITS as DOC_LIMITS, ALLOWED_EXT, MIME as DOC_MIME, listDocuments, usedBytes as docsUsedBytes, addDocument, addVersion, updateDocument, deleteDocument, deleteVersion, versionFile } from './lib/accountDocs.js'
 import { exportPersonData, accountEvents } from './lib/accountData.js'
@@ -1289,6 +1290,49 @@ app.get('/api/account/subscription', (req, res) => {
   const cfg = requireAccount(req, res)
   if (!cfg) return
   res.json({ ok: true, subscription: subscriptionDetails(cfg.tgId, cfg.email) })
+})
+
+// ---- Закрытая база знаний для резидентов (кабинет на сайте, /cabinet/knowledge) ----
+// Файлы лежат на сервере (server/content/knowledge, см. lib/knowledgeBase.js и docs/knowledge-base.md). Доступ проверяется при каждом
+// запросе: резидент с действующей или бессрочной подпиской и администратор; у закончившейся подписки доступа нет сразу.
+const kbSearchAttempts = new Map()
+
+function requireKb(req, res) {
+  const cfg = requireAccount(req, res)
+  if (!cfg) return null
+  res.set('X-Robots-Tag', 'noindex')
+  const admin = !String(cfg.login).startsWith('u:')
+  if (!admin) {
+    const status = residentStatus(cfg.tgId, Date.now(), cfg.email).status
+    if (status !== 'active' && status !== 'lifetime') {
+      res.status(403).json({ ok: false, error: 'members_only', status })
+      return null
+    }
+  }
+  return { cfg, admin }
+}
+
+app.get('/api/account/kb', (req, res) => {
+  const who = requireKb(req, res)
+  if (!who) return
+  const opts = { admin: who.admin }
+  res.json({ ok: true, admin: who.admin, firstId: knowledgeFirstId(opts), stats: knowledgeStats(opts), tree: knowledgeTree(opts) })
+})
+
+app.get('/api/account/kb/page', (req, res) => {
+  const who = requireKb(req, res)
+  if (!who) return
+  const page = knowledgePage(String(req.query.id ?? ''), { admin: who.admin })
+  if (!page) return res.status(404).json({ ok: false, error: 'not_found' })
+  res.json({ ok: true, page })
+})
+
+app.get('/api/account/kb/search', (req, res) => {
+  const who = requireKb(req, res)
+  if (!who) return
+  if (hitLimit(kbSearchAttempts, who.cfg.login, 120, 60 * 1000)) return res.status(429).json({ ok: false, error: 'too_many_requests' })
+  const q = String(req.query.q ?? '').slice(0, 100)
+  res.json({ ok: true, results: knowledgeSearch(q, { admin: who.admin }) })
 })
 
 const subscriptionAttempts = new Map()

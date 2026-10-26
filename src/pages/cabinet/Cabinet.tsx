@@ -8,6 +8,7 @@ import { Avatar } from './ui'
 import { roleOf } from './shared'
 import Dashboard from './Dashboard'
 import PageView from './PagesView'
+import KnowledgeBase from './KnowledgeBase'
 import { ActivatePage, Landing } from './AccountAccess'
 
 const IconOverview = () => (
@@ -84,6 +85,8 @@ export default function Cabinet() {
   if (session.state === 'anonymous') return <Landing notice={session.notice} onSignedIn={(user) => setSession({ state: 'authed', user })} />
 
   const user = session.user
+  // База знаний открывается на всю ширину: у неё своя панель разделов, меню кабинета и шапка страницы здесь не нужны.
+  if (section === 'knowledge') return <KnowledgeBase user={user} />
   const refresh = async () => {
     const r = await fetchMe()
     if (r.state === 'authed') setSession(r)
@@ -129,6 +132,7 @@ export default function Cabinet() {
           {/* Компьютер */}
           <nav className="hidden max-h-[calc(100vh-14rem)] overflow-y-auto pr-1 lg:block" aria-label="Разделы кабинета">
             <NavItem to="/cabinet" icon={<IconOverview />} label="Обзор" active={menuId === 'overview'} />
+            <NavItem to="/cabinet/knowledge" icon={icon.book} label="База знаний" active={false} />
             <button
               type="button"
               aria-expanded={accountOpen}
@@ -155,6 +159,7 @@ export default function Cabinet() {
           <div className="space-y-2 lg:hidden" aria-label="Разделы кабинета">
             <div className="flex gap-2 overflow-x-auto pb-1">
               <Pill to="/cabinet" active={menuId === 'overview'}>Обзор</Pill>
+              <Pill to="/cabinet/knowledge" active={false}>База знаний</Pill>
               <button
                 type="button"
                 aria-expanded={accountOpen}

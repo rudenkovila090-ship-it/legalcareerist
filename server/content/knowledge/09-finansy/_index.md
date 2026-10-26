@@ -1,0 +1,4 @@
+---
+title: Финансы
+icon: coins
+---
