@@ -77,6 +77,21 @@ h4 {
   padding-right: 1.25rem;
 }
 
+/* Личный кабинет и база знаний: рабочие области шире страниц сайта, чтобы на больших экранах не оставалось пустых полей. */
+.container-wide {
+  max-width: 96rem;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1.25rem;
+  padding-right: 1.25rem;
+}
+@media (min-width: 1280px) {
+  .container-wide {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
+
 /* Liquid Glass — стеклянная поверхность с бликом, следующим за курсором.
    .glass — для карточек на светлом фоне, .glass-dark — на темном (bg-ink).
    Фон вынесен в @layer base, чтобы явные bg-* утилиты Tailwind (более

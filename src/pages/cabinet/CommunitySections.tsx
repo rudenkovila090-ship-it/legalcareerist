@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom'
 import { cancelSubscription, fetchEvents, fetchSubscription, linkTelegram, requestCardChange, unlinkTelegram, type CabinetEvent, type CabinetUser, type SubscriptionInfo } from '../../lib/cabinet'
 import { events as catalogEvents } from '../../data/events'
 import { eventStories } from '../../data/eventStories'
-import { fetchKb } from '../../lib/knowledge'
 import { eventTimeRange } from '../../lib/eventTime'
 import { pluralRu } from '../../lib/plural'
 import { TELEGRAM_BOT_USERNAME } from '../../lib/telegram'
@@ -104,35 +103,6 @@ export function EventsSection() {
           </ul>
         )}
       </div>
-    </div>
-  )
-}
-
-// ---- База знаний (для резидентов) ----
-// Сама база открывается на отдельной странице /cabinet/knowledge (KnowledgeBase.tsx); здесь — вход в неё и сводка.
-export function KnowledgeSection() {
-  const [stats, setStats] = useState<{ pages: number; sections: number } | null>(null)
-  useEffect(() => {
-    let active = true
-    fetchKb().then((r) => {
-      if (active && r.ok) setStats(r.data.stats)
-    })
-    return () => {
-      active = false
-    }
-  }, [])
-  const filled = stats !== null && stats.pages > 0
-  return (
-    <div className="glass flex flex-col gap-4 rounded-2xl p-6 sm:flex-row sm:items-center sm:justify-between">
-      <div className="min-w-0">
-        <div className="font-semibold">Закрытая база знаний по карьере юриста</div>
-        <p className="mt-1 text-sm text-ink/60">
-          {filled
-            ? `${stats.pages} ${pluralRu(stats.pages, ['страница', 'страницы', 'страниц'])} в ${stats.sections} ${pluralRu(stats.sections, ['разделе', 'разделах', 'разделах'])}: карьера, образование, личный бренд, финансы, legal tech и другое. Есть поиск.`
-            : 'Подробные материалы по карьере юриста: разделы, страницы и поиск. Материалы наполняются, скоро появятся здесь.'}
-        </p>
-      </div>
-      <Link to="/cabinet/knowledge" className={`shrink-0 rounded-full bg-ink px-6 py-2.5 text-center text-sm font-semibold text-white hover:bg-ink/90 ${focusRing}`}>Открыть базу знаний</Link>
     </div>
   )
 }

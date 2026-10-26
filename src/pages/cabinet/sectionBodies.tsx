@@ -3,7 +3,8 @@ import type { CabinetUser } from '../../lib/cabinet'
 import { ActivitySection, ProfileInfoSection, SettingsSection } from './AccountSections'
 import { ExpectationsSection, PracticesSection, PrivacySection } from './ProfileSections'
 import { ConsentsSection, MyDataSection, VisibilitySection } from './DataSections'
-import { EventsSection, KnowledgeSection, StatusSection, TelegramSection } from './CommunitySections'
+import { EventsSection, StatusSection, TelegramSection } from './CommunitySections'
+import { PodcastSection, VacanciesSection } from './CareerSections'
 import { CvSection, DocumentsSection } from './DocumentsSections'
 import { HelpSection, SupportSection } from './HelpSections'
 import { PasswordSection } from './AccountAccess'
@@ -35,7 +36,8 @@ export function sectionBody(id: string, { user, onRefresh, onRead }: BodyContext
     case 'resident': return <StatusSection user={user} onRefresh={onRefresh} />
     case 'events': return <EventsSection />
     case 'telegram': return <TelegramSection user={user} onRefresh={onRefresh} />
-    case 'knowledge': return <KnowledgeSection />
+    case 'vacancies': return <VacanciesSection />
+    case 'podcast': return <PodcastSection />
     case 'cv': return <CvSection />
     default: return null
   }

@@ -176,7 +176,7 @@ function blocksOf(lines: string[], ctx: Ctx): ReactNode[] {
     if (hm) {
       const level = hm[1].length
       const found = level === 2 || level === 3 ? ctx.headings[ctx.h++] : undefined
-      const cls = level === 1 ? 'mt-10 text-2xl font-semibold' : level === 2 ? 'mt-10 text-xl font-semibold' : level === 3 ? 'mt-7 text-lg font-semibold' : 'mt-6 text-base font-semibold'
+      const cls = level === 1 ? 'mt-8 text-2xl font-semibold' : level === 2 ? 'mt-8 text-xl font-semibold' : level === 3 ? 'mt-6 text-lg font-semibold' : 'mt-5 text-base font-semibold'
       const Tag = (level === 1 ? 'h2' : level === 2 ? 'h2' : level === 3 ? 'h3' : 'h4') as 'h2' | 'h3' | 'h4'
       blocks.push(<Tag key={key} id={found?.id} className={`${cls} scroll-mt-28 text-balance text-ink`}>{inline(hm[2], key)}</Tag>)
       i++
@@ -206,10 +206,10 @@ function blocksOf(lines: string[], ctx: Ctx): ReactNode[] {
         } else {
           const style = CALLOUTS[kind]
           blocks.push(
-            <aside key={key} className={`my-6 flex gap-3.5 rounded-2xl border p-4 sm:p-5 ${style.box}`}>
-              <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${style.tile}`}><KbIcon name={style.icon} className="h-[1.125rem] w-[1.125rem]" /></span>
-              <div className="min-w-0 flex-1 text-[0.975rem]">
-                <div className="font-semibold leading-8 text-ink">{cm[2] || style.label}</div>
+            <aside key={key} className={`my-5 flex gap-3 rounded-xl border p-3.5 sm:p-4 ${style.box}`}>
+              <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${style.tile}`}><KbIcon name={style.icon} className="h-4 w-4" /></span>
+              <div className="min-w-0 flex-1 text-[0.95rem]">
+                <div className="font-semibold leading-7 text-ink">{cm[2] || style.label}</div>
                 <div className="-mt-1 text-ink/85 [&>*:last-child]:mb-0">{blocksOf(rest, ctx)}</div>
               </div>
             </aside>,
@@ -256,7 +256,7 @@ function blocksOf(lines: string[], ctx: Ctx): ReactNode[] {
     // абзац: подряд идущие строки до пустой или до начала другого блока
     const para: string[] = []
     while (i < lines.length && lines[i].trim() && !/^(```|:::|#{1,4}\s|>\s?|\s*([-*+]|\d+[.)])\s+|\|.+\|\s*$)/.test(lines[i])) para.push(lines[i++].trim())
-    blocks.push(<p key={key} className="my-4 leading-[1.75] text-ink/85">{para.map((p, k) => <Fragment key={k}>{k > 0 && ' '}{inline(p, `${key}-${k}`)}</Fragment>)}</p>)
+    blocks.push(<p key={key} className="my-3 leading-[1.7] text-ink/85">{para.map((p, k) => <Fragment key={k}>{k > 0 && ' '}{inline(p, `${key}-${k}`)}</Fragment>)}</p>)
   }
   return blocks
 }
@@ -265,5 +265,5 @@ function blocksOf(lines: string[], ctx: Ctx): ReactNode[] {
 export default function KbMarkdown({ source, sections }: { source: string; sections?: ReactNode }) {
   const lines = source.replace(/\r\n?/g, '\n').split('\n')
   const blocks = blocksOf(lines, { headings: kbHeadings(source), h: 0, n: 0, sections })
-  return <div className="kb-prose text-[1.0625rem]">{blocks}</div>
+  return <div className="kb-prose text-base">{blocks}</div>
 }

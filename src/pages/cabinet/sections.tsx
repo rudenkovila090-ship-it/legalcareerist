@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 // Разделы личного кабинета по группам. ready: true — раздел работает; у остальных «В разработке», а в todo записано, что
 // именно ещё не сделано (показывается в самом разделе, чтобы возвращаться к ним по очереди). Тексты todo — предварительные:
 // уточняем и дополняем вместе с владельцем, когда доходим до раздела.
-export type GroupId = 'account' | 'community' | 'jobs' | 'lawyer' | 'settings'
+export type GroupId = 'account' | 'vacancies' | 'career' | 'events' | 'knowledge' | 'networking' | 'partner' | 'lawyer' | 'settings'
 
 export interface CabinetSection {
   id: string
@@ -14,21 +14,25 @@ export interface CabinetSection {
   ready?: boolean
   /** Только для резидентов сообщества: остальным вместо раздела показывается приглашение вступить. */
   members?: boolean
-  /** Подблок внутри страницы группы (например, «Развитие карьеры» в сообществе). */
-  block?: 'career'
   todo: string[]
 }
 
-// Меню кабинета: «Аккаунт» раскрывается списком отдельных страниц; «Сообщество», «Поиск работы» и «Для юристов» — страницы, где все
-// разделы группы показаны сразу, одной лентой. Разделы группы «settings» («Доверие и данные») живут на странице «Настройки».
+// Меню кабинета в порядке важности для резидента: после «Главной» идут вакансии, построение карьеры, мероприятия, база знаний,
+// нетворкинг и партнёрская программа; «Для юристов» и «Аккаунт» — в конце. «База знаний» — отдельная страница на всю ширину,
+// «Аккаунт» раскрывается списком отдельных страниц, остальные группы — страницы-ленты, где все разделы группы показаны сразу.
+// Разделы группы «settings» («Доверие и данные») живут на странице «Настройки».
 export const groups: { id: GroupId; title: string }[] = [
-  { id: 'account', title: 'Аккаунт' },
-  { id: 'community', title: 'Сообщество' },
-  { id: 'jobs', title: 'Поиск работы' },
+  { id: 'vacancies', title: 'Вакансии' },
+  { id: 'career', title: 'Построение карьеры' },
+  { id: 'events', title: 'Мероприятия' },
+  { id: 'knowledge', title: 'База знаний' },
+  { id: 'networking', title: 'Нетворкинг' },
+  { id: 'partner', title: 'Партнёрская программа' },
   { id: 'lawyer', title: 'Для юристов' },
+  { id: 'account', title: 'Аккаунт' },
 ]
 
-/** Все группы, включая скрытую из меню: для перечня «Все разделы» на обзоре. */
+/** Все группы, включая скрытую из меню: для перечня «Все разделы» на главной. */
 export const allGroups: { id: GroupId; title: string }[] = [...groups, { id: 'settings', title: 'Настройки: доверие и данные' }]
 
 const svg = (children: ReactNode) => (
@@ -77,6 +81,9 @@ export const icon = {
   bolt: svg(<><path d="M13 3.5 6 13h5l-1 7.5L18 11h-5V3.5Z" /></>),
   users: svg(<><circle cx="9" cy="8.5" r="3" /><path d="M3.5 19c.6-3 2.8-4.7 5.5-4.7S13.9 16 14.5 19" /><circle cx="17" cy="9.5" r="2.4" /><path d="M16.5 14.4c2.3 0 3.6 1.5 4 4" /></>),
   arrow: svg(<><path d="M5 12h14M13 6l6 6-6 6" /></>),
+  headphones: svg(<><path d="M4.5 14v-2a7.5 7.5 0 0 1 15 0v2" /><rect x="4" y="13.5" width="4" height="6" rx="1.6" /><rect x="16" y="13.5" width="4" height="6" rx="1.6" /></>),
+  home: svg(<><path d="M4 11.5 12 5l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5h-5v5H5a1 1 0 0 1-1-1v-7.5Z" /></>),
+  news: svg(<><path d="M5 5.5h11a1 1 0 0 1 1 1V18.5a1.5 1.5 0 0 0 3 0V9h-3" /><path d="M5 5.5v12.5a1.5 1.5 0 0 0 1.5 1.5h13M8 9.5h6M8 13h6" /></>),
 }
 
 export const sections: CabinetSection[] = [
@@ -160,131 +167,147 @@ export const sections: CabinetSection[] = [
   },
   // ---- Сообщество ----
   {
-    id: 'resident', group: 'community', title: 'Статус', icon: icon.shield, ready: true,
+    id: 'resident', group: 'account', title: 'Подписка', icon: icon.shield, ready: true,
     lead: 'Подписка на сообщество: статус, тариф, следующее списание, история оплат и управление.',
     todo: ['Доступ к закрытым материалам сообщества прямо из кабинета', 'Смена тарифа из кабинета (сейчас — оформить новую подписку на странице «Сообщество»)', 'Смена карты без участия поддержки: платёжная система такой возможности не даёт, поэтому запрос уходит в чат поддержки'],
   },
   {
-    id: 'events', group: 'community', title: 'Мероприятия', icon: icon.ticket, ready: true,
+    id: 'events', group: 'events', title: 'Мероприятия', icon: icon.ticket, ready: true,
     lead: 'Афиша ближайших мероприятий и ваши регистрации.',
     todo: ['Кнопка «Записаться» из кабинета и билеты в одном месте', 'Сертификаты и материалы после мероприятий', 'Связь с достижениями'],
   },
   {
-    id: 'reserve', group: 'community', title: 'Кадровый резерв', icon: icon.box,
+    id: 'reserve', group: 'vacancies', title: 'Кадровый резерв', icon: icon.box,
     lead: 'Согласие, чтобы вас рассматривали по новым вакансиям.',
     todo: ['Согласие и срок (по правилам резерв хранится 1 год, продление — новым согласием)', 'Связь с профилем и ожиданиями по роли', 'Отзыв из резерва в один клик'],
   },
   {
-    id: 'referrals', group: 'community', title: 'Реферальная программа', icon: icon.gift,
-    lead: 'Пригласите коллегу и получите бонус или скидку.',
-    todo: ['Условия: что получает пригласивший и приглашённый', 'Личная ссылка или промокод и учёт переходов', 'Начисление бонуса или скидки'],
+    id: 'referrals', group: 'partner', title: 'Партнёрская и реферальная программа', icon: icon.gift,
+    lead: 'Пригласите коллегу или партнёра в сообщество и получите бонус или скидку.',
+    todo: ['Условия: что получает пригласивший и приглашённый, отдельно для резидентов и для партнёров', 'Личная ссылка или промокод и учёт переходов', 'Начисление бонуса или скидки'],
   },
   {
-    id: 'telegram', group: 'community', title: 'Telegram-бот', icon: icon.telegram, ready: true,
+    id: 'telegram', group: 'account', title: 'Telegram-бот', icon: icon.telegram, ready: true,
     lead: 'Бот присылает уведомления и отвечает на частые вопросы. Привяжите Telegram к кабинету по коду из бота: подписка и билеты подтянутся, даже если почты разные.',
     todo: ['Быстрый вход в кабинет через бота, без пароля', 'Уведомления о смене статуса откликов', 'Ответы на частые вопросы в боте'],
   },
   {
-    id: 'coffee', group: 'community', title: 'Random coffee', icon: icon.coffee,
+    id: 'coffee', group: 'networking', title: 'Random coffee', icon: icon.coffee,
     lead: 'Случайные встречи с коллегами: подбираем собеседника, вы договариваетесь о кофе.',
     todo: ['Анкета участия: интересы, город, формат (онлайн или очно)', 'Правила подбора пар и периодичность', 'Уведомления и напоминания в Telegram-боте', 'Согласие передать контакты собеседнику', 'Обратная связь после встречи'],
   },
   {
-    id: 'knowledge', group: 'community', members: true, block: 'career', title: 'База знаний', icon: icon.book, ready: true,
+    id: 'knowledge', group: 'knowledge', members: true, title: 'База знаний', icon: icon.book, ready: true,
     lead: 'Закрытая база знаний по карьере юриста: разделы, страницы и поиск — только для резидентов сообщества.',
-    todo: ['Избранное и «прочитано»'],
+    todo: ['Картинки, файлы и видео внутри страниц', 'Вложенные PDF и запись вебинара'],
   },
   // ---- Отклики и резюме ----
   {
-    id: 'cv', group: 'jobs', title: 'Профиль и CV', icon: icon.doc, ready: true,
+    id: 'cv', group: 'vacancies', title: 'Профиль и CV', icon: icon.doc, ready: true,
     lead: 'Резюме и другие документы: загрузка, версии под разные вакансии, основное резюме. Рядом — заполненность профиля юриста.',
     todo: ['Конструктор резюме и выгрузка в PDF и Word (демо-версия есть в отложенном кабинете, но данные там хранит только браузер)', 'Заполнение профиля по загруженному резюме', 'Автоудаление файлов при долгой неактивности (сейчас файлы живут, пока вы их не удалите)', 'Передача резюме работодателю и запись об этом в «Истории передач» (появится вместе с откликами)'],
   },
   {
-    id: 'applications', group: 'jobs', title: 'Мои отклики', icon: icon.list,
+    id: 'applications', group: 'vacancies', title: 'Мои отклики', icon: icon.list,
     lead: 'Прозрачный путь отклика: передано работодателю, интервью, оффер. Отозвать отклик можно с причиной.',
     todo: ['Статусы откликов и их история', 'Отзыв отклика с причиной', 'Нужна сторона рекрутера и работодателя: кто и где меняет статусы'],
   },
   {
-    id: 'chat', group: 'jobs', title: 'Чат с рекрутером', icon: icon.chat,
+    id: 'chat', group: 'vacancies', title: 'Чат с рекрутером', icon: icon.chat,
     lead: 'Переписка с рекрутером внутри кабинета, чтобы не терять её в мессенджерах.',
     todo: ['Чат и его связь с Telegram-ботом (ответы рекрутера приходят и туда)', 'Вложения и история', 'Кто рекрутер и как он отвечает из админ-бота'],
   },
   {
-    id: 'interviews', group: 'jobs', title: 'Интервью', icon: icon.calendar,
+    id: 'interviews', group: 'vacancies', title: 'Интервью', icon: icon.calendar,
     lead: 'Запись на интервью со свободными слотами и напоминаниями.',
     todo: ['Слоты рекрутеров или работодателей и календарь', 'Напоминания в Telegram и по почте', 'Перенос и отмена'],
   },
   {
-    id: 'notifications', group: 'jobs', title: 'Уведомления', icon: icon.bell,
+    id: 'notifications', group: 'vacancies', title: 'Уведомления', icon: icon.bell,
     lead: 'Сообщения о смене статуса откликов в Telegram или на почту.',
     todo: ['Выбор каналов и тем', 'Отправка по почте (письма из сервиса уже работают для билетов и материалов)', 'Зависит от раздела «Мои отклики»'],
   },
   // ---- Развитие карьеры ----
   {
-    id: 'route', group: 'community', members: true, block: 'career', title: 'Карьерный план', icon: icon.route,
+    id: 'podcast', group: 'career', members: true, ready: true, title: 'Подкаст', icon: icon.headphones,
+    lead: 'Выпуски подкаста «Карьерный юрист»: истории резидентов и экспертов о старте карьеры, практике и росте.',
+    todo: ['Конспекты и главные мысли выпусков', 'Отметка «прослушано» и подборка выпусков под ваш карьерный план'],
+  },
+  {
+    id: 'route', group: 'career', members: true, title: 'Карьерный план', icon: icon.route,
     lead: 'Цель, ближайший шаг и чек-лист навыков; путь от текущей позиции к цели.',
     todo: ['Анкета: где вы сейчас и куда хотите прийти', 'Типовые маршруты и их шаги, чек-лист навыков', 'Подбор материалов, мероприятий и вакансий под шаг', 'Отметки о выполнении и напоминания в боте'],
   },
   {
-    id: 'market', group: 'community', members: true, block: 'career', title: 'Оценка рынка', icon: icon.chart,
+    id: 'market', group: 'career', members: true, title: 'Оценка рынка', icon: icon.chart,
     lead: 'Типичные вилки и требования по практикам — только по данным, которые мы можем подтвердить.',
     todo: ['Определить источник данных: свои заявки и отчёты, открытые данные или то и другое', 'Графики и фильтры по практике, городу и опыту', 'Связка с зарплатным навигатором на сайте'],
   },
   {
-    id: 'interview-prep', group: 'community', members: true, block: 'career', title: 'Подготовка к интервью', icon: icon.mic,
+    id: 'interview-prep', group: 'career', members: true, title: 'Подготовка к интервью', icon: icon.mic,
     lead: 'Вопросы по практикам, разбор типичных ошибок, мок-интервью.',
     todo: ['Банк вопросов по практикам', 'Разбор типичных ошибок', 'Мок-интервью: формат, кто проводит, запись'],
   },
   {
-    id: 'templates', group: 'community', members: true, block: 'career', title: 'Библиотека шаблонов', icon: icon.book,
+    id: 'templates', group: 'career', members: true, title: 'Библиотека шаблонов', icon: icon.book,
     lead: 'Шаблоны резюме и писем, готовые ответы на вопрос «почему уходите».',
     todo: ['Подготовить и вычитать шаблоны', 'Доступ: всем или только участникам сообщества', 'Копирование и скачивание'],
   },
   {
-    id: 'recommendations', group: 'community', members: true, block: 'career', title: 'Рекомендации', icon: icon.star,
+    id: 'recommendations', group: 'career', members: true, title: 'Рекомендации', icon: icon.star,
     lead: 'Вакансии и мероприятия по вашему профилю.',
     todo: ['Правила подбора по практикам и ожиданиям', 'Подборка в кабинете и в Telegram-боте'],
   },
   {
-    id: 'vacancies', group: 'community', members: true, block: 'career', title: 'Вакансии', icon: icon.case,
-    lead: 'Вакансии под ваше резюме, избранное и отклики.',
+    id: 'vacancies', group: 'vacancies', members: true, ready: true, title: 'Вакансии', icon: icon.case,
+    lead: 'Свежие вакансии сообщества и сайта; подбор под ваше резюме, избранное и отклики — следующий шаг.',
     todo: ['Подбор вакансий по профилю и ожиданиям', 'Избранное и отклики со статусами: в демо-кабинете они хранятся только в браузере', 'Уведомления о новых подходящих вакансиях в Telegram-боте'],
   },
   {
-    id: 'portfolio', group: 'community', members: true, block: 'career', title: 'Портфолио', icon: icon.folder,
+    id: 'portfolio', group: 'career', members: true, title: 'Портфолио', icon: icon.folder,
     lead: 'Публикации, выступления, кейсы — без нарушения конфиденциальности клиентов.',
     todo: ['Типы записей и форма добавления', 'Подсказки, как описывать кейсы без раскрытия клиента', 'Вывод в медиакит'],
   },
   {
-    id: 'achievements', group: 'community', members: true, block: 'career', title: 'Мои достижения', icon: icon.trophy,
+    id: 'achievements', group: 'career', members: true, title: 'Мои достижения', icon: icon.trophy,
     lead: 'Награды, публикации, проекты, участие в мероприятиях — всё, чем вы можете гордиться.',
     todo: ['Что считать достижением и категории', 'Форма добавления и подтверждающие файлы', 'Автоматические достижения: участие в мероприятиях, срок в сообществе', 'Вывод в CV и медиакит'],
   },
   {
-    id: 'capital', group: 'community', members: true, block: 'career', title: 'Мой профессиональный капитал', icon: icon.gem,
+    id: 'capital', group: 'career', members: true, title: 'Мой профессиональный капитал', icon: icon.gem,
     lead: 'Из чего складывается ваша профессиональная ценность и как она растёт.',
     todo: ['Определение: из чего состоит капитал (знания, связи, репутация, опыт — уточнить)', 'Способ расчёта и шкалы', 'Анкета и динамика по времени', 'Связь с достижениями, Random coffee и карьерным планом'],
   },
   {
-    id: 'mediakit', group: 'community', members: true, block: 'career', title: 'Медиакит', icon: icon.card,
+    id: 'mediakit', group: 'career', members: true, title: 'Медиакит', icon: icon.card,
     lead: 'Одна страница о вас: профиль, достижения, публикации и фото — чтобы отправить партнёрам и организаторам.',
     todo: ['Состав медиакита и макет', 'Публичная ссылка и версия в PDF', 'Приватность: кто видит и отдельное согласие на публикацию данных', 'Автосборка из CV, достижений и фото'],
   },
   {
-    id: 'photo', group: 'community', members: true, block: 'career', title: 'Фото для CV', icon: icon.camera,
+    id: 'photo', group: 'career', members: true, title: 'Фото для CV', icon: icon.camera,
     lead: 'Загрузка и подготовка фотографии для резюме и медиакита.',
     todo: ['Загрузка и хранение фото на сервере', 'Обрезка под формат резюме (например, 3×4) и проверка размера', 'Согласие на обработку фото и срок хранения', 'Подстановка в CV и медиакит'],
   },
 ]
 
 export const sectionById = (id?: string) => sections.find((s) => s.id === id)
-export const sectionsOfGroup = (group: GroupId) => sections.filter((s) => s.group === group)
+
+/** Порядок разделов внутри группы (остальные группы идут в порядке записи в списке выше). */
+const ORDER: Partial<Record<GroupId, string[]>> = {
+  account: ['profile', 'resident', 'telegram', 'activity', 'settings', 'password', 'help', 'support'],
+  vacancies: ['vacancies', 'cv', 'applications', 'chat', 'interviews', 'notifications', 'reserve'],
+  career: ['podcast', 'route', 'market', 'interview-prep', 'templates', 'recommendations', 'portfolio', 'achievements', 'capital', 'mediakit', 'photo'],
+}
+export const sectionsOfGroup = (group: GroupId) => {
+  const list = sections.filter((s) => s.group === group)
+  const order = ORDER[group]
+  return order ? [...list].sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id)) : list
+}
 
 // ---- Страницы кабинета ----
-// Группа «Аккаунт» — отдельные страницы (по одной на раздел), «Настройки» и группы «Сообщество», «Поиск работы», «Для юристов» —
-// страницы-ленты: все разделы группы показаны одновременно. Ссылки на отдельный раздел ленты (/cabinet/resident, /cabinet/events…)
-// открывают ту же ленту и прокручивают к нужному разделу, поэтому старые ссылки работают.
+// Группа «Аккаунт» — отдельные страницы (по одной на раздел), «Настройки» и остальные группы — страницы-ленты: все разделы группы
+// показаны одновременно. Ссылки на отдельный раздел ленты (/cabinet/cv, /cabinet/coffee…) открывают ту же ленту и прокручивают
+// к нужному разделу, поэтому ссылки на разделы работают. Старые адреса групп (/cabinet/community, /cabinet/jobs) ведут на новые.
 export interface CabinetPage {
   /** Пункт меню, который подсвечивается на странице: id группы или «overview». */
   menuId: string
@@ -298,14 +321,20 @@ export interface CabinetPage {
 }
 
 const GROUP_LEADS: Record<string, string> = {
-  community: 'Всё о сообществе в одном месте: статус подписки, мероприятия, кадровый резерв, бот, база знаний и развитие карьеры.',
-  jobs: 'Резюме, отклики, интервью и общение с рекрутером.',
+  vacancies: 'Вакансии, резюме, отклики, интервью и общение с рекрутером.',
+  career: 'Подкаст, карьерный план, оценка рынка, подготовка к интервью, шаблоны и портфолио.',
+  events: 'Афиша ближайших мероприятий и ваши регистрации.',
+  networking: 'Знакомства и встречи с коллегами из сообщества.',
+  partner: 'Приглашайте коллег и партнёров в сообщество и получайте бонусы.',
   lawyer: 'Профиль юриста: практики, ожидания по роли, документы и проверка резюме.',
 }
-const STACKED_GROUPS: GroupId[] = ['community', 'jobs', 'lawyer']
+const STACKED_GROUPS: GroupId[] = ['vacancies', 'career', 'events', 'networking', 'partner', 'lawyer']
+/** Адреса прежнего меню: что открывать вместо них. */
+const OLD_ADDRESSES: Record<string, string> = { community: 'resident', jobs: 'vacancies' }
 
-/** Страница по адресу /cabinet/<param>: null — обзор или неизвестный адрес. */
-export function resolvePage(param?: string): CabinetPage | null {
+/** Страница по адресу /cabinet/<param>: null — главная или неизвестный адрес. */
+export function resolvePage(rawParam?: string): CabinetPage | null {
+  const param = rawParam && OLD_ADDRESSES[rawParam] ? OLD_ADDRESSES[rawParam] : rawParam
   if (!param) return null
   const settings = sections.find((s) => s.id === 'settings')
   const settingsPage = (anchor?: string): CabinetPage | null =>

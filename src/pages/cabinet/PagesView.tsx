@@ -34,7 +34,10 @@ function Preview({ section }: { section: CabinetSection }) {
   )
 }
 
-/** Раздел блока «Развитие карьеры», который ещё не сделан: компактная карточка в сетке, чтобы блок не растягивал страницу. */
+/** Страницы, где разделы, которые ещё не сделаны, идут компактными карточками в сетке, чтобы лента не растягивалась. */
+const COMPACT_GROUPS = new Set(['vacancies', 'career'])
+
+/** Раздел, который ещё не сделан: компактная карточка в сетке. */
 function CareerCard({ section }: { section: CabinetSection }) {
   return (
     <section id={`s-${section.id}`} className="glass flex min-w-0 scroll-mt-24 flex-col gap-2 rounded-2xl p-4">
@@ -96,7 +99,7 @@ function Locked({ titles, user }: { titles: string[]; user: CabinetUser }) {
           <h2 className="text-lg font-semibold">Для резидентов сообщества</h2>
         </div>
         <p className="mt-3 max-w-2xl text-sm text-ink/70">
-          База знаний и блок «Развитие карьеры» доступны резидентам сообщества. {ended ? 'Ваша подписка закончилась: продлите её, чтобы вернуть доступ.' : 'Вступите в сообщество, и они откроются.'}
+          Эти разделы доступны резидентам сообщества. {ended ? 'Ваша подписка закончилась: продлите её, чтобы вернуть доступ.' : 'Вступите в сообщество, и они откроются.'}
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
           {titles.map((t) => <span key={t} className="rounded-full bg-ink/[0.06] px-3 py-1.5 text-xs font-medium text-ink/70">{t}</span>)}
@@ -156,7 +159,7 @@ export default function PageView({ page, ctx }: { page: CabinetPage; ctx: BodyCo
   const flushCareer = () => {
     if (!careerBuffer.length) return
     parts.push(
-      <div key={`career-${careerBuffer[0].id}`} className="grid gap-3 sm:grid-cols-2">
+      <div key={`career-${careerBuffer[0].id}`} className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-3">
         {careerBuffer.map((c) => <CareerCard key={c.id} section={c} />)}
       </div>,
     )
@@ -170,14 +173,14 @@ export default function PageView({ page, ctx }: { page: CabinetPage; ctx: BodyCo
       }
       return
     }
-    // не готовые разделы «Развития карьеры» идут сеткой под общим заголовком
-    if (part.block === 'career' && !part.ready) {
+    // не готовые разделы идут сеткой под общим заголовком
+    if (COMPACT_GROUPS.has(part.group) && !part.ready) {
       if (!careerShown) {
         careerShown = true
         parts.push(
-          <div key="career-head" className="pt-2">
-            <h2 className="text-xl font-semibold tracking-tight">Развитие карьеры</h2>
-            <p className="mt-1 text-sm text-ink/60">Для резидентов сообщества: пока это каркас, разделы подключаем по очереди.</p>
+          <div key="soon-head" className="pt-1">
+            <h2 className="text-lg font-semibold tracking-tight">Скоро в этой вкладке</h2>
+            <p className="mt-0.5 text-sm text-ink/60">Эти разделы пока каркас: подключаем по очереди.</p>
           </div>,
         )
       }

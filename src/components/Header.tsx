@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom'
+import { useCabinetGreeting } from '../lib/cabinetGreeting'
 
 const nav = [
   { to: '/kadry/employers', label: 'Кадры' },
@@ -29,9 +30,10 @@ function linkClass({ isActive }: { isActive: boolean }) {
 }
 
 export default function Header() {
+  const greeting = useCabinetGreeting()
   return (
     <header className="sticky top-0 z-40 border-b border-ink/10 bg-white/70 backdrop-blur-xl [transform:translateZ(0)] [will-change:transform]">
-      <div className="container-page flex h-16 items-center justify-between">
+      <div className={`${greeting ? 'container-wide' : 'container-page'} flex h-16 items-center justify-between`}>
         <NavLink to="/" className="flex items-center gap-1.5">
           {/* На референсе иконка заметно выше двухстрочного текста — выступает
               и сверху, и снизу за его пределы, а не равна ему по высоте.
@@ -86,7 +88,14 @@ export default function Header() {
           )}
         </nav>
 
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          {/* В кабинете: «Личный кабинет · Здравствуйте, Имя» слева от значка (имя записывает сам кабинет). */}
+          {greeting && (
+            <NavLink to="/cabinet" className="min-w-0 text-right leading-tight">
+              <span className="block text-[10px] font-semibold uppercase tracking-wider text-gold sm:text-[11px]">Личный кабинет</span>
+              <span className="block max-w-[8.5rem] truncate text-[13px] font-semibold text-ink min-[420px]:max-w-[12rem] sm:max-w-[16rem] sm:text-sm">Здравствуйте, {greeting}</span>
+            </NavLink>
+          )}
           {/* Личный кабинет: значок виден всем, ведёт на /cabinet (посетителям — «раздел в разработке», вход для администратора). */}
           <NavLink
             to="/cabinet"

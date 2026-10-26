@@ -204,16 +204,16 @@ function Workspace({ data, pageId, current, marks }: { data: KbIndex; pageId: st
   const favNodes = marks.favorites.map((id) => byId.get(id)).filter((n): n is KbNode => !!n)
 
   return (
-    <div className="ym-hide-content container-page py-6 lg:py-8">
-      <nav aria-label="Навигация" className="mb-4 flex items-center gap-2 text-sm text-ink/50">
+    <div className="ym-hide-content container-wide py-4 lg:py-5">
+      <nav aria-label="Навигация" className="mb-3 flex items-center gap-2 text-sm text-ink/50">
         <Link to="/cabinet" className={`rounded hover:text-ink ${focusRing}`}>Личный кабинет</Link>
         <span aria-hidden="true">/</span>
         <span className="text-ink/80">База знаний</span>
       </nav>
 
-      <div className={`grid gap-6 lg:gap-8 lg:grid-cols-[19.5rem_minmax(0,1fr)] ${outline ? 'xl:grid-cols-[19.5rem_minmax(0,1fr)_13.5rem]' : ''}`}>
+      <div className={`grid gap-6 lg:gap-6 lg:grid-cols-[16.5rem_minmax(0,1fr)] ${outline ? 'xl:grid-cols-[16.5rem_minmax(0,1fr)_12.5rem]' : ''}`}>
         {/* Панель разделов */}
-        <aside className="min-w-0 lg:sticky lg:top-24 lg:self-start">
+        <aside className="min-w-0 lg:sticky lg:top-20 lg:self-start">
           <div className="flex gap-2 lg:hidden">
             <button
               type="button"
@@ -231,9 +231,9 @@ function Workspace({ data, pageId, current, marks }: { data: KbIndex; pageId: st
             </button>
           </div>
 
-          <div id="kb-panel" className={`${panelOpen ? 'mt-3 block' : 'hidden'} rounded-2xl bg-ink/[0.045] p-3 lg:block lg:max-h-[calc(100vh-8rem)] lg:overflow-y-auto`}>
-            <div className="flex items-center gap-2.5 px-2 pb-3 pt-1">
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-ink shadow-[0_1px_2px_rgba(40,57,83,0.08)]"><KbIcon name="book" /></span>
+          <div id="kb-panel" className={`${panelOpen ? 'mt-3 block' : 'hidden'} rounded-2xl bg-ink/[0.045] p-2.5 lg:block lg:max-h-[calc(100vh-6.5rem)] lg:overflow-y-auto`}>
+            <div className="flex items-center gap-2.5 px-1.5 pb-2.5 pt-0.5">
+              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-white text-ink shadow-[0_1px_2px_rgba(40,57,83,0.08)]"><KbIcon name="book" /></span>
               <div className="min-w-0">
                 <div className="text-sm font-semibold leading-tight">База знаний</div>
                 <div className="text-xs text-ink/50">{pagesWord(data.stats.pages)}</div>
@@ -243,7 +243,7 @@ function Workspace({ data, pageId, current, marks }: { data: KbIndex; pageId: st
             <button
               type="button"
               onClick={() => { setPanelOpen(false); setPaletteOpen(true) }}
-              className={`flex w-full items-center gap-2.5 rounded-xl bg-white px-3 py-2.5 text-left text-sm text-ink/45 shadow-[0_1px_2px_rgba(40,57,83,0.06)] transition-shadow hover:shadow-[0_2px_8px_-2px_rgba(40,57,83,0.18)] ${focusRing}`}
+              className={`flex w-full items-center gap-2.5 rounded-lg bg-white px-3 py-2 text-left text-[13px] text-ink/45 shadow-[0_1px_2px_rgba(40,57,83,0.06)] transition-shadow hover:shadow-[0_2px_8px_-2px_rgba(40,57,83,0.18)] ${focusRing}`}
             >
               <KbIcon name="search" className="h-4 w-4 text-ink/40" />
               <span className="flex-1">Поиск</span>
@@ -252,7 +252,7 @@ function Workspace({ data, pageId, current, marks }: { data: KbIndex; pageId: st
 
             {favNodes.length > 0 && (
               <>
-                <div className="px-2 pb-1.5 pt-4 text-[11px] font-semibold uppercase tracking-wider text-ink/40">Избранное</div>
+                <div className="px-2 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-wider text-ink/40">Избранное</div>
                 <ul className="space-y-0.5">
                   {favNodes.map((n) => (
                     <li key={n.id}>
@@ -260,9 +260,9 @@ function Workspace({ data, pageId, current, marks }: { data: KbIndex; pageId: st
                         to={kbHref(n.id)}
                         aria-current={n.id === pageId ? 'page' : undefined}
                         onClick={() => setPanelOpen(false)}
-                        className={`flex min-w-0 items-center gap-2.5 rounded-xl px-2.5 py-2 text-sm transition-colors ${focusRing} ${n.id === pageId ? 'bg-white font-semibold text-ink shadow-[0_1px_2px_rgba(40,57,83,0.08)]' : 'text-ink/75 hover:bg-white/70 hover:text-ink'}`}
+                        className={`flex min-w-0 items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] transition-colors ${focusRing} ${n.id === pageId ? 'bg-white font-semibold text-ink shadow-[0_1px_2px_rgba(40,57,83,0.08)]' : 'text-ink/75 hover:bg-white/70 hover:text-ink'}`}
                       >
-                        <KbIcon name="star" className="h-4 w-4 fill-gold-light/60 text-gold" />
+                        <KbIcon name="star" className="h-3.5 w-3.5 fill-gold-light/60 text-gold" />
                         <span className="min-w-0 flex-1 truncate">{n.title}</span>
                       </Link>
                     </li>
@@ -271,8 +271,8 @@ function Workspace({ data, pageId, current, marks }: { data: KbIndex; pageId: st
               </>
             )}
 
-            <div className="flex items-center justify-between px-2 pb-1.5 pt-4">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-ink/40">Разделы</span>
+            <div className="flex items-center justify-between px-2 pb-1 pt-3">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-ink/40">Разделы</span>
               {opened.size > 0 && (
                 <button type="button" onClick={collapseAll} className={`flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium text-ink/45 hover:bg-white/70 hover:text-ink ${focusRing}`}>
                   <KbIcon name="collapse" className="h-3 w-3" strokeWidth={2} />
@@ -306,7 +306,7 @@ function Workspace({ data, pageId, current, marks }: { data: KbIndex; pageId: st
         {/* На странице */}
         {outline && (
           <div className="hidden xl:block">
-            <div className="sticky top-24"><KbOutline key={currentPage?.id} headings={headings} /></div>
+            <div className="sticky top-20"><KbOutline key={currentPage?.id} headings={headings} /></div>
           </div>
         )}
       </div>
@@ -318,7 +318,7 @@ function Workspace({ data, pageId, current, marks }: { data: KbIndex; pageId: st
 
 function PageSkeleton() {
   return (
-    <div className="max-w-3xl motion-safe:animate-pulse" aria-busy="true" aria-label="Открываем страницу">
+    <div className="max-w-[58rem] motion-safe:animate-pulse" aria-busy="true" aria-label="Открываем страницу">
       <div className="h-4 w-48 rounded bg-ink/[0.07]" />
       <div className="mt-5 h-10 w-3/4 rounded-lg bg-ink/[0.08]" />
       <div className="mt-6 space-y-3">
@@ -352,7 +352,7 @@ function Branch({ nodes, byParent, depth, pageId, marks, isOpen, toggle, onNavig
   onNavigate: () => void
 }) {
   return (
-    <ul className={depth ? 'ml-[1.05rem] mt-0.5 space-y-0.5 border-l border-ink/10 pl-1.5' : 'space-y-0.5'}>
+    <ul className={depth ? 'ml-[0.8rem] mt-0.5 space-y-px border-l border-ink/10 pl-1' : 'space-y-px'}>
       {nodes.map((n) => {
         const kids = byParent.get(n.id) ?? []
         const open = n.folder && kids.length > 0 && isOpen(n.id)
@@ -362,21 +362,21 @@ function Branch({ nodes, byParent, depth, pageId, marks, isOpen, toggle, onNavig
           <li key={n.id}>
             <div className="flex items-center">
               {n.folder && kids.length > 0 ? (
-                <button type="button" aria-label={`${open ? 'Свернуть' : 'Развернуть'}: ${n.title}`} aria-expanded={open} onClick={() => toggle(n.id)} className={`mr-0.5 flex h-7 w-6 shrink-0 items-center justify-center rounded-lg text-ink/40 hover:bg-white/70 hover:text-ink ${focusRing}`}>
+                <button type="button" aria-label={`${open ? 'Свернуть' : 'Развернуть'}: ${n.title}`} aria-expanded={open} onClick={() => toggle(n.id)} className={`mr-0 flex h-7 w-5 shrink-0 items-center justify-center rounded-lg text-ink/40 hover:bg-white/70 hover:text-ink ${focusRing}`}>
                   <KbIcon name="chevron" strokeWidth={2} className={`h-3.5 w-3.5 transition-transform ${open ? 'rotate-90' : ''}`} />
                 </button>
               ) : (
-                <span className="mr-0.5 h-7 w-6 shrink-0" aria-hidden="true" />
+                <span className="h-7 w-5 shrink-0" aria-hidden="true" />
               )}
               <Link
                 to={kbHref(n.id)}
                 aria-current={selected ? 'page' : undefined}
                 onClick={() => { if (n.folder && kids.length > 0 && !isOpen(n.id)) toggle(n.id); onNavigate() }}
-                className={`flex min-w-0 flex-1 items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-sm transition-colors ${focusRing} ${
+                className={`flex min-w-0 flex-1 items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[13px] transition-colors ${focusRing} ${
                   selected ? 'bg-white font-semibold text-ink shadow-[0_1px_2px_rgba(40,57,83,0.08),0_6px_14px_-8px_rgba(40,57,83,0.25)]' : 'text-ink/75 hover:bg-white/70 hover:text-ink'
                 }`}
               >
-                <span className={selected ? 'text-ink' : 'text-ink/55'}><KbIcon name={n.icon} fallback={n.folder ? 'folder' : 'doc'} /></span>
+                <span className={selected ? 'text-ink' : 'text-ink/55'}><KbIcon name={n.icon} fallback={n.folder ? 'folder' : 'doc'} className="h-4 w-4" /></span>
                 <span className="line-clamp-2 min-w-0 flex-1 hyphens-auto leading-snug">{n.title}</span>
                 {n.draft && <span className="shrink-0 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800">черновик</span>}
                 {done && <span className="shrink-0 text-gold" title="Прочитано"><KbIcon name="check" strokeWidth={2.2} className="h-3.5 w-3.5" /><span className="sr-only">прочитано</span></span>}
@@ -396,7 +396,7 @@ function SectionGrid({ tree, pagesUnder, marks, skipId }: { tree: KbNode[]; page
   const top = tree.filter((n) => !n.parent && n.folder && n.id !== skipId)
   if (!top.length) return null
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
+    <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
       {top.map((n) => {
         const ids = pagesUnder.get(n.id) ?? []
         const read = ids.filter((id) => marks.read.has(id)).length
@@ -425,7 +425,7 @@ function ActionButton({ onClick, pressed, label, children }: { onClick: () => vo
       type="button"
       onClick={onClick}
       aria-pressed={pressed}
-      className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium transition-colors ${pressed ? 'bg-gold-light/20 text-gold' : 'text-ink/55 hover:bg-ink/[0.06] hover:text-ink'} ${focusRing}`}
+      className={`flex items-center gap-1.5 rounded-lg px-2 py-1 text-[13px] font-medium transition-colors ${pressed ? 'bg-gold-light/20 text-gold' : 'text-ink/55 hover:bg-ink/[0.06] hover:text-ink'} ${focusRing}`}
     >
       {children}
       <span>{label}</span>
@@ -494,8 +494,8 @@ function PageBody({ page, byId, pagesUnder, tree, marks, resume, outlineShown }:
   const isStart = page.id === START_ID
 
   return (
-    <div className="max-w-3xl">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+    <div className={page.folder ? '' : 'max-w-[56rem]'}>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
         {page.crumbs.length > 0 ? (
           <nav aria-label="Путь" className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-ink/50">
             {page.crumbs.map((c, i) => (
@@ -519,8 +519,8 @@ function PageBody({ page, byId, pagesUnder, tree, marks, resume, outlineShown }:
       </div>
 
       {resume && (
-        <Link to={kbHref(resume.id)} className={`group mb-6 flex items-center gap-3 rounded-2xl border border-gold-light/40 bg-gold-light/[0.12] px-4 py-3 transition-colors hover:bg-gold-light/[0.2] ${focusRing}`}>
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gold-light/30 text-gold"><KbIcon name="resume" className="h-5 w-5" /></span>
+        <Link to={kbHref(resume.id)} className={`group mb-4 flex items-center gap-3 rounded-xl border border-gold-light/40 bg-gold-light/[0.12] px-3.5 py-2 transition-colors hover:bg-gold-light/[0.2] ${focusRing}`}>
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gold-light/30 text-gold"><KbIcon name="resume" className="h-[1.125rem] w-[1.125rem]" /></span>
           <span className="min-w-0 flex-1">
             <span className="block text-xs text-ink/55">Продолжить чтение</span>
             <span className="block truncate font-semibold">{resume.title}</span>
@@ -530,43 +530,43 @@ function PageBody({ page, byId, pagesUnder, tree, marks, resume, outlineShown }:
       )}
 
       {page.folder ? (
-        <header className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-ink/[0.09] via-ink/[0.04] to-gold-light/25 px-6 py-8 sm:px-9 sm:py-10">
-          <KbIcon name={page.icon} fallback="folder" strokeWidth={1} className="pointer-events-none absolute -right-5 -top-5 h-48 w-48 text-ink/[0.07]" />
+        <header className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-ink/[0.09] via-ink/[0.04] to-gold-light/25 px-5 py-5 sm:px-7 sm:py-6">
+          <KbIcon name={page.icon} fallback="folder" strokeWidth={1} className="pointer-events-none absolute -right-3 -top-3 h-32 w-32 text-ink/[0.07]" />
           <div className="relative">
-            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-ink shadow-[0_2px_8px_-2px_rgba(40,57,83,0.25)]"><KbIcon name={page.icon} fallback="folder" className="h-6 w-6" /></span>
-            <h1 className="mt-5 text-balance text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">{page.title}</h1>
-            {page.summary && <p className="mt-3 max-w-2xl text-pretty leading-relaxed text-ink/70">{page.summary}</p>}
-            <div className="mt-5 flex flex-wrap gap-2 text-sm">
-              {folderStats.length > 0 && <span className="rounded-full bg-white/80 px-3 py-1 font-medium text-ink/70">{pagesWord(folderStats.length)}</span>}
-              {folderRead > 0 && <span className="rounded-full bg-gold-light/30 px-3 py-1 font-medium text-gold">Прочитано {folderRead} из {folderStats.length}</span>}
-              {page.draft && <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold leading-5 text-amber-800">Черновик — видите только вы</span>}
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-ink shadow-[0_2px_8px_-2px_rgba(40,57,83,0.25)]"><KbIcon name={page.icon} fallback="folder" className="h-5 w-5" /></span>
+            <h1 className="mt-3 text-balance text-2xl font-semibold leading-tight tracking-tight sm:text-3xl">{page.title}</h1>
+            {page.summary && <p className="mt-2 max-w-2xl text-pretty text-sm leading-relaxed text-ink/70">{page.summary}</p>}
+            <div className="mt-3 flex flex-wrap gap-1.5 text-xs">
+              {folderStats.length > 0 && <span className="rounded-full bg-white/80 px-2.5 py-0.5 font-medium text-ink/70">{pagesWord(folderStats.length)}</span>}
+              {folderRead > 0 && <span className="rounded-full bg-gold-light/30 px-2.5 py-0.5 font-medium text-gold">Прочитано {folderRead} из {folderStats.length}</span>}
+              {page.draft && <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800">Черновик — видите только вы</span>}
             </div>
           </div>
         </header>
       ) : (
         <header>
           <div className="flex items-start gap-4">
-            <span className="mt-1 hidden h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-ink/[0.06] text-ink/70 sm:flex"><KbIcon name={page.icon} fallback="doc" className="h-6 w-6" /></span>
-            <h1 className="min-w-0 text-balance text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">{page.title}</h1>
+            <span className="mt-0.5 hidden h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-ink/[0.06] text-ink/70 sm:flex"><KbIcon name={page.icon} fallback="doc" className="h-5 w-5" /></span>
+            <h1 className="min-w-0 text-balance text-2xl font-semibold leading-tight tracking-tight sm:text-3xl">{page.title}</h1>
           </div>
-          {page.summary && <p className="mt-4 text-pretty text-lg leading-relaxed text-ink/65">{page.summary}</p>}
-          <div className="mt-5 flex flex-wrap items-center gap-2 text-sm text-ink/60">
+          {page.summary && <p className="mt-3 text-pretty text-base leading-relaxed text-ink/65">{page.summary}</p>}
+          <div className="mt-3 flex flex-wrap items-center gap-1.5 text-xs text-ink/60">
             {parent && (
-              <Link to={kbHref(parent.id)} className={`flex items-center gap-1.5 rounded-full bg-ink/[0.06] px-3 py-1 hover:bg-ink/10 hover:text-ink ${focusRing}`}>
+              <Link to={kbHref(parent.id)} className={`flex items-center gap-1.5 rounded-full bg-ink/[0.06] px-2.5 py-0.5 hover:bg-ink/10 hover:text-ink ${focusRing}`}>
                 <KbIcon name={byId.get(parent.id)?.icon} fallback="folder" className="h-3.5 w-3.5" />
                 {parent.title}
               </Link>
             )}
-            {page.body && <span className="flex items-center gap-1.5 rounded-full bg-ink/[0.06] px-3 py-1"><KbIcon name="clock" className="h-3.5 w-3.5" />{minWord(page.readMin)} чтения</span>}
-            {updated && <span className="rounded-full bg-ink/[0.06] px-3 py-1">Обновлено {updated}</span>}
-            {isRead && <span className="flex items-center gap-1.5 rounded-full bg-gold-light/25 px-3 py-1 font-medium text-gold"><KbIcon name="check" strokeWidth={2.2} className="h-3.5 w-3.5" />Прочитано</span>}
-            {page.draft && <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold leading-5 text-amber-800">Черновик — видите только вы</span>}
+            {page.body && <span className="flex items-center gap-1.5 rounded-full bg-ink/[0.06] px-2.5 py-0.5"><KbIcon name="clock" className="h-3 w-3" />{minWord(page.readMin)} чтения</span>}
+            {updated && <span className="rounded-full bg-ink/[0.06] px-2.5 py-0.5">Обновлено {updated}</span>}
+            {isRead && <span className="flex items-center gap-1.5 rounded-full bg-gold-light/25 px-2.5 py-0.5 font-medium text-gold"><KbIcon name="check" strokeWidth={2.2} className="h-3.5 w-3.5" />Прочитано</span>}
+            {page.draft && <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800">Черновик — видите только вы</span>}
           </div>
         </header>
       )}
 
       {toc.length >= 3 && (
-        <details className={`group mt-6 rounded-2xl bg-ink/[0.035] px-5 py-3 ${outlineShown ? 'xl:hidden' : ''}`}>
+        <details className={`group mt-4 rounded-xl bg-ink/[0.035] px-4 py-2.5 ${outlineShown ? 'xl:hidden' : ''}`}>
           <summary className={`flex cursor-pointer list-none items-center gap-2 rounded text-sm font-semibold ${focusRing}`}>
             Содержание <KbIcon name="chevron" strokeWidth={2} className="h-3.5 w-3.5 text-ink/40 transition-transform group-open:rotate-90" />
           </summary>
@@ -577,15 +577,15 @@ function PageBody({ page, byId, pagesUnder, tree, marks, resume, outlineShown }:
       )}
 
       {page.body && (
-        <div className="mt-6">
+        <div className="mt-4 max-w-[56rem]">
           <KbMarkdown source={page.body} sections={isStart ? <SectionGrid tree={tree} pagesUnder={pagesUnder} marks={marks} skipId={page.id} /> : undefined} />
         </div>
       )}
 
       {page.children.length > 0 && (
-        <section className="mt-10" aria-label={page.folder ? 'В этом разделе' : 'Дальше'}>
-          {(!page.folder || page.body) && <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink/50">{page.folder ? 'В этом разделе' : 'Дальше'}</h2>}
-          <div className="grid gap-3 sm:grid-cols-2">
+        <section className="mt-6" aria-label={page.folder ? 'В этом разделе' : 'Дальше'}>
+          {(!page.folder || page.body) && <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink/50">{page.folder ? 'В этом разделе' : 'Дальше'}</h2>}
+          <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
             {page.children.map((c) => {
               const ids = c.folder ? pagesUnder.get(c.id) ?? [] : []
               const read = ids.filter((id) => marks.read.has(id)).length
@@ -613,7 +613,7 @@ function PageBody({ page, byId, pagesUnder, tree, marks, resume, outlineShown }:
       <div ref={endRef} aria-hidden="true" />
 
       {readable && (
-        <div className="mt-10 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-ink/[0.035] px-5 py-4">
+        <div className="mt-7 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-ink/[0.035] px-4 py-3">
           <p className="text-sm text-ink/60">{isRead ? 'Страница отмечена прочитанной.' : 'Дочитали? Отметьте страницу, чтобы видеть прогресс по разделу.'}</p>
           <button
             type="button"
@@ -628,9 +628,9 @@ function PageBody({ page, byId, pagesUnder, tree, marks, resume, outlineShown }:
       )}
 
       {page.related.length > 0 && (
-        <section className="mt-10" aria-label="Смотрите также">
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink/50">Смотрите также</h2>
-          <div className="grid gap-3 sm:grid-cols-2">
+        <section className="mt-7" aria-label="Смотрите также">
+          <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink/50">Смотрите также</h2>
+          <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
             {page.related.map((r) => (
               <KbCard key={r.id} id={r.id} title={r.title} icon={r.icon} folder={false} summary={r.summary} crumbs={r.crumbs.join(' › ')} done={marks.read.has(r.id)} meta={`${minWord(r.readMin)} чтения`} />
             ))}
@@ -639,15 +639,15 @@ function PageBody({ page, byId, pagesUnder, tree, marks, resume, outlineShown }:
       )}
 
       {(page.prev || page.next) && (
-        <nav aria-label="Соседние страницы" className="mt-10 grid gap-3 border-t border-ink/10 pt-6 sm:grid-cols-2">
+        <nav aria-label="Соседние страницы" className="mt-7 grid gap-2.5 border-t border-ink/10 pt-4 sm:grid-cols-2">
           {page.prev ? (
-            <Link to={kbHref(page.prev.id)} className={`group rounded-xl border border-ink/10 px-4 py-3 transition-colors hover:border-ink/30 ${focusRing}`}>
+            <Link to={kbHref(page.prev.id)} className={`group rounded-lg border border-ink/10 px-3.5 py-2.5 transition-colors hover:border-ink/30 ${focusRing}`}>
               <span className="block text-xs text-ink/50">← Назад</span>
               <span className="mt-0.5 block text-sm font-semibold leading-snug">{page.prev.title}</span>
             </Link>
           ) : <span />}
           {page.next && (
-            <Link to={kbHref(page.next.id)} className={`group rounded-xl border border-ink/10 px-4 py-3 text-right transition-colors hover:border-ink/30 ${focusRing}`}>
+            <Link to={kbHref(page.next.id)} className={`group rounded-lg border border-ink/10 px-3.5 py-2.5 text-right transition-colors hover:border-ink/30 ${focusRing}`}>
               <span className="block text-xs text-ink/50">Дальше →</span>
               <span className="mt-0.5 block text-sm font-semibold leading-snug">{page.next.title}</span>
             </Link>
