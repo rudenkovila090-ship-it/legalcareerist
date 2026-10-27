@@ -2,9 +2,11 @@
 // последние события и действия, непрочитанные ответы поддержки. Всё считается по уже имеющимся данным кабинета.
 import { getProfile } from './accountStore.js'
 import { listDocuments } from './accountDocs.js'
-import { accountEvents } from './accountData.js'
+import { accountEvents, accountApplications, accountReserve } from './accountData.js'
 import { listActivity } from './accountActivity.js'
 import { unreadCount } from './supportChat.js'
+import { unreadTotal as unreadRecruiter } from './recruiterChat.js'
+import { unreadNotifications } from './accountNotifications.js'
 
 /** Из чего складывается «профиль заполнен на N %»: вес пункта, выполнен ли он и куда вести человека, если нет. Сумма весов — 100. */
 function completenessChecks(cfg, profile, docs) {
@@ -26,6 +28,7 @@ export function accountDashboard(cfg, now = Date.now()) {
   const docs = listDocuments(cfg.login)
   const events = accountEvents(cfg)
   const checks = completenessChecks(cfg, profile, docs)
+  const applications = accountApplications(cfg)
   return {
     counts: { events: events.length, documents: docs.length },
     completeness: {
@@ -35,5 +38,13 @@ export function accountDashboard(cfg, now = Date.now()) {
     recentEvents: events.slice(0, 3),
     activity: listActivity(cfg.login, 6, now),
     support: { unread: unreadCount(cfg.login) },
+    // для вкладки «Вакансии»: отклики в работе, непрочитанные ответы рекрутера и уведомления, состоит ли в кадровом резерве
+    vacancies: {
+      applications: applications.length,
+      active: applications.filter((a) => !['rejected', 'withdrawn', 'offer'].includes(a.status)).length,
+      unreadChats: unreadRecruiter(cfg.login),
+      unreadNotifications: unreadNotifications(cfg.login),
+      reserve: accountReserve(cfg) !== null,
+    },
   }
 }

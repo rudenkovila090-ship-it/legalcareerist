@@ -218,9 +218,9 @@ export interface ProfileOptions {
   levels: Record<string, string>
 }
 
-type ApiResult<T> = { ok: true; data: T } | { ok: false; error: string }
+export type ApiResult<T> = { ok: true; data: T } | { ok: false; error: string }
 
-async function api<T>(path: string, init: RequestInit = {}): Promise<ApiResult<T>> {
+export async function api<T>(path: string, init: RequestInit = {}): Promise<ApiResult<T>> {
   try {
     // Для файлов (FormData) тип запроса ставит браузер сам, вместе с границей частей.
     const headers: Record<string, string> = { Authorization: `Bearer ${getToken()}` }
@@ -380,6 +380,8 @@ export interface DashboardData {
   recentEvents: CabinetEvent[]
   activity: ActivityEntry[]
   support: { unread: number }
+  /** Для вкладки «Вакансии»: отклики, непрочитанные ответы рекрутера и уведомления, состоит ли в кадровом резерве. */
+  vacancies: { applications: number; active: number; unreadChats: number; unreadNotifications: number; reserve: boolean }
 }
 
 export interface SupportMessage {

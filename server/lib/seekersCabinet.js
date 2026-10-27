@@ -5,6 +5,7 @@ import { CONSULTATION_STATUSES } from './consultations.js'
 import { mskDayKey } from './dailyReport.js'
 import { INTEREST_KINDS, interestGroup } from './interests.js'
 import { RESERVE_FIELDS } from './reserve.js'
+import { APPLICATION_STATUSES, statusOf } from './candidateApplications.js'
 
 const MSK = 'Europe/Moscow'
 const rub = (n) => `${Math.round(n).toLocaleString('ru-RU')} ₽`
@@ -120,7 +121,7 @@ export function vacancyCard(v) {
 function applicationLines(a, withVacancy) {
   const docs = a.documents?.length ? `📎 ${a.documents.join(', ')}` : null
   return [
-    `№${a.number} · ${ruDateTime(a.createdAt)} · ${a.name || 'без имени'}`,
+    `№${a.number} · ${ruDateTime(a.createdAt)} · ${a.name || 'без имени'} · ${APPLICATION_STATUSES[statusOf(a)]}`,
     withVacancy ? `   Вакансия: ${a.vacancyTitle || a.vacancySlug}` : null,
     `   ${[a.telegram, a.phone, a.email].filter(Boolean).join(' · ') || 'контакты не указаны'}`,
     `   Источник: ${a.source}`,
@@ -129,18 +130,33 @@ function applicationLines(a, withVacancy) {
   ].filter(Boolean)
 }
 
+/** Кнопки «открыть отклик»: из карточки меняют статус, а человек получает уведомление в кабинете и в Telegram. */
+const applicationButtons = (list) => list.slice(0, 15).map((a) => [{ text: `📂 №${a.number} · ${a.name || 'без имени'} · ${APPLICATION_STATUSES[statusOf(a)]}`.slice(0, 60), callback_data: `a:s:app:${a.number}` }])
+
 export function vacancyApplicationsScreen(v, applications) {
-  const keyboard = [[{ text: '⬅️ К вакансии', callback_data: `a:s:vac:${v.key}` }, { text: '🏠 Меню', callback_data: 'a:menu' }]]
+  const back = [{ text: '⬅️ К вакансии', callback_data: `a:s:vac:${v.key}` }, { text: '🏠 Меню', callback_data: 'a:menu' }]
   const list = applications.filter((a) => a.vacancySlug === v.slug).sort((a, b) => b.createdAt - a.createdAt)
-  if (!list.length) return { text: `📥 ${vacTitle(v)}\n\nПодробных откликов пока нет${v.applications ? ` (счётчик показывает ${v.applications} — они пришли до запуска учёта откликов)` : ''}.`, keyboard }
-  return { text: [`📥 Отклики на «${vacTitle(v)}» — ${list.length}`, '', ...list.flatMap((a) => [...applicationLines(a, false), ''])].join('\n'), keyboard }
+  if (!list.length) return { text: `📥 ${vacTitle(v)}\n\nПодробных откликов пока нет${v.applications ? ` (счётчик показывает ${v.applications} — они пришли до запуска учёта откликов)` : ''}.`, keyboard: [back] }
+  return { text: [`📥 Отклики на «${vacTitle(v)}» — ${list.length}`, '', ...list.flatMap((a) => [...applicationLines(a, false), ''])].join('\n'), keyboard: [...applicationButtons(list), back] }
+}
+
+/** Карточка отклика: контакты, путь и кнопки смены статуса. */
+export function applicationCard(a, vacancyKey) {
+  const current = statusOf(a)
+  const history = (a.history ?? [{ status: 'sent', at: a.createdAt }]).map((h) => `• ${APPLICATION_STATUSES[h.status] ?? h.status} — ${ruDateTime(h.at)}`)
+  const lines = [`📂 Отклик №${a.number}`, '', ...applicationLines(a, true), '', `Статус: ${APPLICATION_STATUSES[current]}`, ...history, '', 'Смена статуса отправит человеку уведомление в личный кабинет и в Telegram (если он привязан).']
+  const pick = (status) => ({ text: `${status === current ? '✅ ' : ''}${APPLICATION_STATUSES[status]}`, callback_data: `a:s:appst:${a.number}:${status}` })
+  const keyboard = [[pick('forwarded'), pick('interview')], [pick('offer'), pick('rejected')]]
+  if (vacancyKey) keyboard.push([{ text: '⬅️ Отклики вакансии', callback_data: `a:s:vapps:${vacancyKey}` }])
+  keyboard.push([{ text: '⬅️ Последние отклики', callback_data: 'a:s:apps' }, { text: '🏠 Меню', callback_data: 'a:menu' }])
+  return { text: lines.join('\n'), keyboard }
 }
 
 export function recentApplicationsScreen(applications) {
   const keyboard = [BACK_ROW]
   const list = [...applications].sort((a, b) => b.createdAt - a.createdAt).slice(0, 15)
   if (!list.length) return { text: '📥 Откликов пока нет.', keyboard }
-  return { text: [`📥 Последние отклики (${list.length} из ${applications.length})`, '', ...list.flatMap((a) => [...applicationLines(a, true), ''])].join('\n'), keyboard }
+  return { text: [`📥 Последние отклики (${list.length} из ${applications.length})`, '', ...list.flatMap((a) => [...applicationLines(a, true), ''])].join('\n'), keyboard: [...applicationButtons(list), ...keyboard] }
 }
 
 // ---- Карьерные консультации ----

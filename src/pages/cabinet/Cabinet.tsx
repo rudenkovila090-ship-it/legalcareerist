@@ -8,6 +8,7 @@ import { Avatar } from './ui'
 import { roleOf } from './shared'
 import Dashboard from './Dashboard'
 import PageView from './PagesView'
+import VacanciesWorkspace from './vacancies/VacanciesWorkspace'
 import KnowledgeBase from './KnowledgeBase'
 import { ActivatePage, Landing } from './AccountAccess'
 
@@ -104,6 +105,8 @@ export default function Cabinet() {
     void loadDash()
   }
   const unread = dash?.support.unread ?? 0
+  // непрочитанные ответы рекрутера и уведомления вкладки «Вакансии»: число в меню
+  const vacancyAlerts = (dash?.vacancies.unreadChats ?? 0) + (dash?.vacancies.unreadNotifications ?? 0)
   const role = roleOf(user)
   const accountItems = sectionsOfGroup('account')
   // Какой пункт «Аккаунта» подсвечен: «Настройки» — и на странице-ленте настроек, и на её разделах.
@@ -142,7 +145,7 @@ export default function Cabinet() {
           </button>
 
           {/* Компьютер */}
-          <nav className="hidden max-h-[calc(100vh-13rem)] overflow-y-auto pr-1 lg:block" aria-label="Разделы кабинета">
+          <nav className="hidden max-h-[calc(100vh-13rem)] space-y-0.5 overflow-y-auto rounded-2xl bg-ink/[0.045] p-2 lg:block" aria-label="Разделы кабинета">
             <NavItem to="/cabinet" icon={icon.home} label="Главная" active={menuId === 'overview'} />
             {groups.map((g) =>
               g.id === 'account' ? (
@@ -152,7 +155,7 @@ export default function Cabinet() {
                     aria-expanded={accountOpen}
                     aria-controls="account-menu"
                     onClick={() => setAccountPicked(!accountOpen)}
-                    className={`flex w-full items-center gap-2.5 rounded-lg px-4 py-2 text-left text-sm font-medium transition-colors hover:bg-ink/[0.05] ${menuId === 'account' ? 'text-ink' : 'text-ink/70 hover:text-ink'} ${focusRing}`}
+                    className={`flex w-full items-center gap-2.5 rounded-xl px-3.5 py-2 text-left text-sm font-medium transition-colors hover:bg-white/60 ${menuId === 'account' ? 'text-ink' : 'text-ink/70 hover:text-ink'} ${focusRing}`}
                   >
                     {GROUP_ICONS.account}
                     <span className="min-w-0 flex-1">{accountMenuLabel}</span>
@@ -160,13 +163,13 @@ export default function Cabinet() {
                     <Chevron open={accountOpen} />
                   </button>
                   {accountOpen && (
-                    <div id="account-menu" className="mb-1 ml-4 space-y-0.5 border-l border-ink/10 pl-2">
+                    <div id="account-menu" className="mb-1 ml-4 space-y-0.5 border-l border-ink/15 pl-2">
                       {accountItems.map((s) => <NavItem key={s.id} to={`/cabinet/${s.id}`} icon={s.icon} label={s.title} active={activeChild === s.id} badge={s.id === 'support' ? unread : 0} small />)}
                     </div>
                   )}
                 </div>
               ) : (
-                <NavItem key={g.id} to={`/cabinet/${g.id}`} icon={GROUP_ICONS[g.id]} label={g.title} active={menuId === g.id} />
+                <NavItem key={g.id} to={`/cabinet/${g.id}`} icon={GROUP_ICONS[g.id]} label={g.title} active={menuId === g.id} badge={g.id === 'vacancies' ? vacancyAlerts : 0} badgeLabel="Новых ответов и уведомлений" />
               ),
             )}
           </nav>
@@ -188,7 +191,7 @@ export default function Cabinet() {
                     <Chevron open={accountOpen} />
                   </button>
                 ) : (
-                  <Pill key={g.id} to={`/cabinet/${g.id}`} active={menuId === g.id}>{g.title}</Pill>
+                  <Pill key={g.id} to={`/cabinet/${g.id}`} active={menuId === g.id}>{g.title}{g.id === 'vacancies' && vacancyAlerts > 0 ? ` · ${vacancyAlerts}` : ''}</Pill>
                 ),
               )}
             </div>
@@ -202,11 +205,15 @@ export default function Cabinet() {
         <div className="min-w-0">
           {page ? (
             <>
-              <header className="mb-5">
+              <header className="mb-4">
                 <h1 className="text-2xl font-semibold tracking-tight">{page.title}</h1>
-                <p className="mt-1 max-w-3xl text-sm text-ink/60">{page.lead}</p>
+                {page.lead && <p className="mt-1 max-w-3xl text-sm text-ink/60">{page.lead}</p>}
               </header>
-              <PageView key={page.menuId + page.title} page={page} ctx={{ user, onRefresh: refresh, onRead: loadDash }} />
+              {page.menuId === 'vacancies' ? (
+                <VacanciesWorkspace key={page.menuId} page={page} ctx={{ user, dash, onRefresh: refresh, onRead: loadDash }} />
+              ) : (
+                <PageView key={page.menuId + page.title} page={page} ctx={{ user, dash, onRefresh: refresh, onRead: loadDash }} />
+              )}
             </>
           ) : (
             <>
@@ -236,16 +243,16 @@ function Pill({ to, active, soft, children }: { to: string; active: boolean; sof
   )
 }
 
-function NavItem({ to, icon: ic, label, active, badge = 0, small }: { to: string; icon: ReactNode; label: string; active: boolean; badge?: number; small?: boolean }) {
+function NavItem({ to, icon: ic, label, active, badge = 0, badgeLabel = 'Новых ответов', small }: { to: string; icon: ReactNode; label: string; active: boolean; badge?: number; badgeLabel?: string; small?: boolean }) {
   return (
     <Link
       to={to}
       aria-current={active ? 'page' : undefined}
-      className={`flex items-center gap-2.5 rounded-lg ${small ? 'px-3 py-1.5' : 'px-4 py-2'} text-sm font-medium transition-colors ${active ? 'bg-ink text-white' : 'text-ink/70 hover:bg-ink/[0.05] hover:text-ink'} ${focusRing}`}
+      className={`flex items-center gap-2.5 rounded-xl ${small ? 'px-3 py-1.5' : 'px-3.5 py-2'} text-sm transition-colors ${active ? 'bg-white font-semibold text-ink shadow-[0_1px_2px_rgba(40,57,83,0.08),0_6px_14px_-8px_rgba(40,57,83,0.25)]' : 'font-medium text-ink/70 hover:bg-white/60 hover:text-ink'} ${focusRing}`}
     >
-      {ic}
+      <span className={active ? 'text-ink' : 'text-ink/55'}>{ic}</span>
       <span className="min-w-0">{label}</span>
-      {badge > 0 && <span className="ml-auto rounded-full bg-amber-400 px-2 py-0.5 text-[11px] font-bold text-ink" aria-label={`Новых ответов: ${badge}`}>{badge}</span>}
+      {badge > 0 && <span className="ml-auto rounded-full bg-amber-300 px-2 py-0.5 text-[11px] font-bold leading-none text-ink" aria-label={`${badgeLabel}: ${badge}`}>{badge}</span>}
     </Link>
   )
 }

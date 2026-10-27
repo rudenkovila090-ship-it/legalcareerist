@@ -177,9 +177,9 @@ export const sections: CabinetSection[] = [
     todo: ['Кнопка «Записаться» из кабинета и билеты в одном месте', 'Сертификаты и материалы после мероприятий', 'Связь с достижениями'],
   },
   {
-    id: 'reserve', group: 'vacancies', title: 'Кадровый резерв', icon: icon.box,
-    lead: 'Согласие, чтобы вас рассматривали по новым вакансиям.',
-    todo: ['Согласие и срок (по правилам резерв хранится 1 год, продление — новым согласием)', 'Связь с профилем и ожиданиями по роли', 'Отзыв из резерва в один клик'],
+    id: 'reserve', group: 'vacancies', title: 'Кадровый резерв', icon: icon.box, ready: true,
+    lead: 'Закрытая база проверенных кандидатов: вакансии предлагаем раньше открытой публикации. Вступить, продлить согласие и выйти можно здесь.',
+    todo: ['Напоминание за месяц до конца срока хранения', 'Связь с профилем юриста: подстановка практик и ожиданий'],
   },
   {
     id: 'referrals', group: 'partner', title: 'Партнёрская и реферальная программа', icon: icon.gift,
@@ -208,24 +208,19 @@ export const sections: CabinetSection[] = [
     todo: ['Конструктор резюме и выгрузка в PDF и Word (демо-версия есть в отложенном кабинете, но данные там хранит только браузер)', 'Заполнение профиля по загруженному резюме', 'Автоудаление файлов при долгой неактивности (сейчас файлы живут, пока вы их не удалите)', 'Передача резюме работодателю и запись об этом в «Истории передач» (появится вместе с откликами)'],
   },
   {
-    id: 'applications', group: 'vacancies', title: 'Мои отклики', icon: icon.list,
-    lead: 'Прозрачный путь отклика: передано работодателю, интервью, оффер. Отозвать отклик можно с причиной.',
-    todo: ['Статусы откликов и их история', 'Отзыв отклика с причиной', 'Нужна сторона рекрутера и работодателя: кто и где меняет статусы'],
+    id: 'applications', group: 'vacancies', title: 'Мои отклики', icon: icon.list, ready: true,
+    lead: 'Путь каждого отклика: отправлен, передан работодателю, собеседование, оффер. Отозвать отклик можно в один клик.',
+    todo: ['Статусы пока меняет администратор в боте; когда появится сторона работодателя, они будут обновляться сами', 'Привязка резюме и сопроводительного к отклику'],
   },
   {
-    id: 'chat', group: 'vacancies', title: 'Чат с рекрутером', icon: icon.chat,
-    lead: 'Переписка с рекрутером внутри кабинета, чтобы не терять её в мессенджерах.',
-    todo: ['Чат и его связь с Telegram-ботом (ответы рекрутера приходят и туда)', 'Вложения и история', 'Кто рекрутер и как он отвечает из админ-бота'],
+    id: 'chat', group: 'vacancies', title: 'Чат с рекрутером', icon: icon.chat, ready: true,
+    lead: 'Отдельная переписка по каждой вакансии, чтобы разговоры не путались. Ответ приходит в уведомления и в Telegram.',
+    todo: ['Вложения к сообщениям'],
   },
   {
-    id: 'interviews', group: 'vacancies', title: 'Интервью', icon: icon.calendar,
-    lead: 'Запись на интервью со свободными слотами и напоминаниями.',
-    todo: ['Слоты рекрутеров или работодателей и календарь', 'Напоминания в Telegram и по почте', 'Перенос и отмена'],
-  },
-  {
-    id: 'notifications', group: 'vacancies', title: 'Уведомления', icon: icon.bell,
-    lead: 'Сообщения о смене статуса откликов в Telegram или на почту.',
-    todo: ['Выбор каналов и тем', 'Отправка по почте (письма из сервиса уже работают для билетов и материалов)', 'Зависит от раздела «Мои отклики»'],
+    id: 'notifications', group: 'vacancies', title: 'Уведомления', icon: icon.bell, ready: true,
+    lead: 'Ответы рекрутера, смена статуса откликов и новости по кадровому резерву: в кабинете и в Telegram-боте.',
+    todo: ['Уведомления о новых вакансиях под ваш профиль', 'Выбор тем уведомлений'],
   },
   // ---- Развитие карьеры ----
   {
@@ -295,7 +290,7 @@ export const sectionById = (id?: string) => sections.find((s) => s.id === id)
 /** Порядок разделов внутри группы (остальные группы идут в порядке записи в списке выше). */
 const ORDER: Partial<Record<GroupId, string[]>> = {
   account: ['profile', 'resident', 'telegram', 'activity', 'settings', 'password', 'help', 'support'],
-  vacancies: ['vacancies', 'cv', 'applications', 'chat', 'interviews', 'notifications', 'reserve'],
+  vacancies: ['vacancies', 'applications', 'chat', 'notifications', 'reserve', 'cv'],
   career: ['podcast', 'route', 'market', 'interview-prep', 'templates', 'recommendations', 'portfolio', 'achievements', 'capital', 'mediakit', 'photo'],
 }
 export const sectionsOfGroup = (group: GroupId) => {
@@ -321,7 +316,7 @@ export interface CabinetPage {
 }
 
 const GROUP_LEADS: Record<string, string> = {
-  vacancies: 'Вакансии, резюме, отклики, интервью и общение с рекрутером.',
+  vacancies: '',
   career: 'Подкаст, карьерный план, оценка рынка, подготовка к интервью, шаблоны и портфолио.',
   events: 'Афиша ближайших мероприятий и ваши регистрации.',
   networking: 'Знакомства и встречи с коллегами из сообщества.',
@@ -330,7 +325,7 @@ const GROUP_LEADS: Record<string, string> = {
 }
 const STACKED_GROUPS: GroupId[] = ['vacancies', 'career', 'events', 'networking', 'partner', 'lawyer']
 /** Адреса прежнего меню: что открывать вместо них. */
-const OLD_ADDRESSES: Record<string, string> = { community: 'resident', jobs: 'vacancies' }
+const OLD_ADDRESSES: Record<string, string> = { community: 'resident', jobs: 'vacancies', interviews: 'vacancies' }
 
 /** Страница по адресу /cabinet/<param>: null — главная или неизвестный адрес. */
 export function resolvePage(rawParam?: string): CabinetPage | null {

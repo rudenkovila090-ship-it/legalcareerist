@@ -15,9 +15,10 @@ export function getReserveCandidate(number) {
   return listReserve().find((c) => c.number === Number(number)) ?? null
 }
 
-export function createReserveCandidate({ name, city, university, position, telegram, phone, email, resumeUrl, source, utm, howHeard }) {
+/** login — логин кабинета, если человек вступил сам из кабинета; consentAt — когда он дал согласие на хранение данных в резерве. */
+export function createReserveCandidate({ name, city, university, position, telegram, phone, email, resumeUrl, source, utm, howHeard, login, consentAt }) {
   const number = listReserve().reduce((max, c) => Math.max(max, c.number), 0) + 1
-  const token = store.create({ number, name: name || '', city: city || '', university: university || '', position: position || '', telegram: telegram || '', phone: phone || '', email: email || '', resumeUrl: resumeUrl || '', source: source || 'manual', utm: utm || 'без метки', howHeard: howHeard || '' })
+  const token = store.create({ number, name: name || '', city: city || '', university: university || '', position: position || '', telegram: telegram || '', phone: phone || '', email: email || '', resumeUrl: resumeUrl || '', source: source || 'manual', utm: utm || 'без метки', howHeard: howHeard || '', ...(login ? { login } : {}), ...(consentAt ? { consentAt } : {}) })
   return { token, ...store.get(token) }
 }
 
@@ -32,4 +33,17 @@ export function deleteReserveCandidate(number) {
   if (!c) return false
   store.remove(c.token)
   return true
+}
+
+/** Человек сам меняет в кабинете то, что о нём в резерве (город, университет, желаемая должность). */
+export function updateReserveCandidate(number, { city, university, position }) {
+  const c = getReserveCandidate(number)
+  if (!c) return null
+  return store.update(c.token, (x) => ({ ...x, city: city ?? x.city, university: university ?? x.university, position: position ?? x.position }))
+}
+
+/** Продление: человек заново подтвердил согласие, срок хранения (TERMS.reserve) считается от этого момента. */
+export function renewReserveCandidate(number, now = Date.now()) {
+  const c = getReserveCandidate(number)
+  return c ? store.update(c.token, (x) => ({ ...x, renewedAt: now, consentAt: now })) : null
 }

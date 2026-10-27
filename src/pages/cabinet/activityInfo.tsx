@@ -25,6 +25,12 @@ export function activityLabel(e: ActivityEntry): string {
     case 'support_reply': return 'Ответ поддержки'
     case 'subscription_cancelled': return 'Отключено автопродление подписки'
     case 'card_change_requested': return 'Запрошена смена карты для списаний'
+    case 'recruiter_message': return 'Сообщение рекрутеру по вакансии'
+    case 'recruiter_reply': return 'Ответ рекрутера по вакансии'
+    case 'application_withdrawn': return 'Отозван отклик на вакансию'
+    case 'reserve_joined': return 'Вступление в кадровый резерв'
+    case 'reserve_renewed': return 'Продлено согласие в кадровом резерве'
+    case 'reserve_left': return 'Выход из кадрового резерва'
     default: return 'Действие в кабинете'
   }
 }
@@ -34,6 +40,8 @@ export function activityIcon(kind: string): ReactNode {
   if (kind.startsWith('telegram')) return icon.telegram
   if (kind.startsWith('document')) return icon.doc
   if (kind.startsWith('support')) return icon.lifebuoy
+  if (kind.startsWith('recruiter')) return icon.chat
+  if (kind.startsWith('reserve') || kind === 'application_withdrawn') return icon.box
   if (kind === 'subscription_cancelled' || kind === 'card_change_requested') return icon.shield
   if (kind === 'data_exported' || kind === 'deletion_requested') return icon.download
   if (kind === 'marketing_changed') return icon.bell

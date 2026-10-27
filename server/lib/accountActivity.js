@@ -15,6 +15,7 @@ export const KINDS = new Set([
   'login', 'password_set', 'password_reset', 'password_changed', 'telegram_linked', 'telegram_unlinked',
   'profile_saved', 'contact_updated', 'document_added', 'document_deleted', 'marketing_changed',
   'data_exported', 'deletion_requested', 'support_message', 'support_reply', 'subscription_cancelled', 'card_change_requested',
+  'recruiter_message', 'recruiter_reply', 'application_withdrawn', 'reserve_joined', 'reserve_renewed', 'reserve_left',
 ])
 const META_KEYS = ['value', 'docType', 'part']
 

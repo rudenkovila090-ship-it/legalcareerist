@@ -77,7 +77,7 @@ import { listTodos, addTodo, setTodoDone, ensureTodo } from './lib/todos.js'
 import { todosScreen, TODO_PROMPT, chatCheckScreen, userCard, botUsersScreen, notificationsScreen, reviewsScreen, reviewCard, promosScreen, PROMO_PROMPT, ambassadorsScreen, ambassadorCard, AMBASSADOR_PROMPT, overdueScreen, retentionScreen, cancelCard, financeSummary, forecastScreen, expensesScreen, EXPENSE_PROMPT, parseExpense, eventRegistrationsScreen, eventScreen, eventLeadCard, eventRequestsScreen, eventsMonthSummary, FIND_PROMPT, searchScreen, digestScreen, systemScreen, auditScreen, monthKeyFor as extraMonthKey } from './lib/extraCabinet.js'
 import { createInterest, getInterest, listInterests, markInterestDone, closeInterest, snoozeInterest, interestsDueForReminder, markInterestReminded, REMIND_AFTER_DAYS } from './lib/interests.js'
 import { createReserveCandidate, listReserve, getReserveCandidate, setReserveField, deleteReserveCandidate } from './lib/reserve.js'
-import { reserveListScreen, reserveCard, reserveFieldPrompt, reserveDeleteConfirm, RESERVE_NEW_PROMPT, INTEREST_KIND_KEYBOARD, interestPrompt, interestsScreen, interestCard, SEEKERS_KEYBOARD, buildVacancyViews, vacanciesScreen, vacancyCard, vacancyApplicationsScreen, recentApplicationsScreen, consultationsScreen, consultationCard, seekersMonthSummary } from './lib/seekersCabinet.js'
+import { applicationCard, reserveListScreen, reserveCard, reserveFieldPrompt, reserveDeleteConfirm, RESERVE_NEW_PROMPT, INTEREST_KIND_KEYBOARD, interestPrompt, interestsScreen, interestCard, SEEKERS_KEYBOARD, buildVacancyViews, vacanciesScreen, vacancyCard, vacancyApplicationsScreen, recentApplicationsScreen, consultationsScreen, consultationCard, seekersMonthSummary } from './lib/seekersCabinet.js'
 import { incrementArticleView, getArticleViews } from './lib/articleStats.js'
 import { incrementNewsView, getNewsViews } from './lib/newsStats.js'
 import { incrementEventView, incrementEventRegistration, getEventStats } from './lib/eventStats.js'
@@ -91,6 +91,8 @@ import { startRegistration, startReset, peekToken, consumeToken, verifyLogin, ch
 import { issueCode, consumeCode, CODE_TTL_MS } from './lib/telegramLink.js'
 import { logActivity, listActivity } from './lib/accountActivity.js'
 import { getThread, markSeen, addUserMessage, addSupportReply, linkAdminMessage, loginByAdminMessage, MAX_TEXT as SUPPORT_MAX_TEXT } from './lib/supportChat.js'
+import { threadByAdminMessage as recruiterThreadByAdminMessage } from './lib/recruiterChat.js'
+import { registerVacanciesCabinet } from './lib/vacanciesCabinet.js'
 import { accountDashboard } from './lib/accountDashboard.js'
 import { composeAccountMail, composeSupportReplyMail } from './lib/accountMail.js'
 import { accountProfile, residentJoin, residentStatus, subscriptionDetails } from './lib/accountProfile.js'
@@ -1267,6 +1269,8 @@ async function deliverSupportReply(adminChatId, login, text) {
     return
   }
   logActivity(login, 'support_reply')
+  // в ленту уведомлений кабинета: письмо и сообщение в Telegram ниже уходят и так, поэтому копию в Telegram не шлём
+  void vacanciesCabinet.notifyAccount(login, { kind: 'support_reply', title: 'Ответ службы поддержки', text: r.message.text, link: '/cabinet/support' }, { telegram: false }).catch(() => {})
   const account = String(login).startsWith('u:') ? getAccount(String(login).slice(2)) : null
   const notes = []
   if (account) {
@@ -1550,6 +1554,15 @@ const consentVersion = (body) => String(body?.consentVersion ?? '').slice(0, 20)
 const marketingVersion = (body) => String(body?.marketingVersion ?? '').slice(0, 20) || '2026-10-14'
 /** Поля для журнала согласий: реклама и её редакция. */
 const marketingFields = (body) => ({ marketing: consentChoice(body).marketing, marketingVersion: marketingVersion(body) })
+
+// ---- Вкладка «Вакансии» кабинета: отклики, чат с рекрутером по вакансиям, уведомления, кадровый резерв (lib/vacanciesCabinet.js) ----
+// Уведомления кабинета (copy в Telegram и на почту), ответ админа Reply в чате вакансии и смена статуса отклика кнопками в боте.
+const vacanciesCabinet = registerVacanciesCabinet(app, {
+  requireAccount, hitLimit, readVacancyCatalog, sendTelegram, sendTelegramMessage, mailConfigured, sendMail, accountIdentity, logActivity, recordConsent, consentVersion,
+  siteUrl: SITE_URL,
+  botReady: () => Boolean(BOT_TOKEN && ADMIN_CHAT_ID),
+  adminChatId: ADMIN_CHAT_ID,
+})
 
 app.post('/api/notify', async (req, res) => {
   const { direction, service, source, formType, name, contact, phone, email, telegram, company, template, interest, date, vacancySlug, eventSlug, ticketNumber, utm } = req.body ?? {}
@@ -2419,6 +2432,15 @@ function seekersAction(parts, now, chatId) {
     }
     case 'apps':
       return recentApplicationsScreen(applications)
+    case 'app':
+    case 'appst': {
+      const found = applications.find((a) => a.number === Number(arg))
+      if (!found) return { text: `Отклик №${arg} не найден.`, keyboard: SEEKERS_KEYBOARD }
+      // статус записывается сразу, уведомление человеку (кабинет, Telegram, почта) уходит следом
+      if (action === 'appst') void vacanciesCabinet.notifyApplicationStatus(found.number, arg2).catch((err) => console.error('[application] не удалось уведомить кандидата:', err?.message ?? err))
+      const fresh = listApplications().find((a) => a.number === found.number) ?? found
+      return applicationCard(fresh, vacancies.find((v) => v.slug === fresh.vacancySlug)?.key)
+    }
     case 'cons':
       return consultationsScreen(listConsultations())
     case 'con': {
@@ -3303,6 +3325,14 @@ async function handleTelegramUpdate(update) {
     adminInput.delete(String(chatId))
     await sendTelegramMessage(chatId, 'Отменено.', KADRY_KEYBOARD)
     return
+  }
+  // Ответ (Reply) админа на сообщение из чата с рекрутером по вакансии: уходит в чат этой вакансии.
+  if (isAdmin && text && !text.startsWith('/') && message.reply_to_message?.message_id) {
+    const vacancyThread = recruiterThreadByAdminMessage(message.reply_to_message.message_id)
+    if (vacancyThread) {
+      await vacanciesCabinet.deliverRecruiterReply(chatId, vacancyThread, text)
+      return
+    }
   }
   // Ответ (Reply) админа на сообщение из чата поддержки кабинета: уходит в чат этого человека.
   if (isAdmin && text && !text.startsWith('/') && message.reply_to_message?.message_id) {

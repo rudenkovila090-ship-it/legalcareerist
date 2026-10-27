@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import type { CabinetUser } from '../../lib/cabinet'
+import type { CabinetUser, DashboardData } from '../../lib/cabinet'
 import { ActivitySection, ProfileInfoSection, SettingsSection } from './AccountSections'
 import { ExpectationsSection, PracticesSection, PrivacySection } from './ProfileSections'
 import { ConsentsSection, MyDataSection, VisibilitySection } from './DataSections'
@@ -11,6 +11,8 @@ import { PasswordSection } from './AccountAccess'
 
 export interface BodyContext {
   user: CabinetUser
+  /** Сводка кабинета (счётчики для вкладки «Вакансии»); null — ещё не загружена. */
+  dash: DashboardData | null
   /** Обновить данные вошедшего и сводку обзора. */
   onRefresh: () => Promise<void>
   /** Человек открыл чат поддержки: сводку (число непрочитанных) нужно перечитать. */
