@@ -88,7 +88,7 @@ export function mainMenuScreen(siteUrl, user, hasCabinet = false) {
     keyboard: [
       hasCabinet ? [{ text: '💼 Личный кабинет', callback_data: 'r:menu' }, { text: 'Сообщество', callback_data: 'u:community' }] : [{ text: 'Сообщество', callback_data: 'u:community' }],
       [{ text: 'О КЮ', callback_data: 'u:about' }, { text: 'Поддержка', callback_data: 'u:support' }],
-      [{ text: 'Правовая информация', url: `${siteUrl}/legal` }],
+      [{ text: 'Правовая информация', url: siteLink(siteUrl, '/legal', 'bot_menu_legal') }],
     ],
   }
 }
@@ -105,7 +105,7 @@ export function supportPrompt(user) {
 export function legalScreen(siteUrl) {
   return {
     text: 'Правовая информация: политика обработки персональных данных, согласия, оферты и другие документы собраны на сайте.',
-    keyboard: [[{ text: 'Открыть документы на сайте', url: `${siteUrl}/legal` }], [{ text: 'Главное меню', callback_data: 'u:menu' }]],
+    keyboard: [[{ text: 'Открыть документы на сайте', url: siteLink(siteUrl, '/legal', 'bot_legal') }], [{ text: 'Главное меню', callback_data: 'u:menu' }]],
   }
 }
 
@@ -125,11 +125,11 @@ export function aboutScreen(siteUrl, _supportHandle) {
     keyboard: [
       [
         { text: 'Достижения', callback_data: 'u:achabout' },
-        { text: 'Отзывы', url: `${siteUrl}/community#reviews` },
-        { text: 'О CEO 👤', url: `${siteUrl}/community#founder` },
+        { text: 'Отзывы', url: siteLink(siteUrl, '/community', 'bot_about_reviews', '#reviews') },
+        { text: 'О CEO 👤', url: siteLink(siteUrl, '/community', 'bot_about_ceo', '#founder') },
       ],
       [
-        { text: 'Контакты', url: `${siteUrl}/community/contacts` },
+        { text: 'Контакты', url: siteLink(siteUrl, '/community/contacts', 'bot_about_contacts') },
         { text: 'Связаться', callback_data: 'u:support' },
         { text: 'Главное меню', callback_data: 'u:menu' },
       ],
@@ -172,7 +172,7 @@ export function aboutClubScreen(siteUrl) {
     text: `О сообществе\n\n${COMMUNITY_TEXT}`,
     keyboard: [
       [{ text: 'Достижения', callback_data: 'u:ach' }],
-      [{ text: 'Читать на сайте', url: `${siteUrl}/community#main` }],
+      [{ text: 'Читать на сайте', url: siteLink(siteUrl, '/community', 'bot_about_club', '#main') }],
       [{ text: '⬅️ Сообщество', callback_data: 'u:community' }, { text: 'Главное меню', callback_data: 'u:menu' }],
     ],
   }
