@@ -10,6 +10,7 @@ import { useNoindex } from '../../lib/pageMeta'
 import PhoneInput from '../../components/PhoneInput'
 import LeadSuccessCard from '../../components/LeadSuccessCard'
 import EventsFooter from './EventsFooter'
+import { SplitScreen } from '../../components/layouts'
 import { SPECIALIZATIONS, INDUSTRIES, type EventTariff } from '../../types'
 import { registerForEvent } from '../../lib/eventRegistrations'
 import { isFavoriteEvent, toggleFavoriteEvent } from '../../lib/eventFavorites'
@@ -119,7 +120,7 @@ function IconLink() {
 
 /** «Поделиться» — Telegram/VK по прямым ссылкам-шарерам + копирование
  *  ссылки на страницу. Без внешних SDK — просто sharer-URL, как у большинства сайтов. */
-function ShareButtons({ title }: { title: string }) {
+function ShareButtons({ title, tone = 'dark' }: { title: string; tone?: 'dark' | 'light' }) {
   const [copied, setCopied] = useState(false)
   const url = typeof window !== 'undefined' ? window.location.href : ''
   const encodedUrl = encodeURIComponent(url)
@@ -134,13 +135,13 @@ function ShareButtons({ title }: { title: string }) {
 
   return (
     <div className="flex items-center gap-1.5">
-      <span className="text-xs text-white/50">Поделиться:</span>
+      <span className={`text-xs ${tone === 'light' ? 'text-ink/50' : 'text-white/50'}`}>Поделиться:</span>
       <a
         href={`https://t.me/share/url?url=${encodedUrl}&text=${encodedTitle}`}
         target="_blank"
         rel="noreferrer"
         aria-label="Поделиться в Telegram"
-        className="flex h-9 w-9 items-center justify-center rounded-full border border-white/30 text-white hover:bg-white/10"
+        className={`flex h-9 w-9 items-center justify-center rounded-full border ${tone === 'light' ? 'border-ink/25 text-ink hover:bg-ink/5' : 'border-white/30 text-white hover:bg-white/10'}`}
       >
         <IconTelegram />
       </a>
@@ -149,7 +150,7 @@ function ShareButtons({ title }: { title: string }) {
         target="_blank"
         rel="noreferrer"
         aria-label="Поделиться в VK"
-        className="flex h-9 w-9 items-center justify-center rounded-full border border-white/30 text-white hover:bg-white/10"
+        className={`flex h-9 w-9 items-center justify-center rounded-full border ${tone === 'light' ? 'border-ink/25 text-ink hover:bg-ink/5' : 'border-white/30 text-white hover:bg-white/10'}`}
       >
         <IconVk />
       </a>
@@ -157,11 +158,11 @@ function ShareButtons({ title }: { title: string }) {
         type="button"
         onClick={handleCopy}
         aria-label="Скопировать ссылку"
-        className="flex h-9 w-9 items-center justify-center rounded-full border border-white/30 text-white hover:bg-white/10"
+        className={`flex h-9 w-9 items-center justify-center rounded-full border ${tone === 'light' ? 'border-ink/25 text-ink hover:bg-ink/5' : 'border-white/30 text-white hover:bg-white/10'}`}
       >
         <IconLink />
       </button>
-      {copied && <span className="text-xs text-white/70">Ссылка скопирована</span>}
+      {copied && <span className={`text-xs ${tone === 'light' ? 'text-ink/60' : 'text-white/70'}`}>Ссылка скопирована</span>}
     </div>
   )
 }
@@ -337,139 +338,9 @@ export default function EventDetail() {
     setPartnerSent(true)
   }
 
-  return (
-    <div className={story ? '' : 'pb-12'}>
-      <div ref={noirRef} className={story ? 'theme-noir pb-16' : ''}>
-        {story && (
-          <>
-            <CityMap />
-            <NoirGrain />
-            <ScrollCylinder />
-            <SoundToggle />
-            {receiptOpen && receiptEvent && (receipt.state === 'checking' || receipt.state === 'timeout' || receipt.state === 'paid') && (
-              <TicketReceipt state={receipt.state} ticket={receipt.ticket} event={receiptEvent} downloadUrl={ticketDownloadUrl} onClose={() => setReceiptOpen(false)} />
-            )}
-          </>
-        )}
-      <div className="container-page pt-8">
-        <Link to="/events" className="text-sm text-ink/50 hover:text-ink">← Все мероприятия</Link>
-      </div>
-
-      {/* Большой фон-афиша: дата, время по Москве, название, описание в два
-          предложения, «Сфера» с тегами специализации/отрасли и кнопка
-          «Записаться» — скроллит к блоку регистрации ниже. */}
-      {story ? (
-        <NoirHero
-          event={event}
-          story={story}
-          onBuy={scrollToRegister}
-          share={<ShareButtons title={event.title} />}
-          views={views !== null ? `${views} ${pluralRu(views, ['просмотр', 'просмотра', 'просмотров'])}` : null}
-        />
-      ) : (
-      <div className={`mt-4 bg-gradient-to-br p-10 text-white sm:p-14 ${posterTone[event.type] ?? posterTone.webinar}`}>
-        <div className="container-page">
-          <div className={event.cover ? 'grid items-center gap-8 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] lg:gap-12' : ''}>
-          <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm font-medium uppercase tracking-wide text-white/70">{eventTypeLabel[event.type]}</span>
-            {event.partner && (
-              <span className="rounded-full bg-white/15 px-2.5 py-1 text-xs font-medium">Партнер: {event.partner}</span>
-            )}
-            {event.international && (
-              <span className="rounded-full bg-white/15 px-2.5 py-1 text-xs font-medium">Международное</span>
-            )}
-            {event.language === 'en' && (
-              <span className="rounded-full bg-white/15 px-2.5 py-1 text-xs font-medium">На английском</span>
-            )}
-          </div>
-          {/* Дата/время/формат — самый заметный акцент на афише: крупнее и
-              ярче обычного текста (не text-white/80, а сплошной белый,
-              жирным), разделитель — вертикальная линия, не точка. */}
-          <div className="mt-5 flex flex-wrap items-center gap-3 text-xl font-bold text-white sm:text-2xl">
-            <span>{new Date(event.dateTime).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
-            <span className="h-6 w-px shrink-0 bg-white/40" aria-hidden="true" />
-            <span>{eventTimeRange(event)} по Москве</span>
-            <span className="h-6 w-px shrink-0 bg-white/40" aria-hidden="true" />
-            <span>{event.format === 'online' ? 'Онлайн' : event.city}</span>
-          </div>
-          {/* Без max-w — заголовок и описание растянуты на всю ширину афиши,
-              иначе строка обрывается посреди слова («…Карьера в M&A» уходило
-              переносом на новую строку некрасиво). */}
-          <h1 className="mt-3 text-3xl font-semibold sm:text-4xl">{event.title}</h1>
-          {event.description && event.description.split('\n\n').map((para) => <p key={para} className="mt-4 text-white/80">{para}</p>)}
-
-          {/* Свои пилюли, не общий TagRow — тот рассчитан на светлый фон
-              (bg-ink/5 text-ink/70), на темной афише был бы нечитаем. */}
-          {(event.specialization.length > 0 || event.industry.length > 0) && (
-            <div className="mt-6">
-              <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-white/50">Сфера</div>
-              <div className="flex flex-wrap gap-1.5">
-                {event.specialization.map((s) => (
-                  <span key={s} className="rounded-full bg-white/20 px-2.5 py-1 text-xs font-medium text-white">{specLabel.get(s)}</span>
-                ))}
-                {event.industry.map((i) => (
-                  <span key={i} className="rounded-full bg-white/10 px-2.5 py-1 text-xs font-medium text-white/80">{industryLabel.get(i)}</span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="mt-8 flex flex-wrap items-center gap-3">
-            {event.registrationLink ? (
-              <a
-                href={event.registrationLink}
-                target="_blank"
-                rel="noreferrer"
-                onClick={() => pingEventRegistrationClick(event.slug)}
-                className="rounded-full bg-white px-8 py-3 text-sm font-semibold text-ink hover:opacity-90"
-              >
-                Зарегистрироваться на сайте организатора
-              </a>
-            ) : (
-              <button
-                type="button"
-                onClick={scrollToRegister}
-                className="rounded-full bg-white px-8 py-3 text-sm font-semibold text-ink hover:opacity-90"
-              >
-                Приобрести билет
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={handleToggleFavorite}
-              aria-pressed={favorite}
-              className="flex items-center gap-2 rounded-full border border-white/40 px-5 py-3 text-sm font-semibold text-white hover:bg-white/10"
-            >
-              <IconHeart filled={favorite} />
-              {favorite ? 'В избранном' : 'В избранное'}
-            </button>
-            <ShareButtons title={event.title} />
-            {views !== null && <span className="text-sm text-white/60">{views} {pluralRu(views, ['просмотр', 'просмотра', 'просмотров'])}</span>}
-          </div>
-          </div>
-          {event.cover && (
-            <img src={event.cover} alt={`Афиша: ${event.title}`} className="w-full rounded-2xl bg-white/10 shadow-2xl ring-1 ring-white/20" />
-          )}
-          </div>
-        </div>
-      </div>
-      )}
-
-      <div className="container-page mt-10 grid grid-cols-1 gap-10 lg:grid-cols-[2fr_1fr]">
-        <div>
-          {story && (
-            <div className="mb-10 space-y-12">
-              <NoirIntro story={story} />
-              <NoirFacts story={story} />
-              <NoirFamily story={story} />
-              <NoirAudience story={story} />
-              <NoirStory story={story} />
-              <NoirProgram story={story} />
-              <NoirSpeakers story={story} event={event} />
-              <NoirNewspaper story={story} event={event} />
-            </div>
-          )}
+  // Содержимое страницы собрано из двух частей, чтобы ими пользовались обе схемы: авторская тёмная (Noir) и Split Screen.
+  const details = (
+    <>
           {event.keyDates && event.keyDates.length > 0 && (
             <div className="mb-8">
               <h2 className="text-xl font-semibold">Важные даты</h2>
@@ -678,9 +549,10 @@ export default function EventDetail() {
               (мероприятия/база знаний/вакансии по тем же тегам специализации
               и отрасли), см. getRelatedContent. */}
           <RelatedContentBlock items={related} title="Может быть полезно" />
-        </div>
-
-        <aside id="register" className={`scroll-mt-24 ${story ? 'lg:sticky lg:top-6 lg:self-start' : ''}`}>
+    </>
+  )
+  const registerPanel = (
+    <>
           <div className="glass rounded-2xl p-6">
             {event.status === 'completed' ? (
               event.sale ? (
@@ -897,8 +769,133 @@ export default function EventDetail() {
               />
             </div>
           )}
-        </aside>
+    </>
+  )
+
+  return (
+    <div className={story ? '' : 'pb-12'}>
+      <div ref={noirRef} className={story ? 'theme-noir pb-16' : ''}>
+        {story && (
+          <>
+            <CityMap />
+            <NoirGrain />
+            <ScrollCylinder />
+            <SoundToggle />
+            {receiptOpen && receiptEvent && (receipt.state === 'checking' || receipt.state === 'timeout' || receipt.state === 'paid') && (
+              <TicketReceipt state={receipt.state} ticket={receipt.ticket} event={receiptEvent} downloadUrl={ticketDownloadUrl} onClose={() => setReceiptOpen(false)} />
+            )}
+          </>
+        )}
+      <div className="container-page pt-8">
+        <Link to="/events" className="text-sm text-ink/50 hover:text-ink">← Все мероприятия</Link>
       </div>
+
+      {story ? (
+        <>
+          <NoirHero
+            event={event}
+            story={story}
+            onBuy={scrollToRegister}
+            share={<ShareButtons title={event.title} />}
+            views={views !== null ? `${views} ${pluralRu(views, ['просмотр', 'просмотра', 'просмотров'])}` : null}
+          />
+          <div className="container-page mt-10 grid grid-cols-1 gap-10 lg:grid-cols-[2fr_1fr]">
+            <div>
+              {story && (
+                <div className="mb-10 space-y-12">
+                  <NoirIntro story={story} />
+                  <NoirFacts story={story} />
+                  <NoirFamily story={story} />
+                  <NoirAudience story={story} />
+                  <NoirStory story={story} />
+                  <NoirProgram story={story} />
+                  <NoirSpeakers story={story} event={event} />
+                  <NoirNewspaper story={story} event={event} />
+                </div>
+              )}
+              {details}
+            </div>
+            <aside id="register" className="scroll-mt-24 lg:sticky lg:top-6 lg:self-start">{registerPanel}</aside>
+          </div>
+        </>
+      ) : (
+        // Схема Split Screen: слева афиша (остаётся на месте), справа название, регистрация, программа и всё остальное
+        <div className="container-page mt-6">
+          <SplitScreen
+            media={
+              event.cover ? (
+                <img src={event.cover} alt={`Афиша: ${event.title}`} className="w-full rounded-2xl shadow-[0_18px_50px_-24px_rgba(40,57,83,0.55)] ring-1 ring-ink/10" />
+              ) : (
+                <div className={`flex aspect-[4/3] flex-col justify-between rounded-2xl bg-gradient-to-br p-8 text-white ${posterTone[event.type] ?? posterTone.webinar}`}>
+                  <span className="text-sm font-medium uppercase tracking-wide text-white/70">{eventTypeLabel[event.type]}</span>
+                  <div>
+                    <div className="text-6xl font-semibold leading-none tabular-nums sm:text-7xl">{new Date(event.dateTime).toLocaleDateString('ru-RU', { day: 'numeric', timeZone: 'Europe/Moscow' })}</div>
+                    <div className="mt-2 text-2xl font-semibold capitalize">{new Date(event.dateTime).toLocaleDateString('ru-RU', { month: 'long', year: 'numeric', timeZone: 'Europe/Moscow' }).replace(/\s*г\.$/, '')}</div>
+                    <div className="mt-4 text-white/80">{eventTimeRange(event)} по Москве · {event.format === 'online' ? 'Онлайн' : event.city}</div>
+                  </div>
+                </div>
+              )
+            }
+          >
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm font-medium uppercase tracking-wide text-gold">{eventTypeLabel[event.type]}</span>
+              {event.partner && <span className="rounded-full bg-ink/[0.06] px-2.5 py-1 text-xs font-medium text-ink/70">Партнер: {event.partner}</span>}
+              {event.international && <span className="rounded-full bg-ink/[0.06] px-2.5 py-1 text-xs font-medium text-ink/70">Международное</span>}
+              {event.language === 'en' && <span className="rounded-full bg-ink/[0.06] px-2.5 py-1 text-xs font-medium text-ink/70">На английском</span>}
+            </div>
+            <div className="mt-4 flex flex-wrap items-center gap-3 text-lg font-bold text-ink sm:text-xl">
+              <span>{new Date(event.dateTime).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+              <span className="h-5 w-px shrink-0 bg-ink/25" aria-hidden="true" />
+              <span>{eventTimeRange(event)} по Москве</span>
+              <span className="h-5 w-px shrink-0 bg-ink/25" aria-hidden="true" />
+              <span>{event.format === 'online' ? 'Онлайн' : event.city}</span>
+            </div>
+            <h1 className="mt-3 text-3xl font-semibold leading-tight sm:text-4xl">{event.title}</h1>
+            {event.description && event.description.split('\n\n').map((para) => <p key={para} className="mt-4 text-ink/70">{para}</p>)}
+
+            {(event.specialization.length > 0 || event.industry.length > 0) && (
+              <div className="mt-5 flex flex-wrap gap-1.5">
+                {event.specialization.map((sp) => <span key={sp} className="rounded-full bg-ink/[0.06] px-2.5 py-1 text-xs font-medium text-ink/70">{specLabel.get(sp)}</span>)}
+                {event.industry.map((i) => <span key={i} className="rounded-full bg-ink/[0.04] px-2.5 py-1 text-xs font-medium text-ink/60">{industryLabel.get(i)}</span>)}
+              </div>
+            )}
+
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              {event.registrationLink ? (
+                <a
+                  href={event.registrationLink}
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={() => pingEventRegistrationClick(event.slug)}
+                  className="rounded-full bg-ink px-8 py-3 text-sm font-semibold text-white hover:bg-ink/90"
+                >
+                  Зарегистрироваться на сайте организатора
+                </a>
+              ) : (
+                <button type="button" onClick={scrollToRegister} className="rounded-full bg-ink px-8 py-3 text-sm font-semibold text-white hover:bg-ink/90">
+                  Приобрести билет
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={handleToggleFavorite}
+                aria-pressed={favorite}
+                className="flex items-center gap-2 rounded-full border border-ink/25 px-5 py-3 text-sm font-semibold text-ink hover:bg-ink/5"
+              >
+                <IconHeart filled={favorite} />
+                {favorite ? 'В избранном' : 'В избранное'}
+              </button>
+            </div>
+            <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+              <ShareButtons title={event.title} tone="light" />
+              {views !== null && <span className="text-sm text-ink/50">{views} {pluralRu(views, ['просмотр', 'просмотра', 'просмотров'])}</span>}
+            </div>
+
+            <div id="register" className="mt-8 scroll-mt-24">{registerPanel}</div>
+            <div className="mt-10">{details}</div>
+          </SplitScreen>
+        </div>
+      )}
 
       </div>
 
