@@ -428,7 +428,7 @@ export interface NewsItem {
   images?: string[]
 }
 
-export type EventType = 'conference' | 'webinar' | 'breakfast' | 'intensive' | 'tour' | 'internship'
+export type EventType = 'conference' | 'webinar' | 'breakfast' | 'intensive' | 'tour' | 'internship' | 'championship'
 export type EventFormat = 'online' | 'offline'
 export type EventStatus = 'open' | 'completed'
 
@@ -469,6 +469,26 @@ export interface EventTariff {
    *  Для событий пока нет своего бэкенд-эндпоинта генерации ссылки (как у
    *  подписки сообщества/покупки материала), поэтому ссылка статическая. */
   paymentLink?: string
+}
+
+/** Направление конкурса и компания-куратор (кейс-чемпионаты): блок «Направления и кураторы» на странице мероприятия. */
+export interface EventDirection {
+  title: string
+  curator: string
+}
+
+/** Важная дата мероприятия: «до 5 ноября, 23:59 (мск)» и что к этому сроку нужно сделать. */
+export interface EventKeyDate {
+  when: string
+  what: string
+}
+
+/** Документ или ссылка мероприятия: положение (файл), папка с кейсами, группа организатора, почта. */
+export interface EventDocument {
+  title: string
+  url: string
+  kind: 'file' | 'link'
+  note?: string
 }
 
 export interface EventItem extends Tagged {
@@ -524,6 +544,15 @@ export interface EventItem extends Tagged {
    *  задана, кнопка регистрации в афише ведет на нее вместо внутренней
    *  формы; внутренняя форма ниже остается доступна как запасной вариант. */
   registrationLink?: string
+  /** Регистрация только у организатора (партнёрское мероприятие со своей формой): на странице нет тарифов, нашей формы билета
+   *  и заявки «стать партнёром», вместо них — кнопка на сайт организатора и условия участия. */
+  externalRegistration?: boolean
+  /** Важные даты (сроки регистрации, приёма работ, публикации кейсов). */
+  keyDates?: EventKeyDate[]
+  /** Направления и компании-кураторы (для кейс-чемпионатов). */
+  directions?: EventDirection[]
+  /** Документы и ссылки: положение, кейсы, группа организатора. */
+  documents?: EventDocument[]
 }
 
 export type RegistrationStatus = 'registered' | 'paid' | 'attended'
