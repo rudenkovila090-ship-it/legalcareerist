@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom'
 import { cancelSubscription, fetchEvents, fetchSubscription, linkTelegram, requestCardChange, unlinkTelegram, type CabinetEvent, type CabinetUser, type SubscriptionInfo } from '../../lib/cabinet'
 import { events as catalogEvents } from '../../data/events'
 import { eventStories } from '../../data/eventStories'
-import { articles } from '../../data/articles'
 import { eventTimeRange } from '../../lib/eventTime'
 import { pluralRu } from '../../lib/plural'
 import { TELEGRAM_BOT_USERNAME } from '../../lib/telegram'
@@ -104,25 +103,6 @@ export function EventsSection() {
           </ul>
         )}
       </div>
-    </div>
-  )
-}
-
-// ---- База знаний (для резидентов) ----
-export function KnowledgeSection() {
-  const list = [...articles].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 6)
-  return (
-    <div className="space-y-4">
-      <div className="grid gap-4 md:grid-cols-2">
-        {list.map((a) => (
-          <Link key={a.id} to={`/knowledge/${a.slug}`} className={`glass flex min-w-0 flex-col gap-2 rounded-2xl p-5 ${focusRing}`}>
-            <span className="text-xs text-ink/50">{longDate(Date.parse(a.date))}</span>
-            <span className="font-semibold leading-snug">{a.title}</span>
-            <span className="line-clamp-2 text-sm text-ink/60">{a.excerpt}</span>
-          </Link>
-        ))}
-      </div>
-      <Link to="/blog" className={`inline-block rounded text-sm font-medium text-gold hover:text-ink ${focusRing}`}>Вся база знаний →</Link>
     </div>
   )
 }

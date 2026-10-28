@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { isResidentAccount, type CabinetEvent, type CabinetUser, type DashboardData, type ResidentInfo } from '../../lib/cabinet'
+import { news } from '../../data/news'
 import { pluralRu } from '../../lib/plural'
 import { allGroups, icon, sections, sectionsOfGroup } from './sections'
 import { Avatar, CardHead, Chip, IconBubble } from './ui'
@@ -25,7 +26,7 @@ function subscription(r: ResidentInfo): { title: string; sub: string; tone: Tone
 const arrow = <span className="h-4 w-4 shrink-0 text-ink/30 [&>svg]:h-4 [&>svg]:w-4">{icon.arrow}</span>
 const focusRing = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink/40'
 
-/** Обзор кабинета: профиль, плитки, статусы, данные, история, действия, быстрые шаги и помощь. */
+/** Главная кабинета: плитки, новости сообщества, профиль, статусы, данные, история, действия, быстрые шаги и помощь. */
 export default function Dashboard({ user, dash }: { user: CabinetUser; dash: DashboardData | null }) {
   const sub = subscription(user.resident)
   const role = roleOf(user)
@@ -35,13 +36,43 @@ export default function Dashboard({ user, dash }: { user: CabinetUser; dash: Das
 
   return (
     <div className="space-y-6">
+      {/* Плитки: компактные и яркие, каждая своим цветом, чтобы обзор не сливался в одну массу */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Tile to="/cabinet/resident" icon={icon.shield} label="Подписка" value={sub.title} note={sub.sub} variant="ink" />
+        <Tile to="/cabinet/events" icon={icon.ticket} label="Мероприятия" value={dash ? String(dash.counts.events) : '—'} note={dash ? pluralRu(dash.counts.events, ['регистрация', 'регистрации', 'регистраций']) : ' '} variant="gold" />
+        <Tile to="/cabinet/cv" icon={icon.folder} label="Документы" value={dash ? String(dash.counts.documents) : '—'} note="резюме и письма" variant="light" />
+        <Tile to="/cabinet/support" icon={icon.lifebuoy} label="Поддержка" value={unread > 0 ? `${unread} ${pluralRu(unread, ['ответ', 'ответа', 'ответов'])}` : 'Написать'} note={unread > 0 ? 'ждёт вас в чате' : 'ответим в чате'} variant={unread > 0 ? 'alert' : 'outline'} />
+      </div>
+
+      {/* Новости: что происходит в сообществе и в «Карьерном юристе» (берутся из src/data/news.ts) */}
+      <section aria-label="Новости">
+        <CardHead title="Новости сообщества" to="/news" linkText="Все новости" />
+        <div className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(min(100%,22rem),1fr))]">
+          {news.slice(0, 3).map((n) => {
+            const cover = n.image ?? n.images?.[0]
+            return (
+              <Link key={n.slug} to={`/news/${n.slug}`} className={`glass flex min-w-0 gap-3 rounded-2xl p-3 ${focusRing}`}>
+                {cover && <img src={cover} alt="" loading="lazy" className="h-16 w-16 shrink-0 rounded-xl object-cover" />}
+                <span className="min-w-0 flex-1">
+                  <span className="flex flex-wrap items-center gap-x-2 text-xs text-ink/50">
+                    <span className="rounded-full bg-gold-light/30 px-2 py-0.5 font-semibold text-ink">{n.tag}</span>
+                    <span>{n.date}</span>
+                  </span>
+                  <span className="mt-1 line-clamp-2 block text-sm font-semibold leading-snug">{n.title}</span>
+                </span>
+              </Link>
+            )
+          })}
+        </div>
+      </section>
+
       {/* Профиль */}
-      <section className="glass rounded-2xl p-6 sm:p-8" aria-label="Профиль">
+      <section className="glass rounded-2xl p-5" aria-label="Профиль">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-          <Avatar name={user.contact.name || user.name} email={user.contact.email} size="lg" />
+          <Avatar name={user.contact.name || user.name} email={user.contact.email} size="md" />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-              <h2 className="truncate text-2xl font-semibold tracking-tight">{user.contact.name || user.name}</h2>
+              <h2 className="truncate text-xl font-semibold tracking-tight">{user.contact.name || user.name}</h2>
               <span className={`rounded-full px-3 py-1 text-xs font-semibold ${role.tone === 'gold' ? 'bg-gold-light/30 text-ink' : role.tone === 'ink' ? 'bg-ink text-white' : 'bg-ink/[0.06] text-ink/70'}`}>{role.label}</span>
             </div>
             {user.contact.email && <p className="mt-1 truncate text-sm text-ink/60">{user.contact.email}</p>}
@@ -58,7 +89,7 @@ export default function Dashboard({ user, dash }: { user: CabinetUser; dash: Das
         </div>
 
         {percent !== null && (
-          <div className="mt-6 border-t border-ink/10 pt-5">
+          <div className="mt-4 border-t border-ink/10 pt-4">
             <div className="flex items-baseline justify-between gap-3 text-sm">
               <span className="font-medium">Профиль заполнен на {percent}%</span>
               {percent === 100 && <Chip tone="good">Всё готово</Chip>}
@@ -78,14 +109,6 @@ export default function Dashboard({ user, dash }: { user: CabinetUser; dash: Das
           </div>
         )}
       </section>
-
-      {/* Плитки: компактные и яркие, каждая своим цветом, чтобы обзор не сливался в одну массу */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Tile to="/cabinet/resident" icon={icon.shield} label="Подписка" value={sub.title} note={sub.sub} variant="ink" />
-        <Tile to="/cabinet/events" icon={icon.ticket} label="Мероприятия" value={dash ? String(dash.counts.events) : '—'} note={dash ? pluralRu(dash.counts.events, ['регистрация', 'регистрации', 'регистраций']) : ' '} variant="gold" />
-        <Tile to="/cabinet/cv" icon={icon.folder} label="Документы" value={dash ? String(dash.counts.documents) : '—'} note="резюме и письма" variant="light" />
-        <Tile to="/cabinet/support" icon={icon.lifebuoy} label="Поддержка" value={unread > 0 ? `${unread} ${pluralRu(unread, ['ответ', 'ответа', 'ответов'])}` : 'Написать'} note={unread > 0 ? 'ждёт вас в чате' : 'ответим в чате'} variant={unread > 0 ? 'alert' : 'outline'} />
-      </div>
 
       <div className="grid gap-6 md:grid-cols-2">
         {/* Статусы: только то, что можно изменить, у каждого — кнопка «Изменить» */}

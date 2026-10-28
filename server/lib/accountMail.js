@@ -64,3 +64,19 @@ export function composeSupportReplyMail({ name, text, link }) {
   ].join('')}</div>`
   return { subject: 'Ответ службы поддержки: «Карьерный юрист»', text: body, html }
 }
+
+/** Письмо-копия уведомления кабинета (ответ рекрутера, смена статуса отклика), когда Telegram не привязан. Возвращает { subject, text, html }. */
+export function composeCabinetNoticeMail({ name, title, text, link }) {
+  const hello = name ? `Здравствуйте, ${name}!` : 'Здравствуйте!'
+  const p = (inner) => `<p style="margin:0 0 16px">${inner}</p>`
+  const quoted = `<div style="margin:0 0 16px;padding:14px 16px;background:#f3f5f9;border-radius:12px;white-space:pre-wrap">${esc(text)}</div>`
+  const body = [hello, title, '', text, '', `Открыть в личном кабинете: ${link}`, '', 'Карьерный юрист', '', `${CONTACTS.phone} | ${CONTACTS.email} | сайт: ${CONTACTS.site}`].join('\n')
+  const html = `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.5;color:#283953">${[
+    p(`<b>${esc(hello)}<br>${esc(title)}</b>`),
+    quoted,
+    p(`<a href="${esc(link)}" style="display:inline-block;padding:12px 22px;background:#283953;color:#ffffff;text-decoration:none;border-radius:24px;font-weight:bold">Открыть в личном кабинете</a>`),
+    p('Карьерный юрист'),
+    p(`<a href="tel:${CONTACTS.phone.replace(/[^\d+]/g, '')}" style="color:#45608a">${esc(CONTACTS.phone)}</a> | <a href="mailto:${CONTACTS.email}" style="color:#45608a">${esc(CONTACTS.email)}</a> | <a href="${CONTACTS.site}" style="color:#45608a">сайт</a>`),
+  ].join('')}</div>`
+  return { subject: `${title}: личный кабинет «Карьерный юрист»`, text: body, html }
+}

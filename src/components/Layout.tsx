@@ -34,6 +34,9 @@ function useGlassCursor() {
   }, [])
 }
 
+/** Ключ страницы для границы ошибок: у всех вкладок кабинета он один, кроме ссылки «задайте пароль» (там своя страница). */
+const cabinetKey = (pathname: string) => (pathname === '/cabinet' || (pathname.startsWith('/cabinet/') && pathname !== '/cabinet/activate') ? '/cabinet' : pathname)
+
 export default function Layout() {
   const { pathname, hash } = useLocation()
   useRouteMeta(pathname)
@@ -111,7 +114,9 @@ export default function Layout() {
       </a>
       {!hideHeader && <Header />}
       <main id="main-content" ref={mainRef} tabIndex={-1} className="flex-1 outline-none">
-        <ErrorBoundary key={pathname}>
+        {/* Личный кабинет — одно приложение с вкладками-адресами: переход между вкладками не пересоздаёт его (иначе на каждой вкладке
+            заново грузились вход и сводка, и цифры мигали «0 → — → 0»). Ошибка при этом всё равно сбрасывается по адресу. */}
+        <ErrorBoundary key={cabinetKey(pathname)} resetKey={pathname}>
           <Outlet />
         </ErrorBoundary>
       </main>

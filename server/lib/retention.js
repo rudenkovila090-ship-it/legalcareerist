@@ -12,6 +12,9 @@ import { eraseProfile } from './accountStore.js'
 import { revokeFor } from './accountAuth.js'
 import { eraseActivity, countOldActivity, pruneActivity } from './accountActivity.js'
 import { eraseThread, countOldThreads, pruneThreads } from './supportChat.js'
+import { eraseThreads as eraseRecruiterThreads, countOldThreads as countOldRecruiterThreads, pruneThreads as pruneRecruiterThreads } from './recruiterChat.js'
+import { eraseNotifications, countOldNotifications, pruneNotifications } from './accountNotifications.js'
+import { eraseCareerAll, countOldPodcast, prunePodcast, countOldRecommendations, pruneRecommendations } from './careerData.js'
 
 const DATA_DIR = path.join(import.meta.dirname, '..', 'data')
 
@@ -93,6 +96,9 @@ const accounts = {
       eraseProfile(login)
       eraseActivity(login)
       eraseThread(login)
+      eraseRecruiterThreads(login)
+      eraseNotifications(login)
+      eraseCareerAll(login)
       revokeFor(login)
       if (deleteAccount(a.id)) n += 1
     }
@@ -116,6 +122,38 @@ const supportChats = {
   prune: (now) => pruneThreads(now),
 }
 
+const recruiterChats = {
+  id: 'recruiterChat',
+  title: 'Переписки с рекрутером по вакансиям в кабинете (без новых сообщений больше года)',
+  term: TERMS.recruiterChat,
+  count: (now) => countOldRecruiterThreads(now),
+  prune: (now) => pruneRecruiterThreads(now),
+}
+
+const accountNotes = {
+  id: 'notifications',
+  title: 'Уведомления в кабинете (старше года)',
+  term: TERMS.notifications,
+  count: (now) => countOldNotifications(now),
+  prune: (now) => pruneNotifications(now),
+}
+
+const podcastGuests = {
+  id: 'podcastGuests',
+  title: 'Заявки на участие в подкасте (без изменений больше года)',
+  term: TERMS.podcastGuest,
+  count: (now) => countOldPodcast(now),
+  prune: (now) => prunePodcast(now),
+}
+
+const recommendationRequests = {
+  id: 'recommendationRequests',
+  title: 'Запросы рекомендации «Карьерного юриста» (без изменений больше года)',
+  term: TERMS.recommendation,
+  count: (now) => countOldRecommendations(now),
+  prune: (now) => pruneRecommendations(now),
+}
+
 export const LOGS = [
   jsonlLog('leadSources', 'Журнал «Откуда узнали»', 'lead-sources.jsonl', 'at', TERMS.leadSources),
   jsonlLog('audit', 'Журнал действий админа', 'audit.jsonl', 'at', TERMS.audit),
@@ -125,6 +163,10 @@ export const LOGS = [
   accounts,
   activityLog,
   supportChats,
+  recruiterChats,
+  accountNotes,
+  podcastGuests,
+  recommendationRequests,
 ]
 
 /** Что пора удалить/обезличить на момент now. Ничего не меняет. */

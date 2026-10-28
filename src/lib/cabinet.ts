@@ -218,9 +218,9 @@ export interface ProfileOptions {
   levels: Record<string, string>
 }
 
-type ApiResult<T> = { ok: true; data: T } | { ok: false; error: string }
+export type ApiResult<T> = { ok: true; data: T } | { ok: false; error: string }
 
-async function api<T>(path: string, init: RequestInit = {}): Promise<ApiResult<T>> {
+export async function api<T>(path: string, init: RequestInit = {}): Promise<ApiResult<T>> {
   try {
     // Для файлов (FormData) тип запроса ставит браузер сам, вместе с границей частей.
     const headers: Record<string, string> = { Authorization: `Bearer ${getToken()}` }
@@ -265,6 +265,18 @@ function saveBlob(blob: Blob, filename: string) {
   a.click()
   a.remove()
   setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+
+/** Скачивает файл по адресу API (с входом) под заданным именем. */
+export async function downloadApiFile(path: string, filename: string): Promise<boolean> {
+  try {
+    const res = await fetch(path, { headers: { Authorization: `Bearer ${getToken()}` } })
+    if (!res.ok) return false
+    saveBlob(await res.blob(), filename)
+    return true
+  } catch {
+    return false
+  }
 }
 
 /** Скачивает файл со всеми данными человека (браузер сохранит его как moi-dannye-ДАТА.json). */
@@ -380,6 +392,8 @@ export interface DashboardData {
   recentEvents: CabinetEvent[]
   activity: ActivityEntry[]
   support: { unread: number }
+  /** Для вкладки «Вакансии»: отклики, непрочитанные ответы рекрутера и уведомления, состоит ли в кадровом резерве. */
+  vacancies: { applications: number; active: number; unreadChats: number; unreadNotifications: number; reserve: boolean }
 }
 
 export interface SupportMessage {

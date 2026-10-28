@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import PageHero from '../components/PageHero'
 import { materials } from '../data/materials'
 import { materialKindLabel } from '../lib/materialLabels'
-import { isFreeMaterial, paidFirst } from '../lib/materialOrder'
+import { inDevelopmentLast, isFreeMaterial, paidFirst } from '../lib/materialOrder'
 import { useDocumentTitle } from '../lib/useDocumentTitle'
 import { MARKETPLACE_DIRECTIONS, type MaterialItem, type MaterialKind, type MarketplaceDirection } from '../types'
 import MarketplaceFooter from './MarketplaceFooter'
@@ -172,9 +172,10 @@ export default function MarketplaceHome() {
       if (m.price < from || m.price > to) return false
       return true
     })
-    if (sort === 'price_asc') return [...list].sort((a, b) => a.price - b.price)
-    if (sort === 'price_desc') return [...list].sort((a, b) => b.price - a.price)
-    // «Популярное» — это порядок каталога по умолчанию: платные материалы сверху, бесплатные внизу, внутри групп по числу покупок.
+    // При любой сортировке материалы «в разработке» остаются внизу: купить их пока нельзя.
+    if (sort === 'price_asc') return inDevelopmentLast([...list].sort((a, b) => a.price - b.price))
+    if (sort === 'price_desc') return inDevelopmentLast([...list].sort((a, b) => b.price - a.price))
+    // «Популярное» — это порядок каталога по умолчанию: платные материалы сверху, затем бесплатные, внизу — «в разработке»; внутри групп по числу покупок.
     return paidFirst([...list].sort((a, b) => (b.purchases ?? 0) - (a.purchases ?? 0)))
   }, [category, directions, priceFrom, priceTo, sort])
 

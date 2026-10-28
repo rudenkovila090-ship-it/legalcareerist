@@ -2,10 +2,14 @@ import { Component, type ErrorInfo, type ReactNode } from 'react'
 
 interface Props {
   children: ReactNode
+  /** Адрес страницы: когда он меняется, показанная ошибка сбрасывается, а содержимое при этом не пересоздаётся. */
+  resetKey?: string
 }
 
 interface State {
   error: Error | null
+  /** Адрес страницы, для которого показана ошибка. */
+  key?: string
 }
 
 // Ловит ошибку рендера ОДНОЙ страницы (например, неожиданная форма данных
@@ -17,15 +21,20 @@ interface State {
 // на другой маршрут — иначе после ошибки застрял бы навсегда, даже уйдя со
 // сломанной страницы.
 export default class ErrorBoundary extends Component<Props, State> {
-  state: State = { error: null }
+  state: State = { error: null, key: this.props.resetKey }
 
-  static getDerivedStateFromError(error: Error): State {
+  static getDerivedStateFromError(error: Error): Partial<State> {
     return { error }
+  }
+
+  static getDerivedStateFromProps(props: Props, state: State): Partial<State> | null {
+    return props.resetKey !== state.key ? { error: null, key: props.resetKey } : null
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error('[ErrorBoundary]', error, info.componentStack)
   }
+
 
   render() {
     if (this.state.error) {

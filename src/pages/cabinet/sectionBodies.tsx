@@ -1,15 +1,18 @@
 import type { ReactNode } from 'react'
-import type { CabinetUser } from '../../lib/cabinet'
+import type { CabinetUser, DashboardData } from '../../lib/cabinet'
 import { ActivitySection, ProfileInfoSection, SettingsSection } from './AccountSections'
 import { ExpectationsSection, PracticesSection, PrivacySection } from './ProfileSections'
 import { ConsentsSection, MyDataSection, VisibilitySection } from './DataSections'
-import { EventsSection, KnowledgeSection, StatusSection, TelegramSection } from './CommunitySections'
+import { EventsSection, StatusSection, TelegramSection } from './CommunitySections'
+import { VacanciesSection } from './CareerSections'
 import { CvSection, DocumentsSection } from './DocumentsSections'
 import { HelpSection, SupportSection } from './HelpSections'
 import { PasswordSection } from './AccountAccess'
 
 export interface BodyContext {
   user: CabinetUser
+  /** Сводка кабинета (счётчики для вкладки «Вакансии»); null — ещё не загружена. */
+  dash: DashboardData | null
   /** Обновить данные вошедшего и сводку обзора. */
   onRefresh: () => Promise<void>
   /** Человек открыл чат поддержки: сводку (число непрочитанных) нужно перечитать. */
@@ -35,7 +38,7 @@ export function sectionBody(id: string, { user, onRefresh, onRead }: BodyContext
     case 'resident': return <StatusSection user={user} onRefresh={onRefresh} />
     case 'events': return <EventsSection />
     case 'telegram': return <TelegramSection user={user} onRefresh={onRefresh} />
-    case 'knowledge': return <KnowledgeSection />
+    case 'vacancies': return <VacanciesSection />
     case 'cv': return <CvSection />
     default: return null
   }
