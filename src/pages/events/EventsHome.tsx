@@ -557,9 +557,9 @@ export default function EventsHome() {
           </section>
 
           {/* Подборки — предустановленные фильтры-ярлыки поверх общего каталога. */}
-          <section className="container-page pt-6">
-            <h2 className="mb-3 text-lg font-semibold">Подборки</h2>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <section className="container-page pt-3">
+            <h2 className="mb-1.5 text-sm font-semibold">Подборки</h2>
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
               {collections.map((c) => {
                 const active = collection === c.id
                 const count = events.filter((e) => matchesCollection(e, c.id, now.getMonth(), now.getFullYear())).length
@@ -568,66 +568,66 @@ export default function EventsHome() {
                     key={c.id}
                     type="button"
                     onClick={() => toggleCollection(c.id)}
-                    className={`rounded-xl p-4 text-left transition-colors ${active ? 'bg-ink text-white' : 'glass hover:bg-ink/[0.03]'}`}
+                    className={`rounded-lg p-2.5 text-left transition-colors ${active ? 'bg-ink text-white' : 'glass hover:bg-ink/[0.03]'}`}
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <div className="text-sm font-semibold">{c.label}</div>
-                      <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${active ? 'bg-white/20' : 'bg-ink/[0.06] text-ink/60'}`}>{count}</span>
+                      <div className="text-xs font-semibold leading-snug">{c.label}</div>
+                      <span className={`shrink-0 rounded-full px-1.5 py-px text-[10px] font-semibold ${active ? 'bg-white/20' : 'bg-ink/[0.06] text-ink/60'}`}>{count}</span>
                     </div>
-                    <div className={`mt-1 text-xs ${active ? 'text-white/70' : 'text-ink/50'}`}>{c.description}</div>
+                    <div className={`mt-0.5 text-[10px] leading-snug ${active ? 'text-white/70' : 'text-ink/50'}`}>{c.description}</div>
                   </button>
                 )
               })}
             </div>
           </section>
 
-          <section className="container-page pt-6 pb-8">
-            <div className="glass flex flex-wrap items-center gap-3 rounded-xl p-4">
-              <select aria-label="Тип мероприятия" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as 'all' | EventItem['type'])} className="rounded-lg border border-ink/15 px-3 py-2 text-sm">
+          <section className="container-page pt-3 pb-5">
+            <div className="glass flex flex-wrap items-center gap-2 rounded-lg p-2.5">
+              <select aria-label="Тип мероприятия" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as 'all' | EventItem['type'])} className="rounded-md border border-ink/15 px-2 py-1 text-xs">
                 <option value="all">Тип мероприятия</option>
                 {eventTypeOptions.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
               </select>
-              <select aria-label="Город мероприятия" value={cityFilter} onChange={(e) => setCityFilter(e.target.value)} className="rounded-lg border border-ink/15 px-3 py-2 text-sm">
+              <select aria-label="Город мероприятия" value={cityFilter} onChange={(e) => setCityFilter(e.target.value)} className="rounded-md border border-ink/15 px-2 py-1 text-xs">
                 <option value="all">Город мероприятия</option>
                 {cities.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
-              <select aria-label="Способ участия" value={formatFilter} onChange={(e) => setFormatFilter(e.target.value as 'all' | 'online' | 'offline')} className="rounded-lg border border-ink/15 px-3 py-2 text-sm">
+              <select aria-label="Способ участия" value={formatFilter} onChange={(e) => setFormatFilter(e.target.value as 'all' | 'online' | 'offline')} className="rounded-md border border-ink/15 px-2 py-1 text-xs">
                 <option value="all">Способ участия</option>
                 <option value="online">Онлайн</option>
                 <option value="offline">Офлайн</option>
               </select>
-              <select aria-label="Направление права" value={industryFilter} onChange={(e) => setIndustryFilter(e.target.value as 'all' | Industry)} className="rounded-lg border border-ink/15 px-3 py-2 text-sm">
+              <select aria-label="Направление права" value={industryFilter} onChange={(e) => setIndustryFilter(e.target.value as 'all' | Industry)} className="rounded-md border border-ink/15 px-2 py-1 text-xs">
                 <option value="all">Направление права</option>
                 {INDUSTRIES.map((i) => <option key={i.id} value={i.id}>{i.label}</option>)}
               </select>
-              <select aria-label="Для кого" value={audienceFilter} onChange={(e) => setAudienceFilter(e.target.value as 'all' | AudienceLevel)} className="rounded-lg border border-ink/15 px-3 py-2 text-sm">
+              <select aria-label="Для кого" value={audienceFilter} onChange={(e) => setAudienceFilter(e.target.value as 'all' | AudienceLevel)} className="rounded-md border border-ink/15 px-2 py-1 text-xs">
                 <option value="all">Для кого</option>
                 {(Object.entries(audienceLabel) as [AudienceLevel, string][]).map(([id, label]) => <option key={id} value={id}>{label}</option>)}
               </select>
-              <select aria-label="Стоимость" value={priceFilter} onChange={(e) => setPriceFilter(e.target.value as 'all' | 'free' | 'paid')} className="rounded-lg border border-ink/15 px-3 py-2 text-sm">
+              <select aria-label="Стоимость" value={priceFilter} onChange={(e) => setPriceFilter(e.target.value as 'all' | 'free' | 'paid')} className="rounded-md border border-ink/15 px-2 py-1 text-xs">
                 <option value="all">Стоимость</option>
                 <option value="free">Бесплатные</option>
                 <option value="paid">Платные</option>
               </select>
               {hasInternational && (
-                <select aria-label="Регион" value={regionFilter} onChange={(e) => setRegionFilter(e.target.value as 'all' | 'ru' | 'intl')} className="rounded-lg border border-ink/15 px-3 py-2 text-sm">
+                <select aria-label="Регион" value={regionFilter} onChange={(e) => setRegionFilter(e.target.value as 'all' | 'ru' | 'intl')} className="rounded-md border border-ink/15 px-2 py-1 text-xs">
                   <option value="all">РФ и международные</option>
                   <option value="ru">Российские</option>
                   <option value="intl">Международные</option>
                 </select>
               )}
-              <select aria-label="Сортировка" value={sort} onChange={(e) => setSort(e.target.value as 'date_asc' | 'popular' | 'price_asc' | 'price_desc')} className="rounded-lg border border-ink/15 px-3 py-2 text-sm">
+              <select aria-label="Сортировка" value={sort} onChange={(e) => setSort(e.target.value as 'date_asc' | 'popular' | 'price_asc' | 'price_desc')} className="rounded-md border border-ink/15 px-2 py-1 text-xs">
                 <option value="date_asc">Ближайшие даты</option>
                 <option value="popular">Популярные</option>
                 <option value="price_asc">Сначала дешевле</option>
                 <option value="price_desc">Сначала дороже</option>
               </select>
               {isFiltering && (
-                <button type="button" onClick={resetFilters} className="text-sm text-ink/50 hover:text-ink">
+                <button type="button" onClick={resetFilters} className="text-xs text-ink/50 hover:text-ink">
                   Сбросить
                 </button>
               )}
-              <div className="ml-auto text-sm text-ink/50">{filtered.length} {pluralRu(filtered.length, ['мероприятие', 'мероприятия', 'мероприятий'])}</div>
+              <div className="ml-auto text-xs text-ink/50">{filtered.length} {pluralRu(filtered.length, ['мероприятие', 'мероприятия', 'мероприятий'])}</div>
             </div>
           </section>
 
