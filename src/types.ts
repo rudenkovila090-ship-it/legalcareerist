@@ -526,6 +526,8 @@ export interface EventItem extends Tagged {
   partner?: string
   /** Обложка афиши — если нет, используется цветовая заглушка по типу мероприятия. */
   cover?: string
+  /** Цвет фона афиши (например, «#481c4f»): заполняет поля вокруг афиши, когда она вписана в карточку целиком. */
+  coverColor?: string
   /** Для прошедших мероприятий — что можно купить: запись, материалы, или оба. */
   sale?: { recording?: number; materials?: number; bundle?: number }
   /** ЦА мероприятия — см. AudienceLevel. Используется подборкой «Для

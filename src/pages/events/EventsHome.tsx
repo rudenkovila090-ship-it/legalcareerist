@@ -191,9 +191,9 @@ function EventCard({ e }: { e: EventItem }) {
   return (
     <Link to={`/events/${e.slug}`} className="glass block overflow-hidden rounded-2xl">
       {e.cover ? (
-        // афиша организатора целиком (без обрезки), по её пропорциям
-        <div className={`relative aspect-[2000/1414] overflow-hidden bg-ink ${past ? 'grayscale' : ''}`}>
-          <img src={e.cover} alt={`Афиша: ${e.title}`} loading="lazy" className="h-full w-full object-cover" />
+        // афиша организатора целиком (без обрезки), вписана в невысокую полосу; поля вокруг — цвета фона афиши
+        <div className={`relative h-40 overflow-hidden bg-ink ${past ? 'grayscale' : ''}`} style={e.coverColor ? { backgroundColor: e.coverColor } : undefined}>
+          <img src={e.cover} alt={`Афиша: ${e.title}`} loading="lazy" className="h-full w-full object-contain" />
           {(e.partner || e.international) && (
             <div className="absolute right-3 top-3 flex flex-wrap justify-end gap-1.5">
               {e.international && <span className="rounded-full bg-ink/85 px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-white">Международное</span>}
@@ -226,14 +226,14 @@ function EventCard({ e }: { e: EventItem }) {
         )}
       </div>
       )}
-      <div className="p-5">
+      <div className={e.cover ? 'p-4' : 'p-5'}>
         <div className="text-xs font-medium uppercase tracking-wide text-gold">{eventTypeLabel[e.type]}</div>
-        <h3 className="mt-1 text-lg font-semibold leading-snug">{e.title}</h3>
+        <h3 className={`mt-1 font-semibold leading-snug ${e.cover ? 'text-base' : 'text-lg'}`}>{e.title}</h3>
 
-        <div className="mt-3 space-y-1 text-sm text-ink/60">
-          <div>{e.format === 'online' ? 'Онлайн' : e.city}</div>
-          <div>{date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })} · {eventTimeRange(e)}</div>
-          {e.location && <div>{e.location}</div>}
+        <div className={`space-y-1 text-ink/60 ${e.cover ? 'mt-2 text-xs' : 'mt-3 text-sm'}`}>
+          <div>{e.format === 'online' ? 'Онлайн' : e.city}{e.cover && ` · ${date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })} · ${eventTimeRange(e)}`}</div>
+          {!e.cover && <div>{date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })} · {eventTimeRange(e)}</div>}
+          {e.location && !e.cover && <div>{e.location}</div>}
         </div>
 
         {past && e.sale ? (
@@ -251,7 +251,7 @@ function EventCard({ e }: { e: EventItem }) {
             )}
           </div>
         ) : (
-          <div className="mt-3 flex flex-wrap items-center gap-2">
+          <div className={`flex flex-wrap items-center gap-2 ${e.cover ? 'mt-2.5' : 'mt-3'}`}>
             <span className="inline-block rounded-full bg-ink px-4 py-1.5 text-sm font-semibold text-white">
               {e.price === 0 ? 'Бесплатно' : `${money.format(e.price)} ₽`}
             </span>

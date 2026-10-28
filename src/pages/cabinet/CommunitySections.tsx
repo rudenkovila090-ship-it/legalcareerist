@@ -29,15 +29,17 @@ function PosterCard({ event }: { event: (typeof catalogEvents)[number] }) {
     // афиша организатора целиком сверху, под ней дата, название и кнопка
     return (
       <Link to={`/events/${event.slug}`} className={`group block overflow-hidden rounded-2xl bg-ink text-white ${focusRing}`}>
-        <img src={event.cover} alt={`Афиша: ${event.title}`} loading="lazy" className="aspect-[2000/1414] w-full object-cover" />
-        <div className="flex flex-col gap-2.5 p-5">
+        <div className="h-44 bg-ink sm:h-48" style={event.coverColor ? { backgroundColor: event.coverColor } : undefined}>
+          <img src={event.cover} alt={`Афиша: ${event.title}`} loading="lazy" className="h-full w-full object-contain" />
+        </div>
+        <div className="flex flex-col gap-2 p-4">
           <div className="flex flex-wrap items-center gap-2">
             <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-ink">{start.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', timeZone: 'Europe/Moscow' })}</span>
             <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-semibold">{eventTimeRange(event)}</span>
             {event.partner && <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-semibold">Партнер</span>}
           </div>
-          <div className="text-lg font-semibold leading-snug">{ru}</div>
-          {place && <div className="text-sm text-white/70">{place}</div>}
+          <div className="text-base font-semibold leading-snug">{ru}</div>
+          {place && <div className="text-xs text-white/70">{place}</div>}
           <div className="flex flex-wrap items-center gap-3 pt-0.5">
             <span className="rounded-full bg-gold-light px-5 py-2 text-sm font-semibold text-ink">{event.externalRegistration ? 'Подробнее и регистрация' : 'Подробнее и билеты'}</span>
             {event.price === 0 && <span className="text-sm text-white/70">бесплатно</span>}
