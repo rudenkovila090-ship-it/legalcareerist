@@ -16,6 +16,7 @@ export const KINDS = new Set([
   'profile_saved', 'contact_updated', 'document_added', 'document_deleted', 'marketing_changed',
   'data_exported', 'deletion_requested', 'support_message', 'support_reply', 'subscription_cancelled', 'card_change_requested',
   'recruiter_message', 'recruiter_reply', 'application_withdrawn', 'reserve_joined', 'reserve_renewed', 'reserve_left',
+  'career_plan_saved', 'podcast_applied', 'podcast_withdrawn', 'recommendation_requested', 'recommendation_ready',
 ])
 const META_KEYS = ['value', 'docType', 'part']
 

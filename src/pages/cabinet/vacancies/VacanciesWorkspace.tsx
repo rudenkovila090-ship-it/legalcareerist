@@ -44,11 +44,11 @@ export default function VacanciesWorkspace({ page, ctx }: { page: CabinetPage; c
         <Stat label="Новых уведомлений" value={num(v?.unreadNotifications)} hint={v && v.unreadNotifications > 0 ? 'непрочитанные' : 'всё прочитано'} to="/cabinet/notifications" attention={Boolean(v && v.unreadNotifications > 0)} />
       </StatStrip>
 
-      <div className="mt-3">
+      <div className="mt-2">
         <PillTabs tabs={tabs} active={tab} hrefOf={hrefOf} label="Разделы вкладки «Вакансии»" />
       </div>
 
-      <div className="mt-3">
+      <div className="mt-2 min-h-[22rem]">
         {tab === 'vacancies' && <VacancyListTab ctx={ctx} />}
         {tab === 'applications' && <ApplicationsTab />}
         {tab === 'chat' && <ChatTab onRead={ctx.onRead} />}

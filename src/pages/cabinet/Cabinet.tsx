@@ -3,12 +3,14 @@ import { Link, useParams } from 'react-router-dom'
 import { setCabinetGreeting } from '../../lib/cabinetGreeting'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import { fetchDashboard, fetchMe, signOut, type CabinetUser, type DashboardData } from '../../lib/cabinet'
+import { forgetCabinetData } from '../../lib/vacanciesCabinet'
 import { groups, icon, resolvePage, sectionsOfGroup } from './sections'
 import { Avatar } from './ui'
 import { roleOf } from './shared'
 import Dashboard from './Dashboard'
 import PageView from './PagesView'
 import VacanciesWorkspace from './vacancies/VacanciesWorkspace'
+import CareerWorkspace from './career/CareerWorkspace'
 import KnowledgeBase from './KnowledgeBase'
 import { ActivatePage, Landing } from './AccountAccess'
 
@@ -58,6 +60,8 @@ export default function Cabinet() {
     const r = await fetchDashboard()
     if (r.ok) setDash(r.data)
   }, [])
+  // Сводка перечитывается при входе и при каждом переходе по разделам: страница при этом не пересоздаётся, поэтому старые цифры
+  // остаются на экране, пока приходят новые (никакого мигания), а числа в меню и на вкладках всегда свежие.
   useEffect(() => {
     if (!authed) return
     let active = true
@@ -67,7 +71,7 @@ export default function Cabinet() {
     return () => {
       active = false
     }
-  }, [authed])
+  }, [authed, section])
 
   // Приветствие «Здравствуйте, Имя» показывает шапка сайта, пока кабинет открыт.
   const greetingName = session.state === 'authed' ? (session.user.contact.name || session.user.name).split(' ')[0] : null
@@ -113,6 +117,7 @@ export default function Cabinet() {
   const activeChild = page && page.menuId === 'account' ? (page.stacked ? 'settings' : page.parts[0].id) : null
   const signOutNow = async () => {
     await signOut()
+    forgetCabinetData()
     setDash(null)
     setSession({ state: 'anonymous' })
   }
@@ -211,6 +216,8 @@ export default function Cabinet() {
               </header>
               {page.menuId === 'vacancies' ? (
                 <VacanciesWorkspace key={page.menuId} page={page} ctx={{ user, dash, onRefresh: refresh, onRead: loadDash }} />
+              ) : page.menuId === 'career' ? (
+                <CareerWorkspace key={page.menuId} page={page} ctx={{ user, dash, onRefresh: refresh, onRead: loadDash }} />
               ) : (
                 <PageView key={page.menuId + page.title} page={page} ctx={{ user, dash, onRefresh: refresh, onRead: loadDash }} />
               )}

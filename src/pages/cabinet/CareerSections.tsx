@@ -1,18 +1,14 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { vacancies } from '../../data/vacancies'
-import { podcastEpisodes } from '../../data/podcast'
 import { pluralRu } from '../../lib/plural'
 import { WORK_FORMATS, type Vacancy } from '../../types'
-import { Chip, IconBubble } from './ui'
-import { icon } from './sections'
 
-// Разделы «Вакансии» и «Подкаст» кабинета: показывают то, что уже есть на сайте (каталог вакансий и выпуски подкаста),
-// чтобы резидент не искал это отдельно. Новые вакансии и выпуски добавляются в src/data/vacancies.ts и src/data/podcast.ts.
+// Раздел «Вакансии» кабинета: показывает то, что уже есть на сайте (каталог вакансий), чтобы резидент не искал это отдельно.
+// Новые вакансии добавляются в src/data/vacancies.ts. Подкаст теперь — заявка гостя во вкладке «Построение карьеры».
 
 const focusRing = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink/40'
 const SHOWN_VACANCIES = 6
-const SHOWN_EPISODES = 6
 
 const money = (n: number) => n.toLocaleString('ru-RU')
 function salaryText(v: Vacancy): string {
@@ -57,45 +53,6 @@ export function VacanciesSection() {
         <span className="text-ink/60">{open.length} {pluralRu(open.length, ['открытая вакансия', 'открытые вакансии', 'открытых вакансий'])} на сайте</span>
         <Link to="/kadry/vacancies" className={`rounded font-medium text-gold hover:text-ink ${focusRing}`}>Вся доска вакансий →</Link>
       </div>
-    </div>
-  )
-}
-
-/** Выпуски подкаста «Карьерный юрист»: сначала свежие, слушать — на площадке подкаста. */
-export function PodcastSection() {
-  const episodes = useMemo(() => [...podcastEpisodes].sort((a, b) => b.season - a.season || b.episode - a.episode), [])
-  const [all, setAll] = useState(false)
-  const shown = all ? episodes : episodes.slice(0, SHOWN_EPISODES)
-  return (
-    <div className="space-y-3">
-      <ul className="grid gap-2 lg:grid-cols-2">
-        {shown.map((ep) => (
-          <li key={`${ep.season}-${ep.episode}`}>
-            <a
-              href={ep.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`glass flex h-full min-w-0 items-center gap-3 rounded-xl p-3 ${focusRing}`}
-            >
-              <IconBubble tone="soft">{icon.headphones}</IconBubble>
-              <span className="min-w-0 flex-1">
-                <span className="block text-sm font-semibold leading-snug">{ep.title}</span>
-                <span className="mt-0.5 block text-xs text-ink/50">Сезон {ep.season}, выпуск {ep.episode} · {ep.date}</span>
-              </span>
-              <Chip>Слушать</Chip>
-            </a>
-          </li>
-        ))}
-      </ul>
-      {episodes.length > SHOWN_EPISODES && (
-        <button type="button" onClick={() => setAll((v) => !v)} aria-expanded={all} className={`rounded-full border border-ink/15 px-4 py-1.5 text-sm font-semibold text-ink/70 hover:text-ink ${focusRing}`}>
-          {all ? 'Свернуть список' : `Показать все выпуски (${episodes.length})`}
-        </button>
-      )}
-      <p className="text-sm text-ink/60">
-        Подписка на подкаст и все площадки:{' '}
-        <a href="https://legalcareerist.mave.digital/" target="_blank" rel="noopener noreferrer" className={`rounded font-medium text-gold hover:text-ink ${focusRing}`}>legalcareerist.mave.digital</a>
-      </p>
     </div>
   )
 }

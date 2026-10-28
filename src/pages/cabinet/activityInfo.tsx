@@ -31,6 +31,11 @@ export function activityLabel(e: ActivityEntry): string {
     case 'reserve_joined': return 'Вступление в кадровый резерв'
     case 'reserve_renewed': return 'Продлено согласие в кадровом резерве'
     case 'reserve_left': return 'Выход из кадрового резерва'
+    case 'career_plan_saved': return 'Составлен карьерный план'
+    case 'podcast_applied': return 'Заявка на участие в подкасте'
+    case 'podcast_withdrawn': return 'Отозвана заявка на подкаст'
+    case 'recommendation_requested': return 'Запрос рекомендации'
+    case 'recommendation_ready': return 'Рекомендация готова'
     default: return 'Действие в кабинете'
   }
 }
@@ -42,6 +47,9 @@ export function activityIcon(kind: string): ReactNode {
   if (kind.startsWith('support')) return icon.lifebuoy
   if (kind.startsWith('recruiter')) return icon.chat
   if (kind.startsWith('reserve') || kind === 'application_withdrawn') return icon.box
+  if (kind.startsWith('career')) return icon.route
+  if (kind.startsWith('podcast')) return icon.headphones
+  if (kind.startsWith('recommendation')) return icon.star
   if (kind === 'subscription_cancelled' || kind === 'card_change_requested') return icon.shield
   if (kind === 'data_exported' || kind === 'deletion_requested') return icon.download
   if (kind === 'marketing_changed') return icon.bell

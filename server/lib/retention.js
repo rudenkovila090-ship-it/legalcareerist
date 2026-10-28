@@ -14,6 +14,7 @@ import { eraseActivity, countOldActivity, pruneActivity } from './accountActivit
 import { eraseThread, countOldThreads, pruneThreads } from './supportChat.js'
 import { eraseThreads as eraseRecruiterThreads, countOldThreads as countOldRecruiterThreads, pruneThreads as pruneRecruiterThreads } from './recruiterChat.js'
 import { eraseNotifications, countOldNotifications, pruneNotifications } from './accountNotifications.js'
+import { eraseCareerAll, countOldPodcast, prunePodcast, countOldRecommendations, pruneRecommendations } from './careerData.js'
 
 const DATA_DIR = path.join(import.meta.dirname, '..', 'data')
 
@@ -97,6 +98,7 @@ const accounts = {
       eraseThread(login)
       eraseRecruiterThreads(login)
       eraseNotifications(login)
+      eraseCareerAll(login)
       revokeFor(login)
       if (deleteAccount(a.id)) n += 1
     }
@@ -136,6 +138,22 @@ const accountNotes = {
   prune: (now) => pruneNotifications(now),
 }
 
+const podcastGuests = {
+  id: 'podcastGuests',
+  title: 'Заявки на участие в подкасте (без изменений больше года)',
+  term: TERMS.podcastGuest,
+  count: (now) => countOldPodcast(now),
+  prune: (now) => prunePodcast(now),
+}
+
+const recommendationRequests = {
+  id: 'recommendationRequests',
+  title: 'Запросы рекомендации «Карьерного юриста» (без изменений больше года)',
+  term: TERMS.recommendation,
+  count: (now) => countOldRecommendations(now),
+  prune: (now) => pruneRecommendations(now),
+}
+
 export const LOGS = [
   jsonlLog('leadSources', 'Журнал «Откуда узнали»', 'lead-sources.jsonl', 'at', TERMS.leadSources),
   jsonlLog('audit', 'Журнал действий админа', 'audit.jsonl', 'at', TERMS.audit),
@@ -147,6 +165,8 @@ export const LOGS = [
   supportChats,
   recruiterChats,
   accountNotes,
+  podcastGuests,
+  recommendationRequests,
 ]
 
 /** Что пора удалить/обезличить на момент now. Ничего не меняет. */

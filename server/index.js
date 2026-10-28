@@ -77,7 +77,7 @@ import { listTodos, addTodo, setTodoDone, ensureTodo } from './lib/todos.js'
 import { todosScreen, TODO_PROMPT, chatCheckScreen, userCard, botUsersScreen, notificationsScreen, reviewsScreen, reviewCard, promosScreen, PROMO_PROMPT, ambassadorsScreen, ambassadorCard, AMBASSADOR_PROMPT, overdueScreen, retentionScreen, cancelCard, financeSummary, forecastScreen, expensesScreen, EXPENSE_PROMPT, parseExpense, eventRegistrationsScreen, eventScreen, eventLeadCard, eventRequestsScreen, eventsMonthSummary, FIND_PROMPT, searchScreen, digestScreen, systemScreen, auditScreen, monthKeyFor as extraMonthKey } from './lib/extraCabinet.js'
 import { createInterest, getInterest, listInterests, markInterestDone, closeInterest, snoozeInterest, interestsDueForReminder, markInterestReminded, REMIND_AFTER_DAYS } from './lib/interests.js'
 import { createReserveCandidate, listReserve, getReserveCandidate, setReserveField, deleteReserveCandidate } from './lib/reserve.js'
-import { applicationCard, reserveListScreen, reserveCard, reserveFieldPrompt, reserveDeleteConfirm, RESERVE_NEW_PROMPT, INTEREST_KIND_KEYBOARD, interestPrompt, interestsScreen, interestCard, SEEKERS_KEYBOARD, buildVacancyViews, vacanciesScreen, vacancyCard, vacancyApplicationsScreen, recentApplicationsScreen, consultationsScreen, consultationCard, seekersMonthSummary } from './lib/seekersCabinet.js'
+import { applicationCard, recommendationCard, reserveListScreen, reserveCard, reserveFieldPrompt, reserveDeleteConfirm, RESERVE_NEW_PROMPT, INTEREST_KIND_KEYBOARD, interestPrompt, interestsScreen, interestCard, SEEKERS_KEYBOARD, buildVacancyViews, vacanciesScreen, vacancyCard, vacancyApplicationsScreen, recentApplicationsScreen, consultationsScreen, consultationCard, seekersMonthSummary } from './lib/seekersCabinet.js'
 import { incrementArticleView, getArticleViews } from './lib/articleStats.js'
 import { incrementNewsView, getNewsViews } from './lib/newsStats.js'
 import { incrementEventView, incrementEventRegistration, getEventStats } from './lib/eventStats.js'
@@ -93,6 +93,8 @@ import { logActivity, listActivity } from './lib/accountActivity.js'
 import { getThread, markSeen, addUserMessage, addSupportReply, linkAdminMessage, loginByAdminMessage, MAX_TEXT as SUPPORT_MAX_TEXT } from './lib/supportChat.js'
 import { threadByAdminMessage as recruiterThreadByAdminMessage } from './lib/recruiterChat.js'
 import { registerVacanciesCabinet } from './lib/vacanciesCabinet.js'
+import { registerCareerCabinet } from './lib/careerCabinet.js'
+import { getRecommendation, recommendationByAdminMessage } from './lib/careerData.js'
 import { accountDashboard } from './lib/accountDashboard.js'
 import { composeAccountMail, composeSupportReplyMail } from './lib/accountMail.js'
 import { accountProfile, residentJoin, residentStatus, subscriptionDetails } from './lib/accountProfile.js'
@@ -1564,6 +1566,15 @@ const vacanciesCabinet = registerVacanciesCabinet(app, {
   adminChatId: ADMIN_CHAT_ID,
 })
 
+// ---- Вкладка «Построение карьеры»: план, подготовка к интервью, шаблоны, рекомендация, подкаст, портфолио (lib/careerCabinet.js) ----
+// Запрос рекомендации и заявка на подкаст приходят админу в бота; рекомендацию админ пишет ответом (Reply) на запрос.
+const careerCabinet = registerCareerCabinet(app, {
+  requireMember: requireKb, hitLimit, sendTelegram, sendTelegramMessage, accountIdentity, logActivity, recordConsent, consentVersion,
+  notifyAccount: vacanciesCabinet.notifyAccount,
+  botReady: () => Boolean(BOT_TOKEN && ADMIN_CHAT_ID),
+  adminChatId: ADMIN_CHAT_ID,
+})
+
 app.post('/api/notify', async (req, res) => {
   const { direction, service, source, formType, name, contact, phone, email, telegram, company, template, interest, date, vacancySlug, eventSlug, ticketNumber, utm } = req.body ?? {}
   const utmSource = utmLabel(utm)
@@ -2440,6 +2451,14 @@ function seekersAction(parts, now, chatId) {
       if (action === 'appst') void vacanciesCabinet.notifyApplicationStatus(found.number, arg2).catch((err) => console.error('[application] не удалось уведомить кандидата:', err?.message ?? err))
       const fresh = listApplications().find((a) => a.number === found.number) ?? found
       return applicationCard(fresh, vacancies.find((v) => v.slug === fresh.vacancySlug)?.key)
+    }
+    case 'rec':
+    case 'recst': {
+      const found = getRecommendation(arg)
+      if (!found) return { text: `Запрос рекомендации №${arg} не найден.`, keyboard: SEEKERS_KEYBOARD }
+      if (action === 'recst') void careerCabinet.changeRecommendationStatus(found.number, arg2).catch((err) => console.error('[recommendation] не удалось уведомить человека:', err?.message ?? err))
+      // статус записывается сразу (до первого await внутри), поэтому карточка ниже уже с новым статусом
+      return recommendationCard(getRecommendation(found.number) ?? found)
     }
     case 'cons':
       return consultationsScreen(listConsultations())
@@ -3331,6 +3350,14 @@ async function handleTelegramUpdate(update) {
     const vacancyThread = recruiterThreadByAdminMessage(message.reply_to_message.message_id)
     if (vacancyThread) {
       await vacanciesCabinet.deliverRecruiterReply(chatId, vacancyThread, text)
+      return
+    }
+  }
+  // Ответ (Reply) админа на запрос рекомендации: текст ответа становится рекомендацией в кабинете человека.
+  if (isAdmin && text && !text.startsWith('/') && message.reply_to_message?.message_id) {
+    const recommendation = recommendationByAdminMessage(message.reply_to_message.message_id)
+    if (recommendation) {
+      await careerCabinet.deliverRecommendation(chatId, recommendation, text)
       return
     }
   }

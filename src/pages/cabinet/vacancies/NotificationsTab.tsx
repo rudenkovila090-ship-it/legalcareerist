@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { fetchNotifications, markNotificationsRead, setNotificationTelegram, type CabinetNotification } from '../../../lib/vacanciesCabinet'
+import { fetchNotifications, markNotificationsRead, peekNotifications, setNotificationTelegram, type CabinetNotification } from '../../../lib/vacanciesCabinet'
 import { icon } from '../sections'
 import { dayTitle, relativeTime } from '../shared'
 import { Switch } from '../ui'
-import { BlockHead, EmptyNote, Surface } from '../kit'
+import { BlockHead, EmptyNote, Surface, TabSkeleton } from '../kit'
 import { accent, btnGhost, focusRing } from '../kitStyles'
 
 // Уведомления: лента в кабинете (ответ рекрутера, смена статуса отклика, ответ поддержки, кадровый резерв) и копия в
@@ -15,13 +15,14 @@ const KIND_ICON: Record<CabinetNotification['kind'], ReactNode> = {
   application_status: icon.list,
   support_reply: icon.lifebuoy,
   reserve: icon.box,
+  career: icon.route,
 }
 
 export default function NotificationsTab({ onRead }: { onRead: () => void }) {
   const navigate = useNavigate()
-  const [items, setItems] = useState<CabinetNotification[] | null>(null)
-  const [telegram, setTelegram] = useState(true)
-  const [linked, setLinked] = useState(false)
+  const [items, setItems] = useState<CabinetNotification[] | null>(() => peekNotifications()?.items ?? null)
+  const [telegram, setTelegram] = useState(() => peekNotifications()?.settings.telegram ?? true)
+  const [linked, setLinked] = useState(() => peekNotifications()?.telegramLinked ?? false)
   const [failed, setFailed] = useState(false)
   const [savingTg, setSavingTg] = useState(false)
 
@@ -79,7 +80,7 @@ export default function NotificationsTab({ onRead }: { onRead: () => void }) {
   }
 
   if (failed) return <Surface><p className="text-sm text-ink/60">Не получилось загрузить уведомления. Обновите страницу через минуту.</p></Surface>
-  if (!items) return <Surface><p className="text-sm text-ink/50">Загружаем уведомления…</p></Surface>
+  if (!items) return <TabSkeleton rows={3} />
 
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] gap-3 lg:grid-cols-[minmax(0,1fr)_20rem]">

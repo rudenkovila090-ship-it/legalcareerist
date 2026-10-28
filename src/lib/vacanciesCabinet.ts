@@ -1,4 +1,5 @@
 import { api, type ApiResult } from './cabinet'
+import { recall, remember } from './cabinetMemo'
 import { CONSENT_VERSION } from './consent'
 
 // Вкладка «Вакансии» личного кабинета: отклики, чат с рекрутером по вакансии, уведомления, кадровый резерв
@@ -31,24 +32,34 @@ export interface ChatThreadSummary { slug: string; title: string; last: ChatMess
 export interface ChatVacancy { slug: string; title: string; company: string }
 export interface ChatThread { slug: string; title: string; company: string; open: boolean; messages: ChatMessage[]; unread: number; maxLength: number }
 
-export interface CabinetNotification { id: string; kind: 'chat_reply' | 'application_status' | 'support_reply' | 'reserve'; title: string; text: string; link: string; at: number; readAt: number | null }
+export interface CabinetNotification { id: string; kind: 'chat_reply' | 'application_status' | 'support_reply' | 'reserve' | 'career'; title: string; text: string; link: string; at: number; readAt: number | null }
 
 export interface ReserveInfo { number: number; name: string; city: string; university: string; position: string; joinedAt: number; renewedAt: number | null; until: number; fromSite: boolean }
 export interface ReserveState { reserve: ReserveInfo | null; prefill: { name: string; city: string; position: string }; hasContact: boolean }
 
-export const fetchApplications = () => api<{ applications: CabinetApplication[] }>('/api/account/applications')
+export { forgetCabinetData } from './cabinetMemo'
+
+type ApplicationsData = { applications: CabinetApplication[] }
+type ChatsData = { threads: ChatThreadSummary[]; vacancies: ChatVacancy[]; maxLength: number }
+type NotificationsData = { items: CabinetNotification[]; unread: number; settings: { telegram: boolean }; telegramLinked: boolean }
+export const peekApplications = () => recall<ApplicationsData>('applications')
+export const peekChats = () => recall<ChatsData>('chats')
+export const peekNotifications = () => recall<NotificationsData>('notifications')
+export const peekReserve = () => recall<ReserveState>('reserve')
+
+export const fetchApplications = () => remember('applications', api<ApplicationsData>('/api/account/applications'))
 export const withdrawApplication = (number: number, reason: string) => api<Record<string, never>>(`/api/account/applications/${number}/withdraw`, { method: 'POST', body: JSON.stringify({ reason }) })
 
-export const fetchChats = () => api<{ threads: ChatThreadSummary[]; vacancies: ChatVacancy[]; maxLength: number }>('/api/account/recruiter')
+export const fetchChats = () => remember('chats', api<ChatsData>('/api/account/recruiter'))
 /** Открытие переписки отмечает ответы рекрутера прочитанными. */
 export const fetchChat = (slug: string) => api<ChatThread>(`/api/account/recruiter/${encodeURIComponent(slug)}`)
 export const sendChatMessage = (slug: string, text: string) => api<{ message: ChatMessage; notified: boolean }>(`/api/account/recruiter/${encodeURIComponent(slug)}`, { method: 'POST', body: JSON.stringify({ text }) })
 
-export const fetchNotifications = () => api<{ items: CabinetNotification[]; unread: number; settings: { telegram: boolean }; telegramLinked: boolean }>('/api/account/notifications')
+export const fetchNotifications = () => remember('notifications', api<NotificationsData>('/api/account/notifications'))
 export const markNotificationsRead = (ids?: string[]) => api<{ unread: number }>('/api/account/notifications/read', { method: 'POST', body: JSON.stringify(ids ? { ids } : {}) })
 export const setNotificationTelegram = (telegram: boolean) => api<{ settings: { telegram: boolean } }>('/api/account/notifications/settings', { method: 'PUT', body: JSON.stringify({ telegram }) })
 
-export const fetchReserve = () => api<ReserveState>('/api/account/reserve')
+export const fetchReserve = () => remember('reserve', api<ReserveState>('/api/account/reserve'))
 export const joinReserve = (fields: { position: string; city: string; university: string }, consent?: { policy: boolean; processing: boolean }) =>
   api<ReserveState>('/api/account/reserve', { method: 'POST', body: JSON.stringify({ ...fields, ...(consent ? { consent, consentVersion: CONSENT_VERSION } : {}) }) })
 export const renewReserve = () => api<ReserveState>('/api/account/reserve/renew', { method: 'POST', body: JSON.stringify({ consent: { policy: true, processing: true }, consentVersion: CONSENT_VERSION }) })

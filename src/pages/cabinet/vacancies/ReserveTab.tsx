@@ -3,10 +3,10 @@ import { Link } from 'react-router-dom'
 import ConsentCheck from '../../../components/ConsentCheck'
 import { consentOf } from '../../../lib/consent'
 import { pluralRu } from '../../../lib/plural'
-import { fetchReserve, joinReserve, leaveReserve, renewReserve, type ReserveInfo, type ReserveState } from '../../../lib/vacanciesCabinet'
+import { fetchReserve, joinReserve, peekReserve, leaveReserve, renewReserve, type ReserveInfo, type ReserveState } from '../../../lib/vacanciesCabinet'
 import { icon } from '../sections'
 import { longDate } from '../shared'
-import { BlockHead, Surface } from '../kit'
+import { BlockHead, Surface, TabSkeleton } from '../kit'
 import { accent, btnGhost, btnPrimary, focusRing } from '../kitStyles'
 
 // Кадровый резерв: закрытая база проверенных кандидатов, которым мы предлагаем вакансии раньше открытой публикации.
@@ -48,11 +48,11 @@ function Facts({ r, now, dark }: { r: ReserveInfo; now: number; dark?: boolean }
 }
 
 export default function ReserveTab({ onChanged }: { onChanged: () => void }) {
-  const [state, setState] = useState<ReserveState | null>(null)
+  const [state, setState] = useState<ReserveState | null>(() => peekReserve() ?? null)
   const [failed, setFailed] = useState(false)
-  const [position, setPosition] = useState('')
-  const [city, setCity] = useState('')
-  const [university, setUniversity] = useState('')
+  const [position, setPosition] = useState(() => peekReserve()?.reserve?.position ?? peekReserve()?.prefill.position ?? '')
+  const [city, setCity] = useState(() => peekReserve()?.reserve?.city ?? peekReserve()?.prefill.city ?? '')
+  const [university, setUniversity] = useState(() => peekReserve()?.reserve?.university ?? '')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [saved, setSaved] = useState(false)
@@ -128,7 +128,7 @@ export default function ReserveTab({ onChanged }: { onChanged: () => void }) {
   }
 
   if (failed) return <Surface><p className="text-sm text-ink/60">Не получилось загрузить данные. Обновите страницу через минуту.</p></Surface>
-  if (!state) return <Surface><p className="text-sm text-ink/50">Загружаем…</p></Surface>
+  if (!state) return <TabSkeleton rows={2} />
   const r = state.reserve
   const closeToEnd = r ? r.until - now <= 60 * DAY : false
 

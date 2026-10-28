@@ -12,7 +12,7 @@ const MAX_ITEMS = 100
 export const NOTIFICATIONS_TTL_MS = 365 * 24 * 3600 * 1000
 
 /** Какие бывают уведомления: по виду выбирается значок и раздел, куда ведёт ссылка. */
-export const NOTIFICATION_KINDS = ['chat_reply', 'application_status', 'support_reply', 'reserve']
+export const NOTIFICATION_KINDS = ['chat_reply', 'application_status', 'support_reply', 'reserve', 'career']
 
 function load() {
   try {

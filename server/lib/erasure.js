@@ -16,6 +16,7 @@ import { eraseActivity } from './accountActivity.js'
 import { eraseThread } from './supportChat.js'
 import { eraseThreads as eraseRecruiterThreads } from './recruiterChat.js'
 import { eraseNotifications } from './accountNotifications.js'
+import { eraseCareerAll } from './careerData.js'
 
 const DATA_DIR = path.join(import.meta.dirname, '..', 'data')
 const reviewsStore = createJsonStore('material-reviews.json')
@@ -218,6 +219,7 @@ export function erasePerson(keyList) {
     done.activity = eraseActivity(cfg.login)
     done.chat = eraseThread(cfg.login) + eraseRecruiterThreads(cfg.login)
     eraseNotifications(cfg.login)
+    done.career = eraseCareerAll(cfg.login)
     revokeAdminSessions()
   }
 
@@ -227,6 +229,7 @@ export function erasePerson(keyList) {
     done.activity = (done.activity ?? 0) + eraseActivity(c.login)
     done.chat = (done.chat ?? 0) + eraseThread(c.login) + eraseRecruiterThreads(c.login)
     eraseNotifications(c.login)
+    done.career = (done.career ?? 0) + eraseCareerAll(c.login)
     revokeFor(c.login)
     done.accounts = (done.accounts ?? 0) + (deleteAccount(c.id) ? 1 : 0)
   }
@@ -282,6 +285,7 @@ export function erasedText(done) {
   if (done.reviews) lines.push(`Отзывов удалено: ${done.reviews}`)
   if (done.cabinet || done.cabinetFiles) lines.push(`Личный кабинет: профиль удалён, файлов документов удалено ${done.cabinetFiles}, вход закрыт`)
   if (done.accounts) lines.push(`Аккаунты резидентов удалены: ${done.accounts}`)
+  if (done.career) lines.push(`Построение карьеры (план, достижения, медиакит, заявка на подкаст, запросы рекомендации): стёрто записей ${done.career}`)
   if (done.activity || done.chat) lines.push(`Журнал действий в кабинете: стёрто записей ${done.activity ?? 0}; чаты (поддержка и рекрутер): стёрто сообщений ${done.chat ?? 0}`)
   if (done.consent) lines.push(`Записей журнала согласий обезличено: ${done.consent}`)
   if (done.webhooks) lines.push(`Строк журнала платежей очищено: ${done.webhooks}`)

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { fetchChat, fetchChats, sendChatMessage, type ChatMessage, type ChatThread, type ChatThreadSummary, type ChatVacancy } from '../../../lib/vacanciesCabinet'
+import { fetchChat, fetchChats, peekChats, sendChatMessage, type ChatMessage, type ChatThread, type ChatThreadSummary, type ChatVacancy } from '../../../lib/vacanciesCabinet'
 import { icon } from '../sections'
 import { relativeTime, timeOfDay } from '../shared'
 
@@ -9,7 +9,7 @@ const chatTime = (at: number) => {
   const r = relativeTime(at)
   return /назад|только что|,/.test(r) ? r : `${r}, ${timeOfDay(at)}`
 }
-import { EmptyNote, Surface } from '../kit'
+import { EmptyNote, Surface, TabSkeleton } from '../kit'
 import { accent, btnPrimary, focusRing } from '../kitStyles'
 
 // Чат с рекрутером: отдельная переписка по каждой вакансии, чтобы разговоры не путались. Слева список переписок и выбор вакансии
@@ -36,8 +36,8 @@ export default function ChatTab({ onRead }: { onRead: () => void }) {
   const [params] = useSearchParams()
   const navigate = useNavigate()
   const slug = params.get('v') ?? ''
-  const [threads, setThreads] = useState<ChatThreadSummary[] | null>(null)
-  const [vacancies, setVacancies] = useState<ChatVacancy[]>([])
+  const [threads, setThreads] = useState<ChatThreadSummary[] | null>(() => peekChats()?.threads ?? null)
+  const [vacancies, setVacancies] = useState<ChatVacancy[]>(() => peekChats()?.vacancies ?? [])
   const [thread, setThread] = useState<ChatThread | null>(null)
   const [loadError, setLoadError] = useState(false)
   const [text, setText] = useState('')
@@ -83,7 +83,8 @@ export default function ChatTab({ onRead }: { onRead: () => void }) {
       if (r.ok) {
         setThread(r.data)
         setLoadError(false)
-        if (first && r.data.unread > 0) onRead()
+        // открытие переписки отметило ответы прочитанными: сводке (число в меню и на вкладке) нужно перечитаться
+        if (first) onRead()
         first = false
       } else if (first) {
         setThread(null)
@@ -134,7 +135,7 @@ export default function ChatTab({ onRead }: { onRead: () => void }) {
   }
 
   if (loadError && !threads) return <Surface><p className="text-sm text-ink/60">Не получилось загрузить чаты. Обновите страницу через минуту.</p></Surface>
-  if (!threads) return <Surface><p className="text-sm text-ink/50">Загружаем чаты…</p></Surface>
+  if (!threads) return <TabSkeleton rows={2} />
 
   const showList = !slug
   const title = current?.title ?? vacancies.find((v) => v.slug === slug)?.title ?? slug

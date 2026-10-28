@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { vacancies } from '../../../data/vacancies'
 import { pluralRu } from '../../../lib/plural'
-import { fetchApplications, type CabinetApplication } from '../../../lib/vacanciesCabinet'
+import { fetchApplications, peekApplications, type CabinetApplication } from '../../../lib/vacanciesCabinet'
 import { WORK_FORMATS, type Vacancy, type WorkFormat } from '../../../types'
 import type { BodyContext } from '../sectionBodies'
 import { icon } from '../sections'
@@ -28,7 +28,7 @@ type FormatFilter = 'all' | WorkFormat
 export default function VacancyListTab({ ctx }: { ctx: BodyContext }) {
   const { user, dash } = ctx
   const member = isMember(user)
-  const [apps, setApps] = useState<CabinetApplication[]>([])
+  const [apps, setApps] = useState<CabinetApplication[]>(() => peekApplications()?.applications ?? [])
   const [query, setQuery] = useState('')
   const [format, setFormat] = useState<FormatFilter>('all')
 
@@ -66,14 +66,14 @@ export default function VacancyListTab({ ctx }: { ctx: BodyContext }) {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-3">
       {/* Уровень 1: что требует внимания */}
       {attention && (
-        <div className="flex flex-wrap items-center gap-3 rounded-3xl bg-amber-100/80 p-3 pl-4 sm:p-4">
-          <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${accent} [&>svg]:h-5 [&>svg]:w-5`}>{icon.bell}</span>
+        <div className="flex flex-wrap items-center gap-3 rounded-2xl bg-amber-100/80 p-2.5 pl-3 sm:p-3">
+          <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${accent} [&>svg]:h-4 [&>svg]:w-4`}>{icon.bell}</span>
           <div className="min-w-0 flex-1">
-            <div className="font-semibold">Есть новое</div>
-            <div className="text-sm text-ink/70">
+            <div className="text-sm font-semibold">Есть новое</div>
+            <div className="text-xs text-ink/70">
               {[
                 v && v.unreadChats > 0 ? `${v.unreadChats} ${pluralRu(v.unreadChats, ['ответ рекрутера', 'ответа рекрутера', 'ответов рекрутера'])}` : null,
                 v && v.unreadNotifications > 0 ? `${v.unreadNotifications} ${pluralRu(v.unreadNotifications, ['уведомление', 'уведомления', 'уведомлений'])}` : null,
@@ -94,10 +94,10 @@ export default function VacancyListTab({ ctx }: { ctx: BodyContext }) {
           note={`${shown.length} ${pluralRu(shown.length, ['вакансия', 'вакансии', 'вакансий'])}${shown.length !== open.length ? ` из ${open.length}` : ''}`}
           aside={<Link to="/kadry/vacancies" className={`rounded text-sm font-medium text-gold hover:text-ink ${focusRing}`}>Вся доска на сайте →</Link>}
         />
-        <div className="mb-3 flex flex-wrap items-center gap-2">
+        <div className="mb-2 flex flex-wrap items-center gap-2">
           <label className="relative min-w-0 flex-1 basis-56">
             <span className="sr-only">Поиск по вакансиям</span>
-            <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink/40 [&>svg]:h-4 [&>svg]:w-4">
+            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink/40 [&>svg]:h-4 [&>svg]:w-4">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5" /><path d="m16 16 4 4" /></svg>
             </span>
             <input
@@ -105,7 +105,7 @@ export default function VacancyListTab({ ctx }: { ctx: BodyContext }) {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Название, компания или город"
-              className="w-full rounded-full border border-transparent bg-white py-2.5 pl-10 pr-4 text-base shadow-[0_1px_2px_rgba(40,57,83,0.06)] placeholder:text-ink/40 focus:border-ink/25 focus:outline-none sm:text-sm"
+              className="w-full rounded-full border border-transparent bg-white py-1.5 pl-9 pr-4 text-base shadow-[0_1px_2px_rgba(40,57,83,0.06)] placeholder:text-ink/40 focus:border-ink/25 focus:outline-none sm:text-[13px]"
             />
           </label>
           <div className="flex flex-wrap gap-1.5" role="group" aria-label="Формат работы">
@@ -115,7 +115,7 @@ export default function VacancyListTab({ ctx }: { ctx: BodyContext }) {
                 type="button"
                 aria-pressed={format === f.id}
                 onClick={() => setFormat(f.id)}
-                className={`rounded-full px-3.5 py-2 text-sm font-medium transition-colors ${format === f.id ? 'bg-ink text-white' : 'bg-white text-ink/65 hover:text-ink'} ${focusRing}`}
+                className={`rounded-full px-3 py-1.5 text-[13px] font-medium transition-colors ${format === f.id ? 'bg-ink text-white' : 'bg-white text-ink/65 hover:text-ink'} ${focusRing}`}
               >
                 {f.label}
               </button>
@@ -128,25 +128,25 @@ export default function VacancyListTab({ ctx }: { ctx: BodyContext }) {
             {open.length ? 'Попробуйте другой запрос или сбросьте фильтр.' : 'Новые появятся здесь и на доске вакансий. Чтобы не пропустить, вступите в кадровый резерв и включите уведомления в Telegram.'}
           </EmptyNote>
         ) : (
-          <ul className="grid grid-cols-[minmax(0,1fr)] gap-3 md:grid-cols-2 2xl:grid-cols-3">
+          <ul className="grid grid-cols-[minmax(0,1fr)] gap-2 md:grid-cols-2 2xl:grid-cols-3">
             {shown.map((vac) => {
               const mine = appBySlug.get(vac.slug)
               const formatLabel = WORK_FORMATS.find((f) => f.id === vac.format)?.label
               const salary = salaryText(vac)
               return (
                 <li key={vac.id}>
-                  <Surface as="article" className="flex h-full flex-col gap-3 transition-shadow hover:shadow-[0_1px_2px_rgba(40,57,83,0.08),0_14px_30px_-16px_rgba(40,57,83,0.4)]">
+                  <Surface as="article" className="flex h-full flex-col gap-2 transition-shadow hover:shadow-[0_1px_2px_rgba(40,57,83,0.08),0_14px_30px_-16px_rgba(40,57,83,0.4)]">
                     <div className="flex flex-wrap items-center gap-1.5">
                       {vac.urgent && <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${accent}`}>Срочно</span>}
                       {mine && <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700">Вы откликнулись · {mine.statusLabel}</span>}
                       <span className="ml-auto text-xs text-ink/40">{dayText(vac.publishedAt)}</span>
                     </div>
                     <div className="min-w-0">
-                      <h3 className="text-balance text-lg font-semibold leading-snug">{vac.title}</h3>
-                      <p className="mt-0.5 truncate text-sm text-ink/60">{vac.anonymous ? 'Компания не раскрывается' : vac.company}</p>
+                      <h3 className="text-balance text-[15px] font-semibold leading-snug">{vac.title}</h3>
+                      <p className="mt-0.5 truncate text-xs text-ink/60">{vac.anonymous ? 'Компания не раскрывается' : vac.company}</p>
                     </div>
-                    <div className="flex flex-wrap gap-1.5 text-xs text-ink/65">
-                      {[vac.city, formatLabel, salary].filter(Boolean).map((t) => <span key={t} className="rounded-full bg-ink/[0.05] px-2.5 py-1">{t}</span>)}
+                    <div className="flex flex-wrap gap-1 text-[11px] text-ink/65">
+                      {[vac.city, formatLabel, salary].filter(Boolean).map((t) => <span key={t} className="rounded-full bg-ink/[0.05] px-2 py-0.5">{t}</span>)}
                     </div>
                     <div className="mt-auto flex flex-wrap gap-2 pt-1">
                       <Link to={`/vacancies/${vac.slug}`} className={btnPrimary}>Открыть вакансию</Link>
@@ -164,7 +164,7 @@ export default function VacancyListTab({ ctx }: { ctx: BodyContext }) {
       </section>
 
       {/* Уровень 3: тихая подсказка */}
-      <Link to="/cabinet/reserve" className={`flex flex-wrap items-center gap-x-3 gap-y-1 rounded-2xl px-4 py-3 text-sm text-ink/65 transition-colors hover:bg-white/70 ${focusRing}`}>
+      <Link to="/cabinet/reserve" className={`flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl px-3 py-2 text-xs text-ink/65 transition-colors hover:bg-white/70 ${focusRing}`}>
         <span className="text-ink/45 [&>svg]:h-5 [&>svg]:w-5">{icon.box}</span>
         <span className="min-w-0 flex-1">{v?.reserve ? 'Вы в кадровом резерве: подходящие вакансии мы предложим раньше открытой публикации.' : 'Не нашли подходящую вакансию? Вступите в кадровый резерв, и мы предложим подходящие раньше открытой публикации.'}</span>
         <span className="font-semibold text-gold">{v?.reserve ? 'Управлять →' : 'Вступить →'}</span>

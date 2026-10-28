@@ -2,10 +2,10 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { vacancies } from '../../../data/vacancies'
 import { pluralRu } from '../../../lib/plural'
-import { APPLICATION_STEPS, fetchApplications, withdrawApplication, type ApplicationStatus, type CabinetApplication } from '../../../lib/vacanciesCabinet'
+import { APPLICATION_STEPS, fetchApplications, peekApplications, withdrawApplication, type ApplicationStatus, type CabinetApplication } from '../../../lib/vacanciesCabinet'
 import { icon } from '../sections'
 import { longDate, relativeTime } from '../shared'
-import { BlockHead, EmptyNote, StepTrack, Surface } from '../kit'
+import { BlockHead, EmptyNote, StepTrack, Surface, TabSkeleton } from '../kit'
 import { btnGhost, btnPrimary, focusRing } from '../kitStyles'
 
 const knownSlugs = new Set(vacancies.map((v) => v.slug))
@@ -24,7 +24,7 @@ function stoppedOf(a: CabinetApplication): { label: string; tone: 'bad' | 'muted
 
 /** Вкладка «Мои отклики»: сначала отклики в работе с путём «отправлен → передан → собеседование → оффер», ниже тише — завершённые. */
 export default function ApplicationsTab() {
-  const [apps, setApps] = useState<CabinetApplication[] | null>(null)
+  const [apps, setApps] = useState<CabinetApplication[] | null>(() => peekApplications()?.applications ?? null)
   const [failed, setFailed] = useState(false)
   const [asking, setAsking] = useState<number | null>(null)
   const [reason, setReason] = useState('')
@@ -63,7 +63,7 @@ export default function ApplicationsTab() {
   }
 
   if (failed) return <Surface><p className="text-sm text-ink/60">Не получилось загрузить отклики. Обновите страницу через минуту.</p></Surface>
-  if (!apps) return <Surface><p className="text-sm text-ink/50">Загружаем отклики…</p></Surface>
+  if (!apps) return <TabSkeleton rows={2} />
   if (!apps.length) {
     return (
       <EmptyNote
@@ -88,19 +88,19 @@ export default function ApplicationsTab() {
         <Surface as="article" className={quiet ? 'bg-white/70' : ''}>
           <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
             <div className="min-w-0">
-              <h3 className="text-balance text-lg font-semibold leading-snug">
+              <h3 className="text-balance text-base font-semibold leading-snug">
                 {knownSlugs.has(a.vacancySlug) ? <Link to={`/vacancies/${a.vacancySlug}`} className={`rounded hover:underline ${focusRing}`}>{a.vacancyTitle}</Link> : a.vacancyTitle}
               </h3>
-              <p className="mt-0.5 text-sm text-ink/55">Отклик №{a.number} · отправлен {longDate(a.createdAt)}</p>
+              <p className="mt-0.5 text-xs text-ink/55">Отклик №{a.number} · отправлен {longDate(a.createdAt)}</p>
             </div>
             <span className="text-xs text-ink/45">обновлён {relativeTime(a.statusAt)}</span>
           </div>
-          <div className="mt-4 overflow-x-auto pb-1">
+          <div className="mt-3 overflow-x-auto pb-1">
             <div className="min-w-[20rem]">
               <StepTrack steps={APPLICATION_STEPS} reached={a.status === 'offer' ? APPLICATION_STEPS.length - 1 : reached} stopped={stopped} />
             </div>
           </div>
-          <div className="mt-4 flex flex-wrap items-center gap-2">
+          <div className="mt-3 flex flex-wrap items-center gap-2">
             {a.vacancySlug && (
               <Link to={`/cabinet/chat?v=${a.vacancySlug}`} className={btnPrimary}>
                 <span className="[&>svg]:h-4 [&>svg]:w-4">{icon.chat}</span>
@@ -127,7 +127,7 @@ export default function ApplicationsTab() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <section aria-label="Отклики в работе">
         <BlockHead title="В работе" note={work.length ? `${work.length} ${pluralRu(work.length, ['отклик', 'отклика', 'откликов'])}` : 'Сейчас активных откликов нет'} />
         {work.length > 0 ? <ul className="grid grid-cols-[minmax(0,1fr)] gap-3 xl:grid-cols-2">{work.map((a) => card(a, false))}</ul> : <p className="rounded-2xl bg-white/60 px-4 py-3 text-sm text-ink/60">Все отклики завершены. <Link to="/cabinet/vacancies" className="font-medium text-gold hover:text-ink">Посмотреть свежие вакансии →</Link></p>}

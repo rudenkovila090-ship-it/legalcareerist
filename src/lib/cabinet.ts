@@ -267,6 +267,18 @@ function saveBlob(blob: Blob, filename: string) {
   setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 
+/** Скачивает файл по адресу API (с входом) под заданным именем. */
+export async function downloadApiFile(path: string, filename: string): Promise<boolean> {
+  try {
+    const res = await fetch(path, { headers: { Authorization: `Bearer ${getToken()}` } })
+    if (!res.ok) return false
+    saveBlob(await res.blob(), filename)
+    return true
+  } catch {
+    return false
+  }
+}
+
 /** Скачивает файл со всеми данными человека (браузер сохранит его как moi-dannye-ДАТА.json). */
 export async function downloadMyData(): Promise<boolean> {
   try {

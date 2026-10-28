@@ -4,7 +4,7 @@ import { ActivitySection, ProfileInfoSection, SettingsSection } from './AccountS
 import { ExpectationsSection, PracticesSection, PrivacySection } from './ProfileSections'
 import { ConsentsSection, MyDataSection, VisibilitySection } from './DataSections'
 import { EventsSection, StatusSection, TelegramSection } from './CommunitySections'
-import { PodcastSection, VacanciesSection } from './CareerSections'
+import { VacanciesSection } from './CareerSections'
 import { CvSection, DocumentsSection } from './DocumentsSections'
 import { HelpSection, SupportSection } from './HelpSections'
 import { PasswordSection } from './AccountAccess'
@@ -39,7 +39,6 @@ export function sectionBody(id: string, { user, onRefresh, onRead }: BodyContext
     case 'events': return <EventsSection />
     case 'telegram': return <TelegramSection user={user} onRefresh={onRefresh} />
     case 'vacancies': return <VacanciesSection />
-    case 'podcast': return <PodcastSection />
     case 'cv': return <CvSection />
     default: return null
   }

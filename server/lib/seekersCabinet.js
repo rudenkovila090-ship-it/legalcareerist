@@ -6,6 +6,7 @@ import { mskDayKey } from './dailyReport.js'
 import { INTEREST_KINDS, interestGroup } from './interests.js'
 import { RESERVE_FIELDS } from './reserve.js'
 import { APPLICATION_STATUSES, statusOf } from './candidateApplications.js'
+import { RECOMMENDATION_STATUSES } from './careerData.js'
 
 const MSK = 'Europe/Moscow'
 const rub = (n) => `${Math.round(n).toLocaleString('ru-RU')} ₽`
@@ -149,6 +150,24 @@ export function applicationCard(a, vacancyKey) {
   const keyboard = [[pick('forwarded'), pick('interview')], [pick('offer'), pick('rejected')]]
   if (vacancyKey) keyboard.push([{ text: '⬅️ Отклики вакансии', callback_data: `a:s:vapps:${vacancyKey}` }])
   keyboard.push([{ text: '⬅️ Последние отклики', callback_data: 'a:s:apps' }, { text: '🏠 Меню', callback_data: 'a:menu' }])
+  return { text: lines.join('\n'), keyboard }
+}
+
+/** Карточка запроса рекомендации (раздел «Построение карьеры» кабинета): что просят и кнопки смены статуса. Текст рекомендации — ответом (Reply). */
+export function recommendationCard(r) {
+  const lines = [
+    `⭐ Запрос рекомендации №${r.number}`,
+    '',
+    `Куда: ${r.target}${r.company ? ` · ${r.company}` : ''}`,
+    ...(r.link ? [`Ссылка: ${r.link}`] : []),
+    ...(r.deadline ? [`Когда нужна: ${r.deadline}`] : []),
+    ...(r.focus ? ['', `Что подчеркнуть: ${r.focus}`] : []),
+    '',
+    `Статус: ${RECOMMENDATION_STATUSES[r.status] ?? r.status} (с ${ruDateTime(r.updatedAt)})`,
+    ...(r.status === 'ready' ? ['', 'Рекомендация уже в кабинете человека.'] : ['', '↩️ Текст рекомендации отправьте ответом (Reply) на исходное сообщение запроса: он попадёт в кабинет, статус станет «Готово».']),
+  ]
+  const keyboard = r.status === 'ready' || r.status === 'declined' ? [] : [[{ text: '🛠 Взять в работу', callback_data: `a:s:recst:${r.number}:work` }, { text: '🚫 Отклонить', callback_data: `a:s:recst:${r.number}:declined` }]]
+  keyboard.push([{ text: '🏠 Меню', callback_data: 'a:menu' }])
   return { text: lines.join('\n'), keyboard }
 }
 
