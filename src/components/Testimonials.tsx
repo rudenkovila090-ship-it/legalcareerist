@@ -1,7 +1,13 @@
+import { Stars } from './MaterialRating'
+
 export interface Testimonial {
   text: string
   author: string
-  role: string
+  role?: string
+  /** Дата отзыва, как её показываем («28 октября 2026»). */
+  date?: string
+  /** Оценка 1–5: показываем звёзды, только если автор её поставил. */
+  rating?: number
 }
 
 function DotGrid({ className }: { className?: string }) {
@@ -24,7 +30,8 @@ function TestimonialCard({ t, compact }: { t: Testimonial; compact?: boolean }) 
       <div className="relative flex justify-end">
         <div className="rounded-full bg-white/70 px-4 py-2 text-right">
           <div className="text-sm font-semibold text-ink">{t.author}</div>
-          <div className="text-xs text-ink/50">{t.role}</div>
+          {t.rating && <div className="mt-0.5 flex justify-end"><Stars rating={t.rating} size="h-3.5 w-3.5" /></div>}
+          {(t.role || t.date) && <div className="text-xs text-ink/50">{[t.role, t.date].filter(Boolean).join(' · ')}</div>}
         </div>
       </div>
       <blockquote
@@ -63,7 +70,7 @@ export default function Testimonials({
             <div className="overflow-hidden">
               <div className="animate-marquee flex w-max gap-4">
                 {[...items, ...items].map((t, i) => (
-                  <div key={t.author + t.role + i} className="h-56 w-72 shrink-0 sm:w-80">
+                  <div key={t.author + t.date + t.role + i} className="h-56 w-72 shrink-0 sm:w-80">
                     <TestimonialCard t={t} compact />
                   </div>
                 ))}
@@ -72,7 +79,7 @@ export default function Testimonials({
           ) : (
             <div className="grid gap-4 md:grid-cols-2">
               {items.map((t) => (
-                <TestimonialCard key={t.author + t.role} t={t} compact={compact} />
+                <TestimonialCard key={t.author + t.date + t.role} t={t} compact={compact} />
               ))}
             </div>
           )
