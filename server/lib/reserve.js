@@ -28,10 +28,10 @@ export function setReserveField(number, field, value) {
   return c ? store.update(c.token, (x) => ({ ...x, [field]: value })) : null
 }
 
-/** «Резюме не нужно»: кандидат остаётся в резерве, но не числится в делах «без ссылки на резюме». */
-export function skipResume(number) {
+/** Резюме получено (кандидат прислал его владельцу в Telegram): кандидат уходит из дел «резюме не получено». */
+export function markResumeReceived(number) {
   const c = getReserveCandidate(number)
-  return c ? store.update(c.token, (x) => ({ ...x, resumeSkipped: Date.now() })) : null
+  return c ? store.update(c.token, (x) => ({ ...x, resumeReceivedAt: Date.now() })) : null
 }
 
 export function deleteReserveCandidate(number) {

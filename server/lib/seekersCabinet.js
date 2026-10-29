@@ -377,7 +377,7 @@ export function reserveCard(c) {
     c.telegram ? `💬 Telegram: ${c.telegram}` : null,
     c.phone ? `📞 Телефон: ${c.phone}` : null,
     c.email ? `✉️ Почта: ${c.email}` : null,
-    `🔗 Резюме: ${c.resumeUrl || (c.resumeSkipped ? 'не требуется (отмечено в сводке дня)' : 'ссылка не прикреплена')}`,
+    `🔗 Резюме: ${c.resumeUrl || (c.resumeReceivedAt ? `получено в Telegram ${ruDate(c.resumeReceivedAt)}` : c.resumeSkipped ? 'не требуется' : 'ссылка не прикреплена')}`,
     `📅 Заявка: ${ruDate(c.createdAt)}`,
     `📣 Источник: ${c.utm}`,
     c.howHeard ? `🗣 Откуда узнали: ${c.howHeard}` : null,

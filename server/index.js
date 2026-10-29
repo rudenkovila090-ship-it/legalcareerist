@@ -76,7 +76,7 @@ import { healthLines, makeBackup, readBackupState, writeBackupState } from './li
 import { listTodos, addTodo, setTodoDone, ensureTodo } from './lib/todos.js'
 import { todosScreen, TODO_PROMPT, chatCheckScreen, userCard, botUsersScreen, notificationsScreen, reviewsScreen, reviewCard, promosScreen, PROMO_PROMPT, ambassadorsScreen, ambassadorCard, AMBASSADOR_PROMPT, retentionScreen, cancelCard, financeSummary, forecastScreen, expensesScreen, EXPENSE_PROMPT, parseExpense, eventRegistrationsScreen, eventScreen, eventLeadCard, eventRequestsScreen, eventsMonthSummary, FIND_PROMPT, searchScreen, systemScreen, auditScreen, monthKeyFor as extraMonthKey } from './lib/extraCabinet.js'
 import { createInterest, getInterest, listInterests, markInterestDone, closeInterest, snoozeInterest, REMIND_AFTER_DAYS } from './lib/interests.js'
-import { createReserveCandidate, listReserve, getReserveCandidate, setReserveField, deleteReserveCandidate, skipResume } from './lib/reserve.js'
+import { createReserveCandidate, listReserve, getReserveCandidate, setReserveField, deleteReserveCandidate, markResumeReceived } from './lib/reserve.js'
 import { applicationCard, recommendationCard, reserveListScreen, reserveCard, reserveFieldPrompt, reserveDeleteConfirm, RESERVE_NEW_PROMPT, INTEREST_KIND_KEYBOARD, interestPrompt, interestsScreen, interestCard, SEEKERS_KEYBOARD, buildVacancyViews, vacanciesScreen, vacancyCard, vacancyApplicationsScreen, recentApplicationsScreen, consultationsScreen, consultationCard, seekersMonthSummary } from './lib/seekersCabinet.js'
 import { incrementArticleView, getArticleViews } from './lib/articleStats.js'
 import { incrementNewsView, getNewsViews } from './lib/newsStats.js'
@@ -107,7 +107,7 @@ import { renderTicketPdf, hasTicketImage, maskEmail } from './lib/ticketImage.js
 import { composeTicketMail, composeReminderMail } from './lib/ticketMail.js'
 import { buildDailyReport, mskDayKey, parseReportPeriod } from './lib/dailyReport.js'
 import { logWebhook, lastWebhook, webhookEventsFor } from './lib/webhookLog.js'
-import { digestScreen, overdueScreen, overdueCard, chargesTodayScreen, consultTasksScreen, requestTasksScreen, resumeTasksScreen, interestTasksScreen, dealTasksScreen, cancelTasksScreen, cancelReasonPicker, unsubscribeConfirm, nudgeConfirm, NEXT_DATE_PROMPT, SNOOZE_DAYS } from './lib/dayTasks.js'
+import { digestScreen, overdueScreen, overdueCard, endedScreen, endedPlanScreen, planAction, endedJoins, overdueReason, isSnoozed, cancelledAccessOver, hasOtherActive, chargesTodayScreen, consultTasksScreen, requestTasksScreen, resumeTasksScreen, interestTasksScreen, dealTasksScreen, cancelTasksScreen, cancelReasonPicker, unsubscribeConfirm, nudgeConfirm, NEXT_DATE_PROMPT, SNOOZE_DAYS } from './lib/dayTasks.js'
 import { FINANCE_KEYBOARD, COMMUNITY_KEYBOARD, sectionScreen, menuScreen, subscribersScreen, planScreen, dueScreen, cancelledScreen, reminderMenuScreen, reminderPreviewScreen, reminderTargets, reminderMessage, planAmount, CANCEL_REASONS } from './lib/adminCabinet.js'
 import crypto from 'node:crypto'
 import fs from 'node:fs'
@@ -877,6 +877,10 @@ async function handleChatMember(event) {
   const inChat = (s) => s === 'member' || s === 'administrator' || s === 'creator'
   const was = event.old_chat_member?.status
   const now = event.new_chat_member?.status
+  const cards = listJoins().filter((c) => String(c.tgUserId ?? '') === String(user.id))
+  if (!inChat(was) && inChat(now)) for (const c of cards) patchJoin(c.token, { inChat: true })
+  else if (inChat(was) && (now === 'left' || now === 'kicked')) for (const c of cards) patchJoin(c.token, { inChat: false })
+  membershipCache.delete(String(user.id))
   const resident = residentByTelegramId(user.id)
   if (!resident) return
   if (!inChat(was) && inChat(now) && !resident.joinedAt && !event.via_join_request) { // вступившие по заявке уже учтены в handleJoinRequest
@@ -2193,6 +2197,112 @@ async function sendBackup(caption) {
 
 const menuBack = (text, data) => [[{ text, callback_data: data }, { text: '🏠 Меню', callback_data: 'a:menu' }]]
 const DAY_MS = 24 * 3600 * 1000
+const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
+/**
+ * Где человек сейчас по отношению к чату сообщества (getChatMember): in — в чате, out — нет (вышел, исключён, не вступал), admin — администратор
+ * или владелец чата, none — у карточки нет Telegram id, unknown — Telegram не ответил (тогда ничего не делаем).
+ */
+async function chatMembership(tgUserId) {
+  if (!tgUserId) return 'none'
+  try {
+    const res = await telegramFetch('getChatMember', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: COMMUNITY_CHAT_ID, user_id: Number(tgUserId) }) })
+    const data = await res.json()
+    if (!data.ok) return /user not found|PARTICIPANT_ID_INVALID/i.test(String(data.description ?? '')) ? 'out' : 'unknown'
+    const m = data.result ?? {}
+    if (m.status === 'creator' || m.status === 'administrator') return 'admin'
+    if (m.status === 'left' || m.status === 'kicked' || (m.status === 'restricted' && m.is_member === false)) return 'out'
+    return 'in'
+  } catch {
+    return 'unknown'
+  }
+}
+
+const membershipCache = new Map()
+/** То же с кэшем на минуту: пока админ листает списки, Telegram не дёргаем заново. */
+async function membershipOf(join) {
+  if (!join.tgUserId) return 'none'
+  const hit = membershipCache.get(String(join.tgUserId))
+  if (hit && Date.now() - hit.at < 60 * 1000) return hit.mem
+  const mem = await chatMembership(join.tgUserId)
+  if (mem !== 'unknown') membershipCache.set(String(join.tgUserId), { at: Date.now(), mem })
+  return mem
+}
+
+/** Телефон и почту, которых нет в карточке подписки, берём из карточки человека в боте: админу они нужны, чтобы проверить оплату в Prodamus. */
+const withContacts = (joins) =>
+  joins.map((j) => {
+    const u = j.tgUserId ? getBotUser(j.tgUserId) : null
+    return u && (!j.phone || !j.email) ? { ...j, phone: j.phone || u.phone || '', email: j.email || u.email || '' } : j
+  })
+
+/** Список просрочки (оплату ещё можно получить). */
+const overdueView = async (now) => overdueScreen(withContacts(listJoins()), TARIFFS, now)
+
+/** Список «Срок вышел» с проверкой, в чате ли каждый (до 12 человек за раз). */
+async function endedView(now) {
+  const joins = withContacts(listJoins())
+  const list = endedJoins(joins, now).filter((j) => !isSnoozed(j, now))
+  const membership = new Map()
+  for (const j of list.slice(0, 12)) membership.set(j.token, await membershipOf(j))
+  return endedScreen(joins, TARIFFS, now, membership)
+}
+
+/** Карточка человека из просрочки или «Срок вышел»: контакты, причина, что присылал Prodamus, где он (в чате или нет) и подходящая кнопка. */
+async function overdueCardFor(token, now) {
+  const joins = withContacts(listJoins())
+  const j = joins.find((x) => x.token === token)
+  if (!j) return overdueView(now)
+  const ended = overdueReason(j, now).code === 'ended'
+  const membership = ended ? await membershipOf(j) : undefined
+  const events = webhookEventsFor({ profileId: j.prodamusProfileId, subscriptionIds: (j.payments ?? []).map((p) => p.subscriptionId) })
+  return overdueCard(j, TARIFFS, now, events, ended ? { membership, plan: planAction(j, membership, joins, now) } : {})
+}
+
+/** Возврат к нужному списку после действия над человеком. */
+const backViewFor = async (j, now) => (j && overdueReason(withContacts([j])[0], now).code === 'ended' ? endedView(now) : overdueView(now))
+
+/** План закрытия доступа тем, у кого срок вышел (до 15 за раз): что делать с каждым, исходя из того, где он сейчас. */
+async function buildEndedPlan(now) {
+  const joins = withContacts(listJoins())
+  const plan = []
+  for (const j of endedJoins(joins, now).filter((x) => !isSnoozed(x, now)).slice(0, 15)) {
+    const mem = await membershipOf(j)
+    plan.push({ join: j, mem, ...planAction(j, mem, joins, now) })
+  }
+  return plan
+}
+
+/** Убрать из активных без исключения и без сообщения человеку (его нет в чате или это лишняя карточка). */
+function closeQuietly(join, now, by = 'admin') {
+  setSubscriptionActive(join.token, false, now)
+  if (!getJoin(join.token)?.cancelReason) setCancelReason(join.token, 'expired')
+  patchJoin(join.token, { cancelledBy: by, snoozedUntil: undefined })
+}
+
+/** Выполняет план: исключает из чата и пишет (kick), тихо закрывает (close), отмечает (mark). Возвращает счётчики. */
+async function runEndedPlan(plan, now, by = 'admin') {
+  const done = { kicked: 0, closed: 0, marked: 0, skipped: 0, failed: [] }
+  for (const p of plan) {
+    const j = p.join
+    if (p.action === 'kick') {
+      if (await kickAndNotify(j)) {
+        patchJoin(j.token, { cancelledBy: by })
+        done.kicked += 1
+      } else done.failed.push(j)
+      await pause(300)
+    } else if (p.action === 'close') {
+      closeQuietly(j, now, by)
+      done.closed += 1
+    } else if (p.action === 'mark') {
+      patchJoin(j.token, { inChat: false })
+      done.marked += 1
+    } else done.skipped += 1
+  }
+  return done
+}
+
+const doneLines = (done) => [done.kicked ? `🚪 Исключено из чата: ${done.kicked}` : null, done.closed ? `🔕 Убрано из активных: ${done.closed}` : null, done.marked ? `✅ Отмечено (их нет в чате): ${done.marked}` : null, done.skipped ? `⏭ Пропущено: ${done.skipped}` : null, done.failed.length ? `⚠️ Не удалось исключить: ${done.failed.map((j) => j.name || j.telegram || j.phone).join(', ')}` : null].filter(Boolean).join('\n')
 
 /** Экран с пометкой сверху: что только что сделала нажатая кнопка. */
 const withNote = (screen, note) => (note ? { ...screen, text: `${note}\n\n${screen.text}` } : screen)
@@ -2264,50 +2374,67 @@ async function extrasAction(parts, now, chatId) {
     case 'kickok': {
       const j = getJoin(arg)
       const ok = j ? await kickAndNotify(j) : false
-      return { text: ok ? '🚪 Готово: человек исключён из чата, ему отправлено сообщение.' : '⚠️ Не удалось исключить: нет Telegram id или бот не администратор чата. Подробности в логе.', keyboard: [[{ text: '⬅️ К просрочке', callback_data: 'a:x:over' }, { text: '🌅 К сводке дня', callback_data: 'a:x:digest' }]] }
+      if (ok) patchJoin(j.token, { cancelledBy: 'admin', snoozedUntil: undefined })
+      return withNote(await endedView(now), ok ? `🚪 Готово: ${j.name || j.telegram || j.phone} исключён(а) из чата, ему отправлено сообщение.` : '⚠️ Не удалось исключить: нет Telegram id или бот не администратор чата. Подробности в логе.')
     }
     case 'over':
-      return overdueScreen(data.joins, TARIFFS, now)
-    case 'ovc': {
-      const j = getJoin(arg)
-      return j ? overdueCard(j, TARIFFS, now, webhookEventsFor({ profileId: j.prodamusProfileId, subscriptionIds: (j.payments ?? []).map((p) => p.subscriptionId) })) : overdueScreen(data.joins, TARIFFS, now)
-    }
+      return overdueView(now)
+    case 'ovc':
+      return overdueCardFor(arg, now)
     case 'ovsnz': {
       const j = getJoin(arg)
       if (j) patchJoin(j.token, { snoozedUntil: now + SNOOZE_DAYS * DAY_MS })
-      return withNote(overdueScreen(listJoins(), TARIFFS, now), j ? `⏰ Отложено на ${SNOOZE_DAYS} дня: ${j.name || j.telegram || j.phone}. В сводку вернётся ${ruDateShort(now + SNOOZE_DAYS * DAY_MS)}, если оплаты не будет.` : null)
+      return withNote(await backViewFor(j, now), j ? `⏰ Отложено на ${SNOOZE_DAYS} дня: ${j.name || j.telegram || j.phone}. В сводку вернётся ${ruDateShort(now + SNOOZE_DAYS * DAY_MS)}, если оплаты не будет.` : null)
     }
     case 'ovdate': {
       const j = getJoin(arg)
-      if (!j) return overdueScreen(data.joins, TARIFFS, now)
+      if (!j) return overdueView(now)
       adminInput.set(String(chatId), { type: 'next-date', token: j.token })
       return { text: NEXT_DATE_PROMPT(j), keyboard: [[{ text: '⬅️ К карточке', callback_data: `a:x:ovc:${j.token}` }]] }
     }
     case 'ovcxl': {
       const j = getJoin(arg)
-      return j ? unsubscribeConfirm(j) : overdueScreen(data.joins, TARIFFS, now)
+      return j ? unsubscribeConfirm(j) : overdueView(now)
     }
     case 'ovcxlok': {
       const j = getJoin(arg)
-      if (!j) return overdueScreen(data.joins, TARIFFS, now)
+      if (!j) return overdueView(now)
+      // Срок вышел: тихо закрываем (причина «срок истёк» ставится сама); иначе спрашиваем причину отписки
+      if (overdueReason(withContacts([j])[0], now).code === 'ended') {
+        closeQuietly(j, now)
+        return withNote(await endedView(now), `🔕 ${j.name || j.telegram || j.phone}: убран(а) из активных, из чата не исключали, ничего не отправляли.`)
+      }
       setSubscriptionActive(j.token, false, now)
       patchJoin(j.token, { cancelledBy: 'admin', snoozedUntil: undefined })
       return withNote(cancelReasonPicker(getJoin(j.token)), '🔕 Отписан(а): из просрочки убран(а).')
     }
+    case 'endall': {
+      const plan = await buildEndedPlan(now)
+      return plan.length ? endedPlanScreen(plan) : endedView(now)
+    }
+    case 'endok': {
+      const plan = await buildEndedPlan(now)
+      const done = await runEndedPlan(plan, now)
+      return withNote(await endedView(now), `✅ Готово.\n${doneLines(done)}`)
+    }
+    case 'endone': {
+      const j = getJoin(arg)
+      if (j) patchJoin(j.token, { inChat: false })
+      return withNote(await endedView(now), j ? `✅ ${j.name || j.telegram || j.phone}: отмечено, его нет в чате.` : null)
+    }
     case 'ovn': {
       const j = getJoin(arg)
-      return j ? nudgeConfirm(j, chargeFailedText(planAmount(j, TARIFFS), j.nextPaymentAt)) : overdueScreen(data.joins, TARIFFS, now)
+      return j ? nudgeConfirm(j, chargeFailedText(planAmount(j, TARIFFS), j.nextPaymentAt)) : overdueView(now)
     }
     case 'ovnok': {
       const j = getJoin(arg)
-      if (!j) return overdueScreen(data.joins, TARIFFS, now)
-      const card = () => overdueCard(getJoin(j.token), TARIFFS, now, webhookEventsFor({ profileId: j.prodamusProfileId, subscriptionIds: (j.payments ?? []).map((p) => p.subscriptionId) }))
-      if (j.lastManualNoticeAt && now - j.lastManualNoticeAt < 6 * 3600 * 1000) return withNote(card(), `Напоминание уже отправляли ${ruDateShort(j.lastManualNoticeAt)} в последние 6 часов, повторно не отправляю.`)
+      if (!j) return overdueView(now)
+      if (j.lastManualNoticeAt && now - j.lastManualNoticeAt < 6 * 3600 * 1000) return withNote(await overdueCardFor(j.token, now), `Напоминание уже отправляли ${ruDateShort(j.lastManualNoticeAt)} в последние 6 часов, повторно не отправляю.`)
       const amount = planAmount(j, TARIFFS)
       const r = await notifyResident(j, { text: chargeFailedText(amount, j.nextPaymentAt), keyboard: CHARGE_FAILED_KEYBOARD }, composeChargeFailedMail({ name: j.name, amount, chargeAt: j.nextPaymentAt, ...mailContext() }))
       patchJoin(j.token, { watch: 'charge', chargeFailedNoticeFor: j.nextPaymentAt, lastManualNoticeAt: now })
       if (j.tgUserId) addTag(j.tgUserId, 'контроль_списания')
-      return withNote(card(), `🔔 Напоминание отправлено: ${r.bot ? 'бот ✅' : r.bot === false ? 'бот ❌' : 'бота нет'}, ${r.mail ? 'почта ✅' : r.mail === false ? 'почта ❌' : 'почты нет'}.`)
+      return withNote(await overdueCardFor(j.token, now), `🔔 Напоминание отправлено: ${r.bot ? 'бот ✅' : r.bot === false ? 'бот ❌' : 'бота нет'}, ${r.mail ? 'почта ✅' : r.mail === false ? 'почта ❌' : 'почты нет'}.`)
     }
     case 'dg': {
       switch (arg) {
@@ -2325,6 +2452,8 @@ async function extrasAction(parts, now, chatId) {
           return cancelTasksScreen(listJoins(), now)
         case 'chg':
           return chargesTodayScreen(data, TARIFFS, now)
+        case 'end':
+          return endedView(now)
         default:
           return digestScreen(data, TARIFFS, now, currentHealth())
       }
@@ -2338,14 +2467,8 @@ async function extrasAction(parts, now, chatId) {
       return withNote(requestTasksScreen(listEventLeads(), now), `✅ Заявка №${arg} обработана`)
     }
     case 'dgres': {
-      skipResume(arg)
-      return withNote(resumeTasksScreen(listReserve()), `🙅 Кандидат №${arg}: резюме не нужно`)
-    }
-    case 'dgresurl': {
-      const c = getReserveCandidate(arg)
-      if (!c) return resumeTasksScreen(listReserve())
-      adminInput.set(String(chatId), { type: 'reserve-field', number: c.number, field: 'resumeUrl', then: 'dgres' })
-      return { ...reserveFieldPrompt(c, 'resumeUrl'), keyboard: [[{ text: '⬅️ К списку', callback_data: 'a:x:dg:res' }]] }
+      markResumeReceived(arg)
+      return withNote(resumeTasksScreen(listReserve()), `✅ Кандидат №${arg}: резюме получено`)
     }
     case 'dgint': {
       if (arg2 === 'done') markInterestDone(arg)
@@ -2774,7 +2897,7 @@ async function handlePendingInput(chatId, pending, text) {
       return
     }
     setReserveField(pending.number, pending.field, value)
-    const screen = pending.then === 'dgres' ? resumeTasksScreen(listReserve()) : reserveScreen(pending.number)
+    const screen = reserveScreen(pending.number)
     await sendLongMessage(chatId, `✅ Сохранено.\n\n${screen.text}`, screen.keyboard)
     return
   }
@@ -2795,7 +2918,7 @@ async function handlePendingInput(chatId, pending, text) {
       return
     }
     patchJoin(j.token, { nextPaymentAt: at, snoozedUntil: undefined })
-    const screen = overdueScreen(listJoins(), TARIFFS, now)
+    const screen = await overdueView(now)
     await sendLongMessage(chatId, `✅ ${j.name || j.telegram || j.phone}: следующее списание ${ruDateShort(at)}. Из просрочки убран(а); если в этот день оплаты не будет, вернётся.\n\n${screen.text}`, screen.keyboard)
     return
   }
@@ -2951,8 +3074,8 @@ async function adminScreen(data, now, chatId) {
 
 // Кнопки, которые что-то меняют или отправляют данные: помощникам (только просмотр) они недоступны, в журнал попадают только они.
 // Кнопки, которые только открывают ввод текста или подтверждение — в журнал не пишем (запишется само действие).
-const PROMPT_ONLY = /^a:(k:(rev|new)|s:(ikind|inew|rnew|redit|rdel)|x:(tnew|ambnew|ambdel|fexpnew|evpaid|promonew|ovdate|dgresurl))\b/
-const MUTATING = /^a:(k:(adv|back|q1|q0|lost|reopen|revok|rev|new|pp|pf)|s:(vst|cst|idone|iclose|isnooze|ikind|inew|rnew|redit|rdel|rdelok)|x:(grant|promonew|promodel|tnew|tdone|ambnew|ambplus|ambdel|ambdelok|kickok|rvok|rvno|cr|fexpnew|fexpdel|evst|evpaid|backup|erase|pdgo|impgo|impall|dgcon|dgev|dgres|dgresurl|dgint|dgdeal|dgcr|ovsnz|ovdate|ovcxlok|ovnok)|remgo)\b/
+const PROMPT_ONLY = /^a:(k:(rev|new)|s:(ikind|inew|rnew|redit|rdel)|x:(tnew|ambnew|ambdel|fexpnew|evpaid|promonew|ovdate))\b/
+const MUTATING = /^a:(k:(adv|back|q1|q0|lost|reopen|revok|rev|new|pp|pf)|s:(vst|cst|idone|iclose|isnooze|ikind|inew|rnew|redit|rdel|rdelok)|x:(grant|promonew|promodel|tnew|tdone|ambnew|ambplus|ambdel|ambdelok|kickok|rvok|rvno|cr|fexpnew|fexpdel|evst|evpaid|backup|erase|pdgo|impgo|impall|dgcon|dgev|dgres|dgint|dgdeal|dgcr|ovsnz|ovdate|ovcxlok|ovnok|endok|endone)|remgo)\b/
 
 /** Нажатие кнопки кабинета — от админа (все кнопки) или помощника (только просмотр); остальным молча отвечаем. */
 async function handleAdminCallback(query) {
@@ -3905,7 +4028,9 @@ async function kickAndNotify(join) {
     return false
   }
   setSubscriptionActive(join.token, false, Date.now())
-  setCancelReason(join.token, 'expired')
+  if (!getJoin(join.token)?.cancelReason) setCancelReason(join.token, 'expired') // настоящую причину отписки, если её указали, не затираем
+  for (const card of listJoins().filter((c) => String(c.tgUserId ?? '') === String(join.tgUserId))) patchJoin(card.token, { inChat: false })
+  membershipCache.delete(String(join.tgUserId))
   return true
 }
 
@@ -3938,6 +4063,32 @@ async function processExpiry() {
         await sendTelegramMessage(ADMIN_CHAT_ID, `⏰ Срок разовой подписки истёк: ${[j.name, j.telegram, j.phone].filter(Boolean).join(', ')}\nОплаты продления нет.`, [[{ text: '🚪 Исключить из чата', callback_data: `a:x:kick:${j.token}` }]])
       }
     }
+  }
+  // Подписки с автопродлением, у которых срок вышел (Prodamus перестал пробовать, прошло больше 4 дней или подписка отключена, а человек в чате):
+  // по умолчанию их закрывает владелец кнопкой в сводке дня («Срок вышел»), при AUTO_EXCLUDE=1 бот делает это сам.
+  if (process.env.AUTO_EXCLUDE === '1') {
+    const plan = (await buildEndedPlan(now)).filter((p) => !p.join.oneTime && p.action !== 'skip')
+    if (plan.length) {
+      const done = await runEndedPlan(plan, now, 'auto')
+      await sendTelegramMessage(ADMIN_CHAT_ID, `🚪 Автоматически закрыт доступ (срок подписки вышел).\n${doneLines(done)}\n\n${plan.map((p) => `• ${p.join.name || p.join.telegram || '—'} · ${p.join.phone || 'телефона нет'} — ${p.action === 'kick' ? 'исключён(а)' : 'убран(а) из активных'}`).join('\n')}`, undefined, quiet()).catch(() => false)
+    }
+  }
+  return true
+}
+
+/**
+ * Ежедневная сверка с чатом: отписанные, у которых оплаченный срок вышел, — в чате они или уже нет (бот не умеет перечислять участников
+ * чата, поэтому спрашивает про каждого известного). Результат (inChat) попадает в «Срок вышел» в сводке дня. Выходы и вступления
+ * дальше отслеживаются событиями chat_member.
+ */
+async function refreshChatMembership() {
+  const now = Date.now()
+  const joins = listJoins()
+  const todo = joins.filter((j) => cancelledAccessOver(j, now) && j.inChat !== false && !hasOtherActive(j, joins, now)).slice(0, 150)
+  for (const j of todo) {
+    const mem = await chatMembership(j.tgUserId)
+    if (mem !== 'unknown') patchJoin(j.token, { inChat: mem === 'in', inChatCheckedAt: now })
+    await pause(150)
   }
   return true
 }
@@ -4111,6 +4262,7 @@ if (process.env.DISABLE_DAILY_REPORT !== '1') {
   setInterval(() => afterResponse('expiry', () => runDailyOnce('expiry', 10, processExpiry)), 60 * 1000)
   setInterval(() => afterResponse('review-flow', processReviewFlow), 60 * 1000)
   setInterval(() => afterResponse('event-reminders', () => runDailyOnce('eventReminders', 10, sendEventReminders)), 60 * 1000)
+  setInterval(() => afterResponse('chat-membership', () => runDailyOnce('chatMembership', 8, refreshChatMembership)), 60 * 1000)
   setInterval(() => afterResponse('morning-digest', () => runDailyOnce('digest', 9, sendMorningDigest)), 60 * 1000)
   setInterval(() => afterResponse('evening-close', () => runDailyOnce('eveningClose', 20, sendEveningClose)), 60 * 1000)
   setInterval(() => afterResponse('retention', () => runDailyOnce('retention', 4, runRetentionJob)), 60 * 1000)
@@ -4126,7 +4278,7 @@ process.on('unhandledRejection', (err) => console.error('[unhandledRejection]', 
 process.on('uncaughtException', (err) => console.error('[uncaughtException]', err))
 
 // Для автотестов: доступ к фоновым задачам без ожидания расписания.
-if (process.env.TEST_HOOKS === '1') globalThis.__hooks = { runRetentionJob, sendEventReminders, processExpiry, processReviewFlow, sendAutoResidentReminders, sendMorningDigest, sendEveningClose, sendPendingNoticesIfDue }
+if (process.env.TEST_HOOKS === '1') globalThis.__hooks = { runRetentionJob, sendEventReminders, processExpiry, processReviewFlow, sendAutoResidentReminders, sendMorningDigest, sendEveningClose, refreshChatMembership, sendPendingNoticesIfDue }
 
 const PORT = process.env.PORT || 3001
 ensureBuiltInPromos()
