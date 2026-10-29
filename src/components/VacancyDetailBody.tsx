@@ -156,13 +156,26 @@ export default function VacancyDetailBody({ vacancy, extra }: { vacancy: Vacancy
         </div>
       )}
 
-      {vacancy.responsibilities && vacancy.responsibilities.length > 0 ? (
+      {(vacancy.responsibilityGroups?.length || vacancy.responsibilities?.length) ? (
         <div className="mt-8 grid gap-6 sm:grid-cols-2">
           <div>
             <h2 className="font-semibold">Задачи на позиции</h2>
-            <ul className="mt-2 list-outside list-disc pl-5 space-y-1 text-ink/70">
-              {vacancy.responsibilities.map((r) => <li key={r}>{r}</li>)}
-            </ul>
+            {vacancy.responsibilityGroups?.length ? (
+              <div className="mt-2 space-y-4">
+                {vacancy.responsibilityGroups.map((g) => (
+                  <div key={g.title}>
+                    <h3 className="text-sm font-semibold text-ink">{g.title}</h3>
+                    <ul className="mt-1 list-outside list-disc pl-5 space-y-1 text-ink/70">
+                      {g.items.map((r) => <li key={r}>{r}</li>)}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <ul className="mt-2 list-outside list-disc pl-5 space-y-1 text-ink/70">
+                {vacancy.responsibilities?.map((r) => <li key={r}>{r}</li>)}
+              </ul>
+            )}
           </div>
           <div>
             <h2 className="font-semibold">Требования</h2>

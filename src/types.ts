@@ -207,6 +207,8 @@ export interface Vacancy extends Tagged {
   highlights?: { title: string; description: string }[]
   /** «Что предстоит делать» — если задано, requirements выводится рядом как «Кого мы ищем». */
   responsibilities?: string[]
+  /** То же, что responsibilities, но с подзаголовками (работодатель разбил задачи по направлениям); если задано, выводится вместо плоского списка. */
+  responsibilityGroups?: { title: string; items: string[] }[]
   /** Направления деятельности компании — теги под условиями. */
   practiceAreas?: string[]
   contactPhone?: string
