@@ -99,6 +99,7 @@ export function dealCard(d, now = Date.now()) {
         { text: '🚫 Не квалифицирован', callback_data: `a:k:q0:${d.number}` },
       ])
     }
+    if (d.nextReminderAt && d.nextReminderAt <= now) keyboard.push([{ text: '✅ Сделал(а) — напомнить позже', callback_data: `a:x:dgdeal:${d.number}` }])
     const next = STAGES.find((s) => s.id === d.stage + 1)
     keyboard.push([{ text: next ? `➡️ Этап ${next.id}: ${next.name}` : '✅ Завершить сделку', callback_data: `a:k:adv:${d.number}` }])
     keyboard.push(...payRows)

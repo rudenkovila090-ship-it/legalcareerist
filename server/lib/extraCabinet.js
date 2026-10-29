@@ -5,8 +5,7 @@ import { rub, who, planAmount, ruDay, CANCEL_REASONS } from './adminCabinet.js'
 import { mskDayKey } from './dailyReport.js'
 import { EVENT_STATUSES } from './eventLeads.js'
 import { hasTicketImage } from './ticketImage.js'
-import { dealsDueForReminder, dealPayments, stageOf } from './deals.js'
-import { interestsDueForReminder, INTEREST_KINDS } from './interests.js'
+import { dealPayments } from './deals.js'
 import { NOTIFY_OPTIONS } from './adminSettings.js'
 import { reviewText } from './materialReviews.js'
 
@@ -76,24 +75,6 @@ export function ambassadorCard(a) {
 }
 
 // ---- Просрочено, удержание, причины отписок ----
-
-/** Активные подписчики, у которых время списания прошло больше 12 часов назад, а оплата не зафиксирована. */
-export function overdueScreen(joins, tariffs, now) {
-  const list = joins.filter((j) => j.status === 'active' && j.nextPaymentAt && j.nextPaymentAt < now - 12 * 3600 * 1000).sort((a, b) => a.nextPaymentAt - b.nextPaymentAt)
-  const backRow = back('⬅️ Сообщество', 'a:sec:community')
-  if (!list.length) return { text: '⚠️ Просроченных списаний нет — у всех активных подписчиков оплата зафиксирована вовремя.', keyboard: [backRow] }
-  const lines = [`⚠️ Списание не прошло или не дошло до нас: ${list.length}`, '', 'Время списания прошло, а новой оплаты нет:', '']
-  for (const j of list) {
-    const days = Math.floor((now - j.nextPaymentAt) / DAY)
-    lines.push(`• ${who(j)} — ${rub(planAmount(j, tariffs)) } · ждали ${ruDate(j.nextPaymentAt)}${days ? ` (${days} дн. назад)` : ''}`)
-  }
-  lines.push('', 'Стоит написать человеку и проверить платёж в Prodamus.')
-  const keyboard = list.slice(0, 10).map((j) => {
-    const label = (j.name && j.name !== '—' ? j.name : j.telegram || j.phone || 'без имени').slice(0, 24)
-    return [...(j.telegram ? [{ text: `✉️ ${label}`, url: tgUrl(j.telegram) }] : []), { text: `🚪 Исключить: ${label}`, callback_data: `a:x:kick:${j.token}` }]
-  })
-  return { text: lines.join('\n'), keyboard: [...keyboard, backRow] }
-}
 
 /** Удержание: сколько людей продлили, сколько ушли, сколько платежей в среднем. */
 export function retentionScreen(joins) {
@@ -362,55 +343,9 @@ export function searchScreen(query, data, tariffs) {
 
 // ---- Сводка дня и система ----
 
-/** Утренняя сводка: что требует внимания сегодня. healthLines — строки проверки системы. */
-export function digestScreen(data, tariffs, now, healthLines = []) {
-  const today = mskDayKey(now)
-  const yesterday = mskDayKey(now - DAY)
-  const chargesToday = data.joins.filter((j) => j.status === 'active' && j.nextPaymentAt && mskDayKey(j.nextPaymentAt) === today)
-  const overdue = data.joins.filter((j) => j.status === 'active' && j.nextPaymentAt && j.nextPaymentAt < now - 12 * 3600 * 1000)
-  const cancelledYesterday = data.joins.filter((j) => j.cancelledAt && mskDayKey(j.cancelledAt) === yesterday)
-  const dealsDue = dealsDueForReminder(now)
-  const interestsDue = interestsDueForReminder(now)
-  const newConsults = data.consultations.filter((c) => c.status === 'new')
-  const noResume = data.reserve.filter((c) => !c.resumeUrl)
-  const newRequests = data.eventLeads.filter((e) => e.kind === 'request' && e.status === 'new')
-  const lines = [
-    `🌅 Сводка дня · ${ruDate(now)}`,
-    '',
-    `⏭ Списаний сегодня: ${chargesToday.length}${chargesToday.length ? ` на ${rub(chargesToday.reduce((acc, j) => acc + planAmount(j, tariffs), 0))}` : ''}`,
-    `⚠️ Просрочено: ${overdue.length}`,
-    `🔕 Отписались вчера: ${cancelledYesterday.length}`,
-    `⚖️ Сделки, по которым пора действовать: ${dealsDue.length}${dealsDue.length ? ` (${dealsDue.slice(0, 5).map((d) => `№${d.number}`).join(', ')})` : ''}`,
-    `📇 Написать интересовавшимся: ${interestsDue.length}`,
-    `🎯 Новых консультаций без ответа: ${newConsults.length}`,
-    `🗃 Кандидатов резерва без ссылки на резюме: ${noResume.length}`,
-    `📨 Новых заявок по мероприятиям: ${newRequests.length}`,
-  ]
-  // Конкретные дела на сегодня — вместо отдельного сообщения на каждую сделку и каждого «интересовавшегося».
-  const MAX_TASKS = 6
-  const taskButtons = []
-  if (dealsDue.length || interestsDue.length) {
-    lines.push('', '📋 Что сделать сегодня:')
-    for (const d of dealsDue.slice(0, MAX_TASKS)) {
-      lines.push(`• Сделка №${d.number} · ${d.company || d.name || 'без названия'} — этап ${d.stage}: ${stageOf(d.stage).todo}`)
-      taskButtons.push([{ text: `📂 Сделка №${d.number} · ${d.company || d.name || ''}`.slice(0, 60), callback_data: `a:k:deal:${d.number}` }])
-    }
-    if (dealsDue.length > MAX_TASKS) lines.push(`• …и ещё сделок: ${dealsDue.length - MAX_TASKS} (раздел «Кадры → Сделки»)`)
-    for (const i of interestsDue.slice(0, MAX_TASKS)) {
-      lines.push(`• Написать: ${i.name || i.telegram || i.phone || `№${i.number}`} — интересовался(лась): ${i.note || INTEREST_KINDS[i.kind] || i.kind}`)
-      taskButtons.push([{ text: `📇 №${i.number} · ${i.name || i.telegram || ''}`.slice(0, 60), callback_data: `a:s:icard:${i.number}` }])
-    }
-    if (interestsDue.length > MAX_TASKS) lines.push(`• …и ещё интересовавшихся: ${interestsDue.length - MAX_TASKS} (раздел «Интересовались»)`)
-  }
-  const openTodos = (data.todos ?? []).filter((t) => !t.done)
-  if (openTodos.length) lines.push('', `📌 Доработок в работе: ${openTodos.length}`, ...openTodos.slice(0, 4).map((t) => `• ${t.text}`), ...(openTodos.length > 4 ? ['• …остальные — в «Система → Доработки»'] : []))
-  if (healthLines.length) lines.push('', '🩺 Система:', ...healthLines)
-  return { text: lines.join('\n'), keyboard: [...taskButtons, [{ text: '⚠️ Просрочено', callback_data: 'a:x:over' }, { text: '⚖️ Сделки', callback_data: 'a:k:list' }], menuRow] }
-}
-
 /** Экран «Уведомления»: что и как присылает бот администратору, с тумблерами. */
 export function notificationsScreen(settings) {
-  const lines = ['🔔 Уведомления', '', 'Всегда приходят сразу и со звуком: заявки с сайта, оплаты, отписки, предупреждения ⚠️.', 'Утренняя сводка в 9:00 — одно сообщение: списания, дела на день (сделки и «интересовавшиеся») и состояние системы.', '']
+  const lines = ['🔔 Уведомления', '', 'Всегда приходят сразу и со звуком: заявки с сайта, оплаты, отписки, предупреждения ⚠️.', 'Утренняя сводка в 9:00 — одно сообщение: списания, просрочка, заявки, дела на день и состояние системы. Под ним кнопки: каждое дело открывается списком с действиями. В 20:00 «Итог дня»: что осталось разобрать.', '']
   const keyboard = []
   for (const [key, opt] of Object.entries(NOTIFY_OPTIONS)) {
     lines.push(`${settings[key] ? '✅' : '▫️'} ${opt.title} — ${opt.hint}`)
@@ -490,6 +425,8 @@ const ACTION_LABELS = {
   'input:interest': 'Интерес записан', 's:rdelok': 'Кандидат резерва удалён', 'input:reserve-field': 'Кандидат резерва изменён', 'input:reserve-new': 'Кандидат резерва добавлен',
   'x:ambplus': 'Амбассадор: счётчик', 'x:ambdelok': 'Амбассадор удалён', 'input:ambassador': 'Амбассадор добавлен', 'x:cr': 'Причина отписки', 'x:fexpdel': 'Расход удалён',
   'input:expense': 'Расход добавлен', 'x:evst': 'Мероприятие: статус', 'input:event-paid': 'Мероприятие: оплата отмечена', remgo: 'Напоминания резидентам отправлены', 'x:backup': 'Резервная копия по запросу', 'x:grant': 'Выдан бессрочный доступ резидента', 'x:tdone': 'Доработка отмечена выполненной', 'input:todo': 'Доработка добавлена', 'x:kickok': 'Исключён из чата сообщества', 'k:pp': 'Сделка: предоплата получена', 'k:pf': 'Сделка: остаток получен', 's:vst': 'Вакансия: статус в учёте',
+  'x:dgcon': 'Сводка дня: статус консультации', 'x:dgev': 'Сводка дня: заявка обработана', 'x:dgres': 'Сводка дня: резюме не нужно', 'x:dgint': 'Сводка дня: интересовавшийся', 'x:dgdeal': 'Сводка дня: сделка, действие сделано', 'x:dgcr': 'Сводка дня: причина отписки',
+  'x:ovsnz': 'Просрочка: отложено', 'x:ovcxlok': 'Просрочка: подписчик отписан', 'x:ovnok': 'Просрочка: напоминание об оплате отправлено', 'input:next-date': 'Просрочка: дата списания указана',
 }
 
 export function auditScreen(actions) {

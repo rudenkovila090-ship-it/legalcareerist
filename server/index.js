@@ -48,7 +48,7 @@ import { materialInfo } from './lib/materialCatalog.js'
 import { incrementView, incrementApplication, allVacancyStats } from './lib/vacancyStats.js'
 import { utmLabel } from './lib/utm.js'
 import { createApplication, listApplications } from './lib/candidateApplications.js'
-import { createConsultation, listConsultations, getConsultation, setConsultationStatus } from './lib/consultations.js'
+import { createConsultation, listConsultations, getConsultation, setConsultationStatus, CONSULTATION_STATUSES } from './lib/consultations.js'
 import { createAmbassador, listAmbassadors, getAmbassador, addReferral, deleteAmbassador } from './lib/ambassadors.js'
 import { createExpense, listExpenses, deleteExpense } from './lib/expenses.js'
 import { createEventLead, listEventLeads, getEventLead, setEventLeadStatus, markEventLeadPaid, setEventLeadField } from './lib/eventLeads.js'
@@ -74,9 +74,9 @@ import { REVIEW_BONUS_DAYS, REVIEW_MIN_LENGTH, reviewRequestDue, addCommunityRev
 import { logAction, recentActions } from './lib/auditLog.js'
 import { healthLines, makeBackup, readBackupState, writeBackupState } from './lib/healthBackup.js'
 import { listTodos, addTodo, setTodoDone, ensureTodo } from './lib/todos.js'
-import { todosScreen, TODO_PROMPT, chatCheckScreen, userCard, botUsersScreen, notificationsScreen, reviewsScreen, reviewCard, promosScreen, PROMO_PROMPT, ambassadorsScreen, ambassadorCard, AMBASSADOR_PROMPT, overdueScreen, retentionScreen, cancelCard, financeSummary, forecastScreen, expensesScreen, EXPENSE_PROMPT, parseExpense, eventRegistrationsScreen, eventScreen, eventLeadCard, eventRequestsScreen, eventsMonthSummary, FIND_PROMPT, searchScreen, digestScreen, systemScreen, auditScreen, monthKeyFor as extraMonthKey } from './lib/extraCabinet.js'
-import { createInterest, getInterest, listInterests, markInterestDone, closeInterest, snoozeInterest, interestsDueForReminder, markInterestReminded, REMIND_AFTER_DAYS } from './lib/interests.js'
-import { createReserveCandidate, listReserve, getReserveCandidate, setReserveField, deleteReserveCandidate } from './lib/reserve.js'
+import { todosScreen, TODO_PROMPT, chatCheckScreen, userCard, botUsersScreen, notificationsScreen, reviewsScreen, reviewCard, promosScreen, PROMO_PROMPT, ambassadorsScreen, ambassadorCard, AMBASSADOR_PROMPT, retentionScreen, cancelCard, financeSummary, forecastScreen, expensesScreen, EXPENSE_PROMPT, parseExpense, eventRegistrationsScreen, eventScreen, eventLeadCard, eventRequestsScreen, eventsMonthSummary, FIND_PROMPT, searchScreen, systemScreen, auditScreen, monthKeyFor as extraMonthKey } from './lib/extraCabinet.js'
+import { createInterest, getInterest, listInterests, markInterestDone, closeInterest, snoozeInterest, REMIND_AFTER_DAYS } from './lib/interests.js'
+import { createReserveCandidate, listReserve, getReserveCandidate, setReserveField, deleteReserveCandidate, skipResume } from './lib/reserve.js'
 import { applicationCard, recommendationCard, reserveListScreen, reserveCard, reserveFieldPrompt, reserveDeleteConfirm, RESERVE_NEW_PROMPT, INTEREST_KIND_KEYBOARD, interestPrompt, interestsScreen, interestCard, SEEKERS_KEYBOARD, buildVacancyViews, vacanciesScreen, vacancyCard, vacancyApplicationsScreen, recentApplicationsScreen, consultationsScreen, consultationCard, seekersMonthSummary } from './lib/seekersCabinet.js'
 import { incrementArticleView, getArticleViews } from './lib/articleStats.js'
 import { incrementNewsView, getNewsViews } from './lib/newsStats.js'
@@ -106,12 +106,13 @@ import { nextTicketNumber } from './lib/ticketCounter.js'
 import { renderTicketPdf, hasTicketImage, maskEmail } from './lib/ticketImage.js'
 import { composeTicketMail, composeReminderMail } from './lib/ticketMail.js'
 import { buildDailyReport, mskDayKey, parseReportPeriod } from './lib/dailyReport.js'
-import { logWebhook, lastWebhook } from './lib/webhookLog.js'
-import { FINANCE_KEYBOARD, COMMUNITY_KEYBOARD, sectionScreen, menuScreen, subscribersScreen, planScreen, dueScreen, cancelledScreen, reminderMenuScreen, reminderPreviewScreen, reminderTargets, reminderMessage, planAmount } from './lib/adminCabinet.js'
+import { logWebhook, lastWebhook, webhookEventsFor } from './lib/webhookLog.js'
+import { digestScreen, overdueScreen, overdueCard, chargesTodayScreen, consultTasksScreen, requestTasksScreen, resumeTasksScreen, interestTasksScreen, dealTasksScreen, cancelTasksScreen, cancelReasonPicker, unsubscribeConfirm, nudgeConfirm, NEXT_DATE_PROMPT, SNOOZE_DAYS } from './lib/dayTasks.js'
+import { FINANCE_KEYBOARD, COMMUNITY_KEYBOARD, sectionScreen, menuScreen, subscribersScreen, planScreen, dueScreen, cancelledScreen, reminderMenuScreen, reminderPreviewScreen, reminderTargets, reminderMessage, planAmount, CANCEL_REASONS } from './lib/adminCabinet.js'
 import crypto from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
-import { createDeal, listDeals as listAllDeals, getDeal, moveDeal, setQualified, closeDeal, setRevenue, addDealPayment, prepayAmount, dealReceived, scheduleReminder, reopenDeal, dealsDueForReminder, stageOf, LAST_STAGE } from './lib/deals.js'
+import { createDeal, listDeals as listAllDeals, getDeal, moveDeal, setQualified, closeDeal, setRevenue, addDealPayment, prepayAmount, dealReceived, scheduleReminder, reopenDeal, stageOf, LAST_STAGE } from './lib/deals.js'
 import { dealCard, activeDealsScreen, funnelScreen, stageScreen, closedScreen, monthSummary, monthKeyFor, dealTemplate, TEMPLATE_INTRO, NEW_DEAL_PROMPT, KADRY_KEYBOARD } from './lib/kadryCabinet.js'
 
 const app = express()
@@ -2191,6 +2192,10 @@ async function sendBackup(caption) {
 }
 
 const menuBack = (text, data) => [[{ text, callback_data: data }, { text: '🏠 Меню', callback_data: 'a:menu' }]]
+const DAY_MS = 24 * 3600 * 1000
+
+/** Экран с пометкой сверху: что только что сделала нажатая кнопка. */
+const withNote = (screen, note) => (note ? { ...screen, text: `${note}\n\n${screen.text}` } : screen)
 
 /** Кнопки дополнительных разделов (callback «a:x:…»). */
 async function extrasAction(parts, now, chatId) {
@@ -2259,10 +2264,108 @@ async function extrasAction(parts, now, chatId) {
     case 'kickok': {
       const j = getJoin(arg)
       const ok = j ? await kickAndNotify(j) : false
-      return { text: ok ? '🚪 Готово: человек исключён из чата, ему отправлено сообщение.' : '⚠️ Не удалось исключить: нет Telegram id или бот не администратор чата. Подробности в логе.', keyboard: menuBack('⬅️ Сообщество', 'a:sec:community') }
+      return { text: ok ? '🚪 Готово: человек исключён из чата, ему отправлено сообщение.' : '⚠️ Не удалось исключить: нет Telegram id или бот не администратор чата. Подробности в логе.', keyboard: [[{ text: '⬅️ К просрочке', callback_data: 'a:x:over' }, { text: '🌅 К сводке дня', callback_data: 'a:x:digest' }]] }
     }
     case 'over':
       return overdueScreen(data.joins, TARIFFS, now)
+    case 'ovc': {
+      const j = getJoin(arg)
+      return j ? overdueCard(j, TARIFFS, now, webhookEventsFor({ profileId: j.prodamusProfileId, subscriptionIds: (j.payments ?? []).map((p) => p.subscriptionId) })) : overdueScreen(data.joins, TARIFFS, now)
+    }
+    case 'ovsnz': {
+      const j = getJoin(arg)
+      if (j) patchJoin(j.token, { snoozedUntil: now + SNOOZE_DAYS * DAY_MS })
+      return withNote(overdueScreen(listJoins(), TARIFFS, now), j ? `⏰ Отложено на ${SNOOZE_DAYS} дня: ${j.name || j.telegram || j.phone}. В сводку вернётся ${ruDateShort(now + SNOOZE_DAYS * DAY_MS)}, если оплаты не будет.` : null)
+    }
+    case 'ovdate': {
+      const j = getJoin(arg)
+      if (!j) return overdueScreen(data.joins, TARIFFS, now)
+      adminInput.set(String(chatId), { type: 'next-date', token: j.token })
+      return { text: NEXT_DATE_PROMPT(j), keyboard: [[{ text: '⬅️ К карточке', callback_data: `a:x:ovc:${j.token}` }]] }
+    }
+    case 'ovcxl': {
+      const j = getJoin(arg)
+      return j ? unsubscribeConfirm(j) : overdueScreen(data.joins, TARIFFS, now)
+    }
+    case 'ovcxlok': {
+      const j = getJoin(arg)
+      if (!j) return overdueScreen(data.joins, TARIFFS, now)
+      setSubscriptionActive(j.token, false, now)
+      patchJoin(j.token, { cancelledBy: 'admin', snoozedUntil: undefined })
+      return withNote(cancelReasonPicker(getJoin(j.token)), '🔕 Отписан(а): из просрочки убран(а).')
+    }
+    case 'ovn': {
+      const j = getJoin(arg)
+      return j ? nudgeConfirm(j, chargeFailedText(planAmount(j, TARIFFS), j.nextPaymentAt)) : overdueScreen(data.joins, TARIFFS, now)
+    }
+    case 'ovnok': {
+      const j = getJoin(arg)
+      if (!j) return overdueScreen(data.joins, TARIFFS, now)
+      const card = () => overdueCard(getJoin(j.token), TARIFFS, now, webhookEventsFor({ profileId: j.prodamusProfileId, subscriptionIds: (j.payments ?? []).map((p) => p.subscriptionId) }))
+      if (j.lastManualNoticeAt && now - j.lastManualNoticeAt < 6 * 3600 * 1000) return withNote(card(), `Напоминание уже отправляли ${ruDateShort(j.lastManualNoticeAt)} в последние 6 часов, повторно не отправляю.`)
+      const amount = planAmount(j, TARIFFS)
+      const r = await notifyResident(j, { text: chargeFailedText(amount, j.nextPaymentAt), keyboard: CHARGE_FAILED_KEYBOARD }, composeChargeFailedMail({ name: j.name, amount, chargeAt: j.nextPaymentAt, ...mailContext() }))
+      patchJoin(j.token, { watch: 'charge', chargeFailedNoticeFor: j.nextPaymentAt, lastManualNoticeAt: now })
+      if (j.tgUserId) addTag(j.tgUserId, 'контроль_списания')
+      return withNote(card(), `🔔 Напоминание отправлено: ${r.bot ? 'бот ✅' : r.bot === false ? 'бот ❌' : 'бота нет'}, ${r.mail ? 'почта ✅' : r.mail === false ? 'почта ❌' : 'почты нет'}.`)
+    }
+    case 'dg': {
+      switch (arg) {
+        case 'con':
+          return consultTasksScreen(listConsultations(), now)
+        case 'ev':
+          return requestTasksScreen(listEventLeads(), now)
+        case 'res':
+          return resumeTasksScreen(listReserve())
+        case 'int':
+          return interestTasksScreen(now)
+        case 'deal':
+          return dealTasksScreen(now)
+        case 'cxl':
+          return cancelTasksScreen(listJoins(), now)
+        case 'chg':
+          return chargesTodayScreen(data, TARIFFS, now)
+        default:
+          return digestScreen(data, TARIFFS, now, currentHealth())
+      }
+    }
+    case 'dgcon': {
+      const c = setConsultationStatus(arg, arg2)
+      return withNote(consultTasksScreen(listConsultations(), now), c ? `✅ Консультация №${arg}: ${CONSULTATION_STATUSES[arg2]}` : null)
+    }
+    case 'dgev': {
+      setEventLeadStatus(arg, 'done')
+      return withNote(requestTasksScreen(listEventLeads(), now), `✅ Заявка №${arg} обработана`)
+    }
+    case 'dgres': {
+      skipResume(arg)
+      return withNote(resumeTasksScreen(listReserve()), `🙅 Кандидат №${arg}: резюме не нужно`)
+    }
+    case 'dgresurl': {
+      const c = getReserveCandidate(arg)
+      if (!c) return resumeTasksScreen(listReserve())
+      adminInput.set(String(chatId), { type: 'reserve-field', number: c.number, field: 'resumeUrl', then: 'dgres' })
+      return { ...reserveFieldPrompt(c, 'resumeUrl'), keyboard: [[{ text: '⬅️ К списку', callback_data: 'a:x:dg:res' }]] }
+    }
+    case 'dgint': {
+      if (arg2 === 'done') markInterestDone(arg)
+      else if (arg2 === 'snooze') snoozeInterest(arg)
+      else if (arg2 === 'close') closeInterest(arg)
+      return withNote(interestTasksScreen(now), `✅ Интерес №${arg}: ${arg2 === 'done' ? 'написали' : arg2 === 'snooze' ? 'напомню через неделю' : 'неактуально'}`)
+    }
+    case 'dgdeal': {
+      const d = getDeal(arg)
+      if (d && d.status === 'active') scheduleReminder(d.number, now + (d.stage === LAST_STAGE ? 3 : stageOf(d.stage).remindDays) * DAY_MS)
+      return withNote(dealTasksScreen(now), d ? `✅ Сделка №${arg}: отмечено, напомню снова через срок этапа` : null)
+    }
+    case 'dgcrp': {
+      const j = getJoin(arg)
+      return j ? cancelReasonPicker(j) : cancelTasksScreen(listJoins(), now)
+    }
+    case 'dgcr': {
+      if (['price', 'time', 'content', 'other'].includes(arg2)) setCancelReason(arg, arg2)
+      return withNote(cancelTasksScreen(listJoins(), now), `✅ Причина отписки записана: ${CANCEL_REASONS[arg2] ?? '—'}`)
+    }
     case 'ret':
       return retentionScreen(data.joins)
     case 'cxl': {
@@ -2671,8 +2774,29 @@ async function handlePendingInput(chatId, pending, text) {
       return
     }
     setReserveField(pending.number, pending.field, value)
-    const screen = reserveScreen(pending.number)
+    const screen = pending.then === 'dgres' ? resumeTasksScreen(listReserve()) : reserveScreen(pending.number)
     await sendLongMessage(chatId, `✅ Сохранено.\n\n${screen.text}`, screen.keyboard)
+    return
+  }
+  if (pending.type === 'next-date') {
+    const j = getJoin(pending.token)
+    const parsed = parseRuDate(text.trim())
+    const now = Date.now()
+    // «02.11» без года, введённое в конце года про январь, — это следующий год
+    const nextYear = (ts) => {
+      const d = new Date(ts)
+      d.setUTCFullYear(d.getUTCFullYear() + 1)
+      return d.getTime()
+    }
+    const at = parsed && !/\d+\.\d+\.\d{2,4}/.test(text) && parsed < now - DAY_MS ? nextYear(parsed) : parsed
+    if (!j || !at || at < now) {
+      if (j) adminInput.set(String(chatId), pending)
+      await sendTelegramMessage(chatId, j ? 'Нужна дата в будущем: ДД.ММ или ДД.ММ.ГГГГ, например 02.11. Дата в прошлом оставит человека в просрочке. Или /cancel.' : 'Карточка не найдена.')
+      return
+    }
+    patchJoin(j.token, { nextPaymentAt: at, snoozedUntil: undefined })
+    const screen = overdueScreen(listJoins(), TARIFFS, now)
+    await sendLongMessage(chatId, `✅ ${j.name || j.telegram || j.phone}: следующее списание ${ruDateShort(at)}. Из просрочки убран(а); если в этот день оплаты не будет, вернётся.\n\n${screen.text}`, screen.keyboard)
     return
   }
   if (pending.type === 'reserve-new') {
@@ -2722,30 +2846,21 @@ async function handlePendingInput(chatId, pending, text) {
 
 /** Утренняя сводка дня (одно сообщение): счётчики, дела на сегодня, состояние системы. После отправки сдвигает напоминания. */
 async function sendMorningDigest() {
-  const now = Date.now()
-  const screen = digestScreen(allData(), TARIFFS, now, currentHealth())
-  const ok = await sendTelegramMessage(ADMIN_CHAT_ID, screen.text, screen.keyboard, quiet())
-  if (ok) advanceMorningReminders(now)
-  return ok
+  const screen = digestScreen(allData(), TARIFFS, Date.now(), currentHealth())
+  return sendTelegramMessage(ADMIN_CHAT_ID, screen.text, screen.keyboard, quiet())
+}
+
+/** «Итог дня» в 20:00: те же цифры и кнопки, что в сводке, плюс деньги за день. Всё разобрано — короткое «день закрыт». Отключается в «Система → Уведомления». */
+async function sendEveningClose() {
+  if (!getAdminSettings().eveningClose) return true
+  const screen = digestScreen(allData(), TARIFFS, Date.now(), [], { evening: true })
+  return sendTelegramMessage(ADMIN_CHAT_ID, screen.text, screen.keyboard, quiet())
 }
 
 /** Отложенные уведомления «не завершили оплату»: уходят, если за PENDING_MINUTES оплата не пришла. */
 async function sendPendingNoticesIfDue() {
   if (!BOT_TOKEN || !ADMIN_CHAT_ID) return
   for (const n of takeDuePending()) await sendTelegramMessage(ADMIN_CHAT_ID, n.text, n.keyboard ?? undefined).catch(() => false)
-}
-
-/**
- * После утренней сводки сдвигаем напоминания: по сделкам — по сроку этапа, по «интересовавшимся» — через неделю.
- * Само напоминание — строка в сводке дня (раньше на каждую сделку и каждого человека приходило отдельное сообщение).
- */
-function advanceMorningReminders(now) {
-  for (const deal of dealsDueForReminder(now)) {
-    // На испытательном сроке первое напоминание — на 30-й день, дальше каждые 3 дня, пока сделку не закроют.
-    const everyDays = deal.stage === LAST_STAGE ? 3 : stageOf(deal.stage).remindDays
-    scheduleReminder(deal.number, now + everyDays * 24 * 3600 * 1000)
-  }
-  for (const item of interestsDueForReminder(now)) markInterestReminded(item.number, now + REMIND_AFTER_DAYS * 24 * 3600 * 1000)
 }
 
 // Итоги месяца по кадровому агентству — автоматически в начале следующего месяца (после 10:00 МСК).
@@ -2836,8 +2951,8 @@ async function adminScreen(data, now, chatId) {
 
 // Кнопки, которые что-то меняют или отправляют данные: помощникам (только просмотр) они недоступны, в журнал попадают только они.
 // Кнопки, которые только открывают ввод текста или подтверждение — в журнал не пишем (запишется само действие).
-const PROMPT_ONLY = /^a:(k:(rev|new)|s:(ikind|inew|rnew|redit|rdel)|x:(tnew|ambnew|ambdel|fexpnew|evpaid|promonew))\b/
-const MUTATING = /^a:(k:(adv|back|q1|q0|lost|reopen|revok|rev|new|pp|pf)|s:(vst|cst|idone|iclose|isnooze|ikind|inew|rnew|redit|rdel|rdelok)|x:(grant|promonew|promodel|tnew|tdone|ambnew|ambplus|ambdel|ambdelok|kickok|rvok|rvno|cr|fexpnew|fexpdel|evst|evpaid|backup|erase|pdgo|impgo|impall)|remgo)\b/
+const PROMPT_ONLY = /^a:(k:(rev|new)|s:(ikind|inew|rnew|redit|rdel)|x:(tnew|ambnew|ambdel|fexpnew|evpaid|promonew|ovdate|dgresurl))\b/
+const MUTATING = /^a:(k:(adv|back|q1|q0|lost|reopen|revok|rev|new|pp|pf)|s:(vst|cst|idone|iclose|isnooze|ikind|inew|rnew|redit|rdel|rdelok)|x:(grant|promonew|promodel|tnew|tdone|ambnew|ambplus|ambdel|ambdelok|kickok|rvok|rvno|cr|fexpnew|fexpdel|evst|evpaid|backup|erase|pdgo|impgo|impall|dgcon|dgev|dgres|dgresurl|dgint|dgdeal|dgcr|ovsnz|ovdate|ovcxlok|ovnok)|remgo)\b/
 
 /** Нажатие кнопки кабинета — от админа (все кнопки) или помощника (только просмотр); остальным молча отвечаем. */
 async function handleAdminCallback(query) {
@@ -3997,6 +4112,7 @@ if (process.env.DISABLE_DAILY_REPORT !== '1') {
   setInterval(() => afterResponse('review-flow', processReviewFlow), 60 * 1000)
   setInterval(() => afterResponse('event-reminders', () => runDailyOnce('eventReminders', 10, sendEventReminders)), 60 * 1000)
   setInterval(() => afterResponse('morning-digest', () => runDailyOnce('digest', 9, sendMorningDigest)), 60 * 1000)
+  setInterval(() => afterResponse('evening-close', () => runDailyOnce('eveningClose', 20, sendEveningClose)), 60 * 1000)
   setInterval(() => afterResponse('retention', () => runDailyOnce('retention', 4, runRetentionJob)), 60 * 1000)
   if (process.env.DISABLE_BACKUP !== '1') {
     setInterval(() => afterResponse('backup', () => runDailyOnce('backup', 3, () => (getAdminSettings().nightBackup ? sendBackup('💾 Ежедневная резервная копия данных бота') : true))), 60 * 1000)
@@ -4010,7 +4126,7 @@ process.on('unhandledRejection', (err) => console.error('[unhandledRejection]', 
 process.on('uncaughtException', (err) => console.error('[uncaughtException]', err))
 
 // Для автотестов: доступ к фоновым задачам без ожидания расписания.
-if (process.env.TEST_HOOKS === '1') globalThis.__hooks = { runRetentionJob, sendEventReminders, processExpiry, processReviewFlow, sendAutoResidentReminders, sendMorningDigest, sendPendingNoticesIfDue }
+if (process.env.TEST_HOOKS === '1') globalThis.__hooks = { runRetentionJob, sendEventReminders, processExpiry, processReviewFlow, sendAutoResidentReminders, sendMorningDigest, sendEveningClose, sendPendingNoticesIfDue }
 
 const PORT = process.env.PORT || 3001
 ensureBuiltInPromos()
