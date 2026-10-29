@@ -15,6 +15,7 @@ const eventTypeLabel: Record<EventType, string> = {
   intensive: 'Интенсив',
   tour: 'Экскурсия',
   internship: 'Стажировка',
+  championship: 'Кейс-чемпионат',
 }
 const eventFormatLabel: Record<EventFormat, string> = { online: 'Онлайн', offline: 'Офлайн' }
 const statusLabel: Record<OrganizerEventStatus, string> = {

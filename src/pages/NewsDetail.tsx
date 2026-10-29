@@ -5,6 +5,7 @@ import { useNewsViews } from '../lib/useNewsViews'
 import { useDocumentTitle } from '../lib/useDocumentTitle'
 import { useSocialMeta } from '../lib/useSocialMeta'
 import { useNoindex } from '../lib/pageMeta'
+import { Masonry, SingleColumn } from '../components/layouts'
 
 export default function NewsDetail() {
   const { slug } = useParams()
@@ -28,8 +29,7 @@ export default function NewsDetail() {
   }
 
   return (
-    <div className="container-page py-12">
-      <div className="mx-auto max-w-3xl">
+    <SingleColumn>
         <Link to="/news" className="text-sm text-ink/50 hover:text-ink">← Все новости</Link>
 
         <div className="mt-4">
@@ -48,13 +48,13 @@ export default function NewsDetail() {
           <img src={item.image} alt={item.title} className="mt-8 w-full rounded-xl border border-ink/10" />
         )}
         {item.images && (
-          <div className="mt-8 grid gap-4 sm:grid-cols-2">
+          // фотографии разной высоты — схема Masonry, чтобы не оставалось пустот
+          <Masonry columns={2} className="mt-8">
             {item.images.map((src) => (
-              <img key={src} src={src} alt={item.title} className="w-full rounded-xl border border-ink/10" />
+              <img key={src} src={src} alt={item.title} loading="lazy" className="block h-auto w-full rounded-xl border border-ink/10" />
             ))}
-          </div>
+          </Masonry>
         )}
-      </div>
-    </div>
+    </SingleColumn>
   )
 }

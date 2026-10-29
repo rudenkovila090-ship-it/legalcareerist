@@ -11,6 +11,7 @@ import Dashboard from './Dashboard'
 import PageView from './PagesView'
 import VacanciesWorkspace from './vacancies/VacanciesWorkspace'
 import CareerWorkspace from './career/CareerWorkspace'
+import { HolyGrail } from '../../components/layouts'
 import KnowledgeBase from './KnowledgeBase'
 import { ActivatePage, Landing } from './AccountAccess'
 
@@ -128,8 +129,10 @@ export default function Cabinet() {
   return (
     // ym-hide-content: содержимое кабинета (профиль, документы, согласия) не попадает в запись вебвизора Яндекс Метрики.
     <div className="ym-hide-content">
-      <div className="container-wide grid gap-6 py-5 lg:grid-cols-[15.5rem_minmax(0,1fr)] lg:py-6">
-        <aside className="min-w-0 lg:sticky lg:top-20 lg:self-start">
+      {/* схема Holy Grail: шапка и подвал — сайта, слева меню, по центру содержимое, справа (по желанию) подсказки */}
+      <HolyGrail
+        nav={
+        <>
           {/* Ячейка профиля ведёт на главную */}
           <Link to="/cabinet" aria-label="Главная кабинета" className={`glass block rounded-2xl p-3.5 ${focusRing}`}>
             <div className="flex items-center gap-3">
@@ -206,8 +209,9 @@ export default function Cabinet() {
               </div>
             )}
           </div>
-        </aside>
-        <div className="min-w-0">
+        </>
+        }
+      >
           {page ? (
             <>
               <header className="mb-4">
@@ -228,8 +232,7 @@ export default function Cabinet() {
               <Dashboard user={user} dash={dash} />
             </>
           )}
-        </div>
-      </div>
+      </HolyGrail>
     </div>
   )
 }

@@ -34,7 +34,7 @@ import { consentOf } from '../../lib/consent'
 const specLabel = new Map(SPECIALIZATIONS.map((s) => [s.id, s.label]))
 const industryLabel = new Map(INDUSTRIES.map((i) => [i.id, i.label]))
 
-const eventTypeLabel = { conference: 'Ключевое мероприятие', webinar: 'Вебинар', breakfast: 'Бизнес-завтрак', intensive: 'Интенсив', tour: 'Экскурсия', internship: 'Стажировка' }
+const eventTypeLabel = { conference: 'Ключевое мероприятие', webinar: 'Вебинар', breakfast: 'Бизнес-завтрак', intensive: 'Интенсив', tour: 'Экскурсия', internship: 'Стажировка', championship: 'Кейс-чемпионат' }
 
 // Крупный фон-афиша вверху детальной страницы — тот же принцип цветового
 // кодирования по типу, что и на карточке в афише (posterTone в
@@ -47,6 +47,7 @@ const posterTone: Record<string, string> = {
   intensive: 'from-ink to-gold',
   tour: 'from-gold-light to-ink',
   internship: 'from-gold-light via-gold to-ink',
+  championship: 'from-ink via-gold to-ink',
 }
 
 function initials(name: string) {
@@ -368,6 +369,8 @@ export default function EventDetail() {
       ) : (
       <div className={`mt-4 bg-gradient-to-br p-10 text-white sm:p-14 ${posterTone[event.type] ?? posterTone.webinar}`}>
         <div className="container-page">
+          <div className={event.cover ? 'grid items-center gap-8 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] lg:gap-12' : ''}>
+          <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-sm font-medium uppercase tracking-wide text-white/70">{eventTypeLabel[event.type]}</span>
             {event.partner && (
@@ -394,7 +397,7 @@ export default function EventDetail() {
               иначе строка обрывается посреди слова («…Карьера в M&A» уходило
               переносом на новую строку некрасиво). */}
           <h1 className="mt-3 text-3xl font-semibold sm:text-4xl">{event.title}</h1>
-          {event.description && <p className="mt-4 text-white/80">{event.description}</p>}
+          {event.description && event.description.split('\n\n').map((para) => <p key={para} className="mt-4 text-white/80">{para}</p>)}
 
           {/* Свои пилюли, не общий TagRow — тот рассчитан на светлый фон
               (bg-ink/5 text-ink/70), на темной афише был бы нечитаем. */}
@@ -444,6 +447,11 @@ export default function EventDetail() {
             <ShareButtons title={event.title} />
             {views !== null && <span className="text-sm text-white/60">{views} {pluralRu(views, ['просмотр', 'просмотра', 'просмотров'])}</span>}
           </div>
+          </div>
+          {event.cover && (
+            <img src={event.cover} alt={`Афиша: ${event.title}`} className="w-full rounded-2xl bg-white/10 shadow-2xl ring-1 ring-white/20" />
+          )}
+          </div>
         </div>
       </div>
       )}
@@ -462,6 +470,38 @@ export default function EventDetail() {
               <NoirNewspaper story={story} event={event} />
             </div>
           )}
+          {event.keyDates && event.keyDates.length > 0 && (
+            <div className="mb-8">
+              <h2 className="text-xl font-semibold">Важные даты</h2>
+              <ol className="mt-4 space-y-3">
+                {event.keyDates.map((d, i) => (
+                  <li key={d.when} className="flex gap-3 rounded-2xl border border-ink/10 bg-ink/[0.02] p-4">
+                    <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${i === 0 ? 'bg-gold-light text-ink' : 'bg-ink text-white'}`} aria-hidden="true">{i + 1}</span>
+                    <div className="min-w-0">
+                      <div className="font-semibold text-ink">{d.when}</div>
+                      <div className="mt-0.5 text-sm text-ink/70">{d.what}</div>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
+
+          {event.directions && event.directions.length > 0 && (
+            <div className="mb-8">
+              <h2 className="text-xl font-semibold">Направления и компании-кураторы</h2>
+              <p className="mt-2 text-sm text-ink/60">Кураторы направлений — крупные компании российского юридического рынка, которые ищут талантливых студентов.</p>
+              <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+                {event.directions.map((d) => (
+                  <li key={d.title} className="rounded-2xl border border-ink/10 bg-white p-4">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-gold">{d.title}</div>
+                    <div className="mt-1 font-semibold text-ink">{d.curator}</div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           {event.program.length > 0 && (
             <div>
               <h2 className="text-xl font-semibold">Программа</h2>
@@ -523,6 +563,42 @@ export default function EventDetail() {
             </div>
           )}
 
+          {event.documents && event.documents.length > 0 && (
+            <div className="mt-8">
+              <h2 className="text-xl font-semibold">Документы и ссылки</h2>
+              <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+                {event.documents.map((d) => (
+                  <li key={d.url}>
+                    <a
+                      href={d.url}
+                      {...(d.kind === 'file' ? { download: true } : /^https?:/i.test(d.url) ? { target: '_blank', rel: 'noreferrer' } : {})}
+                      className="flex h-full items-start gap-3 rounded-2xl border border-ink/10 bg-white p-4 transition-colors hover:border-ink/30"
+                    >
+                      <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-ink text-xs font-bold text-white" aria-hidden="true">{d.kind === 'file' ? 'PDF' : '↗'}</span>
+                      <span className="min-w-0">
+                        <span className="block font-semibold text-ink">{d.title}</span>
+                        {d.note && <span className="mt-0.5 block text-xs text-ink/60">{d.note}</span>}
+                      </span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {!story && event.organizer && (
+            <div className="mt-8">
+              <h2 className="text-xl font-semibold">Организатор</h2>
+              <div className="mt-4 rounded-2xl border border-ink/10 bg-ink/[0.02] p-5">
+                <div className="font-semibold text-ink">{event.organizer.name}</div>
+                {event.organizer.description && <p className="mt-1 text-sm text-ink/70">{event.organizer.description}</p>}
+                {event.organizer.site && (
+                  <a href={event.organizer.site} target="_blank" rel="noreferrer" className="mt-2 inline-block text-sm font-semibold text-gold underline hover:text-ink">{event.organizer.site.replace(/^https?:\/\//, '')}</a>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Спикеры — кружок (фото или плейсхолдер), под ним имя и регалии,
               текст выровнен по левому краю колонки. */}
           {event.speakers.length > 0 && (
@@ -545,6 +621,7 @@ export default function EventDetail() {
           {/* Стать партнером мероприятия — лид-заявка: пока просто фиксируем
               отклик (кто и от какой компании хочет стать партнером именно
               этого мероприятия), без логики согласования. */}
+          {!event.externalRegistration && (
           <div id="partner" className="mt-8 scroll-mt-24">
             <h2 className="text-xl font-semibold">Стать партнером мероприятия</h2>
             <p className="mt-2 text-sm text-ink/60">
@@ -595,6 +672,7 @@ export default function EventDetail() {
               </form>
             )}
           </div>
+          )}
 
           {/* «Может быть полезно» — только релевантное теме мероприятия
               (мероприятия/база знаний/вакансии по тем же тегам специализации
@@ -632,6 +710,31 @@ export default function EventDetail() {
                   Мероприятие завершено. Запись — в разделе «Полезные материалы».
                 </div>
               )
+            ) : event.externalRegistration ? (
+              <>
+                <div className="text-sm font-semibold uppercase tracking-wide text-gold">Регистрация</div>
+                <h3 className="mt-1 text-lg font-semibold">{event.price === 0 ? 'Участие бесплатное' : 'Регистрация у организатора'}</h3>
+                <p className="mt-2 text-sm text-ink/70">
+                  Регистрация и приём работ проходят на сайте организатора.
+                  {event.keyDates?.[0] && <> Срок: <span className="font-semibold text-ink">{event.keyDates[0].when}</span>.</>}
+                </p>
+                {event.registrationLink && (
+                  <a
+                    href={event.registrationLink}
+                    target="_blank"
+                    rel="noreferrer"
+                    onClick={() => pingEventRegistrationClick(event.slug)}
+                    className="mt-4 block rounded-lg bg-ink py-2.5 text-center text-sm font-semibold text-white hover:bg-ink/90"
+                  >
+                    Зарегистрироваться на сайте организатора
+                  </a>
+                )}
+                {event.documents?.filter((d) => d.kind === 'file').map((d) => (
+                  <a key={d.url} href={d.url} download className="mt-2 block rounded-lg border border-ink/20 py-2.5 text-center text-sm font-semibold text-ink hover:bg-ink/5">
+                    {d.title}
+                  </a>
+                ))}
+              </>
             ) : (
               <>
                 <div className="text-sm font-semibold uppercase tracking-wide text-gold">Регистрация</div>

@@ -8,6 +8,7 @@ import { useArticleViews } from '../lib/useArticleViews'
 import { useDocumentTitle } from '../lib/useDocumentTitle'
 import { useSocialMeta } from '../lib/useSocialMeta'
 import { useNoindex } from '../lib/pageMeta'
+import { SingleColumn } from '../components/layouts'
 
 const kindLabel = { article: 'Статья', faq: 'FAQ', glossary: 'Глоссарий', checklist: 'Чек-лист' }
 
@@ -31,8 +32,7 @@ export default function ArticleDetail() {
   const related = getRelatedContent(article, 'article', article.id)
 
   return (
-    <div className="container-page py-12">
-      <div className="mx-auto max-w-3xl">
+    <SingleColumn>
         <span className="text-sm font-medium uppercase tracking-wide text-gold">{kindLabel[article.kind]}</span>
         <h1 className="mt-2 text-3xl font-semibold">{article.title}</h1>
         <div className="mt-2 text-sm text-ink/50">
@@ -50,7 +50,6 @@ export default function ArticleDetail() {
         )}
 
         <RelatedContentBlock items={related} />
-      </div>
-    </div>
+    </SingleColumn>
   )
 }

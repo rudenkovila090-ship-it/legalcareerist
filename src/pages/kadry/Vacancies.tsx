@@ -5,6 +5,7 @@ import { vacancies } from '../../data/vacancies'
 import { IndustryFilter, EducationFilter } from '../../components/VacancyFilters'
 import { pluralRu } from '../../lib/plural'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
+import { TwoColumn } from '../../components/layouts'
 import {
   SPECIALIZATIONS, EMPLOYMENT_TYPES, WORK_SCHEDULES, WORK_FORMATS, EXPERIENCE_BUCKETS,
   type Specialization, type WorkFormat, type EmploymentType, type WorkSchedule,
@@ -68,11 +69,11 @@ export default function Vacancies() {
           вакансии добавляются по мере поступления от работодателей.
         </div>
 
-        {/* relative z-20 — у .glass своя изолированная область наложения
-            (isolation: isolate), без явного z-index раскрывающиеся списки
-            фильтров все равно оказывались под карточками вакансий ниже. */}
-        <div className="glass relative z-20 mb-8 space-y-4 rounded-xl p-4">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {/* Схема Two Column: фильтры слева (на телефоне сворачиваются), список справа. Колонка фильтров поднята над списком (z-20 в TwoColumn),
+            иначе раскрывающиеся списки отраслей и образования оказывались бы под карточками вакансий. */}
+        <TwoColumn collapseLabel="Фильтры" aside={
+        <div className="glass space-y-4 rounded-xl p-4">
+          <div className="grid gap-3 [&_input]:w-full [&_select]:w-full [&>*]:min-w-0">
             <select aria-label="Направление"
               value={spec}
               onChange={(e) => setSpec(e.target.value as Specialization | 'all')}
@@ -147,15 +148,16 @@ export default function Vacancies() {
             </select>
           </div>
 
-          <div className="text-sm text-ink/50">{filtered.length} {pluralRu(filtered.length, ['вакансия', 'вакансии', 'вакансий'])}</div>
         </div>
-
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((v) => (
-            <VacancyCard key={v.id} v={v} />
-          ))}
-          {filtered.length === 0 && <p className="text-ink/50">По заданным фильтрам вакансий не найдено.</p>}
-        </div>
+        }>
+          <div className="mb-3 text-sm text-ink/50">{filtered.length} {pluralRu(filtered.length, ['вакансия', 'вакансии', 'вакансий'])}</div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {filtered.map((v) => (
+              <VacancyCard key={v.id} v={v} />
+            ))}
+            {filtered.length === 0 && <p className="text-ink/50">По заданным фильтрам вакансий не найдено.</p>}
+          </div>
+        </TwoColumn>
       </div>
     </div>
   )

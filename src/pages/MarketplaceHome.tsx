@@ -9,6 +9,7 @@ import { MARKETPLACE_DIRECTIONS, type MaterialItem, type MaterialKind, type Mark
 import MarketplaceFooter from './MarketplaceFooter'
 import { Stars } from '../components/MaterialRating'
 import { combineRating, reviewsWord, useMaterialRatings } from '../lib/materialReviews'
+import { TwoColumn } from '../components/layouts'
 
 const money = new Intl.NumberFormat('ru-RU')
 
@@ -189,9 +190,9 @@ export default function MarketplaceHome() {
       />
 
       <div className="container-page py-10">
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[260px_1fr]">
-          {/* Фильтры */}
-          <aside className="space-y-4">
+        {/* схема Two Column: фильтры слева (на телефоне сворачиваются), каталог справа */}
+        <TwoColumn collapseLabel="Фильтры" aside={
+          <div className="space-y-4">
             <CollapsibleCheckboxFilter label="Категория" options={categoryOptions} selected={category} onToggle={toggleCategory} />
             <CollapsibleCheckboxFilter label="Направление" options={MARKETPLACE_DIRECTIONS} selected={directions} onToggle={toggleDirection} />
 
@@ -222,8 +223,8 @@ export default function MarketplaceHome() {
                 Сбросить фильтры
               </button>
             )}
-          </aside>
-
+          </div>
+        }>
           {/* Каталог */}
           <div>
             <div className="mb-1 text-sm font-medium uppercase tracking-wide text-gold">Каталог</div>
@@ -248,7 +249,7 @@ export default function MarketplaceHome() {
               {filtered.length === 0 && <p className="text-ink/50">По заданным фильтрам материалов не найдено.</p>}
             </div>
           </div>
-        </div>
+        </TwoColumn>
       </div>
       <MarketplaceFooter />
     </div>

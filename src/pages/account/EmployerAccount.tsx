@@ -108,6 +108,7 @@ const eventTypeOptions: { id: EventType; label: string }[] = [
   { id: 'intensive', label: 'Интенсив' },
   { id: 'tour', label: 'Экскурсия' },
   { id: 'internship', label: 'Стажировка' },
+  { id: 'championship', label: 'Кейс-чемпионат' },
 ]
 const eventFormatOptions: { id: EventFormat; label: string }[] = [
   { id: 'online', label: 'Онлайн' },

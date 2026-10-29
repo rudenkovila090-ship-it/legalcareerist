@@ -428,7 +428,7 @@ export interface NewsItem {
   images?: string[]
 }
 
-export type EventType = 'conference' | 'webinar' | 'breakfast' | 'intensive' | 'tour' | 'internship'
+export type EventType = 'conference' | 'webinar' | 'breakfast' | 'intensive' | 'tour' | 'internship' | 'championship'
 export type EventFormat = 'online' | 'offline'
 export type EventStatus = 'open' | 'completed'
 
@@ -471,6 +471,26 @@ export interface EventTariff {
   paymentLink?: string
 }
 
+/** Направление конкурса и компания-куратор (кейс-чемпионаты): блок «Направления и кураторы» на странице мероприятия. */
+export interface EventDirection {
+  title: string
+  curator: string
+}
+
+/** Важная дата мероприятия: «до 5 ноября, 23:59 (мск)» и что к этому сроку нужно сделать. */
+export interface EventKeyDate {
+  when: string
+  what: string
+}
+
+/** Документ или ссылка мероприятия: положение (файл), папка с кейсами, группа организатора, почта. */
+export interface EventDocument {
+  title: string
+  url: string
+  kind: 'file' | 'link'
+  note?: string
+}
+
 export interface EventItem extends Tagged {
   id: string
   slug: string
@@ -506,6 +526,8 @@ export interface EventItem extends Tagged {
   partner?: string
   /** Обложка афиши — если нет, используется цветовая заглушка по типу мероприятия. */
   cover?: string
+  /** Цвет фона афиши (например, «#481c4f»): заполняет поля вокруг афиши, когда она вписана в карточку целиком. */
+  coverColor?: string
   /** Для прошедших мероприятий — что можно купить: запись, материалы, или оба. */
   sale?: { recording?: number; materials?: number; bundle?: number }
   /** ЦА мероприятия — см. AudienceLevel. Используется подборкой «Для
@@ -524,6 +546,15 @@ export interface EventItem extends Tagged {
    *  задана, кнопка регистрации в афише ведет на нее вместо внутренней
    *  формы; внутренняя форма ниже остается доступна как запасной вариант. */
   registrationLink?: string
+  /** Регистрация только у организатора (партнёрское мероприятие со своей формой): на странице нет тарифов, нашей формы билета
+   *  и заявки «стать партнёром», вместо них — кнопка на сайт организатора и условия участия. */
+  externalRegistration?: boolean
+  /** Важные даты (сроки регистрации, приёма работ, публикации кейсов). */
+  keyDates?: EventKeyDate[]
+  /** Направления и компании-кураторы (для кейс-чемпионатов). */
+  directions?: EventDirection[]
+  /** Документы и ссылки: положение, кейсы, группа организатора. */
+  documents?: EventDocument[]
 }
 
 export type RegistrationStatus = 'registered' | 'paid' | 'attended'
