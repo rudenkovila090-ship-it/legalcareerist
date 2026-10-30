@@ -89,7 +89,7 @@ export default function KnowledgeList({
 
   return (
     <div>
-      {!compact && <PageHero eyebrow={eyebrow} title={title} description={description} prototype />}
+      {!compact && <PageHero eyebrow={eyebrow} title={title} description={description} />}
       <div className={compact ? '' : 'container-page py-10'}>
         <div className="mb-8 flex flex-wrap gap-2">
           <button

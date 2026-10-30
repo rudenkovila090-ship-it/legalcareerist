@@ -8,7 +8,7 @@ export default function Materials() {
   useDocumentTitle('Полезные материалы')
   return (
     <div>
-      <PageHero eyebrow="Мероприятия" title="Полезные материалы" description="Гайды, чек-листы и записи прошедших мероприятий." prototype />
+      <PageHero eyebrow="Мероприятия" title="Полезные материалы" description="Гайды, чек-листы и записи прошедших мероприятий." />
       <div className="container-page py-10">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {paidFirst(materials).map((m) => <MaterialCard key={m.id} m={m} />)}
