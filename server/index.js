@@ -107,6 +107,7 @@ import { renderTicketPdf, hasTicketImage, maskEmail } from './lib/ticketImage.js
 import { composeTicketMail, composeReminderMail } from './lib/ticketMail.js'
 import { buildDailyReport, mskDayKey, parseReportPeriod } from './lib/dailyReport.js'
 import { logWebhook, lastWebhook, webhookEventsFor } from './lib/webhookLog.js'
+import { CAMPAIGNS, ASSETS_DIR, PREVIEW_LEAD_MS, PREVIEW_WAIT_MS, getCampaign, getState as campaignState, patchState as patchCampaign, mediaId, saveMediaId, logDelivery, deliveredSet, campaignText, campaignLink, fitsCaption, audienceOf, campaignsScreen, campaignCard, sendNowConfirm, previewControl } from './lib/campaigns.js'
 import { digestScreen, overdueScreen, overdueCard, endedScreen, endedPlanScreen, planAction, endedJoins, overdueReason, isSnoozed, cancelledAccessOver, hasOtherActive, chargesTodayScreen, consultTasksScreen, requestTasksScreen, resumeTasksScreen, interestTasksScreen, dealTasksScreen, cancelTasksScreen, cancelReasonPicker, unsubscribeConfirm, nudgeConfirm, NEXT_DATE_PROMPT, SNOOZE_DAYS } from './lib/dayTasks.js'
 import { FINANCE_KEYBOARD, COMMUNITY_KEYBOARD, sectionScreen, menuScreen, subscribersScreen, planScreen, dueScreen, cancelledScreen, reminderMenuScreen, reminderPreviewScreen, reminderTargets, reminderMessage, planAmount, CANCEL_REASONS } from './lib/adminCabinet.js'
 import crypto from 'node:crypto'
@@ -2199,6 +2200,146 @@ const menuBack = (text, data) => [[{ text, callback_data: data }, { text: '🏠 
 const DAY_MS = 24 * 3600 * 1000
 const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
+// ---- Рекламные рассылки (lib/campaigns.js): посты с фото или видео по расписанию тем, кто дал согласие на рекламу ----
+
+/** Один запрос Telegram для рассылки: при ограничении частоты (429) ждёт и повторяет; blocked — человек заблокировал бота или аккаунта нет. */
+async function campaignCall(method, payload, form) {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    let res
+    try {
+      res = await telegramFetch(method, form ? { method: 'POST', body: form } : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+    } catch (err) {
+      return { ok: false, kind: 'failed', error: err.message }
+    }
+    const data = await res.json().catch(() => null)
+    if (res.ok && data?.ok) return { ok: true, data: data.result }
+    if (res.status === 429) {
+      await pause(((data?.parameters?.retry_after ?? 5) + 1) * 1000)
+      continue
+    }
+    const description = String(data?.description ?? '')
+    const blocked = res.status === 403 || /bot was blocked|user is deactivated|chat not found|can't initiate/i.test(description)
+    return { ok: false, kind: blocked ? 'blocked' : 'failed', error: description || `HTTP ${res.status}` }
+  }
+  return { ok: false, kind: 'failed', error: 'слишком частые запросы' }
+}
+
+/** Отправка поста одному человеку: ok, blocked или failed. Файл грузится в Telegram один раз, дальше уходит по file_id. */
+async function sendCampaignTo(c, chatId) {
+  const text = campaignText(c, SITE_URL)
+  const markup = { inline_keyboard: [[{ text: '🎟 Купить билет', url: campaignLink(SITE_URL, c) }]] }
+  const single = fitsCaption(c, SITE_URL)
+  const video = c.media.kind === 'video'
+  const method = video ? 'sendVideo' : 'sendPhoto'
+  const field = video ? 'video' : 'photo'
+  const cached = mediaId(c.media.file)
+  let r
+  if (cached) {
+    r = await campaignCall(method, { chat_id: chatId, [field]: cached, ...(video ? { supports_streaming: true, width: c.media.width, height: c.media.height } : {}), ...(single ? { caption: text, reply_markup: markup } : {}) })
+  } else {
+    const form = new FormData()
+    form.append('chat_id', String(chatId))
+    if (video) {
+      form.append('supports_streaming', 'true')
+      form.append('width', String(c.media.width))
+      form.append('height', String(c.media.height))
+    }
+    if (single) {
+      form.append('caption', text)
+      form.append('reply_markup', JSON.stringify(markup))
+    }
+    form.append(field, new Blob([fs.readFileSync(path.join(ASSETS_DIR, c.media.file))]), c.media.file)
+    r = await campaignCall(method, null, form)
+    const fileId = r.ok ? (video ? r.data?.video?.file_id : r.data?.photo?.at(-1)?.file_id) : null
+    if (fileId) saveMediaId(c.media.file, fileId)
+  }
+  if (!r.ok) {
+    console.error(`[campaign] ${c.id} → ${chatId}: ${r.error}`)
+    return r.kind
+  }
+  if (!single) {
+    const t = await campaignCall('sendMessage', { chat_id: chatId, text, link_preview_options: { is_disabled: true }, reply_markup: markup })
+    if (!t.ok) {
+      console.error(`[campaign] ${c.id} → ${chatId} (текст): ${t.error}`)
+      return t.kind
+    }
+  }
+  return 'ok'
+}
+
+const campaignAudienceSize = () => audienceOf(listBotUsers(), ADMIN_CHAT_ID).length
+
+/** Тестовая копия админу и кнопки «Пауза» / «Отправить сейчас». Рассылка уйдёт не раньше чем через PREVIEW_WAIT_MS после неё. */
+async function sendCampaignPreview(c, now) {
+  const state = campaignState(c.id)
+  const tries = (state.previewTries ?? 0) + 1
+  patchCampaign(c.id, { previewTries: tries })
+  const r = await sendCampaignTo(c, ADMIN_CHAT_ID)
+  if (r !== 'ok') {
+    if (tries === 1 || tries === 3) await sendTelegramMessage(ADMIN_CHAT_ID, `⚠️ Рассылка ${c.number}: не удалось отправить вам тестовую копию (${r}). Пока тест не дойдёт, рассылка не уйдёт.`).catch(() => false)
+    return false
+  }
+  patchCampaign(c.id, { previewAt: now })
+  const ctl = previewControl(c, Math.max(c.sendAt, now + PREVIEW_WAIT_MS), campaignAudienceSize())
+  await sendTelegramMessage(ADMIN_CHAT_ID, ctl.text, ctl.keyboard)
+  return true
+}
+
+/** Рассылка получателям. Кому уже доставлено, пропускаем (журнал), поэтому после перезапуска сервера она продолжается без дублей. */
+async function runCampaign(c) {
+  const done = deliveredSet(c.id)
+  const todo = audienceOf(listBotUsers(), ADMIN_CHAT_ID).filter((u) => !done.has(String(u.id)))
+  if (!campaignState(c.id).startedAt) {
+    patchCampaign(c.id, { startedAt: Date.now(), total: todo.length })
+    await sendTelegramMessage(ADMIN_CHAT_ID, `📤 Рассылка ${c.number} началась: ${todo.length} получателей.`, undefined, quiet()).catch(() => false)
+  }
+  const count = { ok: 0, blocked: 0, failed: 0 }
+  let stopped = null
+  let failedInRow = 0
+  for (let i = 0; i < todo.length; i++) {
+    if (i % 20 === 0 && campaignState(c.id).paused) {
+      stopped = 'пауза'
+      break
+    }
+    const result = await sendCampaignTo(c, todo[i].id)
+    logDelivery(c.id, todo[i].id, result)
+    count[result] += 1
+    failedInRow = result === 'failed' ? failedInRow + 1 : 0
+    if (failedInRow >= 15) {
+      // 15 неудач подряд — это не заблокировавшие бота, а проблема с Telegram или сетью: ставим на паузу
+      patchCampaign(c.id, { paused: true })
+      stopped = 'много ошибок подряд'
+      break
+    }
+    await pause(40)
+  }
+  if (!stopped) patchCampaign(c.id, { finishedAt: Date.now(), goNow: undefined })
+  const all = deliveredSet(c.id)
+  const lines = [stopped ? `⏸ Рассылка ${c.number} остановлена (${stopped}). Продолжится с того же места после «Возобновить».` : `✅ Рассылка ${c.number} закончена.`, `Доставлено сейчас: ${count.ok}, бот заблокирован: ${count.blocked}, не доставлено: ${count.failed}.`, `Всего получили эту рассылку: ${all.size}.`]
+  await sendTelegramMessage(ADMIN_CHAT_ID, lines.join('\n'), [[{ text: '📣 Все рассылки', callback_data: 'a:x:nl' }]], quiet()).catch(() => false)
+}
+
+let campaignsRunning = false
+/** Раз в 30 секунд: за час до времени отправки шлёт админу тест, затем (не раньше чем через PREVIEW_WAIT_MS) запускает рассылку. Отключить: CAMPAIGNS=0. */
+async function processCampaigns() {
+  if (!BOT_TOKEN || !ADMIN_CHAT_ID || campaignsRunning || process.env.CAMPAIGNS === '0') return
+  campaignsRunning = true
+  try {
+    for (const c of CAMPAIGNS) {
+      const state = campaignState(c.id)
+      const now = Date.now()
+      if (state.finishedAt || state.paused) continue
+      if (!state.previewAt && !state.goNow) {
+        if (now >= c.sendAt - PREVIEW_LEAD_MS && (state.previewTries ?? 0) < 3) await sendCampaignPreview(c, now)
+        continue
+      }
+      if (state.goNow || now >= Math.max(c.sendAt, state.previewAt + PREVIEW_WAIT_MS)) await runCampaign(c)
+    }
+  } finally {
+    campaignsRunning = false
+  }
+}
+
 /**
  * Где человек сейчас по отношению к чату сообщества (getChatMember): in — в чате, out — нет (вышел, исключён, не вступал), admin — администратор
  * или владелец чата, none — у карточки нет Telegram id, unknown — Telegram не ответил (тогда ничего не делаем).
@@ -2376,6 +2517,37 @@ async function extrasAction(parts, now, chatId) {
       const ok = j ? await kickAndNotify(j) : false
       if (ok) patchJoin(j.token, { cancelledBy: 'admin', snoozedUntil: undefined })
       return withNote(await endedView(now), ok ? `🚪 Готово: ${j.name || j.telegram || j.phone} исключён(а) из чата, ему отправлено сообщение.` : '⚠️ Не удалось исключить: нет Telegram id или бот не администратор чата. Подробности в логе.')
+    }
+    case 'nl':
+      return campaignsScreen(now, campaignAudienceSize())
+    case 'nlc': {
+      const c = getCampaign(arg)
+      return c ? campaignCard(c, now, campaignAudienceSize(), SITE_URL) : campaignsScreen(now, campaignAudienceSize())
+    }
+    case 'nlt': {
+      const c = getCampaign(arg)
+      if (!c) return campaignsScreen(now, campaignAudienceSize())
+      const r = await sendCampaignTo(c, chatId)
+      return withNote(campaignCard(c, now, campaignAudienceSize(), SITE_URL), r === 'ok' ? '👁 Тестовая копия отправлена выше, только вам.' : `⚠️ Не удалось отправить тест (${r}).`)
+    }
+    case 'nlp': {
+      const c = getCampaign(arg)
+      if (!c) return campaignsScreen(now, campaignAudienceSize())
+      const paused = !campaignState(c.id).paused
+      patchCampaign(c.id, { paused })
+      if (!paused) void processCampaigns()
+      return withNote(campaignCard(c, now, campaignAudienceSize(), SITE_URL), paused ? '⏸ Рассылка на паузе: никому не уйдёт, пока не нажмёте «Возобновить».' : '▶️ Рассылка возобновлена.')
+    }
+    case 'nlgo': {
+      const c = getCampaign(arg)
+      return c ? sendNowConfirm(c, campaignAudienceSize()) : campaignsScreen(now, campaignAudienceSize())
+    }
+    case 'nlgook': {
+      const c = getCampaign(arg)
+      if (!c) return campaignsScreen(now, campaignAudienceSize())
+      patchCampaign(c.id, { goNow: true, paused: false })
+      void processCampaigns()
+      return withNote(campaignCard(c, now, campaignAudienceSize(), SITE_URL), '🚀 Отправка запущена. Когда закончится, пришлю итог.')
     }
     case 'over':
       return overdueView(now)
@@ -3075,7 +3247,7 @@ async function adminScreen(data, now, chatId) {
 // Кнопки, которые что-то меняют или отправляют данные: помощникам (только просмотр) они недоступны, в журнал попадают только они.
 // Кнопки, которые только открывают ввод текста или подтверждение — в журнал не пишем (запишется само действие).
 const PROMPT_ONLY = /^a:(k:(rev|new)|s:(ikind|inew|rnew|redit|rdel)|x:(tnew|ambnew|ambdel|fexpnew|evpaid|promonew|ovdate))\b/
-const MUTATING = /^a:(k:(adv|back|q1|q0|lost|reopen|revok|rev|new|pp|pf)|s:(vst|cst|idone|iclose|isnooze|ikind|inew|rnew|redit|rdel|rdelok)|x:(grant|promonew|promodel|tnew|tdone|ambnew|ambplus|ambdel|ambdelok|kickok|rvok|rvno|cr|fexpnew|fexpdel|evst|evpaid|backup|erase|pdgo|impgo|impall|dgcon|dgev|dgres|dgint|dgdeal|dgcr|ovsnz|ovdate|ovcxlok|ovnok|endok|endone)|remgo)\b/
+const MUTATING = /^a:(k:(adv|back|q1|q0|lost|reopen|revok|rev|new|pp|pf)|s:(vst|cst|idone|iclose|isnooze|ikind|inew|rnew|redit|rdel|rdelok)|x:(grant|promonew|promodel|tnew|tdone|ambnew|ambplus|ambdel|ambdelok|kickok|rvok|rvno|cr|fexpnew|fexpdel|evst|evpaid|backup|erase|pdgo|impgo|impall|dgcon|dgev|dgres|dgint|dgdeal|dgcr|ovsnz|ovdate|ovcxlok|ovnok|endok|endone|nlt|nlp|nlgook)|remgo)\b/
 
 /** Нажатие кнопки кабинета — от админа (все кнопки) или помощника (только просмотр); остальным молча отвечаем. */
 async function handleAdminCallback(query) {
@@ -4262,6 +4434,7 @@ if (process.env.DISABLE_DAILY_REPORT !== '1') {
   setInterval(() => afterResponse('expiry', () => runDailyOnce('expiry', 10, processExpiry)), 60 * 1000)
   setInterval(() => afterResponse('review-flow', processReviewFlow), 60 * 1000)
   setInterval(() => afterResponse('event-reminders', () => runDailyOnce('eventReminders', 10, sendEventReminders)), 60 * 1000)
+  setInterval(() => afterResponse('campaigns', processCampaigns), 30 * 1000)
   setInterval(() => afterResponse('chat-membership', () => runDailyOnce('chatMembership', 8, refreshChatMembership)), 60 * 1000)
   setInterval(() => afterResponse('morning-digest', () => runDailyOnce('digest', 9, sendMorningDigest)), 60 * 1000)
   setInterval(() => afterResponse('evening-close', () => runDailyOnce('eveningClose', 20, sendEveningClose)), 60 * 1000)
@@ -4278,7 +4451,7 @@ process.on('unhandledRejection', (err) => console.error('[unhandledRejection]', 
 process.on('uncaughtException', (err) => console.error('[uncaughtException]', err))
 
 // Для автотестов: доступ к фоновым задачам без ожидания расписания.
-if (process.env.TEST_HOOKS === '1') globalThis.__hooks = { runRetentionJob, sendEventReminders, processExpiry, processReviewFlow, sendAutoResidentReminders, sendMorningDigest, sendEveningClose, refreshChatMembership, sendPendingNoticesIfDue }
+if (process.env.TEST_HOOKS === '1') globalThis.__hooks = { runRetentionJob, sendEventReminders, processExpiry, processReviewFlow, sendAutoResidentReminders, sendMorningDigest, sendEveningClose, refreshChatMembership, processCampaigns, sendPendingNoticesIfDue }
 
 const PORT = process.env.PORT || 3001
 ensureBuiltInPromos()
