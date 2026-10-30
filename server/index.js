@@ -752,32 +752,66 @@ async function sendSubscriptionMail(join, invite, { amount, paidAt } = {}) {
 }
 
 /**
- * Состояние подписки из любого вебхука с блоком subscription: если человек
- * или менеджер отключил подписку (active_user / active_manager = 0), а мы
- * знаем этого подписчика по profile_id — помечаем «отключена» и пишем админу.
- * Точный вид отдельных вебхуков об отписке пока не подтверждён реальными
- * данными, поэтому срабатывает только на явный "0" у известного профиля.
+ * Какая карточка подписчика относится к уведомлению Prodamus о подписке. Сначала по profile_id, потом по Telegram id, телефону и почте.
+ * Уведомления об отключении и включении (type: action) приходят иногда без profile_id и без контактов: тогда сверяем по дате следующего
+ * списания (у подписки Prodamus и у нашей карточки она одна и та же) или по дате первого платежа, и только если подходит ровно одна карточка.
+ */
+function findJoinForSubscriptionEvent(body) {
+  const sub = body.subscription ?? {}
+  const profileId = sub.profile_id ? String(sub.profile_id) : null
+  if (profileId) {
+    const byProfile = findJoinForPayment({ profileId })
+    if (byProfile) return byProfile.join
+  }
+  const byContact = findPaidJoin({ profileId, tgUserId: body.tg_user_id, phone: body.customer_phone || body.phone, email: body.customer_email })
+  if (byContact) return byContact
+  const next = parseProdamusDate(sub.date_next_payment)
+  const first = parseProdamusDate(sub.date_first_payment)
+  const near = (a, b) => Boolean(a && b) && Math.abs(a - b) < 3 * 60 * 1000
+  const subId = String(sub.id ?? '')
+  const candidates = listJoins().filter(
+    (j) =>
+      j.paid &&
+      !j.lifetime &&
+      (near(next, j.nextPaymentAt) || (first && (j.payments ?? []).some((p) => !p.estimated && near(first, p.at)))) &&
+      !(j.payments ?? []).some((p) => p.subscriptionId && subId && String(p.subscriptionId) !== subId),
+  )
+  return candidates.length === 1 ? candidates[0] : null
+}
+
+/**
+ * Состояние подписки из любого вебхука с блоком subscription. Форматы подтверждены журналом Prodamus: type «action» с action_code
+ * deactivation (отключил менеджер, active_manager 0), finish (отключил клиент, active_user 0) и reactivation (всё 1); сам блок содержит
+ * флаги active, active_user и active_manager. Любой «0» — подписка отключена. Если карточку определить не удалось, админу уходит
+ * предупреждение, чтобы подписку не потерять из виду.
  */
 async function handleSubscriptionState(body) {
   const sub = body.subscription
-  const profileId = sub?.profile_id ? String(sub.profile_id) : null
-  if (!profileId) return
-  const match = findJoinForPayment({ profileId })
-  if (!match) return
+  if (!sub) return
+  const flags = ['active', 'active_user', 'active_manager'].filter((k) => sub[k] !== undefined && sub[k] !== '')
+  if (!flags.length) return
+  const inactive = flags.some((k) => String(sub[k]) === '0')
+  const join = findJoinForSubscriptionEvent(body)
+  if (!join) {
+    if (sub.type === 'action') {
+      console.error('[prodamus] уведомление о подписке: карточка не найдена, подписка', sub.id, sub.action_code)
+      await sendTelegramMessage(ADMIN_CHAT_ID, `⚠️ Prodamus прислал «${sub.action_code ?? 'изменение подписки'}» (${inactive ? 'отключена' : 'включена'}), но я не нашёл, чья это подписка: тариф №${sub.id}, ${sub.cost ? `${Math.round(Number(sub.cost))} ₽, ` : ''}дата следующего списания ${sub.date_next_payment || 'нет'}. Проверьте в Prodamus и при необходимости отпишите человека вручную.`, undefined, quiet()).catch(() => false)
+    }
+    return
+  }
 
-  const inactive = String(sub.active_user) === '0' || String(sub.active_manager) === '0'
   const at = Date.now()
-  const result = setSubscriptionActive(match.join.token, !inactive, at)
+  const result = setSubscriptionActive(join.token, !inactive, at)
   if (!result?.changed) return
 
-  console.log(`[prodamus] статус подписки ${match.join.token} изменился →`, inactive ? 'отключена' : 'включена')
+  console.log(`[prodamus] статус подписки ${join.token} изменился →`, inactive ? 'отключена' : 'включена')
   if (inactive) {
     await sendTelegramMessage(
       ADMIN_CHAT_ID,
       buildCancellationNotification({ record: result.record, tariff: TARIFFS[result.record.tariffId], at }),
     )
-    // Подписчику, который общался с ботом, — вопрос о причине (отключается CANCEL_SURVEY=0).
-    if (result.record.tgUserId && process.env.CANCEL_SURVEY !== '0') {
+    // Вопрос о причине — только если подписку отключил сам клиент (active_user 0), а не менеджер в Prodamus; отключается CANCEL_SURVEY=0.
+    if (result.record.tgUserId && String(sub.active_user) === '0' && process.env.CANCEL_SURVEY !== '0') {
       await sendTelegramMessage(
         result.record.tgUserId,
         `Здравствуйте! Мы увидели, что вы отключили подписку на сообщество «Карьерный юрист». Нам важно понять, что можно улучшить — если не сложно, напишите причину: ${SUPPORT_HANDLE}. Спасибо, что были с нами!`,
