@@ -72,7 +72,7 @@ import { REVIEW_BONUS_DAYS, REVIEW_MIN_LENGTH, reviewRequestDue, addCommunityRev
 import { logAction, recentActions } from './lib/auditLog.js'
 import { healthLines, makeBackup, readBackupState, writeBackupState } from './lib/healthBackup.js'
 import { listTodos, addTodo, setTodoDone, ensureTodo } from './lib/todos.js'
-import { todosScreen, TODO_PROMPT, chatCheckScreen, userCard, botUsersScreen, notificationsScreen, reviewsScreen, reviewCard, promosScreen, PROMO_PROMPT, ambassadorsScreen, ambassadorCard, AMBASSADOR_PROMPT, retentionScreen, cancelCard, eventRegistrationsScreen, eventScreen, eventLeadCard, eventRequestsScreen, eventsMonthSummary, FIND_PROMPT, searchScreen, systemScreen, auditScreen } from './lib/extraCabinet.js'
+import { todosScreen, TODO_PROMPT, chatCheckScreen, userCard, botUsersScreen, notificationsScreen, reviewsScreen, reviewCard, promosScreen, PROMO_PROMPT, ambassadorsScreen, ambassadorCard, AMBASSADOR_PROMPT, retentionScreen, cancelCard, eventRegistrationsScreen, eventScreen, eventLeadCard, eventRequestsScreen, eventsMonthSummary, systemScreen, auditScreen } from './lib/extraCabinet.js'
 import { createInterest, getInterest, listInterests, markInterestDone, closeInterest, snoozeInterest, REMIND_AFTER_DAYS } from './lib/interests.js'
 import { createReserveCandidate, listReserve, getReserveCandidate, setReserveField, deleteReserveCandidate, markResumeReceived } from './lib/reserve.js'
 import { applicationCard, recommendationCard, reserveListScreen, reserveCard, reserveFieldPrompt, reserveDeleteConfirm, RESERVE_NEW_PROMPT, INTEREST_KIND_KEYBOARD, interestPrompt, interestsScreen, interestCard, SEEKERS_KEYBOARD, buildVacancyViews, vacanciesScreen, vacancyCard, vacancyApplicationsScreen, recentApplicationsScreen, consultationsScreen, consultationCard, seekersMonthSummary } from './lib/seekersCabinet.js'
@@ -2751,9 +2751,6 @@ async function extrasAction(parts, now, chatId) {
     }
     case 'pdgo':
       return { text: retentionDoneText(applyRetention(now)), keyboard: [[{ text: '🏠 Меню', callback_data: 'a:menu' }]] }
-    case 'find':
-      adminInput.set(String(chatId), { type: 'find' })
-      return { text: FIND_PROMPT, keyboard: [[{ text: '⬅️ Меню', callback_data: 'a:menu' }]] }
     case 'digest':
       return digestScreen(data, TARIFFS, now, currentHealth())
     case 'sys': {
@@ -3001,7 +2998,7 @@ function kadryAction(parts, now, chatId) {
 
 /** Текстовый ответ админа на вопрос бота (выручка / новая сделка). */
 async function handlePendingInput(chatId, pending, text) {
-  if (pending.type !== 'find') logAction(chatId, `input:${pending.type}${pending.number ? `:${pending.number}` : ''}`)
+  logAction(chatId, `input:${pending.type}${pending.number ? `:${pending.number}` : ''}`)
   if (pending.type === 'revenue') {
     const amount = Number(text.replace(/[^\d.,]/g, '').replace(',', '.'))
     if (!(amount > 0)) {
@@ -3018,11 +3015,6 @@ async function handlePendingInput(chatId, pending, text) {
     addTodo(text.trim())
     const screen = todosScreen(listTodos())
     await sendLongMessage(chatId, `✅ Добавлено.\n\n${screen.text}`, screen.keyboard)
-    return
-  }
-  if (pending.type === 'find') {
-    const screen = searchScreen(text, allData(), TARIFFS)
-    await sendLongMessage(chatId, screen.text, screen.keyboard)
     return
   }
   if (pending.type === 'ambassador') {
@@ -3780,7 +3772,7 @@ async function handleTelegramUpdate(update) {
     }
   }
   const pendingRaw = (isAdmin || isViewer) && text && !text.startsWith('/') ? adminInput.get(String(chatId)) : null
-  const pendingInput = pendingRaw && (isAdmin || pendingRaw.type === 'find') ? pendingRaw : null
+  const pendingInput = pendingRaw && isAdmin ? pendingRaw : null
   if (pendingInput) {
     adminInput.delete(String(chatId))
     await handlePendingInput(chatId, pendingInput, text)

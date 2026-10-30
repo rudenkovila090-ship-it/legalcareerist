@@ -1,13 +1,12 @@
 // Дополнительные экраны кабинета администратора: амбассадоры, просрочки,
 // удержание, финансовая сводка/прогноз/расходы, мероприятия, поиск человека,
 // сводка дня и системное состояние. Только тексты и кнопки.
-import { rub, who, planAmount, ruDay, CANCEL_REASONS } from './adminCabinet.js'
+import { rub, who, planAmount, CANCEL_REASONS } from './adminCabinet.js'
 import { mskDayKey } from './dailyReport.js'
 import { EVENT_STATUSES } from './eventLeads.js'
 import { hasTicketImage } from './ticketImage.js'
 import { NOTIFY_OPTIONS } from './adminSettings.js'
 import { reviewText } from './materialReviews.js'
-import { subscriptionLabel } from './dayTasks.js'
 
 const MSK = 'Europe/Moscow'
 const DAY = 24 * 3600 * 1000
@@ -211,50 +210,6 @@ export function eventsMonthSummary(leads, which, now) {
   return { text: lines.join('\n'), keyboard: [[{ text: 'Прошлый месяц', callback_data: 'a:x:evmonth:prev' }, { text: 'Текущий', callback_data: 'a:x:evmonth' }], back('⬅️ Мероприятия', 'a:sec:events')] }
 }
 
-// ---- Поиск человека ----
-
-export const FIND_PROMPT = '🔍 Найти человека\n\nОтправьте ник в Telegram, телефон (хотя бы 4 последние цифры), почту или часть фамилии. Отмена — /cancel.'
-
-/** Ищет человека по всем разделам кабинета; возвращает текст и кнопки открытия карточек. */
-export function searchScreen(query, data, tariffs, now = Date.now()) {
-  const q = query.trim().toLowerCase().replace(/^@/, '')
-  const digits = q.replace(/\D/g, '')
-  const match = (o) => {
-    if (!q) return false
-    const text = [o.name, o.telegram, o.email, o.company].filter(Boolean).join(' ').toLowerCase().replace(/@/g, '')
-    if (text.includes(q)) return true
-    if (digits.length >= 5 && (String(o.id ?? '') === digits || String(o.tgUserId ?? '') === digits)) return true
-    const phone = String(o.phone ?? '').replace(/\D/g, '')
-    return digits.length >= 4 && phone.includes(digits)
-  }
-  const lines = [`🔍 Поиск: «${query.trim()}»`, '']
-  const keyboard = []
-  let found = 0
-  const section = (title, items, line, button) => {
-    if (!items.length) return
-    found += items.length
-    lines.push(title)
-    for (const it of items.slice(0, 5)) {
-      lines.push(`• ${line(it)}`)
-      if (button && keyboard.length < 15) keyboard.push([button(it)])
-    }
-    if (items.length > 5) lines.push(`  …и ещё ${items.length - 5}`)
-    lines.push('')
-  }
-  section('👥 Подписка сообщества', data.joins.filter(match), (j) => `${who(j)} — ${j.status === 'active' ? (j.lifetime ? 'бессрочная' : subscriptionLabel(j, now)) : j.status === 'cancelled' ? 'отписан(а)' : 'не оплачена'}${j.paid ? `, ${rub(planAmount(j, tariffs))}` : ''}${j.firstPaidAt ? `, с ${ruDate(j.firstPaidAt)}` : ''}${j.nextPaymentAt && j.status === 'active' ? `, след. списание ${ruDay(j.nextPaymentAt)}` : ''}`)
-  section('⚖️ Сделки', data.deals.filter(match), (d) => `№${d.number} · ${d.company || d.name} · этап ${d.stage}${d.status !== 'active' ? ` (${d.status === 'done' ? 'завершена' : 'закрыта'})` : ''}`, (d) => ({ text: `Сделка №${d.number} · ${d.company || d.name}`.slice(0, 60), callback_data: `a:k:deal:${d.number}` }))
-  section('📥 Отклики на вакансии', data.applications.filter(match), (a) => `№${a.number} · ${a.name} → ${a.vacancyTitle || a.vacancySlug} · ${ruDate(a.createdAt)}`)
-  section('🎯 Консультации', data.consultations.filter(match), (c) => `№${c.number} · ${c.name} · ${c.total != null ? rub(c.total) : 'вопрос'} · ${ruDate(c.createdAt)}`, (c) => ({ text: `Консультация №${c.number} · ${c.name}`.slice(0, 60), callback_data: `a:s:con:${c.number}` }))
-  section('📇 Интересовались', data.interests.filter(match), (i) => `№${i.number} · ${i.name} · ${i.kind === 'community' ? 'сообщество' : i.kind === 'vacancy' ? 'вакансия' : 'консультация'} · ${ruDate(i.contactedAt)}`, (i) => ({ text: `Интерес №${i.number} · ${i.name}`.slice(0, 60), callback_data: `a:s:icard:${i.number}` }))
-  section('🗃 Кадровый резерв', data.reserve.filter(match), (c) => `№${c.number} · ${c.name} · ${c.city || '—'} · ${c.position || '—'}`, (c) => ({ text: `Резерв №${c.number} · ${c.name}`.slice(0, 60), callback_data: `a:s:rcard:${c.number}` }))
-  section('🎟 Мероприятия', data.eventLeads.filter(match), (e) => `№${e.number} · ${e.name} · ${e.eventTitle || e.formType} · ${EVENT_STATUSES[e.status]}`, (e) => ({ text: `Мероприятие №${e.number} · ${e.name}`.slice(0, 60), callback_data: `a:x:evcard:${e.number}` }))
-  section('👤 Пользователи бота', (data.botUsers ?? []).map((u) => ({ ...u, name: [u.firstName, u.lastName].filter(Boolean).join(' ') || u.name, telegram: u.username })).filter(match), (u) => `${u.name || 'без имени'}${u.telegram ? ` ${u.telegram}` : ''} · ID ${u.id} · метки: ${(u.tags ?? []).slice(0, 4).join(', ')}`, (u) => ({ text: `Карточка: ${u.name || u.id}`.slice(0, 60), callback_data: `a:x:pc:${u.id}` }))
-  section('🌟 Амбассадоры', data.ambassadors.filter(match), (a) => `№${a.number} · ${a.name}${a.promo ? ` · ${a.promo}` : ''}`, (a) => ({ text: `Амбассадор №${a.number} · ${a.name}`.slice(0, 60), callback_data: `a:x:ambcard:${a.number}` }))
-  if (!found) lines.push('Ничего не найдено. Попробуйте ник, часть фамилии или последние цифры телефона.')
-  keyboard.push([{ text: '🔍 Искать ещё', callback_data: 'a:x:find' }, ...menuRow])
-  return { text: lines.join('\n'), keyboard }
-}
-
 // ---- Сводка дня и система ----
 
 /** Экран «Уведомления»: что и как присылает бот администратору, с тумблерами. */
@@ -411,10 +366,8 @@ export function botUsersScreen(users) {
     '',
     'Метки:',
     ...[...tagCount].sort((a, b) => b[1] - a[1]).map(([t, n]) => `• ${t} — ${n}`),
-    '',
-    'Чтобы открыть карточку человека, воспользуйтесь «🔍 Найти человека»: по нику, имени, телефону или Telegram ID.',
   ]
-  return { text: lines.join('\n'), keyboard: [[{ text: '🔍 Найти человека', callback_data: 'a:x:find' }], back('⬅️ Система', 'a:x:sys')] }
+  return { text: lines.join('\n'), keyboard: [back('⬅️ Система', 'a:x:sys')] }
 }
 
 // ---- Доработки (список задач) ----

@@ -32,10 +32,7 @@ export const MENU_KEYBOARD = [
     { text: '👥 Сообщество', callback_data: 'a:sec:community' },
   ],
   [{ text: '🎟 Мероприятия', callback_data: 'a:sec:events' }],
-  [
-    { text: '🔍 Найти человека', callback_data: 'a:x:find' },
-    { text: '🌅 Сводка дня', callback_data: 'a:x:digest' },
-  ],
+  [{ text: '🌅 Сводка дня', callback_data: 'a:x:digest' }],
   [{ text: '🛠 Система', callback_data: 'a:x:sys' }],
 ]
 

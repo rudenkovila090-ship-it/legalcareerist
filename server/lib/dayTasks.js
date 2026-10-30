@@ -147,12 +147,6 @@ function contactLines(j) {
 
 const REASON_ORDER = ['failed', 'silent', 'imported']
 
-/** Как назвать состояние подписки в списках: активна, просрочена (ждём оплату) или срок вышел. */
-export function subscriptionLabel(j, now) {
-  if (j.status !== 'active' || j.lifetime || !j.nextPaymentAt || j.nextPaymentAt >= now - OVERDUE_GRACE_MS) return 'активна'
-  return overdueReason(j, now).code === 'ended' ? '🚪 срок вышел' : '⚠️ просрочена, ждём оплату'
-}
-
 /** Список просрочки: сначала объяснение, потом люди по причинам; у каждого кнопка с карточкой. «Срок вышел» вынесено в отдельный список. */
 export function overdueScreen(joins, tariffs, now) {
   const all = waitingJoins(joins, now)
