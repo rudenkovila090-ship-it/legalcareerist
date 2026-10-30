@@ -20,6 +20,7 @@ const CommunityHome = lazy(() => import('./pages/community/CommunityHome'))
 const JoinSuccess = lazy(() => import('./pages/community/JoinSuccess'))
 const EventsHome = lazy(() => import('./pages/events/EventsHome'))
 const EventDetail = lazy(() => import('./pages/events/EventDetail'))
+const EventPhotos = lazy(() => import('./pages/events/EventPhotos'))
 const Materials = lazy(() => import('./pages/events/Materials'))
 const MaterialDetail = lazy(() => import('./pages/events/MaterialDetail'))
 const MaterialThanks = lazy(() => import('./pages/materials/MaterialThanks'))
@@ -95,6 +96,7 @@ export default function App() {
             {/* Мероприятие переименовано — прежняя ссылка ведёт на новую. */}
             <Route path="/events/yuridicheskaya-noch-dzhaza-2" element={<Navigate to="/events/dzhazovyy-vecher-dlya-yuristov-2" replace />} />
             <Route path="/events/:slug" element={<EventDetail />} />
+            <Route path="/events/:slug/photos" element={<EventPhotos />} />
             <Route
               path="/events/knowledge"
               element={

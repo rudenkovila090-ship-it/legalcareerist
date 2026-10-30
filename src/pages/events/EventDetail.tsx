@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { events } from '../../data/events'
+import { getPhotoReport } from '../../data/photoReports'
 import RelatedContentBlock from '../../components/RelatedContentBlock'
 import { getRelatedContent } from '../../lib/related'
 import { submitLead, pingEventRegistrationClick } from '../../lib/leads'
@@ -444,6 +445,11 @@ export default function EventDetail() {
               <IconHeart filled={favorite} />
               {favorite ? 'В избранном' : 'В избранное'}
             </button>
+            {getPhotoReport(event.slug) && (
+              <Link to={`/events/${event.slug}/photos`} className="rounded-full border border-white/40 px-5 py-3 text-sm font-semibold text-white hover:bg-white/10">
+                Фотоотчёт
+              </Link>
+            )}
             <ShareButtons title={event.title} />
             {views !== null && <span className="text-sm text-white/60">{views} {pluralRu(views, ['просмотр', 'просмотра', 'просмотров'])}</span>}
           </div>

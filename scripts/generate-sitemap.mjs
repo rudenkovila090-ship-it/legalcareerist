@@ -44,11 +44,11 @@ const staticPaths = [
   '/legal/offer-legal-night-jazz-2',
 ]
 
-function extractSlugs(file) {
+function extractSlugs(file, key = 'slug') {
   const full = path.join(ROOT, 'src/data', file)
   if (!fs.existsSync(full)) return []
   const text = fs.readFileSync(full, 'utf8')
-  return [...text.matchAll(/slug:\s*'([^']+)'/g)].map((m) => m[1])
+  return [...text.matchAll(new RegExp(`${key}:\\s*'([^']+)'`, 'g'))].map((m) => m[1])
 }
 
 const dynamicPaths = [
@@ -57,6 +57,7 @@ const dynamicPaths = [
   ...extractSlugs('articles.ts').map((s) => `/knowledge/${s}`),
   ...extractSlugs('materials.ts').map((s) => `/materials/${s}`),
   ...extractSlugs('news.ts').map((s) => `/news/${s}`),
+  ...extractSlugs('photoReports.ts', 'eventSlug').map((s) => `/events/${s}/photos`),
 ]
 
 const allPaths = [...staticPaths, ...dynamicPaths]
