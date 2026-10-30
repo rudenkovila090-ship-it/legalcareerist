@@ -5,9 +5,9 @@ import { rub, who, planAmount, ruDay, CANCEL_REASONS } from './adminCabinet.js'
 import { mskDayKey } from './dailyReport.js'
 import { EVENT_STATUSES } from './eventLeads.js'
 import { hasTicketImage } from './ticketImage.js'
-import { dealPayments } from './deals.js'
 import { NOTIFY_OPTIONS } from './adminSettings.js'
 import { reviewText } from './materialReviews.js'
+import { subscriptionLabel } from './dayTasks.js'
 
 const MSK = 'Europe/Moscow'
 const DAY = 24 * 3600 * 1000
@@ -118,92 +118,6 @@ export function cancelCard(j) {
   return { text: lines.join('\n'), keyboard }
 }
 
-// ---- Финансы: сводка, прогноз, расходы ----
-
-/** Выручка по направлениям за месяц и прибыль после расходов. */
-export function financeSummary(data, monthKey) {
-  const inMonth = (ts) => Boolean(ts) && monthOf(ts) === monthKey
-  const community = data.joins.flatMap((j) => j.payments ?? []).filter((p) => !p.estimated && inMonth(p.at)).reduce((acc, p) => acc + (Number(p.amount) || 0), 0)
-  const kadry = data.deals.flatMap((d) => dealPayments(d)).filter((p) => inMonth(p.at)).reduce((acc, p) => acc + p.amount, 0)
-  const materials = (data.purchases ?? []).filter((p) => p.amount != null && inMonth(p.paidAt)).reduce((acc, p) => acc + p.amount, 0)
-  const consult = data.consultations.filter((c) => c.status === 'done' && inMonth(c.statusAt)).reduce((acc, c) => acc + (Number(c.total) || 0), 0)
-  const events = data.eventLeads.filter((e) => e.kind === 'registration' && e.amount != null && inMonth(e.statusAt)).reduce((acc, e) => acc + e.amount, 0)
-  const income = community + kadry + consult + events + materials
-  const monthExpenses = data.expenses.filter((e) => inMonth(e.at))
-  const spent = monthExpenses.reduce((acc, e) => acc + e.amount, 0)
-  const lines = [
-    `🧾 Финансы — ${monthTitle(monthKey)}`,
-    '',
-    `👥 Подписки сообщества: ${rub(community)}`,
-    `⚖️ Кадровое агентство: ${rub(kadry)}`,
-    `🎯 Карьерные консультации: ${rub(consult)}`,
-    `🎟 Мероприятия: ${rub(events)}`,
-    `📚 Материалы (маркетплейс): ${rub(materials)}`,
-    `Выручка всего: ${rub(income)}`,
-    '',
-    `💸 Расходы: ${rub(spent)}`,
-    `💰 Прибыль: ${rub(income - spent)}`,
-    '',
-    'Покупки материалов считаются с момента обновления — прежние суммы не сохранялись.',
-  ]
-  return { text: lines.join('\n'), keyboard: [[{ text: 'Прошлый месяц', callback_data: 'a:x:fsum:prev' }, { text: 'Текущий', callback_data: 'a:x:fsum:cur' }], [{ text: '📎 Выгрузить месяц (CSV)', callback_data: `a:x:csv:${monthKey === monthOf(Date.now()) ? 'cur' : 'prev'}` }], [{ text: '💸 Расходы', callback_data: 'a:x:fexp' }], back('⬅️ Финансы', 'a:sec:finance')] }
-}
-
-/** Прогноз на 30 дней: списания подписчиков и ожидаемая выручка по сделкам. */
-export function forecastScreen(joins, deals, tariffs, now) {
-  const due = joins.filter((j) => j.status === 'active' && j.nextPaymentAt && j.nextPaymentAt <= now + 30 * DAY)
-  const community = due.reduce((acc, j) => acc + planAmount(j, tariffs), 0)
-  const pipeline = deals.filter((d) => d.status === 'active')
-  const dealsSum = pipeline.reduce((acc, d) => acc + (Number(d.expectedFee) || 0), 0)
-  const lines = [
-    '🔮 Прогноз на 30 дней',
-    '',
-    `👥 Списания подписчиков: ${due.length} на ${rub(community)}`,
-    `⚖️ Сделки в работе: ${pipeline.length}, ожидаемая выручка ${rub(dealsSum)}`,
-    `Итого ожидаем: ${rub(community + dealsSum)}`,
-    '',
-    'Прогноз по подпискам — если все продлят; по сделкам — сумма из расчёта заказчика, реальная выручка появится после завершения.',
-  ]
-  return { text: lines.join('\n'), keyboard: [back('⬅️ Финансы', 'a:sec:finance')] }
-}
-
-export const EXPENSE_PROMPT = [
-  '💸 Новый расход',
-  '',
-  'Отправьте одним сообщением: сумма, категория и комментарий. Например:',
-  '5000 реклама ВК за сентябрь',
-  '1200 комиссия',
-  '',
-  'Отмена — /cancel.',
-].join('\n')
-
-export function expensesScreen(list, monthKey) {
-  const inMonth = list.filter((e) => monthOf(e.at) === monthKey)
-  const byCategory = new Map()
-  for (const e of inMonth) byCategory.set(e.category, (byCategory.get(e.category) ?? 0) + e.amount)
-  const total = inMonth.reduce((acc, e) => acc + e.amount, 0)
-  const lines = [`💸 Расходы — ${monthTitle(monthKey)}: ${rub(total)}`]
-  if (byCategory.size) lines.push('', ...[...byCategory].map(([c, sum]) => `• ${c} — ${rub(sum)}`))
-  const recent = [...inMonth].sort((a, b) => b.at - a.at).slice(0, 10)
-  if (recent.length) lines.push('', 'Последние:', ...recent.map((e) => `№${e.number} · ${ruDate(e.at)} · ${rub(e.amount)} · ${e.category}${e.note ? ` — ${e.note}` : ''}`))
-  else lines.push('', 'Расходов за этот месяц нет.')
-  const keyboard = [[{ text: '➕ Добавить расход', callback_data: 'a:x:fexpnew' }]]
-  for (const e of recent.slice(0, 5)) keyboard.push([{ text: `🗑 №${e.number} · ${rub(e.amount)} · ${e.category}`.slice(0, 60), callback_data: `a:x:fexpdel:${e.number}` }])
-  keyboard.push(back('⬅️ Финансы', 'a:sec:finance'))
-  return { text: lines.join('\n'), keyboard }
-}
-
-/** Разбор «5000 реклама ВК за сентябрь» → { amount, category, note } или null. */
-export function parseExpense(text) {
-  const m = text.trim().match(/^(\d[\d\s.,]*)\s*(?:₽|(?:р\.?|руб\.?)(?=\s|$))?\s*(.*)$/i)
-  if (!m) return null
-  const amount = Number(m[1].replace(/\s/g, '').replace(',', '.'))
-  if (!(amount > 0)) return null
-  const rest = m[2].trim()
-  const [category, ...note] = rest.split(/\s+/)
-  return { amount, category: category || 'прочее', note: note.join(' ') }
-}
-
 // ---- Мероприятия ----
 
 const eventKey = (e) => String(e.eventSlug || `t${[...e.eventTitle].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) >>> 0, 7).toString(16)}`).slice(0, 40)
@@ -302,14 +216,14 @@ export function eventsMonthSummary(leads, which, now) {
 export const FIND_PROMPT = '🔍 Найти человека\n\nОтправьте ник в Telegram, телефон (хотя бы 4 последние цифры), почту или часть фамилии. Отмена — /cancel.'
 
 /** Ищет человека по всем разделам кабинета; возвращает текст и кнопки открытия карточек. */
-export function searchScreen(query, data, tariffs) {
+export function searchScreen(query, data, tariffs, now = Date.now()) {
   const q = query.trim().toLowerCase().replace(/^@/, '')
   const digits = q.replace(/\D/g, '')
   const match = (o) => {
     if (!q) return false
     const text = [o.name, o.telegram, o.email, o.company].filter(Boolean).join(' ').toLowerCase().replace(/@/g, '')
     if (text.includes(q)) return true
-    if (digits.length >= 5 && String(o.id ?? '') === digits) return true
+    if (digits.length >= 5 && (String(o.id ?? '') === digits || String(o.tgUserId ?? '') === digits)) return true
     const phone = String(o.phone ?? '').replace(/\D/g, '')
     return digits.length >= 4 && phone.includes(digits)
   }
@@ -327,7 +241,7 @@ export function searchScreen(query, data, tariffs) {
     if (items.length > 5) lines.push(`  …и ещё ${items.length - 5}`)
     lines.push('')
   }
-  section('👥 Подписка сообщества', data.joins.filter(match), (j) => `${who(j)} — ${j.status === 'active' ? 'активна' : j.status === 'cancelled' ? 'отписан(а)' : 'не оплачена'}${j.paid ? `, ${rub(planAmount(j, tariffs))}` : ''}${j.firstPaidAt ? `, с ${ruDate(j.firstPaidAt)}` : ''}${j.nextPaymentAt && j.status === 'active' ? `, след. списание ${ruDay(j.nextPaymentAt)}` : ''}`)
+  section('👥 Подписка сообщества', data.joins.filter(match), (j) => `${who(j)} — ${j.status === 'active' ? (j.lifetime ? 'бессрочная' : subscriptionLabel(j, now)) : j.status === 'cancelled' ? 'отписан(а)' : 'не оплачена'}${j.paid ? `, ${rub(planAmount(j, tariffs))}` : ''}${j.firstPaidAt ? `, с ${ruDate(j.firstPaidAt)}` : ''}${j.nextPaymentAt && j.status === 'active' ? `, след. списание ${ruDay(j.nextPaymentAt)}` : ''}`)
   section('⚖️ Сделки', data.deals.filter(match), (d) => `№${d.number} · ${d.company || d.name} · этап ${d.stage}${d.status !== 'active' ? ` (${d.status === 'done' ? 'завершена' : 'закрыта'})` : ''}`, (d) => ({ text: `Сделка №${d.number} · ${d.company || d.name}`.slice(0, 60), callback_data: `a:k:deal:${d.number}` }))
   section('📥 Отклики на вакансии', data.applications.filter(match), (a) => `№${a.number} · ${a.name} → ${a.vacancyTitle || a.vacancySlug} · ${ruDate(a.createdAt)}`)
   section('🎯 Консультации', data.consultations.filter(match), (c) => `№${c.number} · ${c.name} · ${c.total != null ? rub(c.total) : 'вопрос'} · ${ruDate(c.createdAt)}`, (c) => ({ text: `Консультация №${c.number} · ${c.name}`.slice(0, 60), callback_data: `a:s:con:${c.number}` }))
@@ -423,8 +337,8 @@ const ACTION_LABELS = {
   'k:lost': 'Сделка: закрыта', 'k:reopen': 'Сделка: возвращена в работу', 'k:revok': 'Сделка: принята ожидаемая выручка', 'input:revenue': 'Сделка: выручка записана',
   'input:newdeal': 'Сделка создана вручную', 's:cst': 'Консультация: статус', 's:idone': 'Интерес: написали', 's:iclose': 'Интерес: неактуально', 's:isnooze': 'Интерес: отложено',
   'input:interest': 'Интерес записан', 's:rdelok': 'Кандидат резерва удалён', 'input:reserve-field': 'Кандидат резерва изменён', 'input:reserve-new': 'Кандидат резерва добавлен',
-  'x:ambplus': 'Амбассадор: счётчик', 'x:ambdelok': 'Амбассадор удалён', 'input:ambassador': 'Амбассадор добавлен', 'x:cr': 'Причина отписки', 'x:fexpdel': 'Расход удалён',
-  'input:expense': 'Расход добавлен', 'x:evst': 'Мероприятие: статус', 'input:event-paid': 'Мероприятие: оплата отмечена', remgo: 'Напоминания резидентам отправлены', 'x:backup': 'Резервная копия по запросу', 'x:grant': 'Выдан бессрочный доступ резидента', 'x:tdone': 'Доработка отмечена выполненной', 'input:todo': 'Доработка добавлена', 'x:kickok': 'Исключён из чата сообщества', 'k:pp': 'Сделка: предоплата получена', 'k:pf': 'Сделка: остаток получен', 's:vst': 'Вакансия: статус в учёте',
+  'x:ambplus': 'Амбассадор: счётчик', 'x:ambdelok': 'Амбассадор удалён', 'input:ambassador': 'Амбассадор добавлен', 'x:cr': 'Причина отписки',
+  'x:evst': 'Мероприятие: статус', 'input:event-paid': 'Мероприятие: оплата отмечена', remgo: 'Напоминания резидентам отправлены', 'x:backup': 'Резервная копия по запросу', 'x:grant': 'Выдан бессрочный доступ резидента', 'x:tdone': 'Доработка отмечена выполненной', 'input:todo': 'Доработка добавлена', 'x:kickok': 'Исключён из чата сообщества', 'k:pp': 'Сделка: предоплата получена', 'k:pf': 'Сделка: остаток получен', 's:vst': 'Вакансия: статус в учёте',
   'x:dgcon': 'Сводка дня: статус консультации', 'x:dgev': 'Сводка дня: заявка обработана', 'x:dgres': 'Сводка дня: резюме не нужно', 'x:dgint': 'Сводка дня: интересовавшийся', 'x:dgdeal': 'Сводка дня: сделка, действие сделано', 'x:dgcr': 'Сводка дня: причина отписки',
   'x:ovsnz': 'Просрочка: отложено', 'x:nlp': 'Рассылка: пауза или возобновление', 'x:nlgook': 'Рассылка: отправка запущена вручную', 'x:nlt': 'Рассылка: тест', 'x:ovcxlok': 'Просрочка: подписчик отписан', 'x:ovnok': 'Просрочка: напоминание об оплате отправлено', 'input:next-date': 'Просрочка: дата списания указана',
 }

@@ -31,32 +31,12 @@ export const MENU_KEYBOARD = [
     { text: '⚖️ Кадры', callback_data: 'a:sec:kadry' },
     { text: '👥 Сообщество', callback_data: 'a:sec:community' },
   ],
-  [
-    { text: '🎟 Мероприятия', callback_data: 'a:sec:events' },
-    { text: '💰 Финансы', callback_data: 'a:sec:finance' },
-  ],
+  [{ text: '🎟 Мероприятия', callback_data: 'a:sec:events' }],
   [
     { text: '🔍 Найти человека', callback_data: 'a:x:find' },
     { text: '🌅 Сводка дня', callback_data: 'a:x:digest' },
   ],
   [{ text: '🛠 Система', callback_data: 'a:x:sys' }],
-]
-
-export const FINANCE_KEYBOARD = [
-  [
-    { text: '📊 Сегодня', callback_data: 'a:rep:today' },
-    { text: 'Вчера', callback_data: 'a:rep:yesterday' },
-  ],
-  [
-    { text: '7 дней', callback_data: 'a:rep:week' },
-    { text: 'Месяц', callback_data: 'a:rep:month' },
-  ],
-  [
-    { text: '🧾 Сводка месяца', callback_data: 'a:x:fsum:cur' },
-    { text: '🔮 Прогноз', callback_data: 'a:x:fcast' },
-  ],
-  [{ text: '💸 Расходы', callback_data: 'a:x:fexp' }],
-  BACK_ROW,
 ]
 
 export const COMMUNITY_KEYBOARD = [
@@ -78,7 +58,7 @@ export const COMMUNITY_KEYBOARD = [
   ],
   [{ text: '⭐ Отзывы и бонусы', callback_data: 'a:x:rvs' }],
   [{ text: '➕ Записать интерес', callback_data: 'a:s:ikind:community' }],
-  [{ text: '🔌 Состояние системы', callback_data: 'a:status' }],
+  [{ text: '🧮 Сверка с чатом', callback_data: 'a:x:chataud' }, { text: '🔌 Состояние системы', callback_data: 'a:status' }],
   BACK_ROW,
 ]
 
@@ -87,7 +67,6 @@ export function menuScreen() {
 }
 
 const SECTIONS = {
-  finance: { text: '💰 Финансы\n\nОтчёты по оплатам подписки за период:', keyboard: FINANCE_KEYBOARD },
   community: { text: '👥 Сообщество\n\nПодписчики, списания, отписки и напоминания:', keyboard: COMMUNITY_KEYBOARD },
   events: {
     text: '🎟 Мероприятия\n\nРегистрации на мероприятия, заявки партнёров и организаторов, оплата и выручка.',
@@ -102,7 +81,7 @@ const SECTIONS = {
   },
 }
 
-/** Экран раздела главного меню (finance / community / kadry / events). */
+/** Экран раздела главного меню (community / kadry / events). */
 export function sectionScreen(name) {
   if (name === 'kadry') return kadryTop()
   if (name === 'employers') return kadrySection()
@@ -150,14 +129,16 @@ function planTitle(amount) {
  * Резиденты по тарифам: количество по каждой сумме и кнопки, по которым
  * открывается подробный список людей (planScreen).
  */
-export function subscribersScreen(joins, tariffs) {
+export function subscribersScreen(joins, tariffs, split = null) {
   const byAmount = activeByAmount(joins, tariffs)
   const total = [...byAmount.values()].reduce((acc, list) => acc + list.length, 0)
   const count = (amount) => byAmount.get(amount)?.length ?? 0
   const otherCount = [...byAmount.entries()].filter(([amount]) => !KNOWN_AMOUNTS.includes(amount)).reduce((acc, [, list]) => acc + list.length, 0)
 
   const lines = [
-    `👥 Резидентов сейчас: ${total}`,
+    `👥 Подписок со статусом «активна»: ${total}`,
+    ...(split ? [`   ✅ оплата в порядке: ${total - split.waiting - split.ended}`, `   ⚠️ просрочено, ждём оплату: ${split.waiting}`, `   🚪 срок вышел (уже не платят): ${split.ended}`] : []),
+    ...(split && (split.waiting || split.ended) ? ['   Просроченные и «срок вышел» входят в число «активна», пока вы их не закроете в «Сводке дня».'] : []),
     '',
     '🏷 Месяц со скидкой',
     ...DISCOUNT_PLANS.map((amount) => `• ${rub(amount)}/мес — ${count(amount)} чел.`),
@@ -182,7 +163,7 @@ const ruDate = (ts) => new Intl.DateTimeFormat('ru-RU', { timeZone: MSK, day: '2
  * ФИО, ник в Telegram, телефон, почта, дата начала подписки. Дата рождения
  * показывается, только если она есть в карточке — на сайте её пока не спрашиваем.
  */
-export function planScreen(joins, tariffs, key) {
+export function planScreen(joins, tariffs, key, now = Date.now()) {
   const byAmount = activeByAmount(joins, tariffs)
   const isOther = key === 'other'
   const amount = Number(key)
@@ -207,7 +188,7 @@ export function planScreen(joins, tariffs, key) {
       `   Почта: ${j.email || 'не указана'}`,
       `   Подписка с: ${started ? ruDate(started) : 'дата неизвестна'}${payments ? ` · оплат: ${payments}` : ''}`,
       ...(isOther ? [`   Сумма списания: ${planAmount(j, tariffs) ? rub(planAmount(j, tariffs)) : 'неизвестна'}`] : []),
-      ...(j.nextPaymentAt ? [`   Следующее списание: ${ruDate(j.nextPaymentAt)}`] : []),
+      ...(j.nextPaymentAt ? [`   Следующее списание: ${ruDate(j.nextPaymentAt)}${j.nextPaymentAt < now - 12 * 3600 * 1000 ? ' ⚠️ время прошло, оплаты нет' : ''}`] : []),
     )
   })
   return { text: lines.join('\n'), keyboard }

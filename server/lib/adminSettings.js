@@ -7,13 +7,12 @@ const FILE = path.join(DATA_DIR, 'admin-settings.json')
 
 export const NOTIFY_OPTIONS = {
   quiet: { title: '🔕 Тихие сообщения для некритичного', hint: 'отчёты, сводки и копии приходят без звука' },
-  eveningReport: { title: '📊 Вечерний отчёт в 21:00', hint: 'выручка, подписки и отписки за день' },
   eveningClose: { title: '🏁 Итог дня в 20:00', hint: 'что осталось разобрать до конца дня; всё разобрано — «день закрыт»' },
   unpaidNotices: { title: '⏳ «Не завершили оплату»', hint: 'одно сообщение, если через 30 минут оплаты нет; при оплате не приходит' },
   nightBackup: { title: '💾 Ночная копия данных в чат', hint: 'файл со всеми данными бота в 03:00' },
 }
 
-const DEFAULTS = { quiet: true, eveningReport: true, eveningClose: true, unpaidNotices: true, nightBackup: true }
+const DEFAULTS = { quiet: true, eveningClose: true, unpaidNotices: true, nightBackup: true }
 
 export function getAdminSettings() {
   try {

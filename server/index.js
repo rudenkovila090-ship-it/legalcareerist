@@ -50,7 +50,6 @@ import { utmLabel } from './lib/utm.js'
 import { createApplication, listApplications } from './lib/candidateApplications.js'
 import { createConsultation, listConsultations, getConsultation, setConsultationStatus, CONSULTATION_STATUSES } from './lib/consultations.js'
 import { createAmbassador, listAmbassadors, getAmbassador, addReferral, deleteAmbassador } from './lib/ambassadors.js'
-import { createExpense, listExpenses, deleteExpense } from './lib/expenses.js'
 import { createEventLead, listEventLeads, getEventLead, setEventLeadStatus, markEventLeadPaid, setEventLeadField } from './lib/eventLeads.js'
 import { sendMail, mailConfigured } from './lib/mailer.js'
 import { listPromos, addPromo, removePromo, findPromo, applyPromo, markPromoUsed, parsePromoInput, promoLabel, ensureBuiltInPromos } from './lib/promoCodes.js'
@@ -67,14 +66,13 @@ import { communityInviteUrl, decideJoinRequest } from './lib/communityInvite.js'
 import { composeSubscriptionMail, composeChargeReminderMail, composeChargeDoneMail, composeChargeFailedMail } from './lib/subscriptionMail.js'
 import { CABINET_KEYBOARD, CHARGE_FAILED_KEYBOARD, chargeDoneText, chargeFailedText } from './lib/residentNotices.js'
 import { isStartKeyword, welcomeScreen, noConsentScreen, mailingScreen, mainMenuScreen, supportPrompt, genderScreen, reviewThanks, legalScreen, aboutScreen, CONTACT_PROMPTS, contactCancelKeyboard, unsubscribedScreen, communityScreen, communityResidentScreen, aboutClubScreen, achievementsScreen, siteLink } from './lib/botFlow.js'
-import { buildMonthCsv } from './lib/exportCsv.js'
 import { vacancyOverrides, setVacancyStatus } from './lib/vacancyOverrides.js'
 import { residentMenu, subscriptionScreen, paymentsScreen, linkScreen, settingsScreen, cancelConfirmScreen, cancelReasonPrompt, cancelDoneScreen, hasAccess, reviewScreen, reviewSendPrompt } from './lib/residentCabinet.js'
 import { REVIEW_BONUS_DAYS, REVIEW_MIN_LENGTH, reviewRequestDue, addCommunityReview, listCommunityReviews, decideCommunityReview, communityReviewsScreen, approvedReviewsScreen, reviewForAdmin } from './lib/communityReviews.js'
 import { logAction, recentActions } from './lib/auditLog.js'
 import { healthLines, makeBackup, readBackupState, writeBackupState } from './lib/healthBackup.js'
 import { listTodos, addTodo, setTodoDone, ensureTodo } from './lib/todos.js'
-import { todosScreen, TODO_PROMPT, chatCheckScreen, userCard, botUsersScreen, notificationsScreen, reviewsScreen, reviewCard, promosScreen, PROMO_PROMPT, ambassadorsScreen, ambassadorCard, AMBASSADOR_PROMPT, retentionScreen, cancelCard, financeSummary, forecastScreen, expensesScreen, EXPENSE_PROMPT, parseExpense, eventRegistrationsScreen, eventScreen, eventLeadCard, eventRequestsScreen, eventsMonthSummary, FIND_PROMPT, searchScreen, systemScreen, auditScreen, monthKeyFor as extraMonthKey } from './lib/extraCabinet.js'
+import { todosScreen, TODO_PROMPT, chatCheckScreen, userCard, botUsersScreen, notificationsScreen, reviewsScreen, reviewCard, promosScreen, PROMO_PROMPT, ambassadorsScreen, ambassadorCard, AMBASSADOR_PROMPT, retentionScreen, cancelCard, eventRegistrationsScreen, eventScreen, eventLeadCard, eventRequestsScreen, eventsMonthSummary, FIND_PROMPT, searchScreen, systemScreen, auditScreen } from './lib/extraCabinet.js'
 import { createInterest, getInterest, listInterests, markInterestDone, closeInterest, snoozeInterest, REMIND_AFTER_DAYS } from './lib/interests.js'
 import { createReserveCandidate, listReserve, getReserveCandidate, setReserveField, deleteReserveCandidate, markResumeReceived } from './lib/reserve.js'
 import { applicationCard, recommendationCard, reserveListScreen, reserveCard, reserveFieldPrompt, reserveDeleteConfirm, RESERVE_NEW_PROMPT, INTEREST_KIND_KEYBOARD, interestPrompt, interestsScreen, interestCard, SEEKERS_KEYBOARD, buildVacancyViews, vacanciesScreen, vacancyCard, vacancyApplicationsScreen, recentApplicationsScreen, consultationsScreen, consultationCard, seekersMonthSummary } from './lib/seekersCabinet.js'
@@ -105,11 +103,11 @@ import { exportPersonData, accountEvents } from './lib/accountData.js'
 import { nextTicketNumber } from './lib/ticketCounter.js'
 import { renderTicketPdf, hasTicketImage, maskEmail } from './lib/ticketImage.js'
 import { composeTicketMail, composeReminderMail } from './lib/ticketMail.js'
-import { buildDailyReport, mskDayKey, parseReportPeriod } from './lib/dailyReport.js'
+import { mskDayKey } from './lib/dailyReport.js'
 import { logWebhook, lastWebhook, webhookEventsFor } from './lib/webhookLog.js'
 import { CAMPAIGNS, ASSETS_DIR, PREVIEW_LEAD_MS, PREVIEW_WAIT_MS, getCampaign, getState as campaignState, patchState as patchCampaign, mediaId, saveMediaId, logDelivery, deliveredSet, campaignText, campaignLink, fitsCaption, audienceOf, campaignsScreen, campaignCard, sendNowConfirm, previewControl } from './lib/campaigns.js'
-import { digestScreen, overdueScreen, overdueCard, endedScreen, endedPlanScreen, planAction, endedJoins, overdueReason, isSnoozed, cancelledAccessOver, hasOtherActive, chargesTodayScreen, consultTasksScreen, requestTasksScreen, resumeTasksScreen, interestTasksScreen, dealTasksScreen, cancelTasksScreen, cancelReasonPicker, unsubscribeConfirm, nudgeConfirm, NEXT_DATE_PROMPT, SNOOZE_DAYS } from './lib/dayTasks.js'
-import { FINANCE_KEYBOARD, COMMUNITY_KEYBOARD, sectionScreen, menuScreen, subscribersScreen, planScreen, dueScreen, cancelledScreen, reminderMenuScreen, reminderPreviewScreen, reminderTargets, reminderMessage, planAmount, CANCEL_REASONS } from './lib/adminCabinet.js'
+import { chatAuditScreen, digestScreen, overdueScreen, overdueCard, endedScreen, endedPlanScreen, planAction, endedJoins, waitingJoins, overdueReason, isSnoozed, cancelledAccessOver, hasOtherActive, chargesTodayScreen, consultTasksScreen, requestTasksScreen, resumeTasksScreen, interestTasksScreen, dealTasksScreen, cancelTasksScreen, cancelReasonPicker, unsubscribeConfirm, nudgeConfirm, NEXT_DATE_PROMPT, SNOOZE_DAYS } from './lib/dayTasks.js'
+import { COMMUNITY_KEYBOARD, sectionScreen, menuScreen, subscribersScreen, planScreen, dueScreen, cancelledScreen, reminderMenuScreen, reminderPreviewScreen, reminderTargets, reminderMessage, planAmount, CANCEL_REASONS } from './lib/adminCabinet.js'
 import crypto from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -585,15 +583,6 @@ function buildCancellationNotification({ record, tariff, at }) {
  * первый или как продление, пишет админу и — при первой оплате — присылает
  * ссылку на сообщество, если человек уже нажимал Start у бота.
  */
-/** Отчёт + строка о том, когда от Prodamus в последний раз приходил вебхук — чтобы «нет продаж» нельзя было спутать с «вебхуки не доходят». */
-function reportText(period, now = Date.now()) {
-  const last = lastWebhook()
-  const footer = last
-    ? `\n\n🔌 Последний вебхук Prodamus: ${new Intl.DateTimeFormat('ru-RU', { timeZone: 'Europe/Moscow', dateStyle: 'short', timeStyle: 'short' }).format(new Date(last.at))} МСК (${last.status})`
-    : '\n\n⚠️ От Prodamus ещё не приходило ни одного вебхука с оплатой — учёт может быть неполным, сверьте с кабинетом Prodamus.'
-  return buildDailyReport(listJoins(), now, TARIFFS, period) + footer
-}
-
 async function handleSubscriptionPayment(body, phone) {
   const subscription = body.subscription
   const tariffId = tariffIdBySubscriptionId(subscription.id)
@@ -2198,7 +2187,6 @@ function allData() {
     reserve: listReserve(),
     eventLeads: listEventLeads(),
     ambassadors: listAmbassadors(),
-    expenses: listExpenses(),
     purchases: listPurchases(),
     botUsers: listBotUsers(),
     todos: listTodos(),
@@ -2448,6 +2436,18 @@ async function buildEndedPlan(now) {
   return plan
 }
 
+/** Сверка: сколько людей в чате по данным Telegram и как они раскладываются по карточкам (экран «Сообщество → Сверка с чатом»). */
+async function chatAudit(now) {
+  const call = async (method) => (await telegramFetch(method, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: COMMUNITY_CHAT_ID }) }).then((r) => r.json()).catch(() => null))
+  const [count, admins] = await Promise.all([call('getChatMemberCount'), call('getChatAdministrators')])
+  const staff = admins?.ok ? admins.result.map((a) => ({ id: String(a.user.id), name: [a.user.first_name, a.user.last_name].filter(Boolean).join(' ') || a.user.username || `id ${a.user.id}` })) : []
+  const joins = withContacts(listJoins())
+  const shown = joins.filter((j) => j.lifetime || j.status === 'active').slice(0, 120)
+  const cards = []
+  for (const j of shown) cards.push({ join: j, mem: await membershipOf(j) })
+  return chatAuditScreen({ total: count?.ok ? Number(count.result) : null, staff, cards, joins, now })
+}
+
 /** Убрать из активных без исключения и без сообщения человеку (его нет в чате или это лишняя карточка). */
 function closeQuietly(join, now, by = 'admin') {
   setSubscriptionActive(join.token, false, now)
@@ -2552,6 +2552,8 @@ async function extrasAction(parts, now, chatId) {
       if (ok) patchJoin(j.token, { cancelledBy: 'admin', snoozedUntil: undefined })
       return withNote(await endedView(now), ok ? `🚪 Готово: ${j.name || j.telegram || j.phone} исключён(а) из чата, ему отправлено сообщение.` : '⚠️ Не удалось исключить: нет Telegram id или бот не администратор чата. Подробности в логе.')
     }
+    case 'chataud':
+      return chatAudit(now)
     case 'nl':
       return campaignsScreen(now, campaignAudienceSize())
     case 'nlc': {
@@ -2706,24 +2708,6 @@ async function extrasAction(parts, now, chatId) {
       const j = getJoin(arg)
       return j ? cancelCard(j) : cancelledScreen(listJoins(), TARIFFS)
     }
-    case 'fsum':
-      return financeSummary(data, extraMonthKey(arg, now))
-    case 'csv': {
-      const key = extraMonthKey(arg, now)
-      const csv = buildMonthCsv(data, key)
-      const ok = await sendTelegramDocument(chatId, Buffer.from(csv, 'utf8'), `finance-${key}.csv`, `📎 Доходы и расходы за ${key}`).catch(() => false)
-      return { text: ok ? `📎 Выгрузка за ${key} отправлена файлом выше. Откроется в Excel и Google Таблицах.` : '⚠️ Не удалось отправить файл.', keyboard: menuBack('⬅️ Финансы', 'a:sec:finance') }
-    }
-    case 'fcast':
-      return forecastScreen(data.joins, data.deals, TARIFFS, now)
-    case 'fexp':
-      return expensesScreen(data.expenses, extraMonthKey('cur', now))
-    case 'fexpnew':
-      adminInput.set(String(chatId), { type: 'expense' })
-      return { text: EXPENSE_PROMPT, keyboard: menuBack('⬅️ Расходы', 'a:x:fexp') }
-    case 'fexpdel':
-      deleteExpense(arg)
-      return expensesScreen(listExpenses(), extraMonthKey('cur', now))
     case 'evreg':
       return eventRegistrationsScreen(data.eventLeads)
     case 'evone':
@@ -3070,18 +3054,6 @@ async function handlePendingInput(chatId, pending, text) {
     await sendLongMessage(chatId, `✅ Промокод добавлен: ${parsed.code} (${promoLabel(parsed)})\n\n${screen.text}`, screen.keyboard)
     return
   }
-  if (pending.type === 'expense') {
-    const parsed = parseExpense(text)
-    if (!parsed) {
-      adminInput.set(String(chatId), pending)
-      await sendTelegramMessage(chatId, 'Не разобрал. Начните с суммы, например: 5000 реклама ВК. Или /cancel.')
-      return
-    }
-    const e = createExpense(parsed)
-    const screen = expensesScreen(listExpenses(), extraMonthKey('cur', Date.now()))
-    await sendLongMessage(chatId, `✅ Расход записан: ${formatRub(e.amount)} · ${e.category}\n\n${screen.text}`, screen.keyboard)
-    return
-  }
   if (pending.type === 'event-paid') {
     const amount = Number(text.replace(/[^\d.,]/g, '').replace(',', '.'))
     if (!(amount > 0)) {
@@ -3238,9 +3210,8 @@ async function adminScreen(data, now, chatId) {
   const joins = listJoins()
   const [, action, arg] = data.split(':')
   if (action === 'sec') return sectionScreen(arg)
-  if (action === 'rep') return { text: reportText(arg, now), keyboard: FINANCE_KEYBOARD }
-  if (action === 'subs') return subscribersScreen(joins, TARIFFS)
-  if (action === 'plan') return planScreen(joins, TARIFFS, arg)
+  if (action === 'subs') return subscribersScreen(joins, TARIFFS, { waiting: waitingJoins(joins, now).length, ended: endedJoins(joins, now).filter((j) => j.status === 'active').length })
+  if (action === 'plan') return planScreen(joins, TARIFFS, arg, now)
   if (action === 'due') return dueScreen(joins, now, TARIFFS)
   if (action === 'due14') return dueScreen(joins, now, TARIFFS, 14)
   if (action === 'cancelled') return cancelledScreen(joins, TARIFFS)
@@ -3271,7 +3242,6 @@ async function adminScreen(data, now, chatId) {
       last
         ? `Последний вебхук Prodamus: ${new Intl.DateTimeFormat('ru-RU', { timeZone: 'Europe/Moscow', dateStyle: 'short', timeStyle: 'short' }).format(new Date(last.at))} МСК (${last.status})`
         : '⚠️ Вебхуков Prodamus с оплатой ещё не было',
-      `Ежедневный отчёт: в ${REPORT_HOUR_MSK}:00 МСК`,
     ]
     return { text: lines.join('\n'), keyboard: COMMUNITY_KEYBOARD }
   }
@@ -3280,8 +3250,8 @@ async function adminScreen(data, now, chatId) {
 
 // Кнопки, которые что-то меняют или отправляют данные: помощникам (только просмотр) они недоступны, в журнал попадают только они.
 // Кнопки, которые только открывают ввод текста или подтверждение — в журнал не пишем (запишется само действие).
-const PROMPT_ONLY = /^a:(k:(rev|new)|s:(ikind|inew|rnew|redit|rdel)|x:(tnew|ambnew|ambdel|fexpnew|evpaid|promonew|ovdate))\b/
-const MUTATING = /^a:(k:(adv|back|q1|q0|lost|reopen|revok|rev|new|pp|pf)|s:(vst|cst|idone|iclose|isnooze|ikind|inew|rnew|redit|rdel|rdelok)|x:(grant|promonew|promodel|tnew|tdone|ambnew|ambplus|ambdel|ambdelok|kickok|rvok|rvno|cr|fexpnew|fexpdel|evst|evpaid|backup|erase|pdgo|impgo|impall|dgcon|dgev|dgres|dgint|dgdeal|dgcr|ovsnz|ovdate|ovcxlok|ovnok|endok|endone|nlt|nlp|nlgook)|remgo)\b/
+const PROMPT_ONLY = /^a:(k:(rev|new)|s:(ikind|inew|rnew|redit|rdel)|x:(tnew|ambnew|ambdel|evpaid|promonew|ovdate))\b/
+const MUTATING = /^a:(k:(adv|back|q1|q0|lost|reopen|revok|rev|new|pp|pf)|s:(vst|cst|idone|iclose|isnooze|ikind|inew|rnew|redit|rdel|rdelok)|x:(grant|promonew|promodel|tnew|tdone|ambnew|ambplus|ambdel|ambdelok|kickok|rvok|rvno|cr|evst|evpaid|backup|erase|pdgo|impgo|impall|dgcon|dgev|dgres|dgint|dgdeal|dgcr|ovsnz|ovdate|ovcxlok|ovnok|endok|endone|nlt|nlp|nlgook)|remgo)\b/
 
 /** Нажатие кнопки кабинета — от админа (все кнопки) или помощника (только просмотр); остальным молча отвечаем. */
 async function handleAdminCallback(query) {
@@ -3740,10 +3710,6 @@ async function handleTelegramUpdate(update) {
     await sendTelegramMessage(chatId, `Ваш chat id: ${chatId}\nВаш ник: ${message.from?.username ? `@${message.from.username}` : 'не задан в Telegram'}${isAdmin ? '\n✅ Это админский чат' : isViewer ? '\n👁 Это чат помощника (только просмотр)' : ''}\nБессрочный доступ по правилам: ${lifetimeRule ? 'да' : 'нет'}\nКарточек подписки на вас: ${myJoins.length}${myJoins.length ? ` (${myJoins.map((j) => `${j.status}${j.lifetime ? ', бессрочная' : ''}${j.paid ? '' : ', не оплачена'}`).join('; ')})` : ''}\nКабинет резидента: ${resident?.status === 'active' ? 'откроется' : 'не откроется'}`)
     return
   }
-  if ((isAdmin || isViewer) && text?.startsWith('/report')) {
-    await sendTelegramMessage(chatId, reportText(parseReportPeriod(text.slice('/report'.length))), FINANCE_KEYBOARD)
-    return
-  }
   // Удаление данных человека по его запросу и сроки хранения — только админу (помощникам-наблюдателям недоступно).
   if (isAdmin && text && /^\/forget(@\w+)?(\s|$)/i.test(text)) {
     await handleForgetCommand(chatId, text.replace(/^\/forget(@\w+)?\s*/i, ''))
@@ -4118,30 +4084,6 @@ app.get('/api/health', (_req, res) => res.json({ ok: true }))
 // Ежедневный отчёт админу в 21:00 по Москве. Раз в минуту проверяем время;
 // дату последней отправки храним в файле, чтобы перезапуск процесса не
 // приводил ни к повтору, ни к пропуску отчёта за день.
-const REPORT_HOUR_MSK = 21
-const REPORT_STATE_FILE = path.join(import.meta.dirname, 'data', 'daily-report.json')
-
-function readLastReportDay() {
-  try {
-    return JSON.parse(fs.readFileSync(REPORT_STATE_FILE, 'utf8')).lastDay ?? null
-  } catch {
-    return null
-  }
-}
-
-async function sendDailyReportIfDue() {
-  if (!BOT_TOKEN || !ADMIN_CHAT_ID) return
-  const now = Date.now()
-  const hour = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Moscow', hour: '2-digit', hour12: false }).format(new Date(now)))
-  const today = mskDayKey(now)
-  if (hour < REPORT_HOUR_MSK || readLastReportDay() === today || !getAdminSettings().eveningReport) return
-
-  fs.mkdirSync(path.dirname(REPORT_STATE_FILE), { recursive: true })
-  fs.writeFileSync(REPORT_STATE_FILE, JSON.stringify({ lastDay: today }))
-  const ok = await sendTelegramMessage(ADMIN_CHAT_ID, reportText('today', now), FINANCE_KEYBOARD, quiet()).catch(() => false)
-  if (!ok) fs.writeFileSync(REPORT_STATE_FILE, JSON.stringify({ lastDay: null })) // не ушло — попробуем в следующую минуту
-}
-
 // Раз в сутки после указанного часа (МСК): дата последнего запуска хранится в файле, чтобы перезапуск не повторял и не пропускал задачу.
 const DAILY_JOBS_FILE = path.join(import.meta.dirname, 'data', 'daily-jobs.json')
 // ---- Загрузка выгрузки BotHelp админом (см. lib/botHelpImport.js) ----
@@ -4461,7 +4403,6 @@ if (BOT_TOKEN && process.env.TELEGRAM_POLLING !== '0') {
 }
 
 if (process.env.DISABLE_DAILY_REPORT !== '1') {
-  setInterval(() => afterResponse('daily-report', sendDailyReportIfDue), 60 * 1000)
   setInterval(() => afterResponse('pending-notices', sendPendingNoticesIfDue), 60 * 1000)
   setInterval(() => afterResponse('kadry-monthly', sendKadryMonthlyIfDue), 60 * 1000)
   setInterval(() => afterResponse('resident-reminders', () => runDailyOnce('residentReminders', 10, sendAutoResidentReminders)), 60 * 1000)

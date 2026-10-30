@@ -147,6 +147,12 @@ function contactLines(j) {
 
 const REASON_ORDER = ['failed', 'silent', 'imported']
 
+/** Как назвать состояние подписки в списках: активна, просрочена (ждём оплату) или срок вышел. */
+export function subscriptionLabel(j, now) {
+  if (j.status !== 'active' || j.lifetime || !j.nextPaymentAt || j.nextPaymentAt >= now - OVERDUE_GRACE_MS) return 'активна'
+  return overdueReason(j, now).code === 'ended' ? '🚪 срок вышел' : '⚠️ просрочена, ждём оплату'
+}
+
 /** Список просрочки: сначала объяснение, потом люди по причинам; у каждого кнопка с карточкой. «Срок вышел» вынесено в отдельный список. */
 export function overdueScreen(joins, tariffs, now) {
   const all = waitingJoins(joins, now)
@@ -525,3 +531,57 @@ export function nudgeConfirm(j, text) {
 }
 
 export const NEXT_DATE_PROMPT = (j) => `📅 ${who(j)}\n\nКогда у человека следующее списание? Отправьте дату: ДД.ММ или ДД.ММ.ГГГГ (например, 02.11). Отмена — /cancel.`
+
+/**
+ * Сверка сообщества и чата: сколько людей в чате по данным Telegram и как это раскладывается по карточкам. staff — администраторы чата
+ * (бот, официальный аккаунт и т. д.), cards — [{ join, mem }] активные и бессрочные карточки с признаком, в чате ли человек.
+ */
+export function chatAuditScreen({ total, staff, cards, joins, now }) {
+  const backRow = [{ text: '⬅️ Сообщество', callback_data: 'a:sec:community' }, ...menuRow]
+  const staffIds = new Set(staff.map((s) => s.id))
+  const endedSet = new Set(endedJoins(joins, now).map((j) => j.token))
+  const waitingSet = new Set(waitingJoins(joins, now).map((j) => j.token))
+  const isStaff = (c) => c.join.tgUserId && staffIds.has(String(c.join.tgUserId))
+  const real = cards.filter((c) => !isStaff(c))
+  const lifetime = real.filter((c) => c.join.lifetime)
+  const paying = real.filter((c) => !c.join.lifetime)
+  const ok = paying.filter((c) => !endedSet.has(c.join.token) && !waitingSet.has(c.join.token))
+  const waiting = paying.filter((c) => waitingSet.has(c.join.token))
+  const ended = paying.filter((c) => endedSet.has(c.join.token))
+  const inChat = (list) => list.filter((c) => c.mem === 'in' || c.mem === 'admin').length
+  const outChat = (list) => list.filter((c) => c.mem === 'out').length
+  const unknown = (list) => list.filter((c) => c.mem !== 'in' && c.mem !== 'admin' && c.mem !== 'out').length
+  const cancelledInChat = joins.filter((j) => j.status === 'cancelled' && j.inChat === true && !j.lifetime).length
+  const split = (list) => `в чате ${inChat(list)}, не в чате ${outChat(list)}${unknown(list) ? `, не проверить ${unknown(list)}` : ''}`
+  const humans = total == null ? null : total - staff.length
+  const knownInChat = inChat(lifetime) + inChat(paying)
+  const free = humans == null ? null : humans - knownInChat - cancelledInChat
+  const lines = [
+    '🧮 Сверка сообщества и чата',
+    '',
+    total == null ? '⚠️ Telegram не назвал число участников чата (бот должен быть администратором).' : `В чате Telegram: ${total}`,
+    ...(total == null ? [] : [`   служебные (администраторы и боты): ${staff.length}${staff.length ? ` — ${staff.map((s) => s.name).join(', ')}` : ''}`, `   остальные люди: ${humans}`]),
+    '',
+    `Карточки со статусом «активна» в учёте: ${paying.length}${lifetime.length ? ` + бессрочных ${lifetime.length}` : ''}`,
+    `   ✅ оплата в порядке: ${ok.length} (${split(ok)})`,
+    `   ⚠️ просрочено, ждём оплату: ${waiting.length} (${split(waiting)})`,
+    `   🚪 срок вышел, уже не платят: ${ended.length} (${split(ended)})`,
+    ...(lifetime.length ? [`   ♾ бессрочные: ${lifetime.length} (${split(lifetime)})`] : []),
+    cancelledInChat ? `Отписались, но ещё в чате: ${cancelledInChat}` : null,
+    free == null ? null : `Остальные в чате (бесплатные участники и те, кого нет в учёте): ${free}`,
+    '',
+    'Платящими считайте строку «оплата в порядке»: у остальных оплаты сейчас нет.',
+  ].filter((l) => l !== null)
+  const notIn = [...ok, ...waiting].filter((c) => c.mem === 'out' || c.mem === 'none')
+  if (notIn.length) {
+    lines.push('', 'Оплата идёт, но в чате их нет:')
+    for (const c of notIn.slice(0, 10)) lines.push(`• ${nameOf(c.join)} · 📞 ${c.join.phone || 'телефона нет'}${c.join.telegram ? ` · ${c.join.telegram}` : ''} · ${c.mem === 'none' ? 'Telegram id неизвестен' : 'не вступил(а) или вышел(ла)'}`)
+    if (notIn.length > 10) lines.push(`…и ещё ${notIn.length - 10}`)
+  }
+  const keyboard = []
+  if (waiting.length) keyboard.push([{ text: `⚠️ Просрочено · ${waiting.length}`, callback_data: 'a:x:over' }])
+  if (ended.length) keyboard.push([{ text: `🚪 Срок вышел · ${ended.length}`, callback_data: 'a:x:dg:end' }])
+  keyboard.push([{ text: '🔄 Пересчитать', callback_data: 'a:x:chataud' }])
+  keyboard.push(backRow)
+  return { text: lines.join('\n'), keyboard }
+}
