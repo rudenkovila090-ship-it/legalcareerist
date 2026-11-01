@@ -27,7 +27,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "jingle"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import make_jingle as mj  # noqa: E402
 import voice_enhance as ve  # noqa: E402
-from make_bed import make_bed  # noqa: E402
+from make_bed import make_bed, pocket  # noqa: E402
 
 SR = 48000
 VOICE_LUFS = -17.0       # голос перед сведением
@@ -161,6 +161,9 @@ def main():
     i0 = int(VOICE_ENTRY * SR)
 
     # 3. Приглушение музыки под голосом: фиксированная разница от голоса
+    # «Карман» для голоса: под речью убираем у музыки глубокие низы и часть области 150-500 Гц
+    w_p = rc((t - DUCK_START) / (DUCK_END - DUCK_START)) * (1 - rc((t - (word_end - 0.1)) / 0.8))
+    bed = bed * (1 - w_p[:, None]) + pocket(bed, SR) * w_p[:, None]
     mid = bed[int((VOICE_ENTRY + 1) * SR): int((word_end - 1) * SR)]
     bed_rms = 10 * np.log10(np.mean(mid ** 2) + 1e-12)
     duck_db = float(np.clip(speech_rms_db(voice) - MUSIC_BELOW_VOICE_DB - bed_rms, -20.0, -3.0))

@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
-"""Джингл подкаста «Карьерный юрист», версия 4: энергично и позитивно, но по-взрослому.
+"""Джингл подкаста «Карьерный юрист», версия 5: серьёзно, собранно, не медленно.
 
-Характер: уверенный, светлый, с движением вперёд. Не детский (нет колокольчиков и «мультяшных»
-стаккато), не тревожный (нет сигналов и свиста), не холодный (тёплые струнные и бас).
+Для сферы карьеры и юриспруденции: уверенно, по-взрослому, с весом. Не детская заставка.
 
-Звук: яркий синтезаторный «щипок» (арпеджио и мелодия), басовая линия, тихая ритм-секция
-(кик, хлопок, хэт), тёплая подложка и виолончель. Темп 120 уд/мин.
+Палитра: рубленые виолончели (спиккато) в низком регистре как «двигатель» ритма, глубокий
+барабан (литавры/тайко), тёплые струнные, медные в аккордах (приглушённо), фортепиано только в
+среднем и низком регистре. Без звонких верхов, без хлопков и хэтов.
+Гармония: ре минор, шаги си-бемоль – до и светлое разрешение в ре мажор (серьёзно, но с надеждой).
+Темп 120 уд/мин.
 
-Открытие (5,5 с): быстрая «лестница» из четырёх нот (логотип КЮ) вверх, удар на «раз», такт в
-ре мажоре, такт в соль мажоре с восходящей мелодией, и финальный яркий аккорд ре мажор.
-Закрытие (5,6 с): мелодия вниз по тому же мотиву, группа ритма, затем разрешение в ре мажор и
-плавное затухание.
+Открытие (5,5 с): быстрая «лестница» вверх из четырёх нот (логотип КЮ) и нарастание, удар на
+«раз», ре минор, подъём си-бемоль – до и мелодия ре – ми – фа-диез, яркий ре мажор на финале.
+Закрытие (5,6 с): те же шаги вниз, финальный ре мажор и три ноты «лестницы» вниз на затухании.
 
 Громкость выравнивается автоматически до -20 LUFS.
 
@@ -38,20 +39,21 @@ _NOTE = {"C": 0, "C#": 1, "D": 2, "D#": 3, "E": 4, "F": 5, "F#": 6, "G": 7, "G#"
 
 
 def n(name):
-    """Частота ноты по названию, например 'F#4'."""
+    """Частота ноты по названию, например 'F#4' (бемоль пишем диезом: Bb = A#)."""
     m = re.match(r"([A-G]#?)(\d)", name)
     midi = _NOTE[m.group(1)] + 12 * (int(m.group(2)) + 1)
     return 440.0 * 2 ** ((midi - 69) / 12)
 
 
-# Гармонии в ре мажоре: бас, ноты арпеджио (снизу вверх), ноты подложки, нота виолончели
+# Гармонии: нота ритмичного «двигателя», ноты подложки, ноты фортепианных акцентов
 CHORDS = {
-    "D": dict(bass="D2", arp=["D4", "F#4", "A4", "E5"], pad=["D3", "A3", "F#4"], cello="D3"),
-    "A": dict(bass="A2", arp=["E4", "A4", "C#5", "E5"], pad=["A3", "C#4", "E4"], cello="A3"),
-    "Bm": dict(bass="B2", arp=["D4", "F#4", "B4", "D5"], pad=["B3", "D4", "F#4"], cello="B3"),
-    "G": dict(bass="G2", arp=["D4", "G4", "B4", "D5"], pad=["B3", "D4", "G4"], cello="G3"),
+    "Dm": dict(root="D3", pad=["D3", "A3", "D4", "F4"], stab=["A3", "D4", "F4"]),
+    "Bb": dict(root="A#2", pad=["A#2", "F3", "A#3", "D4"], stab=["F3", "A#3", "D4"]),
+    "C": dict(root="C3", pad=["C3", "G3", "C4", "E4"], stab=["G3", "C4", "E4"]),
+    "A": dict(root="A2", pad=["A2", "E3", "A3", "C#4"], stab=["E3", "A3", "C#4"]),
+    "D": dict(root="D3", pad=["D3", "A3", "D4", "F#4"], stab=["A3", "D4", "F#4"]),
 }
-ARP_PATTERN = [0, 1, 2, 3, 2, 1, 2, 3]
+ENGINE_ACCENT = [1.0, 0.55, 0.75, 0.55, 0.9, 0.55, 0.75, 0.55]
 
 
 def rc(x):
@@ -68,65 +70,21 @@ def pan_gain(sig, pan):
 
 # ---------------------------------------------------------------- инструменты
 
-def pluck(freq, dur, amp, pan=0.0):
-    """Яркий синтезаторный «щипок»: верхние гармоники гаснут быстрее нижних, как у фильтра."""
+def spic(freq, dur, amp, pan=0.0):
+    """Рубленые виолончели (спиккато): короткая нота, верхние гармоники гаснут быстрее нижних."""
     t = np.arange(int(SR * dur)) / SR
     out = np.zeros((len(t), 2))
-    for cents, p in ((-4, -0.3), (4, 0.3)):
+    for cents, p in ((-5, -0.3), (5, 0.3)):
         f = freq * 2 ** (cents / 1200)
         y = np.zeros(len(t))
-        for k in range(1, 9):
-            if f * k > 9000:
+        for k in range(1, 11):
+            if f * k > 6000:
                 break
-            y += (1.0 / k) * np.sin(2 * np.pi * f * k * t + 0.7 * k) * np.exp(-t * (2.2 + 1.4 * k))
+            y += k ** -1.1 * np.sin(2 * np.pi * f * k * t + 0.9 * k) * np.exp(-t * (7 + 1.8 * k))
         out[:, 0] += y * np.sqrt((1 - p) / 2)
         out[:, 1] += y * np.sqrt((1 + p) / 2)
-    env = rc(t / 0.008) * rc((dur - t) / 0.06)
-    return pan_gain(amp * env[:, None] * out / 2.0, pan)
-
-
-def bass(freq, dur, amp):
-    t = np.arange(int(SR * dur)) / SR
-    y = np.sin(2 * np.pi * freq * t) + 0.45 * np.sin(2 * np.pi * 2 * freq * t) + 0.2 * np.sin(2 * np.pi * 3 * freq * t)
-    env = rc(t / 0.012) * np.exp(-t * 3.5) * rc((dur - t) / 0.05)
-    return (amp * env * y)[:, None] * np.ones((1, 2))
-
-
-def kick(amp):
-    t = np.arange(int(SR * 0.38)) / SR
-    f = 48 + 110 * np.exp(-t * 38)
-    y = np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-t * 11) * rc(t / 0.002)
-    return (amp * y)[:, None] * np.ones((1, 2))
-
-
-def band_noise(n_samples, lo, hi):
-    x = RNG.standard_normal(n_samples)
-    f = np.fft.rfftfreq(n_samples, 1 / SR)
-    mask = np.clip((f - lo) / (0.2 * lo + 1), 0, 1) * np.clip((hi - f) / (0.2 * hi + 1), 0, 1)
-    y = np.fft.irfft(np.fft.rfft(x) * mask, n_samples)
-    return y / (y.std() + 1e-9)
-
-
-def clap(amp):
-    n_samples = int(SR * 0.18)
-    t = np.arange(n_samples) / SR
-    env = sum(np.where(t >= b, np.exp(-(t - b) * 220), 0.0) for b in (0.0, 0.011, 0.022)) + 0.6 * np.exp(-t * 32)
-    y = band_noise(n_samples, 900, 3800) * env * rc(t / 0.001)
-    return (amp * y / 2.0)[:, None] * np.ones((1, 2))
-
-
-def hat(amp):
-    n_samples = int(SR * 0.06)
-    t = np.arange(n_samples) / SR
-    y = band_noise(n_samples, 6500, 18000) * np.exp(-t * 110)
-    return (amp * y / 2.0)[:, None] * np.ones((1, 2))
-
-
-def pad(freq, dur, amp, attack, release):
-    t = np.arange(int(SR * dur)) / SR
-    y = np.sin(2 * np.pi * freq * t) + 0.5 * np.sin(2 * np.pi * 2 * freq * t) + 0.2 * np.sin(2 * np.pi * 3 * freq * t)
-    env = rc(t / attack) * rc((dur - t) / release)
-    return (amp * env * y)[:, None] * np.ones((1, 2))
+    env = rc(t / 0.010) * rc((dur - t) / 0.04)
+    return pan_gain(amp * env[:, None] * out / 2.2, pan)
 
 
 def cello(freq, dur, amp, attack=0.2, release=0.8):
@@ -143,6 +101,68 @@ def cello(freq, dur, amp, attack=0.2, release=0.8):
     return 1.8 * amp * env[:, None] * out / 2
 
 
+def brass(freq, dur, amp, attack=0.05, release=0.35):
+    """Приглушённые медные: верхние гармоники «раскрываются» чуть позже основного тона."""
+    t = np.arange(int(SR * dur)) / SR
+    out = np.zeros((len(t), 2))
+    for cents, p in ((-3, -0.25), (3, 0.25)):
+        f = freq * 2 ** (cents / 1200)
+        y = np.zeros(len(t))
+        for k in range(1, 13):
+            if f * k > 4500:
+                break
+            y += k ** -1.0 * np.sin(2 * np.pi * f * k * t + 0.5 * k) * (0.45 + 0.55 * rc((t - 0.012 * k) / (0.05 + 0.015 * k)))
+        out[:, 0] += y * np.sqrt((1 - p) / 2)
+        out[:, 1] += y * np.sqrt((1 + p) / 2)
+    env = rc(t / attack) * rc((dur - t) / release) * (0.75 + 0.25 * np.exp(-t * 3))
+    return amp * env[:, None] * out / 3.0
+
+
+def piano(freq, dur, amp, attack=0.03, release=0.5, pan=0.0):
+    """Мягкое «фортепиано с войлоком»: тёплый тон, естественное затухание, без звонкой атаки."""
+    t = np.arange(int(SR * dur)) / SR
+    partials = [(1, 1.00, 0.7), (2, 0.28, 1.6), (3, 0.09, 2.8), (4, 0.03, 4.2)]
+    out = np.zeros((len(t), 2))
+    for cents, p in ((-3, -0.25), (3, 0.25)):
+        f = freq * 2 ** (cents / 1200)
+        y = sum(a * np.sin(2 * np.pi * f * m * t) * np.exp(-t * s) for m, a, s in partials)
+        out[:, 0] += y * np.sqrt((1 - p) / 2)
+        out[:, 1] += y * np.sqrt((1 + p) / 2)
+    env = rc(t / attack) * rc((dur - t) / release)
+    return pan_gain(amp * env[:, None] * out / 2, pan)
+
+
+def band_noise(n_samples, lo, hi):
+    x = RNG.standard_normal(n_samples)
+    f = np.fft.rfftfreq(n_samples, 1 / SR)
+    mask = np.clip((f - lo) / (0.2 * lo + 1), 0, 1) * np.clip((hi - f) / (0.2 * hi + 1), 0, 1)
+    y = np.fft.irfft(np.fft.rfft(x) * mask, n_samples)
+    return y / (y.std() + 1e-9)
+
+
+def taiko(amp):
+    """Глубокий барабан: короткий удар с падением высоты и тёмным «стуком»."""
+    t = np.arange(int(SR * 0.7)) / SR
+    f = 48 + 70 * np.exp(-t * 30)
+    body = np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-t * 6.5)
+    thump = band_noise(len(t), 200, 900) * np.exp(-t * 40) * 0.25
+    return (amp * (body + thump) * rc(t / 0.003))[:, None] * np.ones((1, 2))
+
+
+def snap(amp):
+    """Сухой короткий щелчок на слабые доли, очень тихий."""
+    t = np.arange(int(SR * 0.05)) / SR
+    y = band_noise(len(t), 1800, 6000) * np.exp(-t * 90)
+    return (amp * y / 2.0)[:, None] * np.ones((1, 2))
+
+
+def pad(freq, dur, amp, attack, release):
+    t = np.arange(int(SR * dur)) / SR
+    y = np.sin(2 * np.pi * freq * t) + 0.5 * np.sin(2 * np.pi * 2 * freq * t) + 0.2 * np.sin(2 * np.pi * 3 * freq * t)
+    env = rc(t / attack) * rc((dur - t) / release)
+    return (amp * env * y)[:, None] * np.ones((1, 2))
+
+
 # ---------------------------------------------------------------- секвенсор
 
 def new_bufs(n_samples):
@@ -157,51 +177,54 @@ def place(buf, sig, start, jitter=0.0):
         buf[i:i + k] += sig[:k]
 
 
-def groove_bar(B, t, bar, chord, drum_gain=1.0, arp_gain=1.0):
-    """Один такт ритмичной группы: кик, хлопок, хэт, бас, арпеджио «щипком», подложка и виолончель."""
-    beat = bar / 4
+def groove(B, t, beats, beat, chord, dg=1.0, ag=1.0):
+    """Фрагмент ритма на beats долей: рубленые виолончели восьмыми, барабан, тихие щелчки,
+    синкопированные акценты фортепиано и подложка струнных."""
     eighth = beat / 2
     c = CHORDS[chord]
-    for b in (0, 2):
-        place(B["drums"], kick(0.55 * drum_gain), t + b * beat)
+    for j in range(int(beats * 2)):
+        place(B["bass"], spic(n(c["root"]), eighth * 0.85, 0.40 * ag * ENGINE_ACCENT[j % 8]), t + j * eighth, jitter=0.004)
+    place(B["drums"], taiko(0.30 * dg), t)
+    if beats >= 4:
+        place(B["drums"], taiko(0.16 * dg), t + 2 * beat)
     for b in (1, 3):
-        place(B["drums"], clap(0.20 * drum_gain), t + b * beat)
-    for j in range(8):
-        place(B["drums"], hat((0.10 if j % 2 else 0.07) * drum_gain), t + j * eighth)
-    for j, octave in [(0, 1), (2, 1), (3, 2), (4, 1), (6, 1), (7, 2)]:
-        place(B["bass"], bass(n(c["bass"]) * octave, eighth * 0.9, 0.24), t + j * eighth)
-    arp = [n(x) for x in c["arp"]]
-    for j, idx in enumerate(ARP_PATTERN):
-        amp = 0.20 * arp_gain * (1.0 if j % 2 == 0 else 0.75)
-        place(B["lead"], pluck(arp[idx], eighth * 1.6, amp, pan=0.3 * np.sin(np.pi * j / 4)), t + j * eighth, jitter=0.006)
-    for x in c["pad"]:
-        place(B["pad"], pad(n(x), bar + 0.3, 0.045, attack=0.08, release=0.4), t)
-    place(B["pad"], cello(n(c["cello"]), bar + 0.3, 0.07, attack=0.1, release=0.4), t)
+        if b < beats:
+            place(B["drums"], snap(0.10 * dg), t + b * beat)
+    for j in ([0, 3, 6] if beats >= 4 else [0, 3]):
+        for name in c["stab"]:
+            place(B["lead"], piano(n(name), beat * 1.2, 0.10 * ag, attack=0.02), t + j * eighth, jitter=0.004)
+    for name in c["pad"]:
+        place(B["pad"], cello(n(name), beats * beat + 0.3, 0.05, attack=0.15, release=0.4), t)
 
 
-def stairs(B, t_end, notes, step, amps, up=True):
-    """Быстрая «лестница» перед ударом: ноты шагами в step секунд, последняя заканчивается на t_end."""
-    for i, (name, a) in enumerate(zip(notes, amps)):
-        place(B["lead"], pluck(n(name), 0.5, a, pan=(-0.25 + 0.5 * i / (len(notes) - 1)) * (1 if up else -1)),
-              t_end - (len(notes) - i) * step)
+def rise(B, t_end, beat):
+    """Нарастание перед ударом: «лестница» из четырёх нот рублеными виолончелями, дробь барабана, подъём струнных."""
+    step = beat / 4
+    for i, name in enumerate(["D3", "F3", "A3", "D4"]):
+        place(B["bass"], spic(n(name), 0.16, 0.20 + 0.05 * i), t_end - (4 - i) * step)
+    for dt, a in [(beat, 0.09), (beat / 2, 0.13), (beat / 4, 0.19)]:
+        place(B["drums"], taiko(a), t_end - dt)
+    for name in ["D3", "A3", "D4"]:
+        place(B["pad"], cello(n(name), beat + 0.3, 0.06, attack=beat * 0.9, release=0.1), t_end - beat)
 
 
-def stab(B, t, rem, with_drums=True):
-    """Яркий финальный аккорд ре мажор: щипки, бас, кик, длинная подложка и виолончель."""
-    for name, a in [("D4", 0.20), ("F#4", 0.18), ("A4", 0.18), ("E5", 0.14), ("D5", 0.14)]:
-        place(B["lead"], pluck(n(name), min(rem, 1.4), a), t, jitter=0.004)
-    place(B["bass"], bass(n("D2"), min(rem, 0.8), 0.34), t)
-    if with_drums:
-        place(B["drums"], kick(0.6), t)
-    for name, a in [("D3", 0.055), ("A3", 0.045), ("F#4", 0.035)]:
-        place(B["pad"], pad(n(name), rem, a, attack=0.05, release=min(1.8, rem - 0.05)), t)
-    place(B["pad"], cello(n("D3"), rem, 0.09, attack=0.1, release=min(1.8, rem - 0.05)), t)
+def hit(B, t, rem, major=True, soft=False):
+    """Удар на «раз» (ре минор) или финальный аккорд (ре мажор): барабан, медные, струнные, низкое фортепиано."""
+    k = 0.75 if soft else 1.0
+    third = "F#4" if major else "F4"
+    place(B["drums"], taiko((0.42 if major else 0.40) * k), t)
+    for name in ["D3", "A3", "D4", third]:
+        place(B["pad"], brass(n(name), min(rem, 1.3), 0.11 * k), t)
+    for name in ["D3", "A3", "D4", third]:
+        place(B["pad"], cello(n(name), rem, 0.06 * k, attack=0.08, release=min(1.8, rem - 0.05)), t)
+    for name, a in [("D2", 0.16), ("D3", 0.16)]:
+        place(B["bass"], piano(n(name), rem, a * k, release=min(1.8, rem - 0.05)), t)
 
 
 # ---------------------------------------------------------------- постобработка
 
-def reverb(x, wet=0.10, length=0.7, decay=5.0, seed=11):
-    """Очень лёгкая «комнатная» реверберация, чтобы звук не был сухим. Не эхо."""
+def reverb(x, wet=0.12, length=0.9, decay=4.5, seed=11):
+    """Лёгкая «комнатная» реверберация, чтобы звук не был сухим. Не эхо."""
     rng = np.random.default_rng(seed)
     k = int(SR * length)
     t = np.arange(k) / SR
@@ -237,31 +260,31 @@ def mixdown(B, name):
 
 def make_open(dur=5.5, fade_out=1.0):
     B = new_bufs(int(SR * dur))
-    bar, t0 = 4 * BEAT, BEAT                      # такт 2,0 с, «раз» на 0,5 с
-    place(B["pad"], pad(n("D3"), t0 + 0.3, 0.04, attack=0.4, release=0.1), 0.0)
-    stairs(B, t0, ["D4", "F#4", "A4", "D5"], BEAT / 4, [0.22, 0.24, 0.26, 0.28])
-    stab(B, t0, bar - 0.1)                         # удар на «раз»
-    groove_bar(B, t0, bar, "D")
-    t1 = t0 + bar                                  # такт соль мажор с восходящей мелодией
-    groove_bar(B, t1, bar, "G")
-    for name, k, a in [("D5", 0, 0.24), ("F#5", 1, 0.24), ("E5", 2, 0.24), ("A5", 3, 0.26)]:
-        place(B["lead"], pluck(n(name), BEAT * 0.95, a, pan=0.15), t1 + k * BEAT, jitter=0.004)
-    stab(B, t1 + bar, dur - (t1 + bar), with_drums=True)   # яркий финальный аккорд
+    t0 = BEAT                                         # «раз» на 0,5 с
+    rise(B, t0, BEAT)
+    hit(B, t0, 4 * BEAT, major=False)                 # удар: ре минор
+    groove(B, t0, 4, BEAT, "Dm")
+    groove(B, t0 + 4 * BEAT, 2, BEAT, "Bb")           # си-бемоль
+    groove(B, t0 + 6 * BEAT, 2, BEAT, "C")            # до
+    for name, k, d, a in [("F4", 2, 0.45, 0.26), ("A4", 3, 0.45, 0.26), ("D5", 4, 0.95, 0.28), ("E5", 6, 0.95, 0.28)]:
+        place(B["lead"], piano(n(name), d, a, attack=0.02, release=0.3, pan=0.1), t0 + k * BEAT, jitter=0.004)
+    t_end = t0 + 8 * BEAT                             # финал 4,5 с: ре мажор
+    hit(B, t_end, dur - t_end, major=True)
+    place(B["lead"], piano(n("F#5"), dur - t_end, 0.20, attack=0.02, release=1.0), t_end)
     return finish(reverb(mixdown(B, "open")), fade_out=fade_out)
 
 
 def make_close(dur=5.6, fade_out=1.8):
     B = new_bufs(int(SR * dur))
-    bar = 4 * BEAT
-    place(B["pad"], pad(n("G3"), 0.6, 0.05, attack=0.05, release=0.3), 0.0)
-    groove_bar(B, 0.0, bar, "G", drum_gain=0.9)
-    for name, k, a in [("A5", 0, 0.22), ("F#5", 1, 0.22), ("E5", 2, 0.22), ("D5", 3, 0.24)]:
-        place(B["lead"], pluck(n(name), BEAT * 0.95, a, pan=-0.15), k * BEAT, jitter=0.004)
-    stab(B, bar, dur - bar)                        # разрешение в ре мажор
-    # мягкое «растекание» аккорда после удара
-    for name, d, a in [("D4", 0.0, 0.10), ("F#4", 0.12, 0.09), ("A4", 0.24, 0.09), ("D5", 0.36, 0.10)]:
-        place(B["lead"], pluck(n(name), 1.2, a, pan=-0.1), bar + 0.5 + d)
-    return finish(reverb(mixdown(B, "close"), wet=0.13, length=0.9), fade_out=fade_out)
+    groove(B, 0.0, 2, BEAT, "Bb", dg=0.9)
+    groove(B, 2 * BEAT, 2, BEAT, "C", dg=0.9)
+    for name, k, a in [("D5", 0, 0.26), ("C5", 2, 0.26)]:
+        place(B["lead"], piano(n(name), 0.95, a, attack=0.02, release=0.3, pan=-0.1), k * BEAT, jitter=0.004)
+    t_end = 4 * BEAT                                  # финал 2,0 с: ре мажор
+    hit(B, t_end, dur - t_end, major=True, soft=True)
+    for name, d, a in [("A4", 0.5, 0.21), ("F#4", 1.0, 0.19), ("D4", 1.5, 0.19)]:
+        place(B["lead"], piano(n(name), 1.6, a, attack=0.03, release=1.0, pan=-0.1), t_end + d)
+    return finish(reverb(mixdown(B, "close"), wet=0.14, length=1.0), fade_out=fade_out)
 
 
 # ---------------------------------------------------------------- файлы
