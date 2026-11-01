@@ -26,7 +26,7 @@ GitHub хранит код. Ключи, клиенты, оплаты, сесси
 
 ## Проверки пакета
 
-`node --test --test-isolation=none server/tests/reliability.test.mjs`
+`node server/tests/reliability.test.mjs`
 
 `node server/tests/http-reliability.mjs` — отдельный временный HTTP-сервер; все пользователи вымышленные, внешние отправки заменены заглушками.
 

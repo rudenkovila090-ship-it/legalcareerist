@@ -146,7 +146,9 @@ async function install(site) {
   console.log('Подготавливаем зависимости и сборку. Рабочий сайт продолжает работать.')
   command('npm', ['ci', '--include=dev', '--no-audit', '--no-fund'], release)
   command('npm', ['ci', '--omit=dev', '--no-audit', '--no-fund'], path.join(release, 'server'))
-  command('node', ['--test', '--test-isolation=none', 'server/tests/reliability.test.mjs'], release)
+  // node:test also runs when the file is invoked directly, including Node 22.12.
+  // --test-isolation is unavailable in earlier supported Node 22 releases.
+  command('node', ['server/tests/reliability.test.mjs'], release)
   command('npm', ['run', 'lint'], release)
   command('npm', ['run', 'build'], release)
   const id = Date.now() + '-' + crypto.randomBytes(3).toString('hex')
