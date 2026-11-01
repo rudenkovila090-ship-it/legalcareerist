@@ -39,7 +39,7 @@ PREROLL = 0.25           # комнатная тишина перед первы
 TAIL = 0.5               # пауза после последнего слова
 MUSIC_BELOW_VOICE_DB = 14.0   # насколько музыка тише голоса, пока он говорит (меньше = музыка заметнее)
 DUCK_START, DUCK_END = 2.2, 3.4
-SPEED = float(sys.argv[3]) if len(sys.argv) > 3 else 1.0   # ускорение речи, например 1.25
+SPEED = float(sys.argv[3]) if len(sys.argv) > 3 and __name__ == "__main__" else 1.0   # ускорение речи, например 1.25
 
 
 def run(cmd):
