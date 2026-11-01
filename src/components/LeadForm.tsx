@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { submitLead, uploadDocument } from '../lib/leads'
+import { submitLead, uploadDocument, leadSubmissionId, withLeadSubmission } from '../lib/leads'
 import PhoneInput from './PhoneInput'
 import LeadSuccessCard from './LeadSuccessCard'
 import HowHeardField from './HowHeardField'
@@ -76,7 +76,7 @@ export default function LeadForm({
     setInterest((prev) => (prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]))
   }
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setMissingFields(false)
     const consent = consentOf(e)
@@ -98,7 +98,8 @@ export default function LeadForm({
 
     const vacancyLabel = vacancyTitle ? `Отклик на вакансию «${vacancyTitle}»${vacancyNumber ? ` №${vacancyNumber}` : ''}` : undefined
 
-    submitLead({
+    const receipt = await submitLead({
+      requestId: leadSubmissionId(e),
       sourceBlock,
       formType,
       goal: formType === 'vacancy_application' ? 'lead_vacancy' : undefined,
@@ -120,23 +121,22 @@ export default function LeadForm({
       consent,
     })
 
-    // Настоящая пересылка файлов админу в Telegram — не блокирует отправку
-    // формы, работает в фоне (см. /api/upload-document на бэкенде).
+    // Файлы сохраняются на сервере до подтверждения приёма всей заявки.
     const candidateLabel = [name, vacancyLabel].filter(Boolean).join(' — ')
-    uploadDocument(resumeFile, 'Резюме', candidateLabel)
-    uploadDocument(motivationFile, 'Мотивационное письмо', candidateLabel)
-    uploadDocument(coverLetterFile, 'Сопроводительное письмо', candidateLabel)
-    uploadDocument(recommendationFile, 'Рекомендация', candidateLabel)
+    await uploadDocument(resumeFile, 'Резюме', candidateLabel, receipt.receiptId)
+    await uploadDocument(motivationFile, 'Мотивационное письмо', candidateLabel, receipt.receiptId)
+    await uploadDocument(coverLetterFile, 'Сопроводительное письмо', candidateLabel, receipt.receiptId)
+    await uploadDocument(recommendationFile, 'Рекомендация', candidateLabel, receipt.receiptId)
 
     setSent(true)
   }
 
   if (sent) {
-    return <LeadSuccessCard description="Мы свяжемся с вами в ближайшее время. Заявка зафиксирована в CRM с пометкой источника." />
+    return <LeadSuccessCard description="Мы получили ваше обращение и свяжемся с вами в ближайшее время." />
   }
 
   return (
-    <form onSubmit={handleSubmit} className="glass rounded-xl p-6">
+    <form onSubmit={withLeadSubmission(handleSubmit)} className="glass rounded-xl p-6">
       <div className="font-semibold">{title}</div>
       {description && <p className="mt-1 text-sm text-ink/60">{description}</p>}
 

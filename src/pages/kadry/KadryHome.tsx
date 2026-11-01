@@ -6,7 +6,7 @@ import { employerTestimonials } from '../../data/testimonials'
 import FAQSection from '../../components/FAQSection'
 import SectionRail from '../../components/SectionRail'
 import KnowledgeList from '../KnowledgeList'
-import { submitLead } from '../../lib/leads'
+import { submitLead, leadSubmissionId, withLeadSubmission } from '../../lib/leads'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import PhoneInput from '../../components/PhoneInput'
 import LeadSuccessCard from '../../components/LeadSuccessCard'
@@ -365,11 +365,12 @@ export default function KadryHome() {
   const [serviceForm, setServiceForm] = useState({ company: '', fio: '', phone: '', email: '', telegram: '', howHeard: '' })
   const [serviceSent, setServiceSent] = useState(false)
 
-  function handleServiceSubmit(e: FormEvent) {
+  async function handleServiceSubmit(e: FormEvent) {
     e.preventDefault()
     const consent = consentOf(e)
     if (!serviceForm.company.trim() || !serviceForm.fio.trim() || (!serviceForm.phone.trim() && !serviceForm.email.trim())) return
-    submitLead({
+    await submitLead({
+      requestId: leadSubmissionId(e),
       sourceBlock: 'kadry',
       formType: 'service_order',
       goal: 'lead_employer',
@@ -395,11 +396,12 @@ export default function KadryHome() {
   const [form, setForm] = useState({ company: '', fio: '', email: '', phone: '', telegram: '', position: '', howHeard: '' })
   const [sent, setSent] = useState(false)
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     const consent = consentOf(e)
     if (!form.fio.trim() || (!form.email.trim() && !form.phone.trim())) return
-    submitLead({
+    await submitLead({
+      requestId: leadSubmissionId(e),
       sourceBlock: 'kadry',
       formType: 'employer_request',
       goal: 'lead_employer',
@@ -486,11 +488,12 @@ export default function KadryHome() {
   const candidatesDiscount = Math.round((candidatesSubtotal * candidatesTierPct) / 100)
   const candidatesTotal = candidatesSubtotal - candidatesDiscount
 
-  function handleRequestSubmit(e: FormEvent) {
+  async function handleRequestSubmit(e: FormEvent) {
     e.preventDefault()
     const consent = consentOf(e)
     if (!requestForm.contact.trim() || (!requestForm.phone.trim() && !requestForm.email.trim())) return
-    submitLead({
+    await submitLead({
+      requestId: leadSubmissionId(e),
       sourceBlock: 'kadry',
       formType: 'candidates_selection_request',
       goal: 'lead_employer',
@@ -849,7 +852,7 @@ export default function KadryHome() {
                   <span className="text-ink/60">{selectedCount} {selectedCount === 1 ? 'кандидат' : 'кандидата'} в заявке</span>
                   <span className="text-base font-semibold text-ink">{candidatesTotal.toLocaleString('ru-RU')} ₽</span>
                 </div>
-                <form onSubmit={handleRequestSubmit} className="grid gap-3">
+                <form onSubmit={withLeadSubmission(handleRequestSubmit)} className="grid gap-3">
                   <input aria-label="Компания"
                     value={requestForm.company}
                     onChange={(e) => setRequestForm((f) => ({ ...f, company: e.target.value }))}
@@ -1398,7 +1401,7 @@ export default function KadryHome() {
             {sent ? (
               <LeadSuccessCard dark description="Мы свяжемся с вами в ближайшее время." />
             ) : (
-              <form onSubmit={handleSubmit} className="grid gap-4">
+              <form onSubmit={withLeadSubmission(handleSubmit)} className="grid gap-4">
                 <div className="grid gap-4 sm:grid-cols-2">
                   <input aria-label="Компания"
                     value={form.company}
@@ -1493,7 +1496,7 @@ export default function KadryHome() {
                     {discountPct > 0 && ` (скидка ${discountPct}%)`}
                   </div>
                 </div>
-                <form onSubmit={handleServiceSubmit} className="grid gap-3">
+                <form onSubmit={withLeadSubmission(handleServiceSubmit)} className="grid gap-3">
                   <input aria-label="Компания"
                     value={serviceForm.company}
                     onChange={(e) => setServiceForm((f) => ({ ...f, company: e.target.value }))}

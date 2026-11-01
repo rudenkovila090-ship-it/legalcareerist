@@ -1,6 +1,7 @@
 // Сообщения резиденту в бот о списаниях: напоминание, списание прошло, списание не прошло. То же самое уходит и письмом
 // (lib/subscriptionMail.js). Только тексты и кнопки; отправка и отметки «уже напоминали» — в server/index.js.
 
+import { preciseMoscowTime } from './subscriptionAccess.js'
 const MSK = 'Europe/Moscow'
 const day = (ts) => new Intl.DateTimeFormat('ru-RU', { timeZone: MSK, day: 'numeric', month: 'long' }).format(new Date(ts))
 const rub = (n) => `${Math.round(n).toLocaleString('ru-RU')} ₽`
@@ -15,7 +16,7 @@ export function chargeReminderText(join, days, amount) {
 }
 
 export function chargeDoneText(amount, nextPaymentAt) {
-  return ['Списание прошло ✅', amount ? `Оплачено: ${rub(amount)} за подписку на сообщество.` : 'Подписка на сообщество продлена.', nextPaymentAt ? `Следующее списание: ${day(nextPaymentAt)}.` : null, '', 'Спасибо, что ты с нами! 💗'].filter((l) => l !== null).join('\n')
+  return ['Оплата подтверждена Prodamus ✅', amount ? `Оплачено: ${rub(amount)} за подписку на сообщество.` : 'Подписка на сообщество продлена.', nextPaymentAt ? `Подписка продлена до: ${preciseMoscowTime(nextPaymentAt)}.` : 'Дата окончания требует проверки: напиши в поддержку.', nextPaymentAt ? 'Следующее автосписание ожидается в указанное время. Деньги списывает Prodamus.' : null, '', 'Спасибо, что ты с нами! 💗'].filter((l) => l !== null).join('\n')
 }
 
 export function chargeFailedText(amount, chargeAt) {

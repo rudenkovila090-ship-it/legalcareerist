@@ -4,7 +4,7 @@ import Testimonials from '../../components/Testimonials'
 import { communityTestimonials } from '../../data/testimonials'
 import FAQSection from '../../components/FAQSection'
 import SectionRail from '../../components/SectionRail'
-import { submitLead } from '../../lib/leads'
+import { submitLead, leadSubmissionId, withLeadSubmission } from '../../lib/leads'
 import ilyaPhoto from '../../assets/ilya-rudenkov.jpg'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import { tariffs } from '../../data/tariffs'
@@ -272,7 +272,8 @@ export default function CommunityHome() {
     setFormError(invalid ?? '')
     if (invalid) return
 
-    submitLead({
+    await submitLead({
+      requestId: leadSubmissionId(e),
       sourceBlock: 'community',
       formType: 'community_join',
       name,
@@ -306,11 +307,12 @@ export default function CommunityHome() {
     }
   }
 
-  function handleAmbassadorSubmit(e: FormEvent) {
+  async function handleAmbassadorSubmit(e: FormEvent) {
     e.preventDefault()
     const consent = consentOf(e)
     if (!ambassadorForm.name.trim() || (!ambassadorForm.phone.trim() && !ambassadorForm.telegram.trim())) return
-    submitLead({
+    await submitLead({
+      requestId: leadSubmissionId(e),
       sourceBlock: 'community',
       formType: 'ambassador_application',
       name: ambassadorForm.name,
@@ -479,7 +481,7 @@ export default function CommunityHome() {
               <LeadSuccessCard description="Мы свяжемся с вами в Telegram." />
             </div>
           ) : (
-            <form onSubmit={handleAmbassadorSubmit} className="glass mx-auto grid max-w-2xl gap-3 rounded-2xl p-6 text-left sm:grid-cols-2">
+            <form onSubmit={withLeadSubmission(handleAmbassadorSubmit)} className="glass mx-auto grid max-w-2xl gap-3 rounded-2xl p-6 text-left sm:grid-cols-2">
               <input aria-label="ФИО"
                 value={ambassadorForm.name}
                 onChange={(e) => setAmbassadorForm((f) => ({ ...f, name: e.target.value }))}
@@ -696,7 +698,7 @@ export default function CommunityHome() {
                 <span className="text-ink/60">{tariff.period}</span>
                 <span className="text-base font-semibold text-ink">{tariff.priceLabel}</span>
               </div>
-              <form onSubmit={handleSubmit} className="grid gap-3">
+              <form onSubmit={withLeadSubmission(handleSubmit)} className="grid gap-3">
                 <input aria-label="ФИО"
                   value={name}
                   onChange={(e) => setName(e.target.value)}

@@ -18,7 +18,7 @@ import {
 import {
   getCreditsState, isFreeAvailable, freeAvailableAt, canGenerate, consumeGeneration, addCredits, formatCountdown, VACANCY_CREDITS_KEY, EVENT_CREDITS_KEY,
 } from '../../lib/generationCredits'
-import { submitLead, getLeads } from '../../lib/leads'
+import { submitDraftLead as submitLead, getLeads } from '../../lib/leads'
 import { getReviews, computeEmployerRating, addReviewReply } from '../../lib/reviews'
 import { getCompanyProfile, saveCompanyProfile } from '../../lib/companyProfile'
 import { getRankings, addRanking, deleteRanking, rankingBonus } from '../../lib/rankings'

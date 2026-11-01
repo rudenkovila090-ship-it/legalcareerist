@@ -103,7 +103,7 @@ export function findPaidJoin({ profileId, tgUserId, phone, email }) {
  * платежа по счёту. Повторный вебхук с тем же orderKey (Prodamus может
  * прислать уведомление дважды) второй раз не учитывается.
  */
-export function recordPayment(token, { tariffId, amount, paidAt, orderKey, nextPaymentAt, profileId, tgUserId, paymentNum, subscriptionId, subscriptionName, oneTime }) {
+export function recordPayment(token, { tariffId, amount, paidAt, orderKey, nextPaymentAt, profileId, tgUserId, paymentNum, subscriptionId, subscriptionName, oneTime, enqueueConfirmation = false }) {
   let result = null
   store.update(token, (join) => {
     const payments = Array.isArray(join.payments) ? [...join.payments] : []
@@ -121,22 +121,29 @@ export function recordPayment(token, { tariffId, amount, paidAt, orderKey, nextP
     // точнее нашего счёта, если подписка началась ещё до учёта на сайте.
     const kind = paymentNum ? (paymentNum > 1 ? 'renewal' : 'first') : payments.length === 0 ? 'first' : 'renewal'
     payments.push({ kind, at: paidAt, amount, tariffId, orderKey: orderKey ?? null, paymentNum: paymentNum ?? null, subscriptionId: subscriptionId ?? null, subscriptionName: subscriptionName ?? null })
+    payments.sort((a, b) => (Number(a.at) || 0) - (Number(b.at) || 0))
+    const stale = Number(join.lastPaidAt) > Number(paidAt)
     const next = {
       ...join,
-      ...(profileId ? { prodamusProfileId: String(profileId) } : {}),
+      ...(!stale && tariffId !== undefined ? { tariffId } : {}),
+      ...(!stale && subscriptionName ? { subscriptionName } : {}),
+      ...(!stale && profileId ? { prodamusProfileId: String(profileId) } : {}),
       ...(tgUserId && !join.tgUserId ? { tgUserId } : {}),
       // oneTime: false приходит из вебхука, когда Prodamus прислал дату следующего списания: подписка продлевается сама и «разовой» быть перестаёт.
       // Без значения (загрузка истории платежей) признак не меняется.
-      ...(oneTime === true ? { oneTime: true } : oneTime === false ? { oneTime: undefined } : {}),
-      ...(join.watch ? { watch: undefined } : {}), // успешная оплата снимает жёлтую метку «на контроле списания»
+      ...(!stale ? (oneTime === true ? { oneTime: true } : oneTime === false ? { oneTime: undefined } : {}) : {}),
+      ...(!stale && join.watch ? { watch: undefined } : {}), // успешная оплата снимает жёлтую метку «на контроле списания»
       paid: true,
-      status: 'active',
+      status: stale ? join.status : 'active',
       payments,
       firstPaidAt: join.firstPaidAt ?? paidAt,
-      lastPaidAt: paidAt,
-      nextPaymentAt,
+      lastPaidAt: Math.max(Number(join.lastPaidAt) || 0, paidAt),
+      nextPaymentAt: stale ? join.nextPaymentAt : nextPaymentAt,
+      renewalNotices: enqueueConfirmation && !stale && kind === 'renewal'
+        ? [...(join.renewalNotices ?? []), { id: orderKey || `${paidAt}:${amount}`, amount, paidAt, nextPaymentAt, botDone: false, mailDone: false }]
+        : join.renewalNotices,
     }
-    result = { duplicate: false, kind, number: paymentNum || payments.length, record: { token, ...next } }
+    result = { duplicate: false, stale, kind, number: paymentNum || payments.length, record: { token, ...next } }
     return next
   })
   return result

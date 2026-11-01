@@ -4,6 +4,7 @@ import { getBotUser } from './botUsers.js'
 import { TARIFFS } from './prodamus.js'
 import { getProfile } from './accountStore.js'
 import { communityInviteUrl } from './communityInvite.js'
+import { hasAccess, paidUntil } from './subscriptionAccess.js'
 
 const DAY = 24 * 3600 * 1000
 
@@ -18,7 +19,7 @@ function myJoins(tgId, email) {
   const mail = String(email ?? '').trim().toLowerCase()
   return listJoins().filter((j) => j.paid && ((tgId && String(j.tgUserId ?? '') === String(tgId)) || (mail && String(j.email ?? '').trim().toLowerCase() === mail)))
 }
-const endOf = (j) => Math.max(Number(j.nextPaymentAt) || 0, Number(j.endsAt) || 0)
+const endOf = (j) => paidUntil(j) || 0
 
 /** Главная карточка подписки человека: бессрочная, иначе та, что заканчивается позже всех. null — подписки не было. */
 export function residentJoin(tgId, email = '') {
@@ -34,7 +35,7 @@ export function residentStatus(tgId, now = Date.now(), email = '') {
     return { status: 'lifetime', tariff: 'Основатель — бессрочно', until: best.endsAt ?? null, since: best.startAt ?? best.firstPaidAt ?? best.createdAt, autoRenew: false, cancelled: false, daysLeft: null }
   }
   const until = endOf(best) || null
-  const active = Boolean(until && until > now)
+  const active = hasAccess(best, now)
   const cancelled = best.status === 'cancelled'
   const tariff = TARIFFS[best.tariffId]?.label ?? best.subscriptionName ?? (best.oneTime ? 'Разовая подписка на 30 дней' : 'Подписка на сообщество')
   return {

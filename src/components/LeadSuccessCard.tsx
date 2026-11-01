@@ -11,7 +11,7 @@ interface LeadSuccessCardProps {
 // Единый экран подтверждения после отправки любой лид-формы сайта —
 // см. legalcareerist-design skill, раздел 6: зелёный кружок с ✓ + одно
 // предложение, что произойдет дальше, вместо голого текста "успех".
-export default function LeadSuccessCard({ description, dark, ticket, title = 'Заявка отправлена' }: LeadSuccessCardProps) {
+export default function LeadSuccessCard({ description, dark, ticket, title = 'Заявка получена' }: LeadSuccessCardProps) {
   return (
     <div className={`rounded-xl p-6 text-center ${dark ? 'bg-emerald-400/10 text-emerald-200' : 'border border-emerald-200 bg-emerald-50 text-emerald-800'}`}>
       <div className="mb-3 flex justify-center">

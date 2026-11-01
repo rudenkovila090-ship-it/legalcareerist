@@ -13,6 +13,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { createJsonStore } from './jsonStore.js'
 import { personKeys } from './consentLog.js'
+import { leadInboxStore } from './leadInbox.js'
 
 export const DAY = 24 * 3600 * 1000
 export const YEAR = 365 * DAY
@@ -101,6 +102,12 @@ function twoStage(rec, now, { contactsFrom, contactsAfter, moneyFrom, money, lab
 const baseKeys = (r) => personKeys({ phone: r.phone, email: r.email, telegram: r.telegram, tgId: r.tgUserId })
 
 export const SOURCES = [
+  {
+    id: 'leadInbox', title: 'Входящие заявки сайта', store: leadInboxStore,
+    keysOf: baseKeys, personal: ['name', 'phone', 'email', 'telegram', 'body', 'notification'],
+    hasMoney: () => false,
+    due: (rec, ctx) => ctx.now > rec.createdAt + TERMS.support ? { action: 'delete', reason: 'обращению более 1 года' } : null,
+  },
   {
     id: 'botUsers',
     title: 'Пользователи бота',

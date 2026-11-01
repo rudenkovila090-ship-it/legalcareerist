@@ -1,7 +1,7 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { events } from '../../data/events'
-import { submitLead, nextTicketNumber } from '../../lib/leads'
+import { submitLead, nextTicketNumber, leadSubmissionId, withLeadSubmission } from '../../lib/leads'
 import PhoneInput from '../../components/PhoneInput'
 import LeadSuccessCard from '../../components/LeadSuccessCard'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
@@ -400,11 +400,12 @@ export default function EventsHome() {
   const [eventForm, setEventForm] = useState({ fio: '', phone: '', email: '', telegram: '', about: '', howHeard: '' })
   const [eventSent, setEventSent] = useState(false)
 
-  function handleEventSubmit(e: FormEvent) {
+  async function handleEventSubmit(e: FormEvent) {
     e.preventDefault()
     const consent = consentOf(e)
     if (!eventForm.fio.trim() || (!eventForm.phone.trim() && !eventForm.email.trim())) return
-    submitLead({
+    await submitLead({
+      requestId: leadSubmissionId(e),
       sourceBlock: 'events',
       formType: 'event_submission',
       name: eventForm.fio,
@@ -423,11 +424,12 @@ export default function EventsHome() {
   const [orderForm, setOrderForm] = useState({ fio: '', phone: '', email: '', telegram: '', about: '', howHeard: '' })
   const [orderSent, setOrderSent] = useState(false)
 
-  function handleOrderSubmit(e: FormEvent) {
+  async function handleOrderSubmit(e: FormEvent) {
     e.preventDefault()
     const consent = consentOf(e)
     if (!orderForm.fio.trim() || (!orderForm.phone.trim() && !orderForm.email.trim())) return
-    submitLead({
+    await submitLead({
+      requestId: leadSubmissionId(e),
       sourceBlock: 'events',
       formType: 'event_order',
       name: orderForm.fio,
@@ -453,11 +455,12 @@ export default function EventsHome() {
     document.getElementById('partner-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
-  function handlePartnerSubmit(e: FormEvent) {
+  async function handlePartnerSubmit(e: FormEvent) {
     e.preventDefault()
     const consent = consentOf(e)
     if (!partnerForm.fio.trim() || !partnerForm.company.trim() || !partnerForm.phone.trim() || !partnerForm.email.trim() || !partnerForm.format) return
-    submitLead({
+    await submitLead({
+      requestId: leadSubmissionId(e),
       sourceBlock: 'events',
       formType: 'partner_application',
       name: partnerForm.fio,
@@ -487,7 +490,8 @@ export default function EventsHome() {
       return
     }
     const ticketNumber = await nextTicketNumber()
-    submitLead({
+    const received = await submitLead({
+      requestId: leadSubmissionId(e),
       sourceBlock: 'events',
       formType: 'support_request',
       name: supportForm.fio,
@@ -500,7 +504,7 @@ export default function EventsHome() {
       interest: [`Вопрос: ${supportForm.question}`],
       consent,
     })
-    setSupportTicket(ticketNumber)
+    setSupportTicket(received.ticketNumber ?? ticketNumber)
   }
 
   return (
@@ -678,7 +682,7 @@ export default function EventsHome() {
             {eventSent ? (
               <LeadSuccessCard description="Мы свяжемся с вами, чтобы обсудить детали размещения." />
             ) : (
-              <form onSubmit={handleEventSubmit} className="glass grid gap-3 rounded-2xl p-6">
+              <form onSubmit={withLeadSubmission(handleEventSubmit)} className="glass grid gap-3 rounded-2xl p-6">
                 <input aria-label="ФИО"
                   value={eventForm.fio}
                   onChange={(e) => setEventForm((f) => ({ ...f, fio: e.target.value }))}
@@ -733,7 +737,7 @@ export default function EventsHome() {
             {orderSent ? (
               <LeadSuccessCard description="Мы свяжемся с вами, чтобы обсудить детали." />
             ) : (
-              <form onSubmit={handleOrderSubmit} className="glass grid gap-3 rounded-2xl p-6">
+              <form onSubmit={withLeadSubmission(handleOrderSubmit)} className="glass grid gap-3 rounded-2xl p-6">
                 <input aria-label="ФИО"
                   value={orderForm.fio}
                   onChange={(e) => setOrderForm((f) => ({ ...f, fio: e.target.value }))}
@@ -792,7 +796,7 @@ export default function EventsHome() {
             {partnerSent ? (
               <LeadSuccessCard description="Мы свяжемся с вами, чтобы обсудить формат партнерства." />
             ) : (
-              <form onSubmit={handlePartnerSubmit} className="glass grid gap-3 rounded-2xl p-6">
+              <form onSubmit={withLeadSubmission(handlePartnerSubmit)} className="glass grid gap-3 rounded-2xl p-6">
                 <input aria-label="Компания"
                   value={partnerForm.company}
                   onChange={(e) => setPartnerForm((f) => ({ ...f, company: e.target.value }))}
@@ -870,7 +874,7 @@ export default function EventsHome() {
             {supportTicket ? (
               <LeadSuccessCard ticket={supportTicket} description="Мы свяжемся с вами в ближайшее время." />
             ) : (
-              <form onSubmit={handleSupportSubmit} className="glass rounded-xl p-6">
+              <form onSubmit={withLeadSubmission(handleSupportSubmit)} className="glass rounded-xl p-6">
                 <div className="font-semibold">Задать вопрос</div>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
                   <input aria-label="ФИО"

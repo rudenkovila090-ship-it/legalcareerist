@@ -3,7 +3,7 @@ import PageHero from '../components/PageHero'
 import HowHeardField from '../components/HowHeardField'
 import PhoneInput from '../components/PhoneInput'
 import LeadSuccessCard from '../components/LeadSuccessCard'
-import { submitLead, nextTicketNumber } from '../lib/leads'
+import { submitLead, nextTicketNumber, leadSubmissionId, withLeadSubmission } from '../lib/leads'
 import { useDocumentTitle } from '../lib/useDocumentTitle'
 import type { LeadSourceBlock } from '../types'
 import ConsentCheck from '../components/ConsentCheck'
@@ -32,7 +32,8 @@ export default function Contacts({ eyebrow, sourceBlock }: { eyebrow: string; so
     }
 
     const ticketNumber = await nextTicketNumber()
-    submitLead({
+    const received = await submitLead({
+      requestId: leadSubmissionId(e),
       sourceBlock,
       formType: 'contact',
       name,
@@ -45,7 +46,7 @@ export default function Contacts({ eyebrow, sourceBlock }: { eyebrow: string; so
       interest: [`Вопрос: ${question}`],
       consent,
     })
-    setTicket(ticketNumber)
+    setTicket(received.ticketNumber ?? ticketNumber)
   }
 
   return (
@@ -70,7 +71,7 @@ export default function Contacts({ eyebrow, sourceBlock }: { eyebrow: string; so
         {ticket ? (
           <LeadSuccessCard ticket={ticket} description="Мы свяжемся с вами в ближайшее время." />
         ) : (
-          <form onSubmit={handleSubmit} className="glass rounded-xl p-6">
+          <form onSubmit={withLeadSubmission(handleSubmit)} className="glass rounded-xl p-6">
             <div className="font-semibold">Задать вопрос</div>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <input aria-label="ФИО"

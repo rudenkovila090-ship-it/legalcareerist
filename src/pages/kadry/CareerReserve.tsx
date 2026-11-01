@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import PageHero from '../../components/PageHero'
 import FAQSection from '../../components/FAQSection'
 import SectionRail from '../../components/SectionRail'
-import { submitLead, uploadDocument } from '../../lib/leads'
+import { submitLead, uploadDocument, leadSubmissionId, withLeadSubmission } from '../../lib/leads'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import PhoneInput from '../../components/PhoneInput'
 import LeadSuccessCard from '../../components/LeadSuccessCard'
@@ -90,11 +90,12 @@ export default function CareerReserve({ embedded = false }: { embedded?: boolean
   const [resumeFile, setResumeFile] = useState<File | null>(null)
   const [sent, setSent] = useState(false)
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     const consent = consentOf(e)
     if (!form.name.trim() || (!form.email.trim() && !form.phone.trim())) return
-    submitLead({
+    const receipt = await submitLead({
+      requestId: leadSubmissionId(e),
       sourceBlock: 'kadry',
       formType: 'candidate_application',
       goal: 'lead_reserve',
@@ -112,7 +113,7 @@ export default function CareerReserve({ embedded = false }: { embedded?: boolean
       ].filter(Boolean),
       consent,
     })
-    uploadDocument(resumeFile, 'Резюме', form.name)
+    await uploadDocument(resumeFile, 'Резюме', form.name, receipt.receiptId)
     setSent(true)
   }
 
@@ -120,11 +121,12 @@ export default function CareerReserve({ embedded = false }: { embedded?: boolean
   const [priorityResumeFile, setPriorityResumeFile] = useState<File | null>(null)
   const [prioritySent, setPrioritySent] = useState(false)
 
-  function handlePrioritySubmit(e: FormEvent) {
+  async function handlePrioritySubmit(e: FormEvent) {
     e.preventDefault()
     const consent = consentOf(e)
     if (!priorityForm.name.trim() || !priorityForm.phone.trim()) return
-    submitLead({
+    const receipt = await submitLead({
+      requestId: leadSubmissionId(e),
       sourceBlock: 'kadry',
       formType: 'reserve_join_request',
       goal: 'lead_reserve',
@@ -143,7 +145,7 @@ export default function CareerReserve({ embedded = false }: { embedded?: boolean
       ].filter(Boolean),
       consent,
     })
-    uploadDocument(priorityResumeFile, 'Резюме', priorityForm.name)
+    await uploadDocument(priorityResumeFile, 'Резюме', priorityForm.name, receipt.receiptId)
     setPrioritySent(true)
   }
 
@@ -261,7 +263,7 @@ export default function CareerReserve({ embedded = false }: { embedded?: boolean
                 <LeadSuccessCard dark description="Мы свяжемся с вами, чтобы оформить вступление в кадровый резерв." />
               </div>
             ) : (
-              <form className="mx-auto mt-6 grid max-w-2xl gap-3 sm:grid-cols-2" onSubmit={handlePrioritySubmit}>
+              <form className="mx-auto mt-6 grid max-w-2xl gap-3 sm:grid-cols-2" onSubmit={withLeadSubmission(handlePrioritySubmit)}>
                 <input aria-label="ФИО"
                   className="rounded-lg border border-white/15 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
                   placeholder="ФИО"
@@ -361,7 +363,7 @@ export default function CareerReserve({ embedded = false }: { embedded?: boolean
             {sent ? (
               <LeadSuccessCard dark description="Мы свяжемся с вами, как только появится подходящая вакансия." />
             ) : (
-              <form className="grid gap-3 sm:grid-cols-2" onSubmit={handleSubmit}>
+              <form className="grid gap-3 sm:grid-cols-2" onSubmit={withLeadSubmission(handleSubmit)}>
                 <input aria-label="ФИО"
                   className="rounded-lg border border-white/15 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
                   placeholder="ФИО"

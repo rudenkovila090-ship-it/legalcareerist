@@ -1,10 +1,6 @@
-// LeadCapture — единый обработчик всех форм сайта (раздел 7 ТЗ).
-// В проде пишет в таблицу Lead + создает/обновляет User, дублирует в Telegram-бот админу.
-// В этом фронтенд-MVP — сохраняет в localStorage, эмулируя единую CRM-таблицу лидов,
-// и триггерит analytics-событие (раздел 8: цели на каждую форму).
-// Дублирование в Telegram — настоящее (не демо): каждая заявка летит на бэкенд
-// (/api/notify), который шлет сообщение админу через Bot API. Бэкенд сам решает,
-// настроен ли токен/chat_id — если нет, просто отвечает ok:false, страница это не блокирует.
+// Published forms are acknowledged only after a durable server receipt.
+// Browser storage is a convenience copy; prototype account forms stay local drafts.
+import type { FormEvent } from 'react'
 import type { Lead, LeadSourceBlock } from '../types'
 import { getUtm } from './utm'
 import { CONSENT_VERSION, MARKETING_CONSENT_VERSION, type ConsentChoice } from './consent'
@@ -93,6 +89,7 @@ function richTemplate(sourceBlock: LeadSourceBlock, formType: string): 'kadry-em
 }
 
 export interface LeadInput {
+  requestId?: string
   sourceBlock: LeadSourceBlock
   formType: string
   name: string
@@ -138,7 +135,7 @@ export async function nextTicketNumber(): Promise<string> {
   return String(100000 + (Date.now() % 900000))
 }
 
-export function submitLead(input: LeadInput): Lead {
+function buildLead(input: LeadInput): Lead {
   const lead: Lead = {
     id: `lead_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
     sourceBlock: input.sourceBlock,
@@ -157,70 +154,116 @@ export function submitLead(input: LeadInput): Lead {
     date: new Date().toISOString(),
   }
 
-  const all = getLeads()
-  all.unshift(lead)
-  localStorage.setItem(LEADS_KEY, JSON.stringify(all))
-
-  trackEvent('lead_submit', { source: input.sourceBlock, form: input.formType })
-  notifyTelegram(lead, input.vacancySlug, input.eventSlug, input.consent, input.goal)
-
   return lead
 }
 
-/** Уведомление админу в Telegram — не блокирует отправку формы при ошибке/недоступности бэкенда.
- *  vacancySlug/eventSlug (если есть) заодно учитываются бэкендом в реальном счетчике
- *  откликов вакансии / переходов к регистрации на мероприятие. */
-function notifyTelegram(lead: Lead, vacancySlug?: string, eventSlug?: string, consent?: ConsentChoice, goalName?: string) {
-  if (typeof fetch === 'undefined') return
+function rememberLead(lead: Lead) {
+  try {
+    const all = getLeads()
+    all.unshift(lead)
+    localStorage.setItem(LEADS_KEY, JSON.stringify(all))
+  } catch { /* The confirmed server receipt remains valid without browser storage. */ }
+}
+
+/** Prototype accounts remain local drafts and do not create real customer requests. */
+export function submitDraftLead(input: LeadInput): Lead {
+  const lead = buildLead(input)
+  rememberLead(lead)
+  return lead
+}
+
+const submissionIds = new WeakMap<object, string>()
+export function leadSubmissionId(event: FormEvent): string {
+  return submissionIds.get(event) ?? crypto.randomUUID()
+}
+
+/** Keep the form and its values until the server confirms a durable receipt. */
+export function withLeadSubmission(handler: (event: FormEvent) => void | Promise<void>) {
+  return async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const form = event.currentTarget
+    if (form.dataset.leadSubmitting === '1') return
+    form.querySelector('[data-lead-submit-error]')?.remove()
+    if (!form.dataset.leadInputListener) {
+      form.addEventListener('input', () => { if (form.dataset.leadSubmitting !== '1') delete form.dataset.leadRequestId })
+      form.dataset.leadInputListener = '1'
+    }
+    form.dataset.leadRequestId ??= crypto.randomUUID()
+    submissionIds.set(event, form.dataset.leadRequestId)
+    form.dataset.leadSubmitting = '1'
+    form.setAttribute('aria-busy', 'true')
+    const wasInert = form.inert
+    form.inert = true
+    const progress = document.createElement('p')
+    progress.className = 'mt-3 text-sm'
+    progress.setAttribute('role', 'status')
+    progress.textContent = 'Отправляем заявку…'
+    form.append(progress)
+    try {
+      await handler(event)
+    } catch (error) {
+      const message = document.createElement('p')
+      message.dataset.leadSubmitError = '1'
+      message.setAttribute('role', 'alert')
+      message.className = 'mt-3 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-800'
+      message.textContent = error instanceof Error && error.message === 'file_not_received'
+        ? 'Заявка сохранена, но файл принять не удалось. Проверьте соединение и повторите отправку. Заполненные поля сохранены.'
+        : 'Не удалось подтвердить получение заявки. Проверьте соединение и попробуйте ещё раз. Заполненные поля сохранены.'
+      form.append(message)
+    } finally {
+      delete form.dataset.leadSubmitting
+      form.removeAttribute('aria-busy')
+      form.inert = wasInert
+      progress.remove()
+    }
+  }
+}
+
+export async function submitLead(input: LeadInput): Promise<Lead & { receiptId: string }> {
+  const lead = buildLead(input)
   const template = richTemplate(lead.sourceBlock, lead.formType)
-  const direction =
-    template === 'kadry-employer' ? 'Кадры → Работодатель'
+  const direction = template === 'kadry-employer' ? 'Кадры → Работодатель'
     : template === 'kadry-candidate' ? 'Кадры → Соискатель'
     : template === 'support' ? `${sourceLabels[lead.sourceBlock] ?? lead.sourceBlock} → Поддержка`
     : directionLabel(lead.sourceBlock, lead.formType)
-  fetch('/api/notify', {
+  const response = await fetch('/api/notify', {
     method: 'POST',
+    signal: AbortSignal.timeout(20000),
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      direction,
+      requestId: input.requestId, direction,
       service: lead.serviceOverride ?? (SERVICE_LABELS[lead.formType] ?? lead.formType),
       source: sourceLabels[lead.sourceBlock] ?? lead.sourceBlock,
-      formType: lead.formType,
-      template,
-      name: lead.name,
-      contact: lead.contact,
-      phone: lead.phone,
-      email: lead.email,
-      telegram: lead.telegram,
-      company: lead.company,
-      ticketNumber: lead.ticketNumber,
-      howHeard: lead.howHeard,
-      interest: lead.interest,
-      date: lead.date,
-      vacancySlug,
-      eventSlug,
-      consent,
-      consentVersion: CONSENT_VERSION,
-      marketingVersion: MARKETING_CONSENT_VERSION,
-      utm: getUtm(),
+      formType: lead.formType, template, name: lead.name, contact: lead.contact,
+      phone: lead.phone, email: lead.email, telegram: lead.telegram, company: lead.company,
+      ticketNumber: lead.ticketNumber, howHeard: lead.howHeard, interest: lead.interest, date: lead.date,
+      vacancySlug: input.vacancySlug, eventSlug: input.eventSlug, consent: input.consent,
+      consentVersion: CONSENT_VERSION, marketingVersion: MARKETING_CONSENT_VERSION, utm: getUtm(),
     }),
-  }).then((res) => {
-    // Цель Метрики — только когда сервер принял заявку; в параметрах лишь тип формы, без имён и контактов.
-    if (res.ok && goalName) goal(goalName, { form: lead.formType })
-  }).catch(() => {
-    // Бэкенд недоступен/не настроен — заявка все равно сохранена в localStorage, не мешаем пользователю.
   })
+  const result = await response.json()
+  if (!response.ok || result.ok !== true || result.received !== true || typeof result.receiptId !== 'string') throw new Error('lead_not_received')
+  rememberLead(lead)
+  try {
+    trackEvent('lead_submit', { source: input.sourceBlock, form: input.formType })
+    if (input.goal) goal(input.goal, { form: lead.formType })
+  } catch { /* Analytics cannot invalidate a confirmed receipt. */ }
+  return { ...lead, ticketNumber: result.ticketNumber || lead.ticketNumber, receiptId: result.receiptId }
 }
 
-/** Пересылка загруженного файла (резюме и т.п.) админу документом в Telegram —
- *  см. POST /api/upload-document на бэкенде. Не блокирует отправку формы при ошибке. */
-export function uploadDocument(file: File | null, label: string, name: string) {
-  if (!file || typeof fetch === 'undefined') return
+/** Attachments are acknowledged only after saving to the same durable server receipt. */
+export async function uploadDocument(file: File | null, label: string, name: string, receiptId: string) {
+  if (!file) return
   const body = new FormData()
   body.append('file', file)
   body.append('label', label)
   body.append('name', name)
-  fetch('/api/upload-document', { method: 'POST', body }).catch(() => {})
+  body.append('receiptId', receiptId)
+  try {
+    const response = await fetch('/api/upload-document', { method: 'POST', body, signal: AbortSignal.timeout(60000) })
+    const result = await response.json()
+    if (!response.ok || result.ok !== true || result.received !== true) throw new Error('file_not_received')
+  } catch { throw new Error('file_not_received') }
 }
 
 /** Отдельный, не завязанный на лид-форму счетчик перехода к регистрации —

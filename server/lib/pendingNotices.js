@@ -46,10 +46,13 @@ export function cancelPending({ kind, phone, email, telegram, eventNumber }) {
   return list.length - keep.length
 }
 
-/** Забирает из очереди уведомления, срок которых вышел. */
+/** Читает готовые уведомления. Удаляем только после подтверждённой отправки. */
 export function takeDuePending(now = Date.now()) {
+  return load().filter((x) => x.due <= now)
+}
+
+export function acknowledgePending(id) {
   const list = load()
-  const due = list.filter((x) => x.due <= now)
-  if (due.length) save(list.filter((x) => x.due > now))
-  return due
+  const keep = list.filter(x => x.id !== id)
+  if (keep.length !== list.length) save(keep)
 }

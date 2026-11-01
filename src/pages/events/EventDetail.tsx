@@ -4,7 +4,7 @@ import { events } from '../../data/events'
 import { getPhotoReport } from '../../data/photoReports'
 import RelatedContentBlock from '../../components/RelatedContentBlock'
 import { getRelatedContent } from '../../lib/related'
-import { submitLead, pingEventRegistrationClick } from '../../lib/leads'
+import { submitLead, pingEventRegistrationClick , leadSubmissionId, withLeadSubmission } from '../../lib/leads'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import { useSocialMeta } from '../../lib/useSocialMeta'
 import { useNoindex } from '../../lib/pageMeta'
@@ -302,7 +302,8 @@ export default function EventDetail() {
       }
       return
     }
-    submitLead({
+    await submitLead({
+      requestId: leadSubmissionId(e),
       sourceBlock: 'events',
       formType: 'event_registration',
       name: form.fio,
@@ -319,12 +320,13 @@ export default function EventDetail() {
     setRegistered(true)
   }
 
-  function handlePartnerSubmit(e: FormEvent) {
+  async function handlePartnerSubmit(e: FormEvent) {
     e.preventDefault()
     const consent = consentOf(e)
     if (!event) return
     if (!partnerForm.fio.trim() || !partnerForm.company.trim() || (!partnerForm.phone.trim() && !partnerForm.email.trim())) return
-    submitLead({
+    await submitLead({
+      requestId: leadSubmissionId(e),
       sourceBlock: 'events',
       formType: 'event_partner_application',
       name: partnerForm.fio,
@@ -639,7 +641,7 @@ export default function EventDetail() {
                 <LeadSuccessCard description="Мы свяжемся с вами, чтобы обсудить детали партнерства." />
               </div>
             ) : (
-              <form onSubmit={handlePartnerSubmit} className="mt-4 grid gap-3 rounded-2xl border border-ink/10 bg-ink/[0.02] p-5 sm:grid-cols-2">
+              <form onSubmit={withLeadSubmission(handlePartnerSubmit)} className="mt-4 grid gap-3 rounded-2xl border border-ink/10 bg-ink/[0.02] p-5 sm:grid-cols-2">
                 <input aria-label="ФИО"
                   value={partnerForm.fio}
                   onChange={(e) => setPartnerForm((f) => ({ ...f, fio: e.target.value }))}
@@ -812,7 +814,7 @@ export default function EventDetail() {
                 {registered ? (
                   <div className="mt-4 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">Вы зарегистрированы. Напоминание придет заранее.</div>
                 ) : (
-                  <form onSubmit={handleRegister} className="mt-4 grid gap-2.5">
+                  <form onSubmit={withLeadSubmission(handleRegister)} className="mt-4 grid gap-2.5">
                     <input aria-label="ФИО"
                       value={form.fio}
                       onChange={(e) => setForm((f) => ({ ...f, fio: e.target.value }))}

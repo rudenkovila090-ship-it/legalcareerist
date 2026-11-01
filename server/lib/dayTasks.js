@@ -5,7 +5,8 @@ import { rub, who, planAmount, CANCEL_REASONS } from './adminCabinet.js'
 import { mskDayKey } from './dailyReport.js'
 import { dealsDueForReminder, stageOf } from './deals.js'
 import { interestsDueForReminder, INTEREST_KINDS } from './interests.js'
-import { normalizePhone } from './jsonStore.js'
+import { paidUntil, paidPeriodEnded } from './subscriptionAccess.js'
+import { protectedByOtherCard } from './accessExpiry.js'
 
 const MSK = 'Europe/Moscow'
 const DAY = 24 * 3600 * 1000
@@ -44,19 +45,12 @@ export function overdueJoins(joins, now) {
 /** Отписанный (подписка отключена), у кого оплаченный срок уже вышел. Без даты следующего списания считаем сроком два дня после отписки. */
 export function cancelledAccessOver(j, now) {
   if (j.status !== 'cancelled' || j.lifetime || !j.tgUserId) return false
-  return (j.nextPaymentAt ?? (j.cancelledAt ?? 0) + 2 * DAY) < now - OVERDUE_GRACE_MS
-}
-
-/** Это тот же человек, что и в другой карточке: совпал Telegram id, телефон или почта. */
-function samePerson(a, b) {
-  const phone = (v) => normalizePhone(v)
-  const mail = (v) => String(v ?? '').trim().toLowerCase()
-  return Boolean((a.tgUserId && a.tgUserId === b.tgUserId) || (phone(a.phone) && phone(a.phone) === phone(b.phone)) || (mail(a.email) && mail(a.email) === mail(b.email)))
+  return paidPeriodEnded(j, now)
 }
 
 /** У человека есть другая действующая подписка (дубль карточки): из чата его исключать нельзя, достаточно закрыть лишнюю карточку. */
 export function hasOtherActive(j, joins, now) {
-  return joins.some((k) => k.token !== j.token && samePerson(j, k) && (k.lifetime || (k.status === 'active' && (!k.nextPaymentAt || k.nextPaymentAt >= now - OVERDUE_GRACE_MS))))
+  return protectedByOtherCard(j, joins, now)
 }
 
 /**
@@ -77,6 +71,7 @@ export function overdueReason(j, now) {
     text,
     todo: 'Исключите человека из чата, если он там, или просто уберите из активных, если его уже нет. Если на самом деле он платит по другой подписке, проверьте его в Prodamus по телефону и укажите дату списания.',
   })
+  if (paidPeriodEnded(j, now)) return ended(`Оплаченный срок закончился ${ruDateTime(due)} (мск). Подтверждённой оплаты следующего периода нет. Повторные попытки Prodamus не продлевают доступ.`)
   if (j.status === 'cancelled') return ended(`Подписка отключена${j.cancelledAt ? ` ${ruDate(j.cancelledAt)}` : ''}, оплаченный срок вышел${due ? ` ${ruDate(due)}` : ''}, а человек всё ещё в чате.`)
   if (j.oneTime) return ended(`Разовая подписка (без автопродления) закончилась ${ruDate(due)}${lateDays ? ` (${lateDays} дн. назад)` : ''}, продления нет.`)
   if (fail?.last) return ended(`Prodamus пробовал списать${fail.error ? ` («${clip(fail.error, 80)}»)` : ''} и больше пробовать не будет. Время списания было ${ruDate(due)}.`)
@@ -101,9 +96,8 @@ export function overdueReason(j, now) {
 
 /** Все, у кого срок вышел и доступ пора закрывать: просроченные активные и отписанные, которые всё ещё в чате (inChat выставляет ежедневная проверка чата). */
 export function endedJoins(joins, now) {
-  const active = overdueJoins(joins, now).filter((j) => overdueReason(j, now).code === 'ended')
-  const leaks = joins.filter((j) => cancelledAccessOver(j, now) && j.inChat === true && !hasOtherActive(j, joins, now)).sort((a, b) => (a.nextPaymentAt ?? a.cancelledAt ?? 0) - (b.nextPaymentAt ?? b.cancelledAt ?? 0))
-  return [...active, ...leaks]
+  return joins.filter(j => ['active', 'cancelled'].includes(j.status) && paidPeriodEnded(j, now) &&
+    j.accessClosedFor !== paidUntil(j)).sort((a, b) => paidUntil(a) - paidUntil(b))
 }
 
 /** Просрочены, но оплату ещё можно получить (попытки Prodamus идут или причина неясна). */

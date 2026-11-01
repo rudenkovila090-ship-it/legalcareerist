@@ -2,7 +2,7 @@
 // ссылка на кабинет резидента. Собирается здесь, а шлёт его сервер после первой оплаты (и повторно по запросу из кабинета и бота).
 
 const MSK = 'Europe/Moscow'
-const date = (ts) => new Intl.DateTimeFormat('ru-RU', { timeZone: MSK, day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(ts)).replace(/ г\./g, '')
+const date = (ts) => new Intl.DateTimeFormat('ru-RU', { timeZone: MSK, day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(new Date(ts)).replace(/ г\./g, '') + ' (мск)'
 const rub = (n) => `${Math.round(n).toLocaleString('ru-RU')} ₽`
 const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c])
 
@@ -109,7 +109,7 @@ export function composeChargeReminderMail({ name, days, amount, chargeAt, siteUr
 /** Списание прошло, подписка продлена. */
 export function composeChargeDoneMail({ name, amount, paidAt, nextPaymentAt, siteUrl, botUsername, supportHandle }) {
   const title = `Списание прошло${amount ? `: ${rub(amount)}` : ''}, подписка на сообщество продлена.`
-  const lines = [amount ? `Оплачено: ${rub(amount)}, ${date(paidAt)}.` : null, nextPaymentAt ? `Следующее списание: ${date(nextPaymentAt)}.` : null, 'Чек об оплате придёт от платёжной системы на почту, указанную при оплате.', CANCEL_HINT].filter(Boolean)
+  const lines = [amount ? `Оплачено: ${rub(amount)}, ${date(paidAt)}.` : null, nextPaymentAt ? `Подписка продлена до: ${date(nextPaymentAt)}. Следующее автосписание ожидается в это время; деньги списывает Prodamus.` : 'Дата окончания требует проверки: обратитесь в поддержку.', 'Чек об оплате придёт от платёжной системы на почту, указанную при оплате.', CANCEL_HINT].filter(Boolean)
   const { text, html } = shell({ name, siteUrl, botUsername, supportHandle, title, lines })
   return { subject: 'Подписка продлена', text, html }
 }

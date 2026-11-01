@@ -4,7 +4,7 @@ import PageHero from '../../components/PageHero'
 import Testimonials from '../../components/Testimonials'
 import FAQSection from '../../components/FAQSection'
 import SectionRail from '../../components/SectionRail'
-import { submitLead } from '../../lib/leads'
+import { submitLead, leadSubmissionId, withLeadSubmission } from '../../lib/leads'
 import PhoneInput from '../../components/PhoneInput'
 import LeadSuccessCard from '../../components/LeadSuccessCard'
 import { consultationCategories, allConsultationServices, tierDiscountPct } from '../../data/consultationServices'
@@ -241,11 +241,12 @@ export default function CareerConsultation({ embedded = false }: { embedded?: bo
   const [helpForm, setHelpForm] = useState({ name: '', email: '', phone: '', telegram: '', question: '', howHeard: '' })
   const [helpSent, setHelpSent] = useState(false)
 
-  function handleHelpSubmit(e: FormEvent) {
+  async function handleHelpSubmit(e: FormEvent) {
     e.preventDefault()
     const consent = consentOf(e)
     if (!helpForm.name.trim() || !helpForm.question.trim()) return
-    submitLead({
+    await submitLead({
+      requestId: leadSubmissionId(e),
       sourceBlock: 'kadry',
       formType: 'consultation_help_request',
       name: helpForm.name,
@@ -274,11 +275,12 @@ export default function CareerConsultation({ embedded = false }: { embedded?: bo
     setSelected((s) => ({ ...s, [id]: !s[id] }))
   }
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     const consent = consentOf(e)
     if (!form.name.trim() || !count) return
-    submitLead({
+    await submitLead({
+      requestId: leadSubmissionId(e),
       sourceBlock: 'kadry',
       formType: 'consultation_order',
       goal: 'lead_consult',
@@ -571,7 +573,7 @@ export default function CareerConsultation({ embedded = false }: { embedded?: bo
               <LeadSuccessCard dark description="Мы свяжемся с вами и поможем определиться с услугой." />
             </div>
           ) : (
-            <form className="mx-auto mt-6 grid max-w-md gap-3" onSubmit={handleHelpSubmit}>
+            <form className="mx-auto mt-6 grid max-w-md gap-3" onSubmit={withLeadSubmission(handleHelpSubmit)}>
               <div className="grid gap-3 sm:grid-cols-2">
                 <input aria-label="ФИО"
                   className="rounded-lg border border-white/15 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
@@ -727,7 +729,7 @@ export default function CareerConsultation({ embedded = false }: { embedded?: bo
                   <span className="text-base font-semibold text-ink">{total.toLocaleString('ru-RU')} ₽</span>
                 </div>
 
-                <form className="grid gap-3" onSubmit={handleSubmit}>
+                <form className="grid gap-3" onSubmit={withLeadSubmission(handleSubmit)}>
                   <input aria-label="ФИО"
                     className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
                     placeholder="ФИО"

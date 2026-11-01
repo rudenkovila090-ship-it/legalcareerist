@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { tariffs, type TariffId } from '../data/tariffs'
-import { submitLead } from '../lib/leads'
+import { submitLead, leadSubmissionId, withLeadSubmission } from '../lib/leads'
 import HowHeardField from './HowHeardField'
 import PhoneInput from './PhoneInput'
 import { validateJoinContacts } from '../lib/joinValidation'
@@ -63,7 +63,8 @@ export default function TariffJoinBlock() {
     setFormError(invalid ?? '')
     if (invalid) return
 
-    submitLead({
+    await submitLead({
+      requestId: leadSubmissionId(e),
       sourceBlock: 'community',
       formType: 'community_join',
       name,
@@ -163,7 +164,7 @@ export default function TariffJoinBlock() {
               <span className="text-ink/60">{tariff.period}</span>
               <span className="text-base font-semibold text-ink">{tariff.priceLabel}</span>
             </div>
-            <form onSubmit={handleSubmit} className="grid gap-3">
+            <form onSubmit={withLeadSubmission(handleSubmit)} className="grid gap-3">
               <input aria-label="ФИО"
                 value={name}
                 onChange={(e) => setName(e.target.value)}

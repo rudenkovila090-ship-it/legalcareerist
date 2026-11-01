@@ -7,7 +7,7 @@ import FAQSection from '../../components/FAQSection'
 import { TagRow } from '../../components/Tag'
 import PhoneInput from '../../components/PhoneInput'
 import LeadSuccessCard from '../../components/LeadSuccessCard'
-import { submitLead, nextTicketNumber } from '../../lib/leads'
+import { submitLead, nextTicketNumber, leadSubmissionId, withLeadSubmission } from '../../lib/leads'
 import VacancyDetailBody from '../../components/VacancyDetailBody'
 import VacancyApplyPanel from '../../components/VacancyApplyPanel'
 import { vacancies } from '../../data/vacancies'
@@ -165,7 +165,8 @@ export default function Candidates() {
       return
     }
     const ticketNumber = await nextTicketNumber()
-    submitLead({
+    const received = await submitLead({
+      requestId: leadSubmissionId(e),
       sourceBlock: 'kadry',
       formType: 'support_request',
       name: supportForm.fio,
@@ -179,7 +180,7 @@ export default function Candidates() {
       interest: supportForm.question.trim() ? [`Вопрос: ${supportForm.question.trim()}`] : [],
       consent,
     })
-    setSupportTicket(ticketNumber)
+    setSupportTicket(received.ticketNumber ?? ticketNumber)
   }
   const [selectedVacancySlug, setSelectedVacancySlug] = useState<string | null>(null)
   const selectedVacancy = vacancies.find((v) => v.slug === selectedVacancySlug) ?? null
@@ -309,7 +310,7 @@ export default function Candidates() {
                     description="Мы напишем вам в ближайшее время и подскажем, какая услуга подойдет."
                   />
                 ) : (
-                  <form onSubmit={handleSupportSubmit} className="grid gap-3">
+                  <form onSubmit={withLeadSubmission(handleSupportSubmit)} className="grid gap-3">
                     <p className="text-sm text-ink/60">Оставьте контакты — подскажем, какая услуга подойдет именно вам.</p>
                     <input aria-label="ФИО"
                       value={supportForm.fio}

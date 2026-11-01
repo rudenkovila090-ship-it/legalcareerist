@@ -2,6 +2,8 @@
 // поддержка и «Настройки», где спрятано отключение подписки (подтверждение → причина → готово). Открывается только
 // тем, чей Telegram-аккаунт привязан к подписке, — так чужие данные по телефону получить нельзя. Кнопки — «r:…».
 import { gv } from './gender.js'
+import { hasAccess, paidUntil, preciseMoscowTime } from './subscriptionAccess.js'
+export { hasAccess } from './subscriptionAccess.js'
 
 const MSK = 'Europe/Moscow'
 const rub = (n) => `${Math.round(n).toLocaleString('ru-RU')} ₽`
@@ -10,21 +12,6 @@ export const ruDate = (ts) => new Intl.DateTimeFormat('ru-RU', { timeZone: MSK, 
 const BACK_ROW = [{ text: '⬅️ Кабинет', callback_data: 'r:menu' }]
 const DAY = 24 * 3600 * 1000
 const plural = (n, [one, few, many]) => (n % 10 === 1 && n % 100 !== 11 ? one : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? few : many)
-
-/** Подписка «в силе»: бессрочная, активная или отключена, но оплаченный период ещё не закончился. */
-/** Prodamus повторяет неудачное списание до ~3,3 суток: пока идут попытки, доступ ещё считается действующим. */
-const AUTOPAY_RETRY_MS = 4 * DAY
-
-/**
- * Есть ли у человека действующая подписка. Статус «активна» без даты считаем действующим, но если оплаченный срок вышел (разовая подписка —
- * сразу, с автопродлением — после попыток списания), подписки уже нет, даже если карточку никто не закрыл (например, перенесённую из BotHelp).
- */
-export function hasAccess(join, now = Date.now()) {
-  if (!join) return false
-  if (join.lifetime) return true
-  if (join.status === 'active') return !join.nextPaymentAt || join.nextPaymentAt + (join.oneTime ? 0 : AUTOPAY_RETRY_MS) > now
-  return join.status === 'cancelled' && Boolean(join.nextPaymentAt) && join.nextPaymentAt > now
-}
 
 export function residentMenu(join, user) {
   const name = user?.firstName || (join.name && join.name !== '—' ? join.name.split(' ')[0] : null)
@@ -60,11 +47,12 @@ export function subscriptionScreen(join, tariffs, now = Date.now(), payUrl = '')
   const amount = Number(last?.amount) || tariffs[join.tariffId]?.price || null
   const plan = tariffs[join.tariffId]?.period ?? last?.subscriptionName ?? null
   const active = join.status === 'active' && hasAccess(join, now)
-  const endsAt = join.nextPaymentAt
+  const endsAt = paidUntil(join)
   const status = active ? '🟢 активна' : join.status === 'active' ? '⚪ закончилась' : join.status === 'cancelled' ? (hasAccess(join, now) ? '🔕 отключена — доступ до конца оплаченного периода' : '⚪ закончилась') : '⏳ ожидает оплаты'
   // «Действует до» — конец оплаченного периода; у подписки с автопродлением дальше она продлится списанием.
   let until = null
-  if (endsAt) until = active && !join.oneTime && endsAt > now ? `Действует до: ${ruDate(endsAt)} (дальше продлится автоматически — списание${amount ? ` ${rub(amount)}` : ''})` : endsAt <= now ? `Срок закончился: ${ruDate(endsAt)}` : `Действует до: ${ruDate(endsAt)}`
+  if (endsAt) until = endsAt <= now ? `Срок закончился: ${preciseMoscowTime(endsAt)}` : `Действует до: ${preciseMoscowTime(endsAt)}${active && !join.oneTime ? `; ожидается автосписание Prodamus${amount ? ` ${rub(amount)}` : ''}` : ''}`
+  else until = 'Оплаченный срок не указан: обратитесь в поддержку для проверки.'
   const lines = [
     '📋 Моя подписка',
     '',
