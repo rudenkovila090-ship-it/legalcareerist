@@ -1,17 +1,21 @@
 #!/usr/bin/env python3
-"""Джингл подкаста «Карьерный юрист», версия 2: горы, холод, свежесть.
+"""Джингл подкаста «Карьерный юрист», версия 3: тёплый, человечный, с движением вперёд.
 
-Звук: плавные ноты без щипка (медленная атака), открытые квинты (ре–ля–ми–си), порыв
-«ветра» из фильтрованного шума, ледяной блеск на верхних нотах и далёкое эхо, как в долине.
+Эмоции (из документов бренда): поддержка («путь не в одиночку»), спокойная надёжность
+(«старший товарищ»), движение вперёд («Путь юриста»), лёгкая свежесть без холода.
 
-Открытие: ветер поднимается, четыре ноты идут вверх «лестницей» (логотип КЮ) и раскрываются
-светлым открытым аккордом.
-Закрытие: те же ноты идут вниз, ветер стихает, звук разрешается в чистую квинту ре–ля и тает.
+Звук: мягкое «фортепиано с войлоком» (мелодия-лестница из четырёх ступеней, как логотип КЮ),
+тёплые струнные с лёгким вибрато (виолончель) и мягкая подложка. Без ветра, без эха, лишь
+крошечная комнатная реверберация. Живость: небольшие неточности по времени и громкости.
 
-Громкость выравнивается автоматически до -20 LUFS (тише речи в подкасте, не перебивает её).
+Открытие: ре мажор → соль мажор (maj7). Лестница вверх, гармония уходит «вперёд» и остаётся
+светлой и открытой. Приглашение.
+Закрытие: соль мажор (maj7) → ре мажор. Лестница вниз, гармония возвращается «домой» и тает.
+
+Громкость выравнивается автоматически до -20 LUFS.
 
 Запуск:  python3 make_jingle.py [папка_вывода]
-Результат: jingle_open.wav/.mp3, jingle_close.wav/.mp3 (до 5 секунд, 44.1 кГц, стерео).
+Результат: jingle_open.wav/.mp3, jingle_close.wav/.mp3 (5-6 секунд, 44.1 кГц, стерео).
 """
 import re
 import subprocess
@@ -25,96 +29,79 @@ SR = 44100
 OUT = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(__file__).parent
 TARGET_LUFS = -20.0
 MAX_PEAK_DB = -3.0
+RNG = np.random.default_rng(42)  # фиксированная «человечность»: результат повторяется
 
-# Тональность ре мажор, открытые квинты
-D2, D3, A3 = 73.42, 146.83, 220.00
-D4, E4, A4 = 293.66, 329.63, 440.00
-E5, B5, D6, A6, D7 = 659.25, 987.77, 1174.66, 1760.00, 2349.32
+# Ноты (Гц)
+D2, G2 = 73.42, 98.00
+D3, G3, A3, B3 = 146.83, 196.00, 220.00, 246.94
+D4, FS4, A4 = 293.66, 369.99, 440.00
+D5, E5, FS5 = 587.33, 659.25, 739.99
+B4 = 493.88
+STEMS = {}
 
 
 def rc(x):
-    """Плавная кривая 0..1 (приподнятый косинус), без резких углов."""
+    """Плавная кривая 0..1 (приподнятый косинус)."""
     x = np.clip(x, 0.0, 1.0)
     return 0.5 - 0.5 * np.cos(np.pi * x)
 
 
-def note(freq, dur, amp, attack=0.18, release=0.8,
-         detune=(-5, 0, 5), pans=(-0.45, 0.0, 0.45), partials=((1, 1.0), (2, 0.22), (3, 0.07))):
-    """Мягкий протяжный тон: три слегка расстроенных голоса, медленная атака и затухание."""
+def pan_gain(sig, pan):
+    out = sig.copy()
+    out[:, 0] *= np.sqrt((1 - pan) / 2) * np.sqrt(2)
+    out[:, 1] *= np.sqrt((1 + pan) / 2) * np.sqrt(2)
+    return out
+
+
+def piano(freq, dur, amp, attack=0.06, release=0.5, pan=0.0):
+    """Мягкое «фортепиано с войлоком»: тёплый тон, естественное затухание, без звонкой атаки."""
     n = int(SR * dur)
     t = np.arange(n) / SR
-    env = rc(t / attack) * rc((dur - t) / release)
+    partials = [(1, 1.00, 0.7), (2, 0.28, 1.6), (3, 0.09, 2.8), (4, 0.03, 4.2)]
     out = np.zeros((n, 2))
-    for cents, pan in zip(detune, pans):
+    for cents, p in ((-3, -0.25), (3, 0.25)):
         f = freq * 2 ** (cents / 1200)
-        y = sum(a * np.sin(2 * np.pi * f * m * t + cents) for m, a in partials)
-        out[:, 0] += y * np.sqrt((1 - pan) / 2)
-        out[:, 1] += y * np.sqrt((1 + pan) / 2)
-    return amp * env[:, None] * out / len(detune)
+        y = sum(a * np.sin(2 * np.pi * f * m * t) * np.exp(-t * s) for m, a, s in partials)
+        out[:, 0] += y * np.sqrt((1 - p) / 2)
+        out[:, 1] += y * np.sqrt((1 + p) / 2)
+    env = rc(t / attack) * rc((dur - t) / release)
+    return pan_gain(amp * env[:, None] * out / 2, pan)
 
 
-def shimmer(freq, dur, amp, attack=0.5, release=1.6, rate=4.7):
-    """Ледяной блеск: тихий высокий тон с лёгким дрожанием, разным в левом и правом канале."""
+def cello(freq, dur, amp, attack=0.35, release=1.2):
+    """Тёплые струнные: богатые обертона, лёгкое вибрато, два слегка расстроенных голоса."""
     n = int(SR * dur)
     t = np.arange(n) / SR
+    vib = 1 + 0.004 * rc((t - 0.3) / 0.6) * np.sin(2 * np.pi * 5.2 * t)
+    out = np.zeros((n, 2))
+    for cents, p in ((-6, -0.35), (6, 0.35)):
+        phase = 2 * np.pi * np.cumsum(freq * 2 ** (cents / 1200) * vib) / SR
+        y = sum(k ** -1.2 * np.sin(k * phase) for k in range(1, 8)) / 1.9
+        out[:, 0] += y * np.sqrt((1 - p) / 2)
+        out[:, 1] += y * np.sqrt((1 + p) / 2)
     env = rc(t / attack) * rc((dur - t) / release)
-    y = np.sin(2 * np.pi * freq * t)
-    left = y * (1 + 0.45 * np.sin(2 * np.pi * rate * t))
-    right = y * (1 + 0.45 * np.sin(2 * np.pi * rate * t + np.pi))
-    return amp * env[:, None] * np.stack([left, right], axis=1)
+    return 1.8 * amp * env[:, None] * out / 2  # струнные дают тепло, но не перекрывают мелодию
 
 
 def pad(freq, dur, amp, attack, release):
+    """Мягкая подложка из синусов, нарастает и тает медленно."""
     n = int(SR * dur)
     t = np.arange(n) / SR
     y = np.sin(2 * np.pi * freq * t) + 0.3 * np.sin(2 * np.pi * freq * 2 * t)
     env = rc(t / attack) * rc((dur - t) / release)
-    return (amp * env * y)[:, None] * np.ones((1, 2))
+    return (0.3 * amp * env * y)[:, None] * np.ones((1, 2))  # подложка тихая, на заднем плане
 
 
-def wind(dur, f_start, f_end, t_peak, amp, seed, q=0.3):
-    """Порыв ветра: белый шум через полосовой фильтр с плавающей частотой."""
-    n = int(SR * dur)
-    t = np.arange(n) / SR
-    fc = f_start * (f_end / f_start) ** np.clip(t / dur, 0, 1)
-    f = 2 * np.sin(np.pi * np.minimum(fc, 4500) / SR)
-    env = np.where(t < t_peak, rc(t / t_peak), rc((dur - t) / (dur - t_peak)))
-    rng = np.random.default_rng(seed)
-    out = np.zeros((n, 2))
-    for ch in range(2):
-        x = rng.standard_normal(n)
-        low = band = 0.0
-        y = np.empty(n)
-        for i in range(n):
-            low += f[i] * band
-            high = x[i] - low - q * band
-            band += f[i] * high
-            y[i] = band
-        out[:, ch] = y / (y.std() + 1e-9) * env * amp
-    return out
-
-
-def place(buf, sig, start):
-    i = int(start * SR)
+def place(buf, sig, start, jitter=0.0):
+    """Кладёт звук в буфер; jitter добавляет живую неточность по времени (секунды)."""
+    s = max(0.0, start + (RNG.uniform(-jitter, jitter) if jitter else 0.0))
+    i = int(s * SR)
     n = min(len(sig), buf.shape[0] - i)
     buf[i:i + n] += sig[:n]
 
 
-def echo(x, delay=0.43, gains=(0.34, 0.16, 0.07), cutoff=2200):
-    """Далёкое эхо долины: повторы приглушаются по верхам."""
-    wet = np.zeros_like(x)
-    for k, g in enumerate(gains, start=1):
-        d = int(SR * delay * k)
-        if d < len(x):
-            wet[d:] += g * x[: len(x) - d]
-    spec = np.fft.rfft(wet, axis=0)
-    freqs = np.fft.rfftfreq(len(wet), 1 / SR)
-    spec *= (1 / (1 + (freqs / cutoff) ** 2))[:, None]
-    return np.fft.irfft(spec, len(wet), axis=0)
-
-
-def reverb(x, wet=0.3, length=2.2, decay=2.6, seed=11):
-    """Просторная реверберация (свёртка с затухающим шумом)."""
+def reverb(x, wet=0.12, length=0.9, decay=4.0, seed=11):
+    """Очень лёгкая «комнатная» реверберация, чтобы звук не был сухим. Не эхо."""
     rng = np.random.default_rng(seed)
     n = int(SR * length)
     t = np.arange(n) / SR
@@ -128,7 +115,7 @@ def reverb(x, wet=0.3, length=2.2, decay=2.6, seed=11):
     return (1 - wet) * x + wet * out
 
 
-def finish(x, fade_in=0.08, fade_out=1.2):
+def finish(x, fade_in=0.05, fade_out=1.5):
     n = len(x)
     fi, fo = int(SR * fade_in), int(SR * fade_out)
     env = np.ones(n)
@@ -137,45 +124,49 @@ def finish(x, fade_in=0.08, fade_out=1.2):
     return x * env[:, None]
 
 
-def make_open(dur=4.6):
-    n = int(SR * dur)
-    bed, mel = np.zeros((n, 2)), np.zeros((n, 2))
-    # Порыв ветра поднимается вверх и достигает гребня
-    place(bed, wind(2.7, 350, 3800, t_peak=2.0, amp=0.12, seed=3), 0.0)
-    # Открытая квинтовая подложка и мягкий бас
-    for f, a in [(D3, 0.10), (A3, 0.08), (E4, 0.05)]:
-        place(bed, pad(f, dur, a, attack=1.3, release=1.7), 0.0)
-    place(bed, pad(D2, dur - 1.7, 0.09, attack=0.45, release=1.8), 1.7)
-    # «Лестница» вверх: плавные ноты внахлёст
-    for f, s, a in [(D4, 0.35, 0.20), (A4, 0.72, 0.20), (E5, 1.09, 0.19), (B5, 1.46, 0.18)]:
-        place(mel, note(f, 1.5, a, attack=0.16, release=0.8), s)
-    # Раскрытие: светлый открытый аккорд и ледяной блеск
-    bloom = dur - 1.95
-    for f, a in [(A4, 0.12), (E5, 0.11), (B5, 0.10), (D6, 0.08)]:
-        place(mel, note(f, bloom, a, attack=0.32, release=1.6), 1.95)
-    place(mel, shimmer(D7, bloom, 0.022), 1.95)
-    place(mel, shimmer(A6, bloom, 0.018, rate=5.3), 1.95)
-    mix = bed + mel + echo(mel)
-    return finish(reverb(mix, wet=0.3, length=2.2), fade_out=1.2)
+def rms_db(x):
+    return 20 * np.log10(np.sqrt((x ** 2).mean()) + 1e-12)
 
 
-def make_close(dur=4.8):
+def make_open(dur=5.4):
     n = int(SR * dur)
-    bed, mel = np.zeros((n, 2)), np.zeros((n, 2))
-    # Ветер стихает, спускаясь вниз по частоте
-    place(bed, wind(2.4, 3800, 350, t_peak=0.5, amp=0.09, seed=5), 0.0)
-    # «Лестница» вниз, последняя нота остаётся звучать
-    for f, s, a, d, r in [(B5, 0.00, 0.19, 1.5, 0.9), (E5, 0.42, 0.19, 1.5, 0.9),
-                          (A4, 0.84, 0.20, 1.5, 0.9), (D4, 1.28, 0.22, dur - 1.28, 2.2)]:
-        place(mel, note(f, d, a, attack=0.14, release=r), s)
-    # Разрешение: чистая квинта ре–ля, ледяной блеск тоники, всё тает
-    rest = dur - 1.1
-    for f, a in [(D3, 0.12), (A3, 0.09)]:
-        place(bed, pad(f, rest, a, attack=0.5, release=2.3), 1.1)
-    place(bed, pad(D2, rest, 0.08, attack=0.5, release=2.3), 1.1)
-    place(mel, shimmer(D6, dur - 1.2, 0.02, attack=0.4, release=2.0, rate=4.2), 1.2)
-    mix = bed + mel + echo(mel)
-    return finish(reverb(mix, wet=0.34, length=2.4), fade_out=1.4)
+    pn, ce, pd = (np.zeros((n, 2)) for _ in range(3))
+    # Гармония: ре мажор (дом), затем соль мажор maj7 (светлый шаг вперёд)
+    for f, a in [(D2, 0.10), (D3, 0.10), (A3, 0.08), (D4, 0.06), (FS4, 0.05)]:
+        place(pd, pad(f, 2.5, a, attack=0.6, release=0.8), 0.0)
+    for f, a in [(G2, 0.10), (D3, 0.08), (B3, 0.07), (FS4, 0.06)]:
+        place(pd, pad(f, dur - 1.9, a, attack=0.7, release=2.0), 1.9)
+    # Тёплая струнная линия: ре → си (мягкий подъём «рука на плече»)
+    place(ce, cello(D3, 2.4, 0.16, attack=0.4, release=0.8), 0.0)
+    place(ce, cello(B3, dur - 2.0, 0.17, attack=0.5, release=1.8), 2.0)
+    # Мелодия: «лестница» вверх из четырёх ступеней, затем светлое «раскрытие»
+    for f, s, a, p in [(D4, 0.30, 0.24, -0.25), (FS4, 0.75, 0.24, -0.08), (A4, 1.20, 0.25, 0.08), (D5, 1.65, 0.26, 0.25)]:
+        place(pn, piano(f, 2.2, a, release=0.6, pan=p), s, jitter=0.012)
+    place(pn, piano(E5, 1.8, 0.22, release=0.6), 2.20, jitter=0.012)
+    place(pn, piano(FS5, dur - 2.85, 0.20, release=1.6), 2.85, jitter=0.012)
+    STEMS["open"] = {"фортепиано": rms_db(pn), "струнные": rms_db(ce), "подложка": rms_db(pd)}
+    return finish(reverb(pn + ce + pd), fade_out=1.5)
+
+
+def make_close(dur=5.7):
+    n = int(SR * dur)
+    pn, ce, pd = (np.zeros((n, 2)) for _ in range(3))
+    # Гармония: соль maj7 → возвращение домой, в ре мажор
+    for f, a in [(G2, 0.10), (D3, 0.08), (B3, 0.07), (FS4, 0.06)]:
+        place(pd, pad(f, 2.6, a, attack=0.3, release=1.0), 0.0)
+    for f, a in [(D2, 0.11), (D3, 0.10), (A3, 0.08), (FS4, 0.06)]:
+        place(pd, pad(f, dur - 1.75, a, attack=0.5, release=2.4), 1.75)
+    # Струнная линия вниз: си → ре (выдох)
+    place(ce, cello(B3, 2.0, 0.16, attack=0.3, release=0.9), 0.0)
+    place(ce, cello(D3, dur - 1.75, 0.18, attack=0.5, release=2.4), 1.75)
+    # Мелодия: «лестница» вниз, чуть замедляясь, последняя нота остаётся
+    for f, s, a, d, p in [(D5, 0.00, 0.22, 1.2, 0.25), (A4, 0.55, 0.22, 1.2, 0.08),
+                          (FS4, 1.15, 0.23, 1.2, -0.08), (D4, 1.80, 0.26, dur - 1.8, -0.25)]:
+        place(pn, piano(f, d, a, release=2.2 if d > 2 else 0.6, pan=p), s, jitter=0.012)
+    place(pn, piano(A4, 2.5, 0.08, release=1.5), 2.35, jitter=0.01)
+    place(pn, piano(FS4, 2.4, 0.06, release=1.5), 2.50, jitter=0.01)
+    STEMS["close"] = {"фортепиано": rms_db(pn), "струнные": rms_db(ce), "подложка": rms_db(pd)}
+    return finish(reverb(pn + ce + pd), fade_out=1.8)
 
 
 def write_wav(path, x):
@@ -200,8 +191,7 @@ def save(name, x):
     wav = OUT / f"{name}.wav"
     write_wav(wav, x / np.max(np.abs(x)) * 0.5)
     lufs, _ = measure(wav)
-    gain_db = TARGET_LUFS - lufs
-    y = x / np.max(np.abs(x)) * 0.5 * 10 ** (gain_db / 20)
+    y = x / np.max(np.abs(x)) * 0.5 * 10 ** ((TARGET_LUFS - lufs) / 20)
     peak_db = 20 * np.log10(np.max(np.abs(y)))
     if peak_db > MAX_PEAK_DB:
         y *= 10 ** ((MAX_PEAK_DB - peak_db) / 20)
