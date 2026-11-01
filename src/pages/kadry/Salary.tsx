@@ -15,7 +15,7 @@ const cities = Array.from(new Set(vacancies.map((v) => v.city)))
 export default function Salary() {
   useDocumentTitle('Зарплатный навигатор')
   const [spec, setSpec] = useState<Specialization>('consulting')
-  const [city, setCity] = useState(cities[0] ?? '')
+  const [city, setCity] = useState(cities.includes('Москва') ? 'Москва' : (cities[0] ?? ''))
 
   const sample = useMemo(
     () => vacancies.filter((v) => v.specialization.includes(spec) && v.city === city),
