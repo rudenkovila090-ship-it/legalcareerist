@@ -1,0 +1,22 @@
+[Unit]
+Description=Legalcareerist live vacancies and morning digest
+Wants=network-online.target
+After=network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=legal-digest
+WorkingDirectory=/opt/legal-digest
+Environment=TZ=Europe/Moscow
+Environment=DATA_DIR=data
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/opt/legal-digest/.venv/bin/python -m digest watch
+Restart=always
+RestartSec=15
+TimeoutStopSec=60
+UMask=0077
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
