@@ -12,7 +12,7 @@
   5. Итог выравнивается до -16 LUFS (стандарт подкастов), пик не выше -1.5 дБ.
 
 Запуск:
-  python3 -I mix_intro.py голос.m4a папка_вывода
+  python3 -I mix_intro.py голос.m4a папка_вывода [скорость, например 1.25]
 Результат: intro_mix.mp3/.wav (голос + музыка) и intro_voice_only.mp3 (только голос, для сравнения).
 """
 import re
@@ -39,6 +39,7 @@ PREROLL = 0.25           # комнатная тишина перед первы
 TAIL = 0.5               # пауза после последнего слова
 MUSIC_BELOW_VOICE_DB = 14.0   # насколько музыка тише голоса, пока он говорит (меньше = музыка заметнее)
 DUCK_START, DUCK_END = 2.2, 3.4
+SPEED = float(sys.argv[3]) if len(sys.argv) > 3 else 1.0   # ускорение речи, например 1.25
 
 
 def run(cmd):
@@ -134,6 +135,13 @@ def main():
          "equalizer=f=300:width_type=q:width=1:g=-1.5,equalizer=f=3500:width_type=q:width=1:g=2",
          "-ar", str(SR), str(clean)])
     xc = read_wav(clean)[:, 0]
+    xc_nat, s0_orig, s1_orig = xc, s0, s1           # для отчёта: измерения на естественной скорости
+    if SPEED != 1.0:                                # ускорение без смены высоты голоса (после чистки эха и басов)
+        fast = out / "_voice_fast.wav"
+        run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(clean), "-af", f"atempo={SPEED}",
+             "-ar", str(SR), str(fast)])
+        xc = read_wav(fast)[:, 0]
+        s0, s1 = s0 / SPEED, s1 / SPEED
     a, b = max(0.0, s0 - PREROLL), min(len(xc) / SR, s1 + TAIL)
     v = xc[int(a * SR): int(b * SR)].copy()
     fi, fo = int(0.1 * SR), int(0.4 * SR)
@@ -192,11 +200,12 @@ def main():
         print(f"{name}: {total / SR:.1f} с, {li:.1f} LUFS, истинный пик {tp:.1f} дБ")
 
     # Отчёт
-    print(f"речь в исходнике {s0:.1f}-{s1:.1f} с; шум ≈{noise:.0f} дБ (параметр шумоподавления nf={nf})")
-    print(f"отношение речь/шум: до {snr_db(xr):.0f} дБ, после чистки {snr_db(xc):.0f} дБ")
+    print(f"речь в исходнике {s0_orig:.1f}-{s1_orig:.1f} с ({s1_orig - s0_orig:.1f} с); шум ≈{noise:.0f} дБ (параметр шумоподавления nf={nf})")
+    print(f"скорость речи ×{SPEED}: длина речи {s1 - s0:.1f} с")
+    print(f"отношение речь/шум: до {snr_db(xr):.0f} дБ, после чистки {snr_db(xc_nat):.0f} дБ")
     tb, _ = ve.tail_time(xr)
-    ta, _ = ve.tail_time(xc)
-    pb, pa = ve.band_profile(xr), ve.band_profile(xc)
+    ta, _ = ve.tail_time(xc_nat)
+    pb, pa = ve.band_profile(xr), ve.band_profile(xc_nat)
     key = "бубнёж (80-250 Гц)"
     print(f"эхо комнаты (хвост звука после слов): {tb:.0f} мс до, {ta:.0f} мс после (RT60 для подавления ≈{info['rt60']:.2f} с)")
     print(f"«бубнёж» 80-250 Гц относительно речевой середины: {pb[key]:+.1f} дБ до, {pa[key]:+.1f} дБ после")
@@ -210,7 +219,7 @@ def main():
         mm = np.sqrt(np.mean(music[k:k + w] ** 2) + 1e-12)
         print(f"  {k / SR:4.0f}-{(k + w) / SR:4.0f} с: музыка {20 * np.log10(mm / mv):+.0f} дБ от голоса"
               if mv > 1e-3 else f"  {k / SR:4.0f}-{(k + w) / SR:4.0f} с: только музыка")
-    for f in ("_voice_raw", "_voice_enh", "_voice_clean", "_voice_trim", "_voice_leveled", "_bed44", "_bed48"):
+    for f in ("_voice_raw", "_voice_enh", "_voice_clean", "_voice_fast", "_voice_trim", "_voice_leveled", "_bed44", "_bed48"):
         (out / f"{f}.wav").unlink(missing_ok=True)
 
 
