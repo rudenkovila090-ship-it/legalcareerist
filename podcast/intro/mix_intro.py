@@ -24,7 +24,9 @@ from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "jingle"))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 import make_jingle as mj  # noqa: E402
+import voice_enhance as ve  # noqa: E402
 from make_bed import make_bed  # noqa: E402
 
 SR = 48000
@@ -124,9 +126,12 @@ def main():
     xr = read_wav(raw)[:, 0]
     s0, s1, noise = speech_span(xr)
     nf = int(np.clip(round(noise - 2), -80, -30))
-    run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(raw), "-af",
-         f"highpass=f=85,afftdn=nr=12:nf={nf}:tn=1,"
-         "equalizer=f=180:width_type=q:width=1:g=-1.5,equalizer=f=3500:width_type=q:width=1:g=2",
+    xe, info = ve.enhance(xr)                      # меньше эха комнаты и «бубнящих» басов
+    enh = out / "_voice_enh.wav"
+    write_wav(enh, xe[:, None])
+    run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(enh), "-af",
+         f"highpass=f=80,afftdn=nr=10:nf={nf}:tn=1,"
+         "equalizer=f=300:width_type=q:width=1:g=-1.5,equalizer=f=3500:width_type=q:width=1:g=2",
          "-ar", str(SR), str(clean)])
     xc = read_wav(clean)[:, 0]
     a, b = max(0.0, s0 - PREROLL), min(len(xc) / SR, s1 + TAIL)
@@ -186,6 +191,13 @@ def main():
     # Отчёт
     print(f"речь в исходнике {s0:.1f}-{s1:.1f} с; шум ≈{noise:.0f} дБ (параметр шумоподавления nf={nf})")
     print(f"отношение речь/шум: до {snr_db(xr):.0f} дБ, после чистки {snr_db(xc):.0f} дБ")
+    tb, _ = ve.tail_time(xr)
+    ta, _ = ve.tail_time(xc)
+    pb, pa = ve.band_profile(xr), ve.band_profile(xc)
+    key = "бубнёж (80-250 Гц)"
+    print(f"эхо комнаты (хвост звука после слов): {tb:.0f} мс до, {ta:.0f} мс после (RT60 для подавления ≈{info['rt60']:.2f} с)")
+    print(f"«бубнёж» 80-250 Гц относительно речевой середины: {pb[key]:+.1f} дБ до, {pa[key]:+.1f} дБ после")
+    print(f"полосы после: { {k: float(v) for k, v in pa.items()} }")
     print(f"последнее слово заканчивается на {word_end:.1f} с, финальный аккорд подложки на {resolve_at:.1f} с")
     print(f"музыка приглушена на {-duck_db:.1f} дБ относительно своей громкости (≈{MUSIC_BELOW_VOICE_DB:.0f} дБ ниже голоса)")
     print("музыка относительно голоса по ходу интро:")
@@ -195,7 +207,7 @@ def main():
         mm = np.sqrt(np.mean(music[k:k + w] ** 2) + 1e-12)
         print(f"  {k / SR:4.0f}-{(k + w) / SR:4.0f} с: музыка {20 * np.log10(mm / mv):+.0f} дБ от голоса"
               if mv > 1e-3 else f"  {k / SR:4.0f}-{(k + w) / SR:4.0f} с: только музыка")
-    for f in ("_voice_raw", "_voice_clean", "_voice_trim", "_voice_leveled", "_bed44", "_bed48"):
+    for f in ("_voice_raw", "_voice_enh", "_voice_clean", "_voice_trim", "_voice_leveled", "_bed44", "_bed48"):
         (out / f"{f}.wav").unlink(missing_ok=True)
 
 
