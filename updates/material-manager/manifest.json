@@ -1,12 +1,307 @@
 {
   "baseline": "947d6b4c847e329898077795f3b6f3334fe44876",
+  "allowedBaselines": [
+    "947d6b4c847e329898077795f3b6f3334fe44876",
+    "b14a93b6ba0bf5cc2a2057576a875f8ae2aa0c8f"
+  ],
   "materialManager": true,
   "recoverMaterials": false,
   "files": [
     {
+      "path": "package-lock.json",
+      "before": "864b7c4b1c813bcab629db60518663c080f88a20994e22dac9d68a745ab19c0f",
+      "after": "864b7c4b1c813bcab629db60518663c080f88a20994e22dac9d68a745ab19c0f",
+      "beforeAlternatives": [
+        "2401061dbdc469aea9bcfb4eb99da6624af16ffd1778d094bc1ffde3e2413923"
+      ]
+    },
+    {
+      "path": "package.json",
+      "before": "b6792f4c39cb4e06adf0197d26194ed9d17c68a18145c78a5ba3c726484cb39a",
+      "after": "b6792f4c39cb4e06adf0197d26194ed9d17c68a18145c78a5ba3c726484cb39a",
+      "beforeAlternatives": [
+        "72c2f206284a66ca42563b3daf6d4248354e8ad40f4793c2d6db42d9a22a34a5"
+      ]
+    },
+    {
+      "path": "scripts/backup-site-private.sh",
+      "before": "81c7a81806575eb1aebb3b212abff42ebb8d4c6a50909798784ff025665b4dae",
+      "after": "81c7a81806575eb1aebb3b212abff42ebb8d4c6a50909798784ff025665b4dae",
+      "beforeAlternatives": [
+        null
+      ]
+    },
+    {
+      "path": "scripts/check-site-readonly.mjs",
+      "before": "8592d78b4f648079337edf8ca9e6041bce4e663c0b60390f4786c6d5a7fb2481",
+      "after": "8592d78b4f648079337edf8ca9e6041bce4e663c0b60390f4786c6d5a7fb2481",
+      "beforeAlternatives": [
+        null
+      ]
+    },
+    {
       "path": "server/index.js",
       "before": "16ac5f0499203503276b68c10c455b98617f5cb0a8bf400acd50f79a8dca64c1",
-      "after": "f310419d6a0f4686350060f7f802efbec694d943cda25f77458d72d9c71077be"
+      "after": "f310419d6a0f4686350060f7f802efbec694d943cda25f77458d72d9c71077be",
+      "beforeAlternatives": [
+        "fc7b0c00ac5f7d3f8de46130c8be437cdc772c3b5de86a622420f37d0187a5ff"
+      ]
+    },
+    {
+      "path": "server/lib/accessExpiry.js",
+      "before": "ef923b8d43f88d0c2f2435400cce928edbd61bd4e0b992eacec2da220742e430",
+      "after": "ef923b8d43f88d0c2f2435400cce928edbd61bd4e0b992eacec2da220742e430",
+      "beforeAlternatives": [
+        null
+      ]
+    },
+    {
+      "path": "server/lib/accountProfile.js",
+      "before": "b34f27afa253a631d544193417ccb1a0b878e62e8573cb06fefd9a7c856ab5eb",
+      "after": "b34f27afa253a631d544193417ccb1a0b878e62e8573cb06fefd9a7c856ab5eb",
+      "beforeAlternatives": [
+        "6d4c8bf21e88295151b3bffd67f2f3294144bdb791bdd5ebcc35870d08de37fd"
+      ]
+    },
+    {
+      "path": "server/lib/dayTasks.js",
+      "before": "1cafc9e83616b505ce368faaa75446ad8b77ee37e16a5feb471873275e89dd32",
+      "after": "1cafc9e83616b505ce368faaa75446ad8b77ee37e16a5feb471873275e89dd32",
+      "beforeAlternatives": [
+        "92ac2e2ce69ea94fd2f647fe2c774d4ab8b5518ff3cf11b318d56c2a0e437183"
+      ]
+    },
+    {
+      "path": "server/lib/leadInbox.js",
+      "before": "80d526c79f1169a8a1caf95c7134fe3e6000de9e8a9535437dd68ab3ae55696f",
+      "after": "80d526c79f1169a8a1caf95c7134fe3e6000de9e8a9535437dd68ab3ae55696f",
+      "beforeAlternatives": [
+        null
+      ]
+    },
+    {
+      "path": "server/lib/pendingNotices.js",
+      "before": "69c0238dfa80c936b3c17d08d01f54bb6056ce1520e93c708c9a7e0cd0fe7d74",
+      "after": "69c0238dfa80c936b3c17d08d01f54bb6056ce1520e93c708c9a7e0cd0fe7d74",
+      "beforeAlternatives": [
+        "4e02eda1bea83529ff1c483d74a2729a8fffbfd0c5322025a98c9927e555001a"
+      ]
+    },
+    {
+      "path": "server/lib/personData.js",
+      "before": "a4a5510154795a687b6fc22ed2c9e4d9b6873027dda521350134857166805226",
+      "after": "a4a5510154795a687b6fc22ed2c9e4d9b6873027dda521350134857166805226",
+      "beforeAlternatives": [
+        "a87e9509f817f09e3be1f9a498b8f102002a854d3dd539e4656681d26e414152"
+      ]
+    },
+    {
+      "path": "server/lib/residentCabinet.js",
+      "before": "ae21b4ba261c98a3fe05c80641682c6127daa06d07afd82f317a38218fc105f5",
+      "after": "ae21b4ba261c98a3fe05c80641682c6127daa06d07afd82f317a38218fc105f5",
+      "beforeAlternatives": [
+        "d2bcf67772818098a6049a5da57ee79ac3f2193537efab234c8704df68d0c42a"
+      ]
+    },
+    {
+      "path": "server/lib/residentDelivery.js",
+      "before": "5bf126acf9ff2abfaff7d50ce248e0ca6dcc46accf6510f42fa350ccbe71ce02",
+      "after": "5bf126acf9ff2abfaff7d50ce248e0ca6dcc46accf6510f42fa350ccbe71ce02",
+      "beforeAlternatives": [
+        null
+      ]
+    },
+    {
+      "path": "server/lib/residentNotices.js",
+      "before": "74d6f22ca7d58704dd69798fb3153cf1c7613bb713e26e984431be3396aed5aa",
+      "after": "74d6f22ca7d58704dd69798fb3153cf1c7613bb713e26e984431be3396aed5aa",
+      "beforeAlternatives": [
+        "77d2ca3025bc9e4444d8e20b6df058fa3b25e3508c46cfee7a68d99351d0f8ec"
+      ]
+    },
+    {
+      "path": "server/lib/store.js",
+      "before": "bb90fcac2d9d468f1e3f73cfcf48ef14cabddc0e93c0c90435ba62863fafaf6f",
+      "after": "bb90fcac2d9d468f1e3f73cfcf48ef14cabddc0e93c0c90435ba62863fafaf6f",
+      "beforeAlternatives": [
+        "385a868da852d62aaf1b60a58d1678dec9d9f84417702e0fb18dd609eefadcd2"
+      ]
+    },
+    {
+      "path": "server/lib/subscriptionAccess.js",
+      "before": "a5ed46496ee897af7d4d66f36b052b0e0c23948f5085b06741d4681333763842",
+      "after": "a5ed46496ee897af7d4d66f36b052b0e0c23948f5085b06741d4681333763842",
+      "beforeAlternatives": [
+        null
+      ]
+    },
+    {
+      "path": "server/lib/subscriptionMail.js",
+      "before": "a6a33606ccd3cf63f6654a12c1a418a559dc8e4cecfe050c861165f676febcb7",
+      "after": "a6a33606ccd3cf63f6654a12c1a418a559dc8e4cecfe050c861165f676febcb7",
+      "beforeAlternatives": [
+        "d1235fdc8279a17cf770415ffe0d9d33e836a1e39c9744a9747d50ec5ed6182c"
+      ]
+    },
+    {
+      "path": "server/package-lock.json",
+      "before": "34b3b8956d0acddce62616874719d1306bb1d75df3e7eec76eed4f8711f829d2",
+      "after": "34b3b8956d0acddce62616874719d1306bb1d75df3e7eec76eed4f8711f829d2",
+      "beforeAlternatives": [
+        "5cbad2a16573cf1d03719b8dab615e8607a1d49c891d33d186853f03148516ea"
+      ]
+    },
+    {
+      "path": "server/package.json",
+      "before": "b808f25fd08b227e660a720d40a3e2310f203eb451ba6589310091b4ae64a1ac",
+      "after": "b808f25fd08b227e660a720d40a3e2310f203eb451ba6589310091b4ae64a1ac",
+      "beforeAlternatives": [
+        "bbe3a3e53af3d56c9b4b3cc6167e8e0c697cdb8679cbb99e35969550d5a2271a"
+      ]
+    },
+    {
+      "path": "server/tests/http-reliability.mjs",
+      "before": "722950d89c1614707ba1bed74352db454a10d4a01d18c6f42dc61eb3063f02c9",
+      "after": "8e732904995467f6e97cc6c232260fa8bf8991dd40381da20ea6a7a910dcea80",
+      "beforeAlternatives": [
+        null
+      ]
+    },
+    {
+      "path": "server/tests/reliability.test.mjs",
+      "before": "d95248ed30cc286c9ce7b55dc19e6f538d5e9d1507cc3ecb7d6a2db384b14dae",
+      "after": "d95248ed30cc286c9ce7b55dc19e6f538d5e9d1507cc3ecb7d6a2db384b14dae",
+      "beforeAlternatives": [
+        null
+      ]
+    },
+    {
+      "path": "src/components/LeadForm.tsx",
+      "before": "49e0036a0b727db58d32e0603d0822f324793409c223eccc241b7ff05ad2421b",
+      "after": "49e0036a0b727db58d32e0603d0822f324793409c223eccc241b7ff05ad2421b",
+      "beforeAlternatives": [
+        "72a373d0dab66d976c47513fa5d039a871e4a6db5ce19cb8172a0c6f6b241c31"
+      ]
+    },
+    {
+      "path": "src/components/LeadSuccessCard.tsx",
+      "before": "8179f2ef125fa02c479260977f345bb90ef71ea3afb6141fcabfc72db4d4e0ba",
+      "after": "8179f2ef125fa02c479260977f345bb90ef71ea3afb6141fcabfc72db4d4e0ba",
+      "beforeAlternatives": [
+        "2639b370bd6d9a7917ea66e29563ec3767666f7d27ad57a947d375b0ebfe9b3d"
+      ]
+    },
+    {
+      "path": "src/components/TariffJoinBlock.tsx",
+      "before": "c997673facf5fc0d96bcab65f565d07db5cbf256e91d410d9a40d0713491de05",
+      "after": "c997673facf5fc0d96bcab65f565d07db5cbf256e91d410d9a40d0713491de05",
+      "beforeAlternatives": [
+        "88b97ac1d607184f486c6c9c4cbb44871c3d5a28e3e66d3fa84729c701a16e64"
+      ]
+    },
+    {
+      "path": "src/lib/leads.ts",
+      "before": "14d9afee5522a837c368de382b5015d4eb30266151b41b0d8fc0954ebf81129e",
+      "after": "14d9afee5522a837c368de382b5015d4eb30266151b41b0d8fc0954ebf81129e",
+      "beforeAlternatives": [
+        "f1c70e72877399fe8163cfec09337081cd5248a145c39ee70213c719bf743642"
+      ]
+    },
+    {
+      "path": "src/pages/Contacts.tsx",
+      "before": "34a5e866714675889f264ba99900459c270af6fc4fc4c962447367113871b6d0",
+      "after": "34a5e866714675889f264ba99900459c270af6fc4fc4c962447367113871b6d0",
+      "beforeAlternatives": [
+        "7553c042ef14d5e200115d8126827d69502c9416823b24ccb81e68d73ac0fa00"
+      ]
+    },
+    {
+      "path": "src/pages/account/CandidateAccount.tsx",
+      "before": "e7e96aea50c1e738e24c1f82ccc140dd8a658477a99b5b7f7a7ca76729112475",
+      "after": "e7e96aea50c1e738e24c1f82ccc140dd8a658477a99b5b7f7a7ca76729112475",
+      "beforeAlternatives": [
+        "8d165156b2409caa5ba3a9a715b210fb6c5605b73f04ebf8214db22c73b847be"
+      ]
+    },
+    {
+      "path": "src/pages/account/EmployerAccount.tsx",
+      "before": "a867d09d6fdbf0c387ba9ed915c68554483e807b50cfef40fd46a36b53c5b147",
+      "after": "a867d09d6fdbf0c387ba9ed915c68554483e807b50cfef40fd46a36b53c5b147",
+      "beforeAlternatives": [
+        "4208cbda6b4b37bbcc10bf2ebad1e759907332ec296f5e878b545c6be486aa49"
+      ]
+    },
+    {
+      "path": "src/pages/community/CommunityHome.tsx",
+      "before": "cc8c1c18c7ca1ba2ea100a931dd6eb13c96ee47df5221f95e177e0af69d8e529",
+      "after": "cc8c1c18c7ca1ba2ea100a931dd6eb13c96ee47df5221f95e177e0af69d8e529",
+      "beforeAlternatives": [
+        "b36894fc2bea171e153bdfeeff5933eb82c74f5aa879f1ed78bf7e6896a28cf1"
+      ]
+    },
+    {
+      "path": "src/pages/events/EventDetail.tsx",
+      "before": "6b7e03c32268b09bfe679ced8d35ca36511a1e34225fc41e8d2b179211b9e06b",
+      "after": "6b7e03c32268b09bfe679ced8d35ca36511a1e34225fc41e8d2b179211b9e06b",
+      "beforeAlternatives": [
+        "b0bb6c858f85acf8df29002c62fbac65cbcd8c7ffdc8bc9574cccbb537f46607"
+      ]
+    },
+    {
+      "path": "src/pages/events/EventsHome.tsx",
+      "before": "f9549d99354ab85d7925ea0693b7e660165ba7194645284cac5158b51657752a",
+      "after": "f9549d99354ab85d7925ea0693b7e660165ba7194645284cac5158b51657752a",
+      "beforeAlternatives": [
+        "ba2fa22a6978fb979557a00eed1b727fe667c08992ec9fc27919de3b5223b9bc"
+      ]
+    },
+    {
+      "path": "src/pages/kadry/Candidates.tsx",
+      "before": "908c7cce9f5fba13dadc27a68464f221a93b57af63d647b9b4ca4bcc465e7145",
+      "after": "908c7cce9f5fba13dadc27a68464f221a93b57af63d647b9b4ca4bcc465e7145",
+      "beforeAlternatives": [
+        "cc1a01f7d2b1c0afcdb862dc311fdf4852d48c88328df42a38dbd965be902ded"
+      ]
+    },
+    {
+      "path": "src/pages/kadry/CareerConsultation.tsx",
+      "before": "191a4abb5c0e5d26cf867a056c76b7967727bfcd01b2e0a661925a25d3f5f0ed",
+      "after": "191a4abb5c0e5d26cf867a056c76b7967727bfcd01b2e0a661925a25d3f5f0ed",
+      "beforeAlternatives": [
+        "697334b59db5f8997fde4b9d217ce1695ec08cc763d64d46258f0872844e27d9"
+      ]
+    },
+    {
+      "path": "src/pages/kadry/CareerReserve.tsx",
+      "before": "804ac332c31af1464eaea47afcf7d9e8b076de407f5dda2eee7c7950773d3455",
+      "after": "804ac332c31af1464eaea47afcf7d9e8b076de407f5dda2eee7c7950773d3455",
+      "beforeAlternatives": [
+        "61a3bdf222aad07a62a567a6cf0c22ad9431eb31dad6831919a906122e088ae3"
+      ]
+    },
+    {
+      "path": "src/pages/kadry/KadryHome.tsx",
+      "before": "313a4a28c4837990656918841cfea5eee9fbe89ae9e9b8bce8281974f7afaf48",
+      "after": "313a4a28c4837990656918841cfea5eee9fbe89ae9e9b8bce8281974f7afaf48",
+      "beforeAlternatives": [
+        "065a36f47c84b664b4980c9ba6f5c339f51f9724dedbbf08b60b27b91259665a"
+      ]
+    },
+    {
+      "path": "scripts/restore-material-pdfs.mjs",
+      "before": "5f0bf52b35fbb6b68d7f0b1cd6f700f10a110699d79d610fb0758995a0c85315",
+      "after": "5f0bf52b35fbb6b68d7f0b1cd6f700f10a110699d79d610fb0758995a0c85315",
+      "beforeAlternatives": [
+        null
+      ]
+    },
+    {
+      "path": "src/pages/events/MaterialDetail.tsx",
+      "before": "2e5fc6cfb4f8f1edb38cc705872c4128f45ca18de79eb4baf21dd46ab0c82a28",
+      "after": "2e5fc6cfb4f8f1edb38cc705872c4128f45ca18de79eb4baf21dd46ab0c82a28",
+      "beforeAlternatives": [
+        "dfaf82d3e925c0c459abcb98a99b94fa1028824ac63d46bc96b2c8157d309803"
+      ]
     },
     {
       "path": "server/lib/adminMaterials.js",
@@ -22,11 +317,6 @@
       "path": "server/tests/admin-materials.mjs",
       "before": null,
       "after": "637af1102f5c473697885e44ee51bf09cbee893800c02ee5119b3bdedfb1e2db"
-    },
-    {
-      "path": "server/tests/http-reliability.mjs",
-      "before": "722950d89c1614707ba1bed74352db454a10d4a01d18c6f42dc61eb3063f02c9",
-      "after": "8e732904995467f6e97cc6c232260fa8bf8991dd40381da20ea6a7a910dcea80"
     },
     {
       "path": "src/lib/cabinet.ts",

@@ -58,10 +58,17 @@ function verifyFiles(site, manifest, expected) {
   for (const entry of manifest.files) {
     noSymlinkParents(site, entry.path)
     const file = inside(site, entry.path), wanted = entry[expected]
-    if (wanted === null) ensure(!exists(file), 'Новый файл уже существует: ' + entry.path)
-    else ensure(plain(file) && hash(file) === wanted, 'Версия файла отличается от проверенной: ' + entry.path)
+    const accepted = expected === 'before' ? [wanted, ...(entry.beforeAlternatives || [])] : [wanted]
+    if (!exists(file)) ensure(accepted.includes(null), 'Отсутствует проверенный файл: ' + entry.path)
+    else ensure(plain(file) && accepted.includes(hash(file)), 'Версия файла отличается от проверенной: ' + entry.path)
   }
   validateJson(site)
+}
+function verifyInstalledCode(site, manifest) {
+  for (const entry of manifest.files) {
+    const target = inside(site, entry.path)
+    ensure(plain(target) && hash(target) === entry.after, 'Установленный файл не прошёл проверку: ' + entry.path)
+  }
 }
 function environmentMeta(site, app) {
   const value = execFileSync(process.execPath, ['--env-file=server/.env', '-e', 'console.log(JSON.stringify({port:process.env.PORT||"3001",exclude:process.env.AUTO_EXCLUDE||"0"}))'], { cwd: site, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
@@ -159,8 +166,9 @@ async function install(site) {
   for (const entry of manifest.files) {
     const target = inside(site, entry.path)
     const mode = exists(target) ? fs.statSync(target).mode & 0o777 : 0o644
-    state.files.push({ ...entry, mode })
-    if (entry.before) { const to = inside(path.join(backup, 'files'), entry.path); fs.mkdirSync(path.dirname(to), { recursive: true }); fs.copyFileSync(target, to) }
+    const actualBefore = exists(target) ? hash(target) : null
+    state.files.push({ ...entry, before: actualBefore, mode })
+    if (actualBefore) { const to = inside(path.join(backup, 'files'), entry.path); fs.mkdirSync(path.dirname(to), { recursive: true }); fs.copyFileSync(target, to) }
   }
   try { for (const relative of ['node_modules', 'server/node_modules', 'dist']) {
     const target = inside(site, relative), staged = inside(release, relative)
@@ -189,6 +197,7 @@ async function install(site) {
     command('bash', [path.join(release, 'scripts/backup-site-private.sh')], release, { env: { ...process.env, SITE_BACKUP_SOURCE: site, SITE_BACKUP_DESTINATION: backupRoot } })
     changed = true
     for (const entry of manifest.files) atomicCopy(inside(release, entry.path), inside(site, entry.path), state.files.find(f => f.path === entry.path).mode)
+    verifyInstalledCode(site, manifest)
     for (const item of state.trees) {
       const target = inside(site, item.path)
       item.swapped = true; saveState(backup, state)
@@ -198,6 +207,7 @@ async function install(site) {
     ensure(hash(path.join(site, 'server/.env')) === envDigest, 'Настройки менялись во время установки; нужен повтор проверки')
     command('pm2', ['restart', 'legalcareerist-api'], site)
     ensure(await ready(site, meta.port, true, manifest.materialManager ? '/api/account/materials' : '/api/account/lead-inbox'), 'Новая версия API не прошла проверку')
+    verifyInstalledCode(site, manifest)
     const publicResponse = await fetch(process.env.SITE_RELIABILITY_PUBLIC_URL || 'https://legalcareerist.ru/', { signal: AbortSignal.timeout(10000) })
     ensure(publicResponse.ok && (publicResponse.headers.get('content-type') || '').includes('text/html'), 'Публичная страница сайта не прошла проверку')
     ensure(environmentMeta(site, pm2App(site)).exclude === '0', 'Изменилась настройка автоисключения')

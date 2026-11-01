@@ -63,6 +63,8 @@ def run():
         for relative in ['package.json', 'server/package.json']:
             target = release / relative; target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(REPO / relative, target)
+        if os.environ.get('DEPLOY_SMOKE_HYBRID') == '1':
+            (live / 'server/index.js').write_bytes(subprocess.check_output(['git', 'show', 'b14a93b:server/index.js'], cwd=REPO))
         (release / 'server').mkdir(exist_ok=True)
         for root, label in [(live, 'old'), (release, 'new')]:
             for relative in ['node_modules', 'server/node_modules', 'dist/assets']:
@@ -102,6 +104,8 @@ else:
             assert result.returncode == 0, result.stdout + result.stderr
         require_ok(invoke('--verify-files', str(live)))
         before = (live / 'server/index.js').read_bytes()
+        lead_inbox = live / 'server/lib/leadInbox.js'
+        previous_lead_inbox = lead_inbox.read_bytes() if lead_inbox.exists() else None
         (live / 'server/index.js').write_bytes(before + b'\n// unrelated local change\n')
         assert invoke('--verify-files', str(live)).returncode != 0
         (live / 'server/index.js').write_bytes(before)
@@ -133,7 +137,7 @@ else:
         assert data_file.read_text() == '{"paid":2,"newPaymentAfterDeployment":true}'
         assert (live / 'dist/index.html').read_text() == 'old website'
         assert (live / 'server/index.js').read_bytes() == before
-        assert not (live / 'server/lib/leadInbox.js').exists()
+        assert (lead_inbox.read_bytes() if lead_inbox.exists() else None) == previous_lead_inbox
         print('PASS rollback restores old code while retaining newly received payments', flush=True)
         (fixture / 'fail-new-version').touch()
         failed = invoke()
