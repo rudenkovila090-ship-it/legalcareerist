@@ -16,7 +16,7 @@ chmod 700 "$backup_dir"
 work_dir="$(mktemp -d "$backup_dir/.creating.XXXXXX")"
 trap 'rm -rf -- "$work_dir"' EXIT
 archive="$work_dir/site.tar.gz"
-tar -czf "$archive" --exclude='./.git' --exclude='./node_modules' --exclude='./server/node_modules' --exclude='./bot2/node_modules' -C "$site_dir" .
+tar -czf "$archive" --exclude='./.git' --exclude='./node_modules' --exclude='./server/node_modules' --exclude='./bot2/node_modules' --exclude='node_modules.reliability-*' --exclude='dist.reliability-*' -C "$site_dir" .
 tar -tzf "$archive" >/dev/null
 name="legalcareerist-$(date -u +%Y%m%d-%H%M%S)-$(basename "$work_dir" | cut -c11-).tar.gz"
 mv "$archive" "$backup_dir/$name"

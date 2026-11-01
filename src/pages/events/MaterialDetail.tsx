@@ -42,7 +42,7 @@ export default function MaterialDetail() {
   // Галочки под кнопкой оплаты: что человек отметил, уходит на сервер вместе с формой (ФИО, телефон, почта).
   const [consent, setConsent] = useState<ConsentChoice | null>(null)
   const [purchasing, setPurchasing] = useState(false)
-  const [purchaseError, setPurchaseError] = useState(false)
+  const [purchaseError, setPurchaseError] = useState('')
 
   // При возврате кнопкой «Назад» после редиректа на оплату браузер может
   // восстановить страницу из bfcache вместе с "замороженной" кнопкой
@@ -51,7 +51,7 @@ export default function MaterialDetail() {
     function handlePageShow(e: PageTransitionEvent) {
       if (e.persisted) {
         setPurchasing(false)
-        setPurchaseError(false)
+        setPurchaseError('')
       }
     }
     window.addEventListener('pageshow', handlePageShow)
@@ -97,7 +97,7 @@ export default function MaterialDetail() {
     e.preventDefault()
     if (!consent || !purchaseForm.name.trim() || !purchaseForm.phone.trim()) return
     setPurchasing(true)
-    setPurchaseError(false)
+    setPurchaseError('')
     try {
       const res = await fetch('/api/marketplace/purchase', {
         method: 'POST',
@@ -105,11 +105,13 @@ export default function MaterialDetail() {
         body: JSON.stringify({ materialSlug: material!.slug, ...purchaseForm, consent }),
       })
       const data = await res.json()
-      if (!res.ok || !data.url) throw new Error('purchase_failed')
+      if (!res.ok || !data.url) throw new Error(data.error === 'material_unavailable' ? 'material_unavailable' : 'purchase_failed')
       window.location.assign(data.url)
-    } catch {
+    } catch (error) {
       setPurchasing(false)
-      setPurchaseError(true)
+      setPurchaseError(error instanceof Error && error.message === 'material_unavailable'
+        ? 'Материал временно недоступен для покупки. Напишите в поддержку — поможем его получить.'
+        : 'Не получилось перейти к оплате — попробуйте ещё раз через минуту.')
     }
   }
 
@@ -268,7 +270,7 @@ export default function MaterialDetail() {
               />
               <HowHeardField value={purchaseForm.howHeard} onChange={(v) => setPurchaseForm((f) => ({ ...f, howHeard: v }))} className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none" />
               {purchaseError && (
-                <p className="text-sm text-red-600">Не получилось перейти к оплате — попробуйте еще раз через минуту.</p>
+                <p role="alert" className="text-sm text-red-600">{purchaseError}</p>
               )}
               <button
                 id="btn-product-pay"

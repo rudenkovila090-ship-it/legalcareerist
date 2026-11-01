@@ -18,6 +18,7 @@ const env = { ...process.env, PORT: process.env.RELIABILITY_TEST_PORT || '3036',
 fs.writeFileSync(path.join(root, 'bootstrap.mjs'), `
 import fs from 'node:fs';
 globalThis.fetch = async (url) => {
+  if (String(url).startsWith('https://legalcareerist.payform.ru/')) return new Response('https://legalcareerist.payform.ru/SYNTHETIC_CHECKOUT/');
   if (!String(url).startsWith('https://api.telegram.org/')) throw Error('TEST outbound disabled');
   const success = fs.existsSync(new URL('./telegram-ok', import.meta.url));
   return Response.json({ok:success,result:success?{message_id:1}:undefined,description:success?undefined:'TEST offline'},{status:success?200:503});
@@ -60,6 +61,12 @@ try {
   let r = await request('/api/notify', payload)
   check('no consent: rejects before persistence', () => { assert.equal(r.status, 400); assert.equal(fs.existsSync(path.join(root, 'data/lead-inbox.json')), false) })
   payload.consent = { policy: true, processing: true, marketing: false }
+  r = await request('/api/marketplace/purchase', { ...payload, materialSlug: 'gaid-kariera-yurista-v-notariate' })
+  check('missing paid material cannot start checkout', () => { assert.equal(r.status, 503); assert.equal(r.body.error, 'material_unavailable'); assert.equal(fs.existsSync(path.join(root, 'data/material-purchases.json')), false) })
+  fs.mkdirSync(path.join(root, 'data/material-pdfs'), { recursive: true })
+  fs.writeFileSync(path.join(root, 'data/material-pdfs/gaid-kariera-yurista-v-notariate.pdf'), '%PDF-synthetic fixture')
+  r = await request('/api/marketplace/purchase', { ...payload, materialSlug: 'gaid-kariera-yurista-v-notariate' })
+  check('available paid PDF permits a checkout link', () => { assert.equal(r.status, 200); assert.ok(r.body.url?.includes('SYNTHETIC_CHECKOUT')) })
   r = await request('/api/notify', { ...payload, vacancySlug: 'nonexistent-synthetic-slug' })
   check('unknown vacancy cannot create a request or counter', () => { assert.equal(r.status, 400); assert.equal(fs.existsSync(path.join(root, 'data/lead-inbox.json')), false) })
   r = await request('/api/notify', payload)

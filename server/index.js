@@ -1906,6 +1906,7 @@ app.post('/api/marketplace/purchase', async (req, res) => {
   if (!phone) return res.status(400).json({ ok: false, error: 'phone_required' })
   // Покупатель с сайта получает файл по почте (в Telegram — по кнопке из письма), поэтому почта обязательна.
   if (!EMAIL_RE.test(String(email ?? '').trim())) return res.status(400).json({ ok: false, error: 'email_required' })
+  if (!getMaterialPdf(materialSlug) && !MATERIALS[materialSlug].accessUrl) return res.status(503).json({ ok: false, error: 'material_unavailable' })
 
   try {
     logLeadSource({ kind: `Материал: ${MATERIALS[materialSlug].title}`, name, answer: req.body.howHeard })
