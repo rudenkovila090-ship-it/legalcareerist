@@ -206,5 +206,4 @@ def save(name, x):
 if __name__ == "__main__":
     save("jingle_open", make_open())
     save("jingle_close", make_close())
-    # Длинная подложка под голос приветствия (мелодия как в открытии, затем тёплый фон)
-    save("jingle_bed", make_open(dur=14.0, fade_out=4.0))
+    # Подложка под голос строится под длину записи: см. make_bed.py и ../intro/mix_intro.py
