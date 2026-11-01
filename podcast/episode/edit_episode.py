@@ -5,13 +5,13 @@
   1. Подавляет эхо комнаты и «бубнящие» басы (voice_enhance), убирает гул и шум, добавляет присутствие.
   2. Сокращает длинные паузы (дольше PAUSE_MIN) до короткой естественной паузы PAUSE_KEEP;
      стыки с плавным перекрытием (без щелчков). Тишина в начале и в конце тоже подрезается.
-  3. Ускоряет речь (по умолчанию ×1.1) без смены высоты голоса.
+  3. Ускоряет речь без смены высоты голоса, если задана скорость (по умолчанию ×1.0, без ускорения).
   4. Выравнивает громкость до -16 LUFS (с ограничителем пиков).
 Сборка: интро (готовый файл со своим голосом и музыкой) -> эпизод (накладывается на хвост интро на
 OVERLAP секунд) -> закрывающий джингл после последнего слова. Итог выравнивается до -16 LUFS.
 
 Запуск:
-  python3 -I edit_episode.py голос.m4a интро.wav jingle_close.wav папка_вывода [скорость]
+  python3 -I edit_episode.py голос.m4a интро.wav jingle_close.wav папка_вывода [скорость] [normal|strong|max]
 Результат: episode_final.mp3/.wav, episode_voice_only.wav (для проверки), episode_timeline.txt.
 """
 import subprocess
@@ -35,6 +35,20 @@ OVERLAP = 1.0           # секунд эпизод накладывается �
 OUTRO_GAP = 0.35        # пауза между последним словом и закрывающим джинглом
 OUTRO_LUFS = -17.0
 FINAL_LUFS, MAX_TP_DB = -16.0, -1.5
+
+# Профили чистки голоса: сила подавления эха (gamma/gmin), сжатия басов (low_*), мягкость выравнивания (comp_ratio)
+# и фильтры. «normal» - как в интро; «strong» и «max» - заметно сильнее против эха и басов.
+_EQ_PRES = "equalizer=f=3500:width_type=q:width=1:g=2"
+PROFILES = {
+    "normal": dict(gamma=0.8, gmin=0.30, low_ratio=2.2, low_thr=65, comp_ratio=2.5,
+                   eq="highpass=f=80,afftdn=nr=10:nf=NF:tn=1,equalizer=f=300:width_type=q:width=1:g=-1.5," + _EQ_PRES),
+    "strong": dict(gamma=1.2, gmin=0.22, low_ratio=3.0, low_thr=50, comp_ratio=2.0,
+                   eq="highpass=f=90,afftdn=nr=12:nf=NF:tn=1,equalizer=f=130:width_type=q:width=0.8:g=-1.5,"
+                      "equalizer=f=250:width_type=q:width=1:g=-2.5," + _EQ_PRES),
+    "max": dict(gamma=1.6, gmin=0.15, low_ratio=4.0, low_thr=40, comp_ratio=1.8,
+                eq="highpass=f=95,afftdn=nr=14:nf=NF:tn=1,equalizer=f=130:width_type=q:width=0.8:g=-2.5,"
+                   "equalizer=f=250:width_type=q:width=1:g=-3.5,equalizer=f=3500:width_type=q:width=1:g=2.5"),
+}
 
 
 def frame_db(x, win=0.01):
@@ -112,7 +126,8 @@ def add_at(buf, sig, start_s):
 
 def main():
     voice_in, intro_p, jingle_p, out = Path(sys.argv[1]), Path(sys.argv[2]), Path(sys.argv[3]), Path(sys.argv[4])
-    speed = float(sys.argv[5]) if len(sys.argv) > 5 else 1.1
+    speed = float(sys.argv[5]) if len(sys.argv) > 5 else 1.0
+    P = PROFILES[sys.argv[6] if len(sys.argv) > 6 else "normal"]
     out.mkdir(parents=True, exist_ok=True)
 
     # 1. Чистка речи
@@ -121,11 +136,9 @@ def main():
     xr = mi.read_wav(raw)[:, 0]
     s0, s1, noise = mi.speech_span(xr)
     nf = int(np.clip(round(noise - 2), -80, -30))
-    xe, info = ve.enhance(xr)
+    xe, info = ve.enhance(xr, gamma=P["gamma"], gmin=P["gmin"], low_ratio=P["low_ratio"], low_thr=P["low_thr"])
     mi.write_wav(enh, xe[:, None])
-    mi.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(enh), "-af",
-            f"highpass=f=80,afftdn=nr=10:nf={nf}:tn=1,"
-            "equalizer=f=300:width_type=q:width=1:g=-1.5,equalizer=f=3500:width_type=q:width=1:g=2",
+    mi.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(enh), "-af", P["eq"].replace("NF", str(nf)),
             "-ar", str(SR), str(clean)])
     xc = mi.read_wav(clean)[:, 0]
 
@@ -136,8 +149,11 @@ def main():
 
     # 3. Ускорение без смены высоты
     fast = out / "_fast.wav"
-    mi.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(pp), "-af", f"atempo={speed}", "-ar", str(SR), str(fast)])
-    xf_ = mi.read_wav(fast)[:, 0].copy()
+    if speed != 1.0:
+        mi.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(pp), "-af", f"atempo={speed}", "-ar", str(SR), str(fast)])
+        xf_ = mi.read_wav(fast)[:, 0].copy()
+    else:
+        xf_ = xp.copy()                                   # обычная скорость: без растяжения времени
     fi, fo = int(0.03 * SR), int(0.4 * SR)
     xf_[:fi] *= np.linspace(0, 1, fi)
     xf_[-fo:] *= np.linspace(1, 0, fo)
@@ -146,7 +162,7 @@ def main():
 
     # 4. Громкость тела эпизода
     lev = out / "episode_voice_only.wav"
-    mi.level_voice(tr, lev, EP_LUFS)
+    mi.level_voice(tr, lev, EP_LUFS, ratio=P["comp_ratio"])
     voice = mi.read_wav(lev)[:, 0]
 
     # 5. Сборка: интро -> эпизод -> закрывающий джингл
@@ -193,6 +209,8 @@ def main():
     pb, pa = ve.band_profile(xr), ve.band_profile(xc)
     key = "бубнёж (80-250 Гц)"
     print(f"«бубнёж» 80-250 Гц: {pb[key]:+.1f} дБ до, {pa[key]:+.1f} дБ после")
+    pf = ve.band_profile(voice)
+    print(f"в готовом голосе (после выравнивания громкости): «бубнёж» {pf[key]:+.1f} дБ, хвост эха {ve.tail_time(voice)[0]:.0f} мс")
     print(f"итог: {total / SR:.1f} с ({mmss(total / SR)}), {li:.1f} LUFS, истинный пик {tp:.1f} дБ, "
           f"клиппинг {int((abs(fx) > 0.999).sum())} отсч., NaN: {bool(np.isnan(fx).any())}")
     # проверка стыков: максимальный скачок соседних отсчётов у стыков против обычной речи

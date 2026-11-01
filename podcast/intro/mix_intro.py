@@ -103,13 +103,13 @@ def rc(x):
     return 0.5 - 0.5 * np.cos(np.pi * x)
 
 
-def level_voice(src, dst, target):
+def level_voice(src, dst, target, ratio=2.5):
     """Поднимает громкость до цели через мягкую компрессию и ограничитель пиков."""
     lufs, _ = measure(src)
     g1 = target + 2.0 - lufs
     tmp = Path(str(dst) + ".tmp.wav")
     run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(src), "-af",
-         f"volume={g1:.2f}dB,acompressor=threshold=-24dB:ratio=2.5:attack=12:release=160:makeup=1,"
+         f"volume={g1:.2f}dB,acompressor=threshold=-24dB:ratio={ratio}:attack=12:release=160:makeup=1,"
          f"alimiter=limit=0.84:attack=3:release=60:level=0", "-ar", str(SR), str(tmp)])
     l2, _ = measure(tmp)
     run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(tmp), "-af",

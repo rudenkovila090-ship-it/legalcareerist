@@ -128,12 +128,13 @@ def tame_lows(x, f_lo=150.0, f_hi=260.0, ratio=2.2, attack=0.02, release=0.15, t
     return high + low * g, float(sm.max()), float(sm[env > thr].mean() if (env > thr).any() else 0.0)
 
 
-def enhance(x, rt60=None):
-    """Подавление эха комнаты и сжатие «выпирающих» басов. Возвращает массив и справку."""
+def enhance(x, rt60=None, gamma=0.8, gmin=0.30, low_ratio=2.2, low_thr=65, delay_s=0.05):
+    """Подавление эха комнаты и сжатие «выпирающих» басов. Возвращает массив и справку.
+    Сила: gamma/gmin (эхо), low_ratio/low_thr (басы; ниже порог = сильнее сжатие)."""
     t_before, n_off = tail_time(x)
     if rt60 is None:
         rt60 = float(np.clip(5 * t_before / 1000, 0.35, 0.8)) if not np.isnan(t_before) else 0.45
-    y, mean_g = dereverb(x, rt60=rt60)
-    y, max_red, mean_red = tame_lows(y)
+    y, mean_g = dereverb(x, rt60=rt60, gamma=gamma, gmin=gmin, delay_s=delay_s)
+    y, max_red, mean_red = tame_lows(y, ratio=low_ratio, thr_percentile=low_thr)
     return y, dict(rt60=rt60, mean_gain_db=mean_g, bass_max_reduction=max_red, bass_mean_reduction=mean_red,
                    tail_before=t_before, offsets=n_off)
