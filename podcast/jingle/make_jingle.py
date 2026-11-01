@@ -128,7 +128,7 @@ def rms_db(x):
     return 20 * np.log10(np.sqrt((x ** 2).mean()) + 1e-12)
 
 
-def make_open(dur=5.4):
+def make_open(dur=5.4, fade_out=1.5):
     n = int(SR * dur)
     pn, ce, pd = (np.zeros((n, 2)) for _ in range(3))
     # Гармония: ре мажор (дом), затем соль мажор maj7 (светлый шаг вперёд)
@@ -145,7 +145,7 @@ def make_open(dur=5.4):
     place(pn, piano(E5, 1.8, 0.22, release=0.6), 2.20, jitter=0.012)
     place(pn, piano(FS5, dur - 2.85, 0.20, release=1.6), 2.85, jitter=0.012)
     STEMS["open"] = {"фортепиано": rms_db(pn), "струнные": rms_db(ce), "подложка": rms_db(pd)}
-    return finish(reverb(pn + ce + pd), fade_out=1.5)
+    return finish(reverb(pn + ce + pd), fade_out=fade_out)
 
 
 def make_close(dur=5.7):
@@ -206,3 +206,5 @@ def save(name, x):
 if __name__ == "__main__":
     save("jingle_open", make_open())
     save("jingle_close", make_close())
+    # Длинная подложка под голос приветствия (мелодия как в открытии, затем тёплый фон)
+    save("jingle_bed", make_open(dur=14.0, fade_out=4.0))
