@@ -1,0 +1,175 @@
+import { lazy, Suspense } from 'react'
+import { Navigate, Route, Routes } from 'react-router-dom'
+import Layout from './components/Layout'
+import CookieBanner from './components/CookieBanner'
+import MetrikaTracker from './components/MetrikaTracker'
+
+// Каждая страница — отдельный чанк, подгружается только при переходе на нее.
+// Экономит первый экран: раньше весь сайт грузился одним файлом ~650 КБ.
+const Home = lazy(() => import('./pages/Home'))
+const KadryHome = lazy(() => import('./pages/kadry/KadryHome'))
+const Candidates = lazy(() => import('./pages/kadry/Candidates'))
+const CareerReserve = lazy(() => import('./pages/kadry/CareerReserve'))
+const CareerConsultation = lazy(() => import('./pages/kadry/CareerConsultation'))
+const Vacancies = lazy(() => import('./pages/kadry/Vacancies'))
+const Salary = lazy(() => import('./pages/kadry/Salary'))
+const VacancyDetail = lazy(() => import('./pages/VacancyDetail'))
+const KnowledgeList = lazy(() => import('./pages/KnowledgeList'))
+const ArticleDetail = lazy(() => import('./pages/ArticleDetail'))
+const CommunityHome = lazy(() => import('./pages/community/CommunityHome'))
+const JoinSuccess = lazy(() => import('./pages/community/JoinSuccess'))
+const EventsHome = lazy(() => import('./pages/events/EventsHome'))
+const EventDetail = lazy(() => import('./pages/events/EventDetail'))
+const EventPhotos = lazy(() => import('./pages/events/EventPhotos'))
+const Materials = lazy(() => import('./pages/events/Materials'))
+const MaterialDetail = lazy(() => import('./pages/events/MaterialDetail'))
+const MaterialThanks = lazy(() => import('./pages/materials/MaterialThanks'))
+const MaterialDownload = lazy(() => import('./pages/materials/MaterialDownload'))
+const AccountGate = lazy(() => import('./pages/account/AccountGate'))
+const Cabinet = lazy(() => import('./pages/cabinet/Cabinet'))
+const CandidateAccount = lazy(() => import('./pages/account/CandidateAccount'))
+const EmployerAccount = lazy(() => import('./pages/account/EmployerAccount'))
+const ModeratorAccount = lazy(() => import('./pages/account/ModeratorAccount'))
+const ResumeBuilder = lazy(() => import('./pages/account/ResumeBuilder'))
+const ResumeView = lazy(() => import('./pages/account/ResumeView'))
+const VacancyBuilder = lazy(() => import('./pages/account/VacancyBuilder'))
+const MarketplaceHome = lazy(() => import('./pages/MarketplaceHome'))
+const BlogHome = lazy(() => import('./pages/BlogHome'))
+const Contacts = lazy(() => import('./pages/Contacts'))
+const LegalHome = lazy(() => import('./pages/legal/LegalHome'))
+const Privacy = lazy(() => import('./pages/legal/Privacy'))
+const Consent = lazy(() => import('./pages/legal/Consent'))
+const ConsentPublication = lazy(() => import('./pages/legal/ConsentPublication'))
+const MarketingConsent = lazy(() => import('./pages/legal/MarketingConsent'))
+const Offer = lazy(() => import('./pages/legal/Offer'))
+const OfferLawyers = lazy(() => import('./pages/legal/OfferLawyers'))
+const OfferGuideNotary = lazy(() => import('./pages/legal/OfferGuideNotary'))
+const OfferGuideScholarships = lazy(() => import('./pages/legal/OfferGuideScholarships'))
+const OfferEventJazz2 = lazy(() => import('./pages/legal/OfferEventJazz2'))
+const News = lazy(() => import('./pages/News'))
+const NewsDetail = lazy(() => import('./pages/NewsDetail'))
+const Documents = lazy(() => import('./pages/Documents'))
+const NotFound = lazy(() => import('./pages/NotFound'))
+
+export default function App() {
+  return (
+    <>
+      <MetrikaTracker />
+      <CookieBanner />
+      <Suspense fallback={null}>
+        <Routes>
+          <Route element={<Layout />}>
+            <Route path="/" element={<Home />} />
+
+            {/* Кадры */}
+            <Route path="/kadry" element={<KadryHome />} />
+            <Route path="/kadry/employers" element={<KadryHome />} />
+            <Route path="/kadry/candidates" element={<Candidates />} />
+            <Route path="/kadry/candidates/reserve" element={<CareerReserve />} />
+            <Route path="/kadry/candidates/consultation" element={<CareerConsultation />} />
+            <Route path="/kadry/vacancies" element={<Vacancies />} />
+            <Route path="/kadry/salary" element={<Salary />} />
+            <Route
+              path="/kadry/knowledge"
+              element={
+                <KnowledgeList
+                  audience="candidates"
+                  eyebrow="Кадры · База знаний"
+                  title="База знаний для соискателей и работодателей"
+                  description="Статьи, FAQ, глоссарий и чек-листы по подбору на юридическом рынке."
+                />
+              }
+            />
+            <Route path="/kadry/contacts" element={<Contacts eyebrow="Кадры" sourceBlock="kadry" />} />
+            <Route path="/kadry/documents" element={<Navigate to="/legal" replace />} />
+            <Route path="/vacancies/:slug" element={<VacancyDetail />} />
+
+            {/* Сообщество */}
+            <Route path="/community" element={<CommunityHome />} />
+            <Route path="/community/success" element={<JoinSuccess />} />
+            <Route path="/community/clubs/:slug" element={<Navigate to="/community" replace />} />
+            <Route path="/community/contacts" element={<Contacts eyebrow="Сообщество" sourceBlock="community" />} />
+            <Route path="/community/documents" element={<Documents />} />
+
+            {/* Мероприятия */}
+            <Route path="/events" element={<EventsHome />} />
+            {/* Мероприятие переименовано — прежняя ссылка ведёт на новую. */}
+            <Route path="/events/yuridicheskaya-noch-dzhaza-2" element={<Navigate to="/events/dzhazovyy-vecher-dlya-yuristov-2" replace />} />
+            <Route path="/events/:slug" element={<EventDetail />} />
+            <Route path="/events/:slug/photos" element={<EventPhotos />} />
+            <Route
+              path="/events/knowledge"
+              element={
+                <KnowledgeList
+                  audience="events"
+                  eyebrow="Мероприятия · База знаний"
+                  title="Отчеты и гайды по мероприятиям"
+                />
+              }
+            />
+            <Route path="/events/materials" element={<Materials />} />
+            <Route path="/materials/thanks" element={<MaterialThanks />} />
+            <Route path="/materials/download" element={<MaterialDownload />} />
+            <Route path="/materials/cabinet" element={<MaterialThanks />} />
+            <Route path="/materials/:slug" element={<MaterialDetail />} />
+            <Route path="/events/contacts" element={<Contacts eyebrow="Мероприятия" sourceBlock="events" />} />
+            <Route path="/events/documents" element={<Navigate to="/legal" replace />} />
+            {/* Разделы, которые ещё не написаны, не показываем «заглушками»: адреса ведут туда, где можно получить помощь. */}
+            <Route path="/events/ticket-refund" element={<Navigate to="/events/contacts" replace />} />
+            <Route path="/events/research" element={<Navigate to="/events" replace />} />
+            <Route path="/events/ticketing" element={<Navigate to="/events" replace />} />
+            <Route path="/events/opportunities" element={<Navigate to="/events" replace />} />
+            <Route path="/events/advertising" element={<Navigate to="/events" replace />} />
+
+            {/* Общие информационные страницы */}
+            {/* «О нас» объединена с главной (решение владельца 25.10.2026): отдельной страницы нет */}
+            <Route path="/about" element={<Navigate to="/" replace />} />
+            <Route path="/news" element={<News />} />
+            <Route path="/news/:slug" element={<NewsDetail />} />
+
+            {/* Общая статья Базы знаний (единая сущность для всех трех разделов) */}
+            <Route path="/knowledge/:slug" element={<ArticleDetail />} />
+
+            {/* Личный кабинет — разделен на соискателя и работодателя (два
+                разных демо-входа без пароля, см. AccountGate.tsx). */}
+            <Route path="/cabinet" element={<Cabinet />} />
+            <Route path="/cabinet/:section" element={<Cabinet />} />
+            <Route path="/account" element={<AccountGate />} />
+            <Route path="/account/candidate" element={<CandidateAccount />} />
+            <Route path="/account/candidate/resume/new" element={<ResumeBuilder />} />
+            <Route path="/account/candidate/resume/:id/edit" element={<ResumeBuilder />} />
+            <Route path="/account/candidate/resume/:id" element={<ResumeView />} />
+            <Route path="/account/employer" element={<EmployerAccount />} />
+            <Route path="/account/moderator" element={<ModeratorAccount />} />
+            <Route path="/account/employer/vacancy/new" element={<VacancyBuilder />} />
+            <Route path="/account/employer/vacancy/:id/edit" element={<VacancyBuilder />} />
+
+            {/* Marketplace */}
+            <Route path="/marketplace" element={<MarketplaceHome />} />
+            <Route path="/marketplace/contacts" element={<Contacts eyebrow="Маркетплейс" sourceBlock="marketplace" />} />
+
+            {/* Блог */}
+            <Route path="/blog" element={<BlogHome />} />
+
+            {/* Общая поддержка (ссылка "Поддержка" в общем подвале сайта) */}
+            <Route path="/contacts" element={<Contacts eyebrow="Карьерный Юрист" sourceBlock="home" />} />
+
+            {/* Юридические документы */}
+            <Route path="/legal" element={<LegalHome />} />
+            <Route path="/legal/privacy" element={<Privacy />} />
+            <Route path="/legal/consent" element={<Consent />} />
+            <Route path="/legal/consent-publication" element={<ConsentPublication />} />
+            <Route path="/legal/offer" element={<Offer />} />
+            <Route path="/legal/offer-longlist-yuridicheskie-meropriyatiya" element={<OfferLawyers />} />
+            <Route path="/legal/offer-gaid-kariera-yurista-v-notariate" element={<OfferGuideNotary />} />
+            <Route path="/legal/offer-gaid-stipendii-i-granty" element={<OfferGuideScholarships />} />
+            <Route path="/legal/offer-legal-night-jazz-2" element={<OfferEventJazz2 />} />
+            <Route path="/legal/marketing-consent" element={<MarketingConsent />} />
+
+            <Route path="*" element={<NotFound />} />
+          </Route>
+        </Routes>
+      </Suspense>
+    </>
+  )
+}

@@ -1,0 +1,57 @@
+{
+  "stages": [
+    { "id": "student", "label": "Студент" },
+    { "id": "intern", "label": "Стажёр, помощник юриста" },
+    { "id": "junior", "label": "Младший юрист" },
+    { "id": "lawyer", "label": "Юрист" },
+    { "id": "senior", "label": "Старший юрист, ведущий" },
+    { "id": "head", "label": "Руководитель направления" }
+  ],
+  "areas": [
+    { "id": "corporate", "label": "Корпоративное право и M&A" },
+    { "id": "litigation", "label": "Судебная практика и арбитраж" },
+    { "id": "tax", "label": "Налоги" },
+    { "id": "ip", "label": "Интеллектуальная собственность" },
+    { "id": "realty", "label": "Недвижимость и строительство" },
+    { "id": "finance", "label": "Банки и финансы" },
+    { "id": "inhouse", "label": "Юрист в компании (инхаус)" },
+    { "id": "state", "label": "Государственная служба" },
+    { "id": "other", "label": "Пока не определился" }
+  ],
+  "terms": [
+    { "id": "6m", "label": "6 месяцев" },
+    { "id": "1y", "label": "1 год" },
+    { "id": "2y", "label": "2 года" },
+    { "id": "3y", "label": "3 года и больше" }
+  ],
+  "groups": [
+    { "id": "profile", "label": "Резюме и профиль" },
+    { "id": "search", "label": "Поиск работы" },
+    { "id": "skills", "label": "Навыки" },
+    { "id": "experience", "label": "Опыт" },
+    { "id": "network", "label": "Нетворкинг" },
+    { "id": "own", "label": "Мои шаги" }
+  ],
+  "steps": [
+    { "id": "choose-practice", "title": "Выбрать направление: понять, какие задачи вам интересны", "text": "Поговорите с юристами из разных практик и прочитайте про рынок в базе знаний.", "group": "skills", "from": "student", "to": "junior", "link": { "to": "/cabinet/knowledge", "label": "База знаний" } },
+    { "id": "read-career-kb", "title": "Прочитать в базе знаний раздел о юридической карьере", "text": "Как устроен рынок, какие бывают роли и как выглядит путь от студента до партнёра.", "group": "skills", "from": "student", "to": "junior", "link": { "to": "/cabinet/knowledge", "label": "База знаний" } },
+    { "id": "first-cv", "title": "Собрать резюме по шаблону", "text": "Одна страница, результаты вместо списка обязанностей.", "group": "profile", "from": "student", "to": "junior", "link": { "to": "/cabinet/templates", "label": "Шаблоны" } },
+    { "id": "write-achievements", "title": "Записать свои достижения в формате «действие — результат»", "text": "Они пригодятся и для резюме, и для рассказа о себе на собеседовании.", "group": "profile", "from": "student", "to": "lawyer", "link": { "to": "/cabinet/achievements", "label": "Мои достижения" } },
+    { "id": "internship", "title": "Найти стажировку или место помощника юриста", "text": "Первый опыт в любой практике ценнее ожидания идеального предложения.", "group": "experience", "from": "student", "to": "intern", "link": { "to": "/cabinet/vacancies", "label": "Вакансии" } },
+    { "id": "pro-bono", "title": "Взять один проект pro bono или поработать в юридической клинике", "text": "Реальная задача с результатом: её можно описать в резюме и портфолио.", "group": "experience", "from": "student", "to": "junior" },
+    { "id": "reserve", "title": "Вступить в кадровый резерв", "text": "Мы предлагаем подходящие вакансии раньше открытой публикации.", "group": "search", "from": "student", "to": "lawyer", "link": { "to": "/cabinet/reserve", "label": "Кадровый резерв" } },
+    { "id": "interview-basics", "title": "Пройти блок вопросов к интервью про мотивацию и опыт", "text": "Потренируйтесь отвечать вслух, а потом сверьтесь с разбором.", "group": "search", "from": "student", "to": "lawyer", "link": { "to": "/cabinet/interview-prep", "label": "Подготовка к интервью" } },
+    { "id": "first-applications", "title": "Откликнуться минимум на пять вакансий", "text": "Записывайте, куда и когда откликнулись: статусы видны во вкладке «Мои отклики».", "group": "search", "from": "intern", "to": "junior", "link": { "to": "/cabinet/applications", "label": "Мои отклики" } },
+    { "id": "get-recommendation", "title": "Запросить рекомендацию от Карьерного юриста", "text": "Приложите её к отклику на вакансию или к резюме.", "group": "profile", "from": "intern", "to": "lawyer", "link": { "to": "/cabinet/recommendations", "label": "Рекомендация" } },
+    { "id": "network-coffee", "title": "Познакомиться с коллегами из сообщества", "text": "Одна встреча в неделю за месяц даёт больше, чем десяток откликов вслепую.", "group": "network", "from": "student", "to": "head", "link": { "to": "/cabinet/networking", "label": "Нетворкинг" } },
+    { "id": "find-mentor", "title": "Найти наставника", "text": "Юрист на два-три уровня выше, который готов раз в месяц смотреть на ваши задачи.", "group": "network", "from": "junior", "to": "senior" },
+    { "id": "english", "title": "Подтянуть профессиональный английский", "text": "Читайте договоры и практику на английском, начните с типовых документов.", "group": "skills", "from": "junior", "to": "senior" },
+    { "id": "portfolio-cases", "title": "Описать три кейса для портфолио без раскрытия клиента", "text": "Задача, ваша роль, результат. Без названий и цифр, которые выдают клиента.", "group": "profile", "from": "junior", "to": "senior", "link": { "to": "/cabinet/portfolio", "label": "Портфолио" } },
+    { "id": "narrow-expertise", "title": "Выбрать узкую специализацию и собрать подборку практики", "text": "Через 1–2 года вас должны знать как человека, к которому идут с конкретным вопросом.", "group": "skills", "from": "lawyer", "to": "senior" },
+    { "id": "capital", "title": "Оценить свой профессиональный капитал", "text": "Знания, связи, репутация, опыт: что уже есть и что стоит развивать.", "group": "profile", "from": "lawyer", "to": "head", "link": { "to": "/cabinet/capital", "label": "Мой профессиональный капитал" } },
+    { "id": "speak-publish", "title": "Выступить или опубликоваться", "text": "Заявка на участие в подкасте — один из самых простых способов начать.", "group": "network", "from": "lawyer", "to": "head", "link": { "to": "/cabinet/podcast", "label": "Подкаст" } },
+    { "id": "mediakit", "title": "Собрать медиакит", "text": "Страница о вас для партнёров, организаторов и журналистов.", "group": "profile", "from": "lawyer", "to": "head", "link": { "to": "/cabinet/mediakit", "label": "Медиакит" } },
+    { "id": "compensation-talk", "title": "Подготовить аргументы для разговора о роли и доходе", "text": "Список результатов за год, рыночные ориентиры и желаемая роль.", "group": "search", "from": "lawyer", "to": "head" },
+    { "id": "lead-project", "title": "Взять ответственность за проект или стажёров", "text": "Управление задачей и людьми — главный шаг к роли руководителя.", "group": "experience", "from": "senior", "to": "head" }
+  ]
+}

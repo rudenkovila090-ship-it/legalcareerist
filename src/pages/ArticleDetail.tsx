@@ -1,0 +1,55 @@
+import { Link, useParams } from 'react-router-dom'
+import { articles } from '../data/articles'
+import RelatedContentBlock from '../components/RelatedContentBlock'
+import ArticleBody from '../components/ArticleBody'
+import TariffJoinBlock from '../components/TariffJoinBlock'
+import { getRelatedContent } from '../lib/related'
+import { useArticleViews } from '../lib/useArticleViews'
+import { useDocumentTitle } from '../lib/useDocumentTitle'
+import { useSocialMeta } from '../lib/useSocialMeta'
+import { useNoindex } from '../lib/pageMeta'
+import { SingleColumn } from '../components/layouts'
+
+const kindLabel = { article: 'Статья', faq: 'FAQ', glossary: 'Глоссарий', checklist: 'Чек-лист' }
+
+export default function ArticleDetail() {
+  const { slug } = useParams()
+  const article = articles.find((a) => a.slug === slug)
+  useDocumentTitle(article?.title ?? 'Статья не найдена')
+  useNoindex(!article)
+  useSocialMeta({ title: article?.title, description: article?.excerpt, path: slug ? `/knowledge/${slug}` : undefined })
+  const views = useArticleViews(article?.slug ?? '')
+
+  if (!article) {
+    return (
+      <div className="container-page py-16">
+        <h1 className="text-2xl font-semibold">Статья не найдена</h1>
+        <p className="mt-3"><Link className="underline" to="/">На главную</Link></p>
+      </div>
+    )
+  }
+
+  const related = getRelatedContent(article, 'article', article.id)
+
+  return (
+    <SingleColumn>
+        <span className="text-sm font-medium uppercase tracking-wide text-gold">{kindLabel[article.kind]}</span>
+        <h1 className="mt-2 text-3xl font-semibold">{article.title}</h1>
+        <div className="mt-2 text-sm text-ink/50">
+          {new Date(article.date).toLocaleDateString('ru-RU')} · {views ?? '…'} просмотров
+        </div>
+
+        <div className="mt-8">
+          <ArticleBody body={article.body} />
+        </div>
+
+        {article.cta === 'community-tariff' && (
+          <div className="mt-10">
+            <TariffJoinBlock />
+          </div>
+        )}
+
+        <RelatedContentBlock items={related} />
+    </SingleColumn>
+  )
+}
