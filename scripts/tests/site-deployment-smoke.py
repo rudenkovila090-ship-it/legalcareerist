@@ -11,17 +11,18 @@ import tempfile
 import threading
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
-MANIFEST = json.loads((REPO / 'updates/site-reliability/manifest.json').read_text())
+MANIFEST_NAME = os.environ.get('DEPLOY_SMOKE_MANIFEST', 'updates/site-reliability/manifest.json')
+MANIFEST = json.loads((REPO / MANIFEST_NAME).read_text())
 
 class Handler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
         running = json.loads((self.server.fixture / 'process.json').read_text())['online']
-        updated = (self.server.fixture / 'live/server/lib/leadInbox.js').exists()
+        updated = (self.server.fixture / 'live/server/lib/adminMaterials.js').exists()
         fail = (self.server.fixture / 'fail-new-version').exists() and updated
         status = 200 if running and not fail else 503
         body = b'{"ok":true}'
         kind = 'application/json'
-        if self.path == '/api/account/lead-inbox':
+        if self.path in ('/api/account/lead-inbox', '/api/account/materials'):
             status = 401 if running and updated and not fail else 404
             body = b'{"ok":false}'
         if self.path == '/':
@@ -52,16 +53,22 @@ def run():
                 target = live / relative
                 target.parent.mkdir(parents=True, exist_ok=True)
                 target.write_bytes(old)
-        for relative in ['scripts/install-site-reliability.mjs', 'updates/site-reliability/manifest.json']:
+        for relative in ['scripts/install-site-reliability.mjs', MANIFEST_NAME]:
             target = release / relative
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(REPO / relative, target)
         shutil.copytree(REPO / 'server/lib', release / 'server/lib', dirs_exist_ok=True)
+        shutil.copytree(REPO / 'server/tests', release / 'server/tests', dirs_exist_ok=True)
+        shutil.copyfile(REPO / 'scripts/backup-site-private.sh', release / 'scripts/backup-site-private.sh')
+        for relative in ['package.json', 'server/package.json']:
+            target = release / relative; target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(REPO / relative, target)
         (release / 'server').mkdir(exist_ok=True)
         for root, label in [(live, 'old'), (release, 'new')]:
             for relative in ['node_modules', 'server/node_modules', 'dist/assets']:
                 (root / relative).mkdir(parents=True, exist_ok=True)
                 (root / relative / (label + '.txt')).write_text(label)
+            (root / 'server/node_modules/express').symlink_to(REPO / 'server/node_modules/express', target_is_directory=True)
             (root / 'dist/index.html').write_text(label + ' website')
         (live / 'server/data').mkdir(parents=True)
         data_file = live / 'server/data/synthetic-payments.json'
@@ -86,6 +93,7 @@ else:
         env = {**os.environ, 'PATH': str(bin_dir) + ':' + os.environ['PATH'],
                'DEPLOY_SMOKE_FIXTURE': str(fixture), 'DEPLOY_SMOKE_PORT': str(port),
                'SITE_RELIABILITY_TARGET': str(live), 'SITE_RELIABILITY_BACKUPS': str(backups),
+               'SITE_RELIABILITY_MANIFEST': MANIFEST_NAME,
                'SITE_RELIABILITY_PUBLIC_URL': f'http://127.0.0.1:{port}/'}
         installer = release / 'scripts/install-site-reliability.mjs'
         def invoke(*args):

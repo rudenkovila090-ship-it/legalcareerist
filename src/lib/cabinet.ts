@@ -23,6 +23,7 @@ export interface ContactInfo {
 }
 
 export interface CabinetUser {
+  capabilities?: { manageMaterials: boolean }
   login: string
   name: string
   /** Имя, почта и телефон для связи (раздел «Личные данные и контакты»). */

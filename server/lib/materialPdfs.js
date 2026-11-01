@@ -5,6 +5,7 @@
 // Покупатель получает файл по личной ссылке (materialLinks.js), сам файл по почте не уходит.
 import fs from 'node:fs'
 import path from 'node:path'
+import crypto from 'node:crypto'
 
 export const PDF_DIR = path.join(import.meta.dirname, '..', 'data', 'material-pdfs')
 export const BUNDLED_PDF_DIR = path.join(import.meta.dirname, '..', 'assets', 'materials')
@@ -43,8 +44,13 @@ export function saveMaterialPdf(slug, buffer) {
   if (buffer.length > MAX_PDF_BYTES) throw new Error(`Файл больше ${MAX_PDF_BYTES / 1024 / 1024} МБ.`)
   if (buffer.subarray(0, 5).toString('latin1') !== '%PDF-') throw new Error('Это не PDF: файл должен начинаться с «%PDF-».')
   fs.mkdirSync(PDF_DIR, { recursive: true, mode: 0o700 })
-  const tmp = `${file}.tmp`
-  fs.writeFileSync(tmp, buffer, { mode: 0o600 })
-  fs.renameSync(tmp, file)
+  const tmp = `${file}.${crypto.randomBytes(8).toString('hex')}.tmp`
+  try {
+    const fd = fs.openSync(tmp, 'wx', 0o600)
+    try { fs.writeFileSync(fd, buffer); fs.fsyncSync(fd) } finally { fs.closeSync(fd) }
+    fs.renameSync(tmp, file)
+    const directory = fs.openSync(PDF_DIR, 'r')
+    try { fs.fsyncSync(directory) } finally { fs.closeSync(directory) }
+  } finally { fs.rmSync(tmp, { force: true }) }
   return getMaterialPdf(slug)
 }

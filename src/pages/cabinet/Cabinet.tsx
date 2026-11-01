@@ -14,6 +14,7 @@ import CareerWorkspace from './career/CareerWorkspace'
 import { HolyGrail } from '../../components/layouts'
 import KnowledgeBase from './KnowledgeBase'
 import { ActivatePage, Landing } from './AccountAccess'
+import MaterialManager from './MaterialManager'
 
 type Session = { state: 'loading' } | { state: 'anonymous'; notice?: string } | { state: 'error' } | { state: 'authed'; user: CabinetUser }
 
@@ -82,8 +83,9 @@ export default function Cabinet() {
   }, [greetingName])
 
   const page = resolvePage(section)
-  useDocumentTitle(page ? `${page.title} — Личный кабинет` : 'Личный кабинет')
-  const menuId = page?.menuId ?? 'overview'
+  const materialManagement = section === 'manage-materials'
+  useDocumentTitle(materialManagement ? 'Материалы сайта — Личный кабинет' : page ? `${page.title} — Личный кабинет` : 'Личный кабинет')
+  const menuId = materialManagement ? 'manage-materials' : page?.menuId ?? 'overview'
   // «Аккаунт» раскрывается по стрелке; пока человек сам не нажимал, он открыт только на страницах этой группы.
   const [accountPicked, setAccountPicked] = useState<boolean | null>(null)
   const accountOpen = accountPicked ?? menuId === 'account'
@@ -155,6 +157,7 @@ export default function Cabinet() {
           {/* Компьютер */}
           <nav className="hidden max-h-[calc(100vh-13rem)] space-y-0.5 overflow-y-auto rounded-2xl bg-ink/[0.045] p-2 lg:block" aria-label="Разделы кабинета">
             <NavItem to="/cabinet" icon={icon.home} label="Главная" active={menuId === 'overview'} />
+            {user.capabilities?.manageMaterials && <NavItem to="/cabinet/manage-materials" icon={icon.folder} label="Материалы сайта" active={materialManagement} />}
             {groups.map((g) =>
               g.id === 'account' ? (
                 <div key={g.id}>
@@ -186,6 +189,7 @@ export default function Cabinet() {
           <div className="space-y-2 lg:hidden" aria-label="Разделы кабинета">
             <div className="flex gap-2 overflow-x-auto pb-1">
               <Pill to="/cabinet" active={menuId === 'overview'}>Главная</Pill>
+              {user.capabilities?.manageMaterials && <Pill to="/cabinet/manage-materials" active={materialManagement}>Материалы сайта</Pill>}
               {groups.map((g) =>
                 g.id === 'account' ? (
                   <button
@@ -212,7 +216,7 @@ export default function Cabinet() {
         </>
         }
       >
-          {page ? (
+          {materialManagement ? (user.capabilities?.manageMaterials ? <MaterialManager /> : <p role="alert">Этот раздел доступен только владельцу сайта.</p>) : page ? (
             <>
               <header className="mb-4">
                 <h1 className="text-2xl font-semibold tracking-tight">{page.title}</h1>

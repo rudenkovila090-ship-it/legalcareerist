@@ -1,0 +1,52 @@
+{
+  "baseline": "947d6b4c847e329898077795f3b6f3334fe44876",
+  "materialManager": true,
+  "recoverMaterials": false,
+  "files": [
+    {
+      "path": "server/index.js",
+      "before": "16ac5f0499203503276b68c10c455b98617f5cb0a8bf400acd50f79a8dca64c1",
+      "after": "f310419d6a0f4686350060f7f802efbec694d943cda25f77458d72d9c71077be"
+    },
+    {
+      "path": "server/lib/adminMaterials.js",
+      "before": null,
+      "after": "8c0ae9e9eddbf946d0e2b344a6014297c9cf9710a87b1356316b5bba2a40bb1a"
+    },
+    {
+      "path": "server/lib/materialPdfs.js",
+      "before": "2ea0bed8654c740c826ce21c193f1493885b2a6af246284aaa2b285709d73b9f",
+      "after": "24f475dbc94b8f7dc45128f1da17eca39382891a832d214c0d32ff224a8213b0"
+    },
+    {
+      "path": "server/tests/admin-materials.mjs",
+      "before": null,
+      "after": "637af1102f5c473697885e44ee51bf09cbee893800c02ee5119b3bdedfb1e2db"
+    },
+    {
+      "path": "server/tests/http-reliability.mjs",
+      "before": "722950d89c1614707ba1bed74352db454a10d4a01d18c6f42dc61eb3063f02c9",
+      "after": "8e732904995467f6e97cc6c232260fa8bf8991dd40381da20ea6a7a910dcea80"
+    },
+    {
+      "path": "src/lib/cabinet.ts",
+      "before": "256957dea2ee5eb89812bf8ecc0d4607b88d49e14cb1dec411317cb1c44f0cf5",
+      "after": "93d11c6aa1a2016acd2191df8660d8ea72640a8e4abafa8d0b1ba48a56bdce00"
+    },
+    {
+      "path": "src/pages/cabinet/Cabinet.tsx",
+      "before": "e8299fede253aff6d4e85cd56da2ebd4b248f3e862d82afb7151d2205990de94",
+      "after": "5846b5dc1225fc6bfa2ec27f5d7d1df8b303ae377f8229fcb4c819c5d0043478"
+    },
+    {
+      "path": "src/pages/cabinet/MaterialManager.tsx",
+      "before": null,
+      "after": "93770478df2e83b542241fd8989c708cde8db28be3b000b63feb09457f427068"
+    },
+    {
+      "path": "server/lib/healthBackup.js",
+      "before": "c5bd10b8eeacc75fd85612930731e4af44c8dd95f319e89be1421acaa9d433f6",
+      "after": "e433d08d1e83cf442742d717d1cc246a7fa480f83dcaac0a87fdac319f32c920"
+    }
+  ]
+}

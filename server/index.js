@@ -61,6 +61,7 @@ import { createAccessExpiryWorker, protectedByOtherCard } from './lib/accessExpi
 import { createRenewalDelivery } from './lib/residentDelivery.js'
 import { getMaterialFile, setMaterialFile } from './lib/materialFiles.js'
 import { getMaterialPdf } from './lib/materialPdfs.js'
+import { registerAdminMaterials } from './lib/adminMaterials.js'
 import { issueMaterialLink, resolveMaterialLink, looksLikeLinkToken } from './lib/materialLinks.js'
 import { composeMaterialMail, formatMoscowDateTime as formatMskDateTime, LINK_DAYS } from './lib/materialMail.js'
 import { saveReview, getReviewByPurchase, ratingsSummary, publicReviews, listReviews, getReview, setReviewHidden, reviewText, reviewSignature } from './lib/materialReviews.js'
@@ -1086,7 +1087,7 @@ app.get('/api/account/me', (req, res) => {
   const cfg = accountContext(req)
   if (!cfg) return res.status(401).json({ ok: false, error: 'unauthorized' })
   res.set('Cache-Control', 'no-store')
-  res.json({ ok: true, ...accountProfile(cfg) })
+  res.json({ ok: true, ...accountProfile(cfg), capabilities: { manageMaterials: cfg.login === accountConfig()?.login } })
 })
 
 app.post('/api/account/logout', (req, res) => {
@@ -1104,6 +1105,13 @@ function requireAccount(req, res) {
   res.set('Cache-Control', 'no-store')
   return cfg
 }
+
+registerAdminMaterials(app, { requireOwner: (req, res) => {
+  const owner = requireAccount(req, res)
+  if (!owner) return null
+  if (owner.login !== accountConfig()?.login) { res.status(403).json({ ok: false, error: 'admin_only' }); return null }
+  return owner
+} })
 
 // Смена пароля резидента (нужен текущий). Остальные входы закрываются, этот остаётся.
 app.post('/api/account/password', (req, res) => {

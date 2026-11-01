@@ -8,7 +8,7 @@ import { execFileSync } from 'node:child_process'
 
 process.umask(0o077)
 const release = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
-const manifestPath = path.join(release, 'updates/site-reliability/manifest.json')
+const manifestPath = path.resolve(release, process.env.SITE_RELIABILITY_MANIFEST || 'updates/site-reliability/manifest.json')
 const hash = file => crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex')
 const exists = file => fs.existsSync(file)
 const read = file => JSON.parse(fs.readFileSync(file, 'utf8'))
@@ -85,11 +85,11 @@ function readableWebTree(dir) {
   }
   fs.chmodSync(dir, 0o755)
 }
-async function ready(site, port, expectReceiptRoute) {
+async function ready(site, port, expectReceiptRoute, route = '/api/account/lead-inbox') {
   for (let attempt = 0; attempt < 20; attempt++) {
     try {
       const r = await fetch(`http://127.0.0.1:${port}/api/health`, { signal: AbortSignal.timeout(2000) })
-      const inbox = expectReceiptRoute ? await fetch(`http://127.0.0.1:${port}/api/account/lead-inbox`, { signal: AbortSignal.timeout(2000) }) : null
+      const inbox = expectReceiptRoute ? await fetch(`http://127.0.0.1:${port}${route}`, { signal: AbortSignal.timeout(2000) }) : null
       if (r.ok && (await r.json()).ok === true && (!inbox || inbox.status === 401) && pm2App(site).pm2_env.status === 'online') return true
     } catch { /* bounded startup wait */ }
     await new Promise(resolve => setTimeout(resolve, 500))
@@ -149,6 +149,7 @@ async function install(site) {
   // node:test also runs when the file is invoked directly, including Node 22.12.
   // --test-isolation is unavailable in earlier supported Node 22 releases.
   command('node', ['server/tests/reliability.test.mjs'], release)
+  if (manifest.materialManager) command('node', ['server/tests/admin-materials.mjs'], release)
   command('npm', ['run', 'lint'], release)
   command('npm', ['run', 'build'], release)
   const id = Date.now() + '-' + crypto.randomBytes(3).toString('hex')
@@ -196,7 +197,7 @@ async function install(site) {
     }
     ensure(hash(path.join(site, 'server/.env')) === envDigest, 'Настройки менялись во время установки; нужен повтор проверки')
     command('pm2', ['restart', 'legalcareerist-api'], site)
-    ensure(await ready(site, meta.port, true), 'Новая версия API не прошла проверку')
+    ensure(await ready(site, meta.port, true, manifest.materialManager ? '/api/account/materials' : '/api/account/lead-inbox'), 'Новая версия API не прошла проверку')
     const publicResponse = await fetch(process.env.SITE_RELIABILITY_PUBLIC_URL || 'https://legalcareerist.ru/', { signal: AbortSignal.timeout(10000) })
     ensure(publicResponse.ok && (publicResponse.headers.get('content-type') || '').includes('text/html'), 'Публичная страница сайта не прошла проверку')
     ensure(environmentMeta(site, pm2App(site)).exclude === '0', 'Изменилась настройка автоисключения')
@@ -206,8 +207,9 @@ async function install(site) {
     console.log('Откат кода: node ' + path.join(backup, 'installer.mjs') + ' --rollback ' + backup)
     console.log('Полная копия и копия прежнего кода: ' + backupRoot)
     // Optional recovery never makes a successful code deployment roll back.
-    try { command('node', ['--env-file=server/.env', path.join(release, 'scripts/restore-material-pdfs.mjs')], site) }
+    try { if (manifest.recoverMaterials !== false) command('node', ['--env-file=server/.env', path.join(release, 'scripts/restore-material-pdfs.mjs')], site) }
     catch { console.log('Материалы: восстановление требует отдельной проверки; код установлен.') }
+    if (manifest.materialManager) console.log('Загрузка PDF: https://legalcareerist.ru/cabinet/manage-materials (вход владельца сайта).')
   } catch (error) {
     console.error('Установка остановлена:', error.message)
     if (changed) { try { await rollback(backup, true) } catch (rollbackError) { console.error('Нужна проверка отката:', rollbackError.message); console.error('Копия: ' + backup) } }
