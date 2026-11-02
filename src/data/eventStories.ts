@@ -13,6 +13,7 @@ import partnerDasha from '../assets/noir/partner-dasha-italy.webp'
 import partnerCareerLawyer from '../assets/noir/partner-career-lawyer.webp'
 import partnerWeb2b from '../assets/noir/partner-web2b.webp'
 import partnerYulia from '../assets/noir/partner-yulia-grebenshchikova.webp'
+import partnerPlaceholder from '../assets/noir/partner-placeholder.svg'
 import { noirEventSlugs } from './noirEvents'
 
 // Авторское оформление и тексты отдельных мероприятий. Лежит отдельно от events.ts:
@@ -389,6 +390,11 @@ export const eventStories: Record<string, EventStory> = {
               name: 'Юлия Гребенщикова',
               logo: partnerYulia,
               link: { label: '@yugrbbb', href: 'https://t.me/yugrbbb' },
+            },
+            {
+              name: 'Совет молодых адвокатов Санкт-Петербурга',
+              logo: partnerPlaceholder,
+              link: { label: '@sma_spb', href: 'https://t.me/sma_spb' },
             },
           ],
         },
