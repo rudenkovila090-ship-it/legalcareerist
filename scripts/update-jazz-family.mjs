@@ -8,6 +8,22 @@ const release = process.argv[2]
 if (!/^[a-f0-9]{40}$/.test(release || '')) throw Error('Укажите полный SHA проверенного выпуска.')
 const site = fs.realpathSync(process.env.SITE_DIR || process.cwd())
 process.chdir(site)
+if (!fs.existsSync('package.json')) throw Error('В папке сайта нет package.json: ' + site)
+const launcherFile = 'update-jazz.local'
+const launcher = [
+  '#!/usr/bin/env bash',
+  'set -euo pipefail',
+  'cd -- "$(dirname -- "$0")"',
+  'git fetch origin refs/heads/codex/site-reliability:refs/remotes/origin/codex/site-reliability',
+  'jazz_release=$(git rev-parse --verify refs/remotes/origin/codex/site-reliability^{commit})',
+  'jazz_update=$(mktemp --suffix=.mjs)',
+  'trap \'rm -f "$jazz_update"\' EXIT',
+  'git show "$jazz_release:scripts/update-jazz-family.mjs" > "$jazz_update"',
+  'node "$jazz_update" "$jazz_release"',
+  '',
+].join('\n')
+if (!fs.existsSync(launcherFile)) fs.writeFileSync(launcherFile, launcher, { mode: 0o700, flag: 'wx' })
+if (fs.readFileSync(launcherFile, 'utf8') === launcher) console.log('Для следующих обновлений в этой папке: bash update-jazz.local')
 const storyFile = 'src/data/eventStories.ts'
 const componentFile = 'src/pages/events/NoirSections.tsx'
 const cssFile = 'src/pages/events/noir.css'
@@ -86,12 +102,20 @@ function readable(dir) {
 }
 async function verify() {
   const files = fs.readdirSync('dist/assets')
-  const dataModules = files.filter(f => f.endsWith('.js') && (() => {
-    const js = fs.readFileSync('dist/assets/' + f, 'utf8')
-    return js.includes('https://t.me/sma_spb') && js.includes('https://t.me/proocareer')
-  })())
+  const jsFiles = files.filter(f => f.endsWith('.js'))
+  const dataModules = new Set()
+  const missing = []
+  // Chunk boundaries are a build detail: verify each partner independently.
+  for (const href of ['https://t.me/sma_spb', 'https://t.me/proocareer']) {
+    const matches = jsFiles.filter(f => fs.readFileSync('dist/assets/' + f, 'utf8').includes(href))
+    console.log('JS ' + href + ': ' + (matches.join(', ') || 'НЕ НАЙДЕН'))
+    if (!matches.length) missing.push('в JS отсутствует ' + href)
+    for (const file of matches) dataModules.add(file)
+  }
   const styleModules = files.filter(f => f.endsWith('.css') && fs.readFileSync('dist/assets/' + f, 'utf8').includes('.fam-member'))
-  if (!dataModules.length || !styleModules.length) throw Error('В сборке не найдены новые партнёры или их стили.')
+  console.log('CSS карточек: ' + (styleModules.join(', ') || 'НЕ НАЙДЕН'))
+  if (!styleModules.length) missing.push('в CSS отсутствуют стили .fam-member')
+  if (missing.length) throw Error(missing.join('; '))
   const imageModules = []
   for (const logo of logos) {
     const prefix = path.basename(logo, '.jpg') + '-'
@@ -119,13 +143,33 @@ try {
     fs.mkdirSync(path.dirname(file), { recursive: true })
     fs.writeFileSync(file, data, { mode: 0o644 })
   }
-  const build = spawnSync('npm', ['run', 'build'], { stdio: 'inherit' })
+  console.log('Папка сборки: ' + site)
+  const vitePackage = JSON.parse(fs.readFileSync('node_modules/vite/package.json', 'utf8'))
+  console.log('Node ' + process.version + ', Vite ' + vitePackage.version)
+  const buildStarted = Date.now()
+  const build = spawnSync('npm', ['--prefix', site, 'run', 'build'], { cwd: site, stdio: 'inherit' })
   if (build.status !== 0) throw Error('Сборка завершилась с ошибкой.')
+  for (const [file, data] of updates) {
+    if (!fs.readFileSync(file).equals(data)) throw Error('Во время сборки изменён исходник: ' + file)
+  }
+  if (fs.statSync('dist/index.html').mtimeMs < buildStarted - 2000) throw Error('Сборка не обновила dist в папке сайта; нужно проверить рабочую папку сборщика.')
   readable('dist')
   await verify()
   console.log('Проверено: сайт отдаёт оба оригинальных логотипа, новый порядок и уменьшенные карточки партнёров.')
   console.log('Адрес мероприятия и UTM сохранены. Резервная копия: ' + backup)
 } catch (error) {
+  // Keep the failed frontend build for diagnosis before restoring the live tree.
+  const attempt = path.join(backup, 'failed-build')
+  try {
+    fs.mkdirSync(attempt)
+    for (const file of [...updates.keys(), 'package.json', 'vite.config.ts', 'dist']) {
+      if (!fs.existsSync(file)) continue
+      const dest = path.join(attempt, file)
+      fs.mkdirSync(path.dirname(dest), { recursive: true })
+      fs.cpSync(file, dest, { recursive: true })
+    }
+    console.error('Диагностика неудачной сборки сохранена: ' + attempt)
+  } catch { console.error('Не удалось сохранить диагностическую копию сборки.') }
   for (const [file, present] of existed) {
     fs.rmSync(file, { recursive: true, force: true })
     if (present) fs.cpSync(path.join(backup, file), file, { recursive: true })
