@@ -18,9 +18,8 @@ for (const file of ['.', 'dist', 'dist/index.html']) {
 }
 let matched = false
 try {
-  const base = new URL(process.env.SITE_PUBLIC_URL || 'https://legalcareerist.ru')
-  const page = new URL('/events/dzhazovyy-vecher-dlya-yuristov-2', base)
-  page.searchParams.set('check_jazz', Date.now().toString())
+  const base = new URL(process.env.SITE_PUBLIC_URL || 'https://legalcareerist.ru/events/dzhazovyy-vecher-dlya-yuristov-2')
+  const page = base
   const get = async url => {
     const response = await fetch(url, { signal: AbortSignal.timeout(15000), headers: { 'Cache-Control': 'no-cache' } })
     if (!response.ok) throw Error(`HTTP ${response.status}: ${url.pathname}`)
