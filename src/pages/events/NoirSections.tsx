@@ -315,10 +315,10 @@ export function NoirFamily({ story }: { story: EventStory }) {
           <Reveal>
             <h3 className="font-noir text-lg font-semibold text-ink">{g.title}</h3>
           </Reveal>
-          <div className="mt-4 flex flex-wrap gap-x-8 gap-y-6">
+          <div className="fam-members mt-4">
             {g.members.map((m, i) => (
               <Reveal key={m.name} variant="zoom" delay={i * 120}>
-                <div className="flex w-full max-w-[12.5rem] flex-col items-center text-center">
+                <div className="fam-member">
                   {m.logo &&
                     (m.link ? (
                       // Картинка тоже ведёт по ссылке, но для клавиатуры и скринридеров ссылка одна — подпись под ней.
@@ -330,10 +330,10 @@ export function NoirFamily({ story }: { story: EventStory }) {
                         <img src={m.logo} alt={m.name} draggable={false} />
                       </span>
                     ))}
-                  <p className="font-noir mt-3 text-base font-semibold leading-snug text-ink">{m.name}</p>
-                  {m.description && <p className="mt-1 text-[0.8125rem] leading-relaxed text-ink/65">{m.description}</p>}
+                  <p className="fam-name font-noir font-semibold leading-snug text-ink">{m.name}</p>
+                  {m.description && <p className="fam-description leading-relaxed text-ink/65">{m.description}</p>}
                   {m.link && (
-                    <a href={m.link.href} target="_blank" rel="noopener noreferrer" className="mt-1.5 inline-block text-[0.8125rem] [overflow-wrap:anywhere] font-semibold text-gold underline decoration-gold/40 underline-offset-4 transition-colors hover:text-gold-light hover:decoration-gold-light">
+                    <a href={m.link.href} target="_blank" rel="noopener noreferrer" className="fam-link inline-block [overflow-wrap:anywhere] font-semibold text-gold underline decoration-gold/40 underline-offset-4 transition-colors hover:text-gold-light hover:decoration-gold-light">
                       {m.link.label}
                     </a>
                   )}

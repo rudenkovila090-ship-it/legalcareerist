@@ -13,7 +13,8 @@ import partnerDasha from '../assets/noir/partner-dasha-italy.webp'
 import partnerCareerLawyer from '../assets/noir/partner-career-lawyer.webp'
 import partnerWeb2b from '../assets/noir/partner-web2b.webp'
 import partnerYulia from '../assets/noir/partner-yulia-grebenshchikova.webp'
-import partnerPlaceholder from '../assets/noir/partner-placeholder.svg'
+import partnerSmaSpb from '../assets/noir/partner-sma-spb.jpg'
+import partnerProCareer from '../assets/noir/partner-pro-career.jpg'
 import { noirEventSlugs } from './noirEvents'
 
 // Авторское оформление и тексты отдельных мероприятий. Лежит отдельно от events.ts:
@@ -372,14 +373,14 @@ export const eventStories: Record<string, EventStory> = {
           title: 'Информационные партнеры',
           members: [
             {
-              name: 'Даша едет в Италию 🇮🇹',
-              logo: partnerDasha,
-              link: { label: '@study_inEuropefromRussia', href: 'https://t.me/study_inEuropefromRussia' },
+              name: 'Совет молодых адвокатов Санкт-Петербурга',
+              logo: partnerSmaSpb,
+              link: { label: '@sma_spb', href: 'https://t.me/sma_spb' },
             },
             {
-              name: 'Карьерный юрист — сообщество',
-              logo: partnerCareerLawyer,
-              link: { label: '@legalcareerist', href: 'https://t.me/legalcareerist' },
+              name: 'PRO.Карьера',
+              logo: partnerProCareer,
+              link: { label: '@proocareer', href: 'https://t.me/proocareer' },
             },
             {
               name: 'Юридическая фирма WEB2B.LAW',
@@ -387,14 +388,19 @@ export const eventStories: Record<string, EventStory> = {
               link: { label: 'web2b.law', href: 'https://web2b.law/' },
             },
             {
+              name: 'Даша едет в Италию 🇮🇹',
+              logo: partnerDasha,
+              link: { label: '@study_inEuropefromRussia', href: 'https://t.me/study_inEuropefromRussia' },
+            },
+            {
               name: 'Юлия Гребенщикова',
               logo: partnerYulia,
               link: { label: '@yugrbbb', href: 'https://t.me/yugrbbb' },
             },
             {
-              name: 'Совет молодых адвокатов Санкт-Петербурга',
-              logo: partnerPlaceholder,
-              link: { label: '@sma_spb', href: 'https://t.me/sma_spb' },
+              name: 'Карьерный юрист — сообщество',
+              logo: partnerCareerLawyer,
+              link: { label: '@legalcareerist', href: 'https://t.me/legalcareerist' },
             },
           ],
         },
