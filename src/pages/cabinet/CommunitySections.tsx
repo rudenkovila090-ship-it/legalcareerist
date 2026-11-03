@@ -308,15 +308,16 @@ export function StatusSection({ user, onRefresh }: { user: CabinetUser; onRefres
     }
     setPanel('none')
     setReason('')
-    // сразу снимаем кнопку отключения, не дожидаясь обновления данных: двойной щелчок ничего не отправит второй раз
-    setSub((prev) => (prev ? { ...prev, canCancel: false, cancelled: true, autoRenew: false, nextPayment: null } : prev))
+    if (r.data.confirmed && !r.data.test) {
+      setSub((prev) => (prev ? { ...prev, canCancel: false, cancelled: true, autoRenew: false, nextPayment: null } : prev))
+    }
     setDone({
       kind: 'cancel',
       text: r.data.test
         ? 'Тест основателя: путь отключения пройден, подписка не изменилась.'
         : r.data.confirmed
           ? `Автопродление отключено, списаний больше не будет. Доступ к сообществу сохранится${r.data.endsAt ? ` до ${longDate(r.data.endsAt)}` : ' до конца оплаченного периода'}.`
-          : 'Мы получили заявку, но автоматически отключить подписку в платёжной системе не получилось. Мы отключим её вручную; если за это время придёт списание, напишите в чат поддержки.',
+          : 'Не удалось подтвердить отключение в платёжной системе. Автопродление пока остаётся включённым. Попробуйте ещё раз или обратитесь в чат поддержки.',
     })
     const refreshed = await fetchSubscription()
     if (refreshed.ok) setSub(refreshed.data.subscription)

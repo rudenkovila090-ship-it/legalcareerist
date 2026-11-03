@@ -1375,7 +1375,7 @@ app.post('/api/account/subscription/cancel', async (req, res) => {
   const test = Boolean(join.lifetime)
   const { confirmed, results } = test ? { confirmed: true, results: [] } : await cancelSubscription(join, reason)
   const endsAt = test ? join.endsAt : join.nextPaymentAt
-  logActivity(cfg.login, 'subscription_cancelled')
+  logActivity(cfg.login, confirmed ? 'subscription_cancelled' : 'subscription_cancel_failed')
   if (BOT_TOKEN && ADMIN_CHAT_ID) {
     const who = accountIdentity(cfg)
     await sendTelegramMessage(ADMIN_CHAT_ID, buildKadryRichNotification({
@@ -3516,9 +3516,11 @@ async function cancelSubscription(join, reason) {
     }
   }
   const confirmed = join.oneTime || results.some((r) => r.ok)
-  setSubscriptionActive(join.token, false, Date.now())
-  setCancelReason(join.token, 'other')
-  setJoinField(join.token, 'cancelReasonText', reason)
+  if (confirmed) {
+    setSubscriptionActive(join.token, false, Date.now())
+    setCancelReason(join.token, 'other')
+    setJoinField(join.token, 'cancelReasonText', reason)
+  }
   return { confirmed, results }
 }
 
@@ -4009,17 +4011,15 @@ app.post('/api/prodamus/webhook', async (req, res) => {
   const body = req.body ?? {}
   const sign = req.headers['sign'] || body.signature
 
-  // signed — подпись пришла и совпала хотя бы с одним ключом платёжных страниц (неверная подпись отсекается сразу).
-  const signed = Boolean(PRODAMUS_SECRET_KEYS.length && sign)
-  if (PRODAMUS_SECRET_KEYS.length && sign) {
-    // Уведомление подписано ключом той платёжной страницы, с которой пришла оплата (подписки, материалы, билеты — могут быть разными).
-    const valid = PRODAMUS_SECRET_KEYS.some((key) => HmacHelper.verify(body, key, sign))
-    if (!valid) {
-      console.error('[prodamus] неверная подпись вебхука')
-      return res.sendStatus(400)
-    }
-  } else {
-    console.error('[prodamus] PRODAMUS_SECRET_KEY не задан или подпись отсутствует в запросе — пропускаю проверку')
+  if (!PRODAMUS_SECRET_KEYS.length) {
+    console.error('[prodamus] ключи проверки уведомлений не настроены')
+    return res.sendStatus(503)
+  }
+  // Validate before recording payments, changing subscription state or writing the accepted-event log.
+  const signed = Boolean(sign && PRODAMUS_SECRET_KEYS.some((key) => HmacHelper.verify(body, key, sign)))
+  if (!signed) {
+    console.error('[prodamus] подпись уведомления отсутствует или неверна')
+    return res.sendStatus(400)
   }
 
   // Логируем полный payload — точные поля события уточнили по первым

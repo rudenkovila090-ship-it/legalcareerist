@@ -60,7 +60,7 @@ const [me, hook] = await Promise.all([api('getMe'), api('getWebhookInfo')])
 result.telegram = { ok: me.ok, http: me.http ?? null, error: me.error ?? null, code: me.code ?? me.errorCode ?? null, username: me.ok ? me.data?.username : null }
 let host = null
 try { host = hook.data?.url ? new URL(hook.data.url).hostname : null } catch { /* do not expose an unexpected URL */ }
-result.telegram.webhook = { ok: hook.ok, configured: Boolean(hook.data?.url), host, pendingUpdates: hook.data?.pending_update_count ?? null, deliveryErrorPresent: Boolean(hook.data?.last_error_message) }
+result.telegram.webhook = { ok: hook.ok, http: hook.http ?? null, error: hook.error ?? null, code: hook.code ?? hook.errorCode ?? null, configured: hook.ok ? Boolean(hook.data?.url) : null, host, pendingUpdates: hook.data?.pending_update_count ?? null, deliveryErrorPresent: hook.ok ? Boolean(hook.data?.last_error_message) : null }
 if (me.ok && chat && me.data?.id) {
   const [visible, member] = await Promise.all([api('getChat', { chat_id: chat }), api('getChatMember', { chat_id: chat, user_id: me.data.id })])
   result.community = {

@@ -7,6 +7,7 @@ import { spawn } from 'node:child_process'
 import { pathToFileURL, fileURLToPath } from 'node:url'
 
 const source = fileURLToPath(new URL('..', import.meta.url))
+const noPaymentKeys = process.argv.includes('--no-payment-keys')
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'legalcareerist-http-'))
 fs.cpSync(path.join(source, 'lib'), path.join(root, 'lib'), { recursive: true })
 for (const file of ['index.js', 'package.json']) fs.copyFileSync(path.join(source, file), path.join(root, file))
@@ -15,9 +16,13 @@ for (const dir of ['assets', 'content']) if (fs.existsSync(path.join(source, dir
 fs.mkdirSync(path.join(root, 'data'))
 const { hashPassword } = await import('../lib/password.js')
 const env = { ...process.env, PORT: process.env.RELIABILITY_TEST_PORT || '3036', TELEGRAM_BOT_TOKEN: 'TEST_FAKE', TELEGRAM_ADMIN_CHAT_ID: '900000099', TELEGRAM_POLLING: '0', DISABLE_DAILY_REPORT: '1', DISABLE_BACKUP: '1', AUTO_EXCLUDE: '0', TEST_HOOKS: '1', SMTP_HOST: '', SMTP_USER: '', SMTP_PASS: '', ACCOUNT_LOGIN: 'test-owner', ACCOUNT_PASSWORD_HASH: hashPassword('Test-Owner-2026!'), PRODAMUS_SECRET_KEY: 'test-no-real-provider', SITE_URL: 'https://example.invalid' }
+env.PRODAMUS_MATERIALS_SECRET_KEY = ''
+env.PRODAMUS_EVENTS_SECRET_KEY = ''
+if (noPaymentKeys) env.PRODAMUS_SECRET_KEY = ''
 fs.writeFileSync(path.join(root, 'bootstrap.mjs'), `
 import fs from 'node:fs';
 globalThis.fetch = async (url) => {
+  if (String(url).includes('/rest/setActivity/')) return Response.json({success:fs.existsSync(new URL('./prodamus-cancel-ok', import.meta.url))});
   if (String(url).startsWith('https://legalcareerist.payform.ru/')) return new Response('https://legalcareerist.payform.ru/SYNTHETIC_CHECKOUT/');
   if (!String(url).startsWith('https://api.telegram.org/')) throw Error('TEST outbound disabled');
   const success = fs.existsSync(new URL('./telegram-ok', import.meta.url));
@@ -57,6 +62,11 @@ try {
     await wait(50)
   }
   if (!ready) throw Error('isolated server did not start: ' + output)
+  if (noPaymentKeys) {
+    const r = await request('/api/prodamus/webhook', { payment_status: 'success', subscription: { id: '2854597' }, sum: '690' }, { sign: 'synthetic-signature' })
+    check('missing verification keys reject payment before storage or accepted-event logging', () => { assert.equal(r.status, 503); assert.equal(fs.existsSync(path.join(root, 'data/pending-joins.json')), false); assert.equal(fs.existsSync(path.join(root, 'data/prodamus-webhooks.jsonl')), false) })
+    console.log(`${count} missing-key check passed; no outbound provider calls`)
+  } else {
   const payload = { requestId: 'http-synthetic-request-0001', formType: 'contact', name: 'Synthetic Customer', phone: '+79000000222', email: 'http@example.invalid', contact: 'http@example.invalid', interest: ['Synthetic question'], ticketNumber: '41' }
   let r = await request('/api/notify', payload)
   check('no consent: rejects before persistence', () => { assert.equal(r.status, 400); assert.equal(fs.existsSync(path.join(root, 'data/lead-inbox.json')), false) })
@@ -120,6 +130,13 @@ try {
   const { HmacHelper } = await import('../lib/hmac.js')
   const paidAt = Date.now(), until = paidAt + 30 * 86400000
   const payment = { payment_status: 'success', date: new Date(paidAt).toISOString(), order_id: 'http-renewal-confirmation', sum: '690', customer_email: 'reminder@example.invalid', tg_user_id: '900000003', subscription: { id: '2854597', payment_num: '2', profile_id: 'http-profile', date_next_payment: new Date(until).toISOString() } }
+  const beforeUnsigned = joins.getJoin(token)
+  r = await request('/api/prodamus/webhook', payment)
+  await wait(100)
+  check('missing payment signature is rejected without modifying a subscription', () => { assert.equal(r.status, 400); assert.deepEqual(joins.getJoin(token), beforeUnsigned) })
+  r = await request('/api/prodamus/webhook', { ...payment, payment_status: 'error', subscription: { ...payment.subscription, type: 'action', active_user: '0', active: '0' } })
+  await wait(100)
+  check('unsigned subscription state change is rejected without modifying access', () => { assert.equal(r.status, 400); assert.deepEqual(joins.getJoin(token), beforeUnsigned) })
   r = await request('/api/prodamus/webhook', payment, { sign: 'invalid-test-signature' })
   check('incorrect payment signature does not change paid access', () => { assert.equal(r.status, 400); assert.equal(joins.getJoin(token).nextPaymentAt, next) })
   r = await request('/api/prodamus/webhook', payment, { sign: HmacHelper.create(payment, env.PRODAMUS_SECRET_KEY) })
@@ -131,11 +148,23 @@ try {
   await request('/api/prodamus/webhook', payment, { sign: HmacHelper.create(payment, env.PRODAMUS_SECRET_KEY) })
   await wait(100)
   check('duplicate provider notification does not add a payment or confirmation', () => { assert.equal(joins.getJoin(token).payments.length, 2); assert.equal(joins.getJoin(token).renewalNotices.length, 1) })
+  r = await request('/api/prodamus/webhook', { ...payment, signature: HmacHelper.create(payment, env.PRODAMUS_SECRET_KEY) })
+  await wait(100)
+  check('valid body signature remains supported without duplicating a payment', () => { assert.equal(r.status, 200); assert.equal(joins.getJoin(token).payments.length, 2) })
   const oldFailure = { ...payment, payment_status: 'error', subscription: { ...payment.subscription, notification_code: 'auto_payment', current_attempt: '2', error: 'Synthetic previous-period failure' } }
   await request('/api/prodamus/webhook', oldFailure, { sign: HmacHelper.create(oldFailure, env.PRODAMUS_SECRET_KEY) })
   await wait(100)
   check('late failure from the previous period cannot mark a renewed customer unpaid', () => { assert.equal(joins.getJoin(token).watch, undefined); assert.equal(joins.getJoin(token).nextPaymentAt, until) })
+  const cancelToken = joins.createPendingJoin({ tariffId: '1m', name: 'Synthetic cancellation', email: 'member@example.invalid' })
+  joins.recordPayment(cancelToken, { tariffId: '1m', amount: 690, paidAt: Date.now(), orderKey: 'synthetic-cancellation', nextPaymentAt: until, subscriptionId: '2854597' })
+  const cancellationBefore = joins.getJoin(cancelToken)
+  r = await request('/api/account/subscription/cancel', { reason: 'Synthetic cancellation request' }, { Authorization: `Bearer ${session.token}` })
+  check('provider cancellation failure preserves active status and allows retry', () => { assert.equal(r.status, 200); assert.equal(r.body.confirmed, false); assert.deepEqual(joins.getJoin(cancelToken), cancellationBefore) })
+  fs.writeFileSync(path.join(root, 'prodamus-cancel-ok'), '')
+  r = await request('/api/account/subscription/cancel', { reason: 'Synthetic retry' }, { Authorization: `Bearer ${session.token}` })
+  check('confirmed cancellation changes status but preserves the paid period and payments', () => { assert.equal(r.status, 200); assert.equal(r.body.confirmed, true); assert.equal(joins.getJoin(cancelToken).status, 'cancelled'); assert.equal(joins.getJoin(cancelToken).nextPaymentAt, until); assert.equal(joins.getJoin(cancelToken).payments.length, 1) })
   console.log(`${count} integration checks passed; all users and outbound responses synthetic`)
+  }
 } finally {
   child.kill('SIGTERM')
   await new Promise(resolve => { if (child.exitCode !== null) return resolve(); child.once('exit', resolve); setTimeout(resolve, 1000).unref() })
