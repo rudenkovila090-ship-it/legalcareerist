@@ -10,6 +10,7 @@ const source = fileURLToPath(new URL('..', import.meta.url))
 const noPaymentKeys = process.argv.includes('--no-payment-keys')
 const lifecycleMode = process.argv.includes('--lifecycle')
 const retentionMode = process.argv.includes('--retention')
+const recoveryMode = process.argv.includes('--recovery')
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'legalcareerist-http-'))
 fs.cpSync(path.join(source, 'lib'), path.join(root, 'lib'), { recursive: true })
 for (const file of ['index.js', 'package.json']) fs.copyFileSync(path.join(source, file), path.join(root, file))
@@ -30,13 +31,14 @@ import fs from 'node:fs';
 let clock = null; const realNow = Date.now; Date.now = () => clock ?? realNow();
 globalThis.fetch = async (url, init = {}) => {
   const u = new URL(String(url));
-  if (u.hostname === 'legalcareerist.payform.ru' && u.searchParams.has('subscription')) fs.writeFileSync(new URL('./checkout-plan', import.meta.url), u.searchParams.get('subscription'));
+  if (u.hostname === 'legalcareerist.payform.ru' && u.searchParams.has('subscription')) { fs.writeFileSync(new URL('./checkout-plan', import.meta.url), u.searchParams.get('subscription')); fs.appendFileSync(new URL('./checkout-requests.jsonl', import.meta.url), JSON.stringify(Object.fromEntries(u.searchParams))+String.fromCharCode(10)); }
   if (u.hostname === 'api.telegram.org') { let body = {}; try { body = JSON.parse(init.body || '{}') } catch {} fs.appendFileSync(new URL('./telegram-calls.jsonl', import.meta.url), JSON.stringify({method:u.pathname.split('/').at(-1),body})+'\\n'); }
   if (String(url).includes('/rest/setActivity/')) { const fail=new URL('./prodamus-cancel-fail-id', import.meta.url); return Response.json({success:fs.existsSync(new URL('./prodamus-cancel-ok', import.meta.url))&&(!fs.existsSync(fail)||new URLSearchParams(init.body).get('subscription')!==fs.readFileSync(fail,'utf8'))}); }
   if (String(url).startsWith('https://legalcareerist.payform.ru/')) return new Response('https://legalcareerist.payform.ru/SYNTHETIC_CHECKOUT/');
   if (!String(url).startsWith('https://api.telegram.org/')) throw Error('TEST outbound disabled');
   const success = fs.existsSync(new URL('./telegram-ok', import.meta.url));
-  return Response.json({ok:success,result:success?(String(url).endsWith('/getChatMember')?{status:'member'}:{message_id:1}):undefined,description:success?undefined:'TEST offline'},{status:success?200:503});
+  const body=JSON.parse(init.body||'{}');
+  return Response.json({ok:success,result:success?(String(url).endsWith('/getChatMember')?{status:'member'}:String(url).endsWith('/getChat')?{id:Number(body.chat_id),type:'private',first_name:'Synthetic',username:'synthetic_member'}:{message_id:1}):undefined,description:success?undefined:'TEST offline'},{status:success?200:503});
 };
 await import('./index.js');
 process.on('message',async message=>{try { if(message.clock!==undefined) clock=message.clock; if(message.raisePrice) { const {TARIFFS}=await import('./lib/prodamus.js'); TARIFFS['1m'].price=990; TARIFFS['1m'].subscription=9999999; } if(message.hook) await globalThis.__hooks[message.hook](); process.send({id:message.id,ok:true}) } catch(e) {process.send({id:message.id,error:e.message})}});
@@ -76,6 +78,10 @@ try {
     const r = await request('/api/prodamus/webhook', { payment_status: 'success', subscription: { id: '2854597' }, sum: '690' }, { sign: 'synthetic-signature' })
     check('missing verification keys reject payment before storage or accepted-event logging', () => { assert.equal(r.status, 503); assert.equal(fs.existsSync(path.join(root, 'data/pending-joins.json')), false); assert.equal(fs.existsSync(path.join(root, 'data/prodamus-webhooks.jsonl')), false) })
     console.log(`${count} missing-key check passed; no outbound provider calls`)
+  } else if (recoveryMode) {
+    const { runRecovery } = await import('./subscription-recovery-scenario.mjs')
+    await runRecovery({ root, request, hook, read, check, wait, pathToFileURL })
+    console.log(`${count} recovery checks passed; no real provider calls or messages`)
   } else if (retentionMode) {
     const { runRetention } = await import('./subscription-retention-scenario.mjs')
     await runRetention({ root, request, hook, read, check, wait, pathToFileURL })

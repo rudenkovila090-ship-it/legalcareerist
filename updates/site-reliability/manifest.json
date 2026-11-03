@@ -37,10 +37,11 @@
     {
       "path": "server/index.js",
       "before": "fc7b0c00ac5f7d3f8de46130c8be437cdc772c3b5de86a622420f37d0187a5ff",
-      "after": "f70fb478652f40b73367bd2919ce2b79cc33d303b74c5c2c3b61cfc2ee7ca907",
+      "after": "85f873366086941631fbe6fc740562eff00cb5464aaa649800d3b2f7935eb89a",
       "beforeAlternatives": [
         "16ac5f0499203503276b68c10c455b98617f5cb0a8bf400acd50f79a8dca64c1",
         "51910e036767a7c5fa5b3986442bd966c957d947f0e0aa1d4d137b96c9303690",
+        "85f873366086941631fbe6fc740562eff00cb5464aaa649800d3b2f7935eb89a",
         "df37b0334e2dcfe8740b6c38eb637d0deee8bbf14acc45bd33af0052a027598c",
         "dfe08a5fef85eac30b57836b958121a32bfd015086cce393f7c4e5a910fbf548",
         "f310419d6a0f4686350060f7f802efbec694d943cda25f77458d72d9c71077be",
@@ -93,10 +94,11 @@
     {
       "path": "server/lib/personData.js",
       "before": "a87e9509f817f09e3be1f9a498b8f102002a854d3dd539e4656681d26e414152",
-      "after": "71a33838c473a3c873cbd5cd67dc63cb8e85f1ea9bc6dc68abe2e5d048421679",
+      "after": "e9b2e433dea9a79b1b93dfa0f62bd341c2121a9e208f7692a8659864b592d9e4",
       "beforeAlternatives": [
         "71a33838c473a3c873cbd5cd67dc63cb8e85f1ea9bc6dc68abe2e5d048421679",
-        "a4a5510154795a687b6fc22ed2c9e4d9b6873027dda521350134857166805226"
+        "a4a5510154795a687b6fc22ed2c9e4d9b6873027dda521350134857166805226",
+        "e9b2e433dea9a79b1b93dfa0f62bd341c2121a9e208f7692a8659864b592d9e4"
       ]
     },
     {
@@ -129,8 +131,9 @@
     {
       "path": "server/lib/store.js",
       "before": "385a868da852d62aaf1b60a58d1678dec9d9f84417702e0fb18dd609eefadcd2",
-      "after": "f88fab2d5f425eba5a20b9d0346ffd1f6f64ddb3efb765e990bcef99a153f02f",
+      "after": "35cf2418bead510689f0e1325fd4ff66eb820fe5cdaa2fa5c8fc1ec1bcff1a55",
       "beforeAlternatives": [
+        "35cf2418bead510689f0e1325fd4ff66eb820fe5cdaa2fa5c8fc1ec1bcff1a55",
         "bb90fcac2d9d468f1e3f73cfcf48ef14cabddc0e93c0c90435ba62863fafaf6f",
         "f8770d597c23a35e397d5ff57e645fbf09b9d218d13adc7e6ddff948c89116ae",
         "f88fab2d5f425eba5a20b9d0346ffd1f6f64ddb3efb765e990bcef99a153f02f"
@@ -139,8 +142,9 @@
     {
       "path": "server/lib/subscriptionAccess.js",
       "before": null,
-      "after": "7b0843744adcd4608b4bc8a0fc099aaa5ef8a676864603bda6d8bad1ec39c176",
+      "after": "5e027bfb72667578b224f9b0e63f06690a9ed31bdd5b26ae4c96e6a8fb1f2cec",
       "beforeAlternatives": [
+        "5e027bfb72667578b224f9b0e63f06690a9ed31bdd5b26ae4c96e6a8fb1f2cec",
         "785f29a9c02278145c8460e8eb96863fb6953a60b2824d0b725113d895f9cae4",
         "7b0843744adcd4608b4bc8a0fc099aaa5ef8a676864603bda6d8bad1ec39c176",
         "a5ed46496ee897af7d4d66f36b052b0e0c23948f5085b06741d4681333763842"
@@ -149,10 +153,11 @@
     {
       "path": "server/lib/subscriptionMail.js",
       "before": "d1235fdc8279a17cf770415ffe0d9d33e836a1e39c9744a9747d50ec5ed6182c",
-      "after": "4ac3fe0bcf3ee1108bdebcf4adc51ce99d3d945b1cf3008546546b66b13db4e6",
+      "after": "eb209c2a6c49092661a405b44f58d2b4d643b89311a240263fd6f3270604b9a2",
       "beforeAlternatives": [
         "4ac3fe0bcf3ee1108bdebcf4adc51ce99d3d945b1cf3008546546b66b13db4e6",
-        "a6a33606ccd3cf63f6654a12c1a418a559dc8e4cecfe050c861165f676febcb7"
+        "a6a33606ccd3cf63f6654a12c1a418a559dc8e4cecfe050c861165f676febcb7",
+        "eb209c2a6c49092661a405b44f58d2b4d643b89311a240263fd6f3270604b9a2"
       ]
     },
     {
@@ -174,12 +179,13 @@
     {
       "path": "server/tests/http-reliability.mjs",
       "before": null,
-      "after": "5d02e5059bec0812e78decbcd85772fcf7c1c966beb2dcf11af90e32b6685a69",
+      "after": "75ff9bf9758578868ec69eff572af18e17c616e891707517b00f27a4a2c0d50b",
       "beforeAlternatives": [
         "2e522f434c8ab8883c6d6bf305aaad7efe7040d46b8608732a61ebbadeb71f5f",
         "4389b8e88672963bcff0f0bac9672084be02f0c14a04d904dae41ff904c872b8",
         "5d02e5059bec0812e78decbcd85772fcf7c1c966beb2dcf11af90e32b6685a69",
         "722950d89c1614707ba1bed74352db454a10d4a01d18c6f42dc61eb3063f02c9",
+        "75ff9bf9758578868ec69eff572af18e17c616e891707517b00f27a4a2c0d50b",
         "8e732904995467f6e97cc6c232260fa8bf8991dd40381da20ea6a7a910dcea80",
         "e483633742dc4ffd7ea45f62b7e2cb35d21b145cd3189126969d1d3cfecfbe32"
       ]
@@ -401,8 +407,9 @@
     {
       "path": "server/lib/prodamus.js",
       "before": "1fdf7b6879fcd402c867b12d31ecbfb8095cc6226bd32492becf8cf4fa11ea4d",
-      "after": "6841240b3e5f359498175173ee204ab411f6920323342887bf998beeff2db191",
+      "after": "1686e2c4e5c612ceb678bf9e0b85dd3ec170a6985b78eaa56bce0797d65edeea",
       "beforeAlternatives": [
+        "1686e2c4e5c612ceb678bf9e0b85dd3ec170a6985b78eaa56bce0797d65edeea",
         "6841240b3e5f359498175173ee204ab411f6920323342887bf998beeff2db191"
       ]
     },
@@ -553,6 +560,38 @@
       "after": "6de94f3fbacea26a438aedaa22ef2568f4d1b7159dd612522612e041034096e0",
       "beforeAlternatives": [
         "6de94f3fbacea26a438aedaa22ef2568f4d1b7159dd612522612e041034096e0"
+      ]
+    },
+    {
+      "path": "scripts/recover-community-subscriptions.mjs",
+      "before": null,
+      "after": "c9f9c949c326e3cf80257c5de2edc3bd15d87bf4455af4cd9c2f6d6712498707",
+      "beforeAlternatives": [
+        "c9f9c949c326e3cf80257c5de2edc3bd15d87bf4455af4cd9c2f6d6712498707"
+      ]
+    },
+    {
+      "path": "server/lib/subscriptionRecovery.js",
+      "before": null,
+      "after": "d50d12690a4df0194d7de39c702e1abdd2a1c661c51de6a20272c50cc6bc7820",
+      "beforeAlternatives": [
+        "d50d12690a4df0194d7de39c702e1abdd2a1c661c51de6a20272c50cc6bc7820"
+      ]
+    },
+    {
+      "path": "server/tests/subscription-recovery.test.mjs",
+      "before": null,
+      "after": "ca287cec0ab8d5a886df191fcd3055e7c0c897b0d8215952e96adb7a3d7a4eca",
+      "beforeAlternatives": [
+        "ca287cec0ab8d5a886df191fcd3055e7c0c897b0d8215952e96adb7a3d7a4eca"
+      ]
+    },
+    {
+      "path": "server/tests/subscription-recovery-scenario.mjs",
+      "before": null,
+      "after": "3428d9b43d5605141abb432c8c949bd9990f47d25a9157f2c3a46b3b6c4a598e",
+      "beforeAlternatives": [
+        "3428d9b43d5605141abb432c8c949bd9990f47d25a9157f2c3a46b3b6c4a598e"
       ]
     }
   ],

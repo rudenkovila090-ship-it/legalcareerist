@@ -50,18 +50,25 @@ export function listJoins() {
  * иначе продление 1 месяца можно принять за оплату новой заявки на
  * 3 месяца с того же номера.
  */
-export function findJoinForPayment({ phone, email, telegram, tgUserId, profileId, tariffId }) {
+export function findJoinForPayment({ phone, email, telegram, tgUserId, profileId, tariffId, orderKey, paidAt }) {
+  const all = store.all()
+  if (orderKey) {
+    const duplicate = all.find(j => (j.payments || []).some(p => p.orderKey === orderKey))
+    if (duplicate) return { join: duplicate, isFirst: false }
+  }
   // profile_id — постоянный номер подписчика в Prodamus, одинаков во всех его
   // платежах: самый надёжный ключ для продлений.
   if (profileId) {
-    const byProfile = store.all().find((j) => String(j.prodamusProfileId ?? '') === String(profileId))
+    const byProfile = all.filter(j => String(j.prodamusProfileId ?? '') === String(profileId) &&
+      (!paidAt || !j.recovery?.paidAt || j.recovery.paidAt <= paidAt))
+      .sort((a, b) => (b.recovery?.paidAt || b.lastPaidAt || b.createdAt) - (a.recovery?.paidAt || a.lastPaidAt || a.createdAt))[0]
     if (byProfile) return { join: byProfile, isFirst: !byProfile.paid }
   }
 
   const phoneKey = normalizePhone(phone)
   const emailKey = String(email ?? '').trim().toLowerCase()
   const telegramKey = normalizeTelegramKey(telegram)
-  const joins = store.all().sort((a, b) => b.createdAt - a.createdAt)
+  const joins = all.filter(j => !j.recovery || j.paid).sort((a, b) => b.createdAt - a.createdAt)
   // Перенесённые из BotHelp карточки без тарифа подходят под продление любого тарифа, иначе продление создаст дубль.
   const sameTariff = (j) => !tariffId || j.tariffId === tariffId || (!j.tariffId && !j.lifetime)
   const byPhone = (j) => phoneKey && normalizePhone(j.phone) === phoneKey
@@ -121,7 +128,7 @@ export function recordPayment(token, { tariffId, amount, paidAt, orderKey, nextP
 
     // payment_num из Prodamus — номер платежа по подписке (1 — первый); он
     // точнее нашего счёта, если подписка началась ещё до учёта на сайте.
-    const kind = paymentNum ? (paymentNum > 1 ? 'renewal' : 'first') : payments.length === 0 ? 'first' : 'renewal'
+    const kind = join.recovery && !join.paid ? 'first' : paymentNum ? (paymentNum > 1 ? 'renewal' : 'first') : payments.length === 0 ? 'first' : 'renewal'
     payments.push({ kind, at: paidAt, amount, tariffId, orderKey: orderKey ?? null, paymentNum: paymentNum ?? null, subscriptionId: subscriptionId ?? null, subscriptionName: subscriptionName ?? null })
     payments.sort((a, b) => (Number(a.at) || 0) - (Number(b.at) || 0))
     const stale = Number(join.lastPaidAt) > Number(paidAt)
@@ -149,6 +156,11 @@ export function recordPayment(token, { tariffId, amount, paidAt, orderKey, nextP
     if (retained) {
       next.retentionPrice = retained
       next.retentionOffer = { ...join.retentionOffer, redeemedAt: paidAt }
+    }
+    if (join.recovery && !join.paid) {
+      next.recovery = { ...join.recovery, paidAt, paidAmount: amount, amountNeedsReview: amount !== join.recovery.amount, status: 'paid' }
+      next.priceLock = { amount: join.recovery.amount, currency: 'RUB', subscriptionId: join.recovery.planId,
+        tariffId: join.tariffId, months: join.recovery.months, recordedAt: paidAt, source: 'owner_approved_recovery_terms' }
     }
     if (!next.priceLock) next.priceLock = priceEntitlement(next)
     result = { duplicate: false, stale, kind, number: paymentNum || payments.length, record: { token, ...next } }

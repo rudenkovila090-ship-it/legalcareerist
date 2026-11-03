@@ -126,7 +126,7 @@ export const SOURCES = [
     title: 'Подписчики сообщества',
     store: createJsonStore('pending-joins.json'),
     keysOf: baseKeys,
-    personal: ['name', 'phone', 'email', 'telegram', 'tgUserId', 'cancelReasonText', 'cancelRequest', 'retentionCheckout', 'howHeard', 'prodamusProfileId'],
+    personal: ['name', 'phone', 'email', 'telegram', 'tgUserId', 'cancelReasonText', 'cancelRequest', 'retentionCheckout', 'recovery', 'recoveryStopIntent', 'howHeard', 'prodamusProfileId'],
     hasMoney: hasPayments,
     due: (j, ctx) => {
       if (!j.paid) return ctx.now > j.createdAt + TERMS.abandonedPayment ? { action: 'delete', reason: 'неоплаченная заявка старше 30 дней' } : null

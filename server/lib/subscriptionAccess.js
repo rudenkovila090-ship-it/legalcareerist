@@ -19,8 +19,8 @@ export function hasAccess(join, now = Date.now()) {
 export function accessUntil(join) {
   const until = paidUntil(join)
   if (until === null) return null
-  if (join.status === 'cancelled' && join.cancellation?.confirmed) return Math.max(until, Number(join.cancellation.accessUntil) || 0)
-  return Math.max(until + graceDays() * DAY, Number(join.transitionAccessUntil) || 0)
+  if (join.status === 'cancelled' && join.cancellation?.confirmed) return Math.max(until, Number(join.cancellation.accessUntil) || 0, Number(join.recoveryAccessUntil) || 0)
+  return Math.max(until + graceDays() * DAY, Number(join.transitionAccessUntil) || 0, Number(join.recoveryAccessUntil) || 0)
 }
 
 export function inGrace(join, now = Date.now()) {

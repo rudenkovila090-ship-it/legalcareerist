@@ -74,7 +74,7 @@ const TARIFFS = {
  * можно опознать плательщика, даже если на странице оплаты он изменил
  * телефон или почту.
  */
-export function buildSubscriptionLink({ tariffId, tgUserId, phone, email, urlSuccess, name, telegram, lockedPlan }) {
+export function buildSubscriptionLink({ tariffId, tgUserId, phone, email, urlSuccess, name, telegram, lockedPlan, recoveryToken }) {
   // lockedPlan is selected from an authenticated resident's history, never from request prices.
   const tariff = lockedPlan ? { ...TARIFFS[tariffId], subscription: lockedPlan.subscriptionId, label: 'Продление по закреплённой цене', price: lockedPlan.amount } : TARIFFS[tariffId]
   if (!tariff) throw new Error(`unknown tariff: ${tariffId}`)
@@ -87,6 +87,10 @@ export function buildSubscriptionLink({ tariffId, tgUserId, phone, email, urlSuc
     subscription: tariff.subscription,
     customer_extra: [tariff.label, name, telegram].filter(Boolean).join(' | '),
     urlNotification: `${SITE_URL}/api/prodamus/webhook`,
+  }
+  if (recoveryToken) {
+    if (!/^[a-f0-9]{24}$/.test(recoveryToken)) throw Error('invalid_recovery_token')
+    data.customer_extra += ` | KY_RESTART:${recoveryToken}`
   }
   if (tgUserId) data.tg_user_id = tgUserId
   if (phone) data.customer_phone = phone
@@ -107,7 +111,7 @@ export function buildSubscriptionLink({ tariffId, tgUserId, phone, email, urlSuc
  */
 export async function createPaymentLink(params) {
   const linkRequestUrl = buildSubscriptionLink(params)
-  const res = await fetch(linkRequestUrl)
+  const res = await fetch(linkRequestUrl, { signal: AbortSignal.timeout(20000) })
   const text = (await res.text()).trim()
   if (!res.ok || !text.startsWith('http')) {
     throw new Error(`prodamus do=link ответил неожиданно: ${res.status} ${text.slice(0, 200)}`)

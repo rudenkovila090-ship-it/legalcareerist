@@ -14,7 +14,7 @@ const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&l
  * tariff — название тарифа; amount — сумма платежа; nextPaymentAt — дата следующего списания (null — автопродления нет);
  * oneTime — разовая подписка: доступ до nextPaymentAt, списаний нет.
  */
-export function composeSubscriptionMail({ name, tariff, amount, paidAt, nextPaymentAt, oneTime, invite, telegram, siteUrl, botUsername, supportHandle }) {
+export function composeSubscriptionMail({ name, tariff, amount, recurringAmount, paidAt, nextPaymentAt, oneTime, invite, telegram, siteUrl, botUsername, supportHandle }) {
   const hello = name && name !== '—' ? `Здравствуйте, ${name}!` : 'Здравствуйте!'
   const cabinetUrl = `${siteUrl}/cabinet`
   const botUrl = `https://t.me/${botUsername}`
@@ -30,7 +30,7 @@ export function composeSubscriptionMail({ name, tariff, amount, paidAt, nextPaym
   const term = oneTime
     ? `Доступ действует до ${nextPaymentAt ? date(nextPaymentAt) : 'конца оплаченного периода'}, автопродления нет.`
     : nextPaymentAt
-      ? `Следующее списание ${rub(amount)}: ${date(nextPaymentAt)}. Подписка продлевается автоматически.`
+      ? `Следующее списание ${rub(recurringAmount ?? amount)}: ${date(nextPaymentAt)}. Подписка продлевается автоматически.`
       : 'Подписка продлевается автоматически.'
   const subLines = [`Тариф: ${tariff}`, amount ? `Оплачено: ${rub(amount)}, ${date(paidAt)}` : null, term].filter(Boolean)
 
