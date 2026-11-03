@@ -1,10 +1,11 @@
+import { priceEntitlement, lockedAmount } from './subscriptionPricing.js'
 // Данные личного кабинета: кто вошёл и статус подписки резидента (по карточкам подписчиков, привязанным к Telegram id).
 import { listJoins } from './store.js'
 import { getBotUser } from './botUsers.js'
 import { TARIFFS } from './prodamus.js'
 import { getProfile } from './accountStore.js'
 import { communityInviteUrl } from './communityInvite.js'
-import { hasAccess, paidUntil } from './subscriptionAccess.js'
+import { hasAccess, paidUntil, accessUntil, inGrace } from './subscriptionAccess.js'
 
 const DAY = 24 * 3600 * 1000
 
@@ -42,11 +43,13 @@ export function residentStatus(tgId, now = Date.now(), email = '') {
     status: active ? 'active' : 'ended',
     tariff,
     until,
+    inGrace: inGrace(best, now),
+    graceUntil: accessUntil(best),
     since: best.firstPaidAt ?? best.createdAt ?? null,
     autoRenew: active && !best.oneTime && !cancelled,
     cancelled,
     oneTime: Boolean(best.oneTime),
-    daysLeft: active ? Math.ceil((until - now) / DAY) : 0,
+    daysLeft: active ? Math.max(0, Math.ceil((until - now) / DAY)) : 0,
   }
 }
 
@@ -67,13 +70,15 @@ export function subscriptionDetails(tgId, email = '', now = Date.now()) {
   const renews = status.status === 'active' && status.autoRenew
   return {
     ...status,
-    price: payments.find((p) => p.amount)?.amount ?? tariff?.price ?? null, // цена закреплена за подписчиком: берём последнюю оплату, а не текущий прайс сайта
+    price: lockedAmount(join, payments.find((p) => p.amount)?.amount ?? tariff?.price ?? null),
+    lockedPrice: priceEntitlement(join)?.amount ?? null,
+    canRenewLocked: Boolean(priceEntitlement(join)?.subscriptionId && !join.lifetime),
     period: tariff?.period ?? null,
     nextPayment: renews ? Number(join.nextPaymentAt) || null : null,
     canCancel: renews && !join.lifetime,
     // Общая ссылка на вступление (заявку одобряет бот, и только оплатившим) и то, вступил ли человек в чат.
     invite: !join.lifetime && status.status === 'active' && communityInviteUrl() ? { url: communityInviteUrl() } : null,
-    joined: Boolean(join.joinedAt),
+    joined: join.inChat === true,
     joinedAt: join.joinedAt ?? null,
     payments,
   }

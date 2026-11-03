@@ -1,3 +1,4 @@
+import { priceEntitlement } from './subscriptionPricing.js'
 // Участники сообщества: token → { tariffId, name, phone, email, telegram,
 // tgUserId, paid, status, payments[], firstPaidAt, lastPaidAt, nextPaymentAt,
 // createdAt }. Запись появляется в момент "выбрал тариф на сайте", живёт
@@ -143,6 +144,7 @@ export function recordPayment(token, { tariffId, amount, paidAt, orderKey, nextP
         ? [...(join.renewalNotices ?? []), { id: orderKey || `${paidAt}:${amount}`, amount, paidAt, nextPaymentAt, botDone: false, mailDone: false }]
         : join.renewalNotices,
     }
+    if (!next.priceLock) next.priceLock = priceEntitlement(next)
     result = { duplicate: false, stale, kind, number: paymentNum || payments.length, record: { token, ...next } }
     return next
   })

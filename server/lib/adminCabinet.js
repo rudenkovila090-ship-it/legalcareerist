@@ -1,3 +1,4 @@
+import { lockedAmount } from './subscriptionPricing.js'
 // Кабинет администратора в Telegram-боте: тексты экранов и кнопки. Ничего не
 // знает про Telegram API и хранилище — получает карточки подписчиков и
 // возвращает { text, keyboard }, чтобы это можно было проверять отдельно.
@@ -89,7 +90,7 @@ export function sectionScreen(name) {
 // Сумма, по которой человек сидит в сообществе, — то, что списывается за один
 // период (последний платёж; если истории нет — цена тарифа с сайта).
 export function planAmount(join, tariffs) {
-  return lastAmount(join) || tariffs[join.tariffId]?.price || 0
+  return lockedAmount(join, lastAmount(join) || tariffs[join.tariffId]?.price || 0)
 }
 
 // Известные суммы: стандартные тарифы и скидочные (по промокодам амбассадоров

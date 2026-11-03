@@ -49,8 +49,12 @@ function pm2App(site) {
 function validateJson(site) {
   const dir = path.join(site, 'server/data')
   ensure(exists(dir) && !fs.lstatSync(dir).isSymbolicLink(), 'Не найдена обычная папка server/data')
+  const maps = new Set(['bot-users.json', 'pending-joins.json', 'material-purchases.json', 'event-leads.json', 'promo-codes.json', 'candidate-applications.json', 'deals.json', 'ambassadors.json', 'consultation-orders.json', 'reserve-candidates.json', 'expenses.json', 'interests.json', 'community-reviews.json', 'material-reviews.json'])
   for (const name of fs.readdirSync(dir).filter(n => n.endsWith('.json'))) {
-    try { read(path.join(dir, name)) } catch { throw Error('Повреждён файл данных: ' + name + '. Обновление остановлено') }
+    try {
+      const data = read(path.join(dir, name))
+      if (maps.has(name)) ensure(data && !Array.isArray(data) && typeof data === 'object' && Object.values(data).every(v => v && !Array.isArray(v) && typeof v === 'object'), 'Некорректная структура')
+    } catch { throw Error('Повреждён файл данных: ' + name + '. Обновление остановлено') }
   }
 }
 function verifyFiles(site, manifest, expected) {
@@ -145,7 +149,9 @@ async function install(site) {
   const app = pm2App(site), meta = environmentMeta(site, app)
   const envDigest = hash(path.join(site, 'server/.env'))
   ensure(app.pm2_env.status === 'online', 'Перед установкой API должен быть запущен')
-  ensure(meta.exclude === '0', 'Автоисключение включено. Для этой установки сначала нужна проверка просроченных оплат')
+  const policyFile = path.join(site, 'server/data/subscription-policy.json')
+  const managedPolicy = manifest.subscriptionLifecycle && exists(policyFile) && read(policyFile).autoExcludeEnabled === true
+  ensure(meta.exclude === '0' || managedPolicy, 'Автоисключение включено без проверенной политики отсрочки; сначала нужна проверка просроченных оплат')
   ensure(/^\d{2,5}$/.test(meta.port), 'Нестандартный порт API')
   const backupRoot = path.resolve(process.env.SITE_RELIABILITY_BACKUPS || '/root/legalcareerist-backups')
   ensure(backupRoot !== site && !backupRoot.startsWith(site + path.sep), 'Копии должны храниться вне папки сайта')
@@ -156,6 +162,12 @@ async function install(site) {
   // node:test also runs when the file is invoked directly, including Node 22.12.
   // --test-isolation is unavailable in earlier supported Node 22 releases.
   command('node', ['server/tests/reliability.test.mjs'], release)
+  if (manifest.subscriptionLifecycle) {
+    command('node', ['server/tests/subscription-lifecycle.test.mjs'], release)
+    command('node', ['server/tests/http-reliability.mjs'], release)
+    command('node', ['server/tests/http-reliability.mjs', '--no-payment-keys'], release)
+    command('node', ['server/tests/http-reliability.mjs', '--lifecycle'], release)
+  }
   if (manifest.materialManager) command('node', ['server/tests/admin-materials.mjs'], release)
   command('npm', ['run', 'lint'], release)
   command('npm', ['run', 'build'], release)
@@ -210,10 +222,10 @@ async function install(site) {
     verifyInstalledCode(site, manifest)
     const publicResponse = await fetch(process.env.SITE_RELIABILITY_PUBLIC_URL || 'https://legalcareerist.ru/', { signal: AbortSignal.timeout(10000) })
     ensure(publicResponse.ok && (publicResponse.headers.get('content-type') || '').includes('text/html'), 'Публичная страница сайта не прошла проверку')
-    ensure(environmentMeta(site, pm2App(site)).exclude === '0', 'Изменилась настройка автоисключения')
+    ensure(environmentMeta(site, pm2App(site)).exclude === meta.exclude, 'Изменилась настройка автоисключения')
     state.installedAt = new Date().toISOString(); saveState(backup, state)
     for (const item of state.trees) fs.rmSync(inside(site, item.path) + '.reliability-old-' + id, { recursive: true, force: true })
-    console.log('Обновление установлено, API отвечает. Автоисключение остаётся выключенным; расписание напоминаний сохранено.')
+    console.log('Обновление установлено, API отвечает. Настройка автоисключения сохранена; активация новой политики выполняется отдельно.')
     console.log('Откат кода: node ' + path.join(backup, 'installer.mjs') + ' --rollback ' + backup)
     console.log('Полная копия и копия прежнего кода: ' + backupRoot)
     // Optional recovery never makes a successful code deployment roll back.

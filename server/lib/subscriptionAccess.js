@@ -1,5 +1,9 @@
-// One paid-period rule for the website, Telegram and expiry jobs.
-// Prodamus retry attempts do not extend the period already paid for.
+// Paid time and complimentary retry access are separate; money history is never extended.
+const DAY = 86400000
+export function graceDays() {
+  const value = Number(process.env.SUBSCRIPTION_GRACE_DAYS?.trim() || 4)
+  return Number.isFinite(value) && value >= 0 && value <= 30 ? value : 4
+}
 export function paidUntil(join) {
   const value = join?.nextPaymentAt ?? join?.endsAt
   const timestamp = Number(value)
@@ -9,7 +13,21 @@ export function paidUntil(join) {
 export function hasAccess(join, now = Date.now()) {
   if (!join) return false
   if (join.lifetime) return true
-  return Boolean(join.paid && ['active', 'cancelled'].includes(join.status) && paidUntil(join) > now)
+  return Boolean(join.paid && ['active', 'cancelled'].includes(join.status) && accessUntil(join) > now)
+}
+
+export function accessUntil(join) {
+  const until = paidUntil(join)
+  if (until === null) return null
+  return Math.max(until + graceDays() * DAY, Number(join.transitionAccessUntil) || 0)
+}
+
+export function inGrace(join, now = Date.now()) {
+  return Boolean(!join?.lifetime && hasAccess(join, now) && paidUntil(join) <= now)
+}
+
+export function accessPeriodEnded(join, now = Date.now()) {
+  return Boolean(join?.paid && !join.lifetime && accessUntil(join) !== null && accessUntil(join) <= now)
 }
 
 export function paidPeriodEnded(join, now = Date.now()) {

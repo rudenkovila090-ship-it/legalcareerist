@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { cancelSubscription, fetchEvents, fetchSubscription, linkTelegram, requestCardChange, unlinkTelegram, type CabinetEvent, type CabinetUser, type SubscriptionInfo } from '../../lib/cabinet'
+import { renewLockedSubscription, cancelSubscription, fetchEvents, fetchSubscription, linkTelegram, requestCardChange, unlinkTelegram, type CabinetEvent, type CabinetUser, type SubscriptionInfo } from '../../lib/cabinet'
 import { events as catalogEvents } from '../../data/events'
 import { eventStories } from '../../data/eventStories'
 import { eventTimeRange } from '../../lib/eventTime'
@@ -8,6 +8,7 @@ import { pluralRu } from '../../lib/plural'
 import { TELEGRAM_BOT_USERNAME } from '../../lib/telegram'
 import { Card, Chip } from './ui'
 import { longDate } from './shared'
+const subscriptionDate = (ts?: number | null) => ts ? new Intl.DateTimeFormat('ru-RU', { timeZone: 'Europe/Moscow', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }).format(new Date(ts)) + ' (мск)' : '—'
 
 // ---- Мероприятия: афиша и мои регистрации ----
 const focusRing = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink/40'
@@ -297,6 +298,13 @@ export function StatusSection({ user, onRefresh }: { user: CabinetUser; onRefres
     setError('')
   }
 
+  async function doRenew() {
+    setBusy(true); setError('')
+    const r = await renewLockedSubscription()
+    setBusy(false)
+    if (r.ok) window.location.assign(r.data.url)
+    else setError('Не удалось безопасно подготовить продление по прежней цене. Попробуйте позже или обратитесь в поддержку; новая оплата не создана.')
+  }
   async function doCancel() {
     setBusy(true)
     setError('')
@@ -357,6 +365,7 @@ export function StatusSection({ user, onRefresh }: { user: CabinetUser; onRefres
     <div className="space-y-4">
       <Card>
         <div className="flex flex-wrap items-center gap-2">{badge}</div>
+        {sub.inGrace && <p className="my-3 rounded-xl bg-gold/10 p-4 text-sm">Оплата ожидается. Дополнительный доступ сохраняется до {subscriptionDate(sub.graceUntil)}. Закреплённая цена: {money(sub.lockedPrice)}.</p>}
         {status === 'none' ? (
           <>
             <p className="mt-3 text-lg font-semibold">Вы пока не резидент сообщества</p>
@@ -369,19 +378,19 @@ export function StatusSection({ user, onRefresh }: { user: CabinetUser; onRefres
         ) : (
           <>
             <p className="mt-3 text-lg font-semibold">
-              {lifetime ? 'Подписка бессрочная' : active ? `Доступ к сообществу до ${longDate(sub.until)}` : `Подписка закончилась ${longDate(sub.until)}`}
+              {lifetime ? 'Подписка бессрочная' : active ? `Оплаченный период до ${subscriptionDate(sub.until)}` : `Подписка закончилась ${subscriptionDate(sub.until)}`}
             </p>
             {active && typeof sub.daysLeft === 'number' && <p className="mt-1 text-sm text-ink/60">Осталось {sub.daysLeft} {pluralRu(sub.daysLeft, ['день', 'дня', 'дней'])}</p>}
             <dl className="mt-5 grid gap-x-8 gap-y-4 text-sm sm:grid-cols-2">
               <Fact label="Тариф" value={sub.tariff ?? '—'} note={!lifetime && sub.price ? `${money(sub.price)}${sub.period ? ` за ${sub.period}` : ''}` : undefined} />
               <Fact label="Статус" value={lifetime ? 'Активна, без списаний' : active ? (sub.cancelled ? 'Активна до конца периода' : 'Активна') : 'Закончилась'} />
-              <Fact label={active ? 'Действует до' : 'Закончилась'} value={lifetime ? (sub.until ? longDate(sub.until) : 'Бессрочно') : longDate(sub.until)} />
+              <Fact label={active ? 'Действует до' : 'Закончилась'} value={lifetime ? (sub.until ? subscriptionDate(sub.until) : 'Бессрочно') : subscriptionDate(sub.until)} />
               <Fact
                 label="Следующее списание"
-                value={sub.nextPayment ? longDate(sub.nextPayment) : '—'}
+                value={sub.nextPayment ? subscriptionDate(sub.nextPayment) : '—'}
                 note={sub.nextPayment ? money(sub.price) : lifetime ? 'списаний нет' : sub.oneTime ? 'разовая подписка, без автопродления' : sub.cancelled ? 'автопродление отключено' : undefined}
               />
-              {sub.since && <Fact label="Резидент с" value={longDate(sub.since)} />}
+              {sub.since && <Fact label="Резидент с" value={subscriptionDate(sub.since)} />}
             </dl>
 
             {active && !lifetime && sub.invite && (
@@ -401,8 +410,11 @@ export function StatusSection({ user, onRefresh }: { user: CabinetUser; onRefres
             <div className="mt-6 flex flex-wrap gap-2.5">
               <ActionButton on={panel === 'history'} onClick={() => toggle('history')}>История оплат</ActionButton>
               {sub.canCancel && <ActionButton on={panel === 'cancel'} onClick={() => toggle('cancel')} danger>Отключить автопродление</ActionButton>}
-              {!lifetime && <ActionButton on={panel === 'card'} onClick={() => toggle('card')}>Сменить карту</ActionButton>}
-              {(status === 'ended' || sub.cancelled || sub.oneTime) && <a href="/community#join" className="rounded-full bg-ink px-5 py-2 text-sm font-semibold text-white hover:bg-ink/90">{status === 'ended' ? 'Продлить подписку' : 'Оформить продление'}</a>}
+              {!lifetime && <ActionButton on={panel === 'card'} onClick={() => toggle('card')}>Запросить смену карты</ActionButton>}
+              {(status === 'ended' || sub.inGrace || sub.cancelled || sub.oneTime) && (sub.canRenewLocked
+                ? <button type="button" disabled={busy} onClick={() => void doRenew()} className="rounded-full bg-ink px-5 py-2 text-sm font-semibold text-white disabled:opacity-60">Продлить по прежней цене {money(sub.lockedPrice)}</button>
+                : <Link to="/cabinet/support" className="font-semibold underline">Проверить прежнюю цену в поддержке</Link>)}
+              {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
             </div>
           </>
         )}
@@ -435,7 +447,7 @@ export function StatusSection({ user, onRefresh }: { user: CabinetUser; onRefres
         {panel === 'cancel' && (
           <div className="mt-5 rounded-xl border border-red-200 bg-red-50/50 p-4">
             <h3 className="text-sm font-semibold">Отключить автопродление?</h3>
-            <p className="mt-1 text-sm text-ink/70">Списаний больше не будет. Доступ к сообществу сохранится до {longDate(sub.until)}, потом закончится. Подписку можно оформить заново в любой момент.</p>
+            <p className="mt-1 text-sm text-ink/70">Списаний больше не будет. Доступ к сообществу сохранится до {subscriptionDate(sub.until)}, потом закончится. Подписку можно оформить заново в любой момент.</p>
             <label htmlFor="cancel-reason" className="mt-3 block text-sm font-medium text-ink/80">Почему отключаете? Необязательно, но нам это важно</label>
             <textarea id="cancel-reason" value={reason} onChange={(e) => setReason(e.target.value)} rows={3} maxLength={500} className="mt-1.5 w-full rounded-xl border border-ink/15 bg-white px-4 py-3 text-base focus:border-ink/40 focus:outline-none sm:text-sm" />
             {error && <p role="alert" className="mt-2 text-sm text-red-600">{error}</p>}
@@ -449,7 +461,7 @@ export function StatusSection({ user, onRefresh }: { user: CabinetUser; onRefres
         {panel === 'card' && (
           <div className="mt-5 rounded-xl border border-ink/10 p-4">
             <h3 className="text-sm font-semibold">Сменить карту для списаний</h3>
-            <p className="mt-1 text-sm text-ink/70">Платёжная система не позволяет сменить карту самостоятельно, поэтому это делает поддержка. Нажмите кнопку: запрос с данными вашей подписки уйдёт нам, а ответ придёт в чат поддержки, на почту и в Telegram, если он привязан.</p>
+            <p className="mt-1 text-sm text-ink/70">Для проверки доступного способа смены карты отправьте запрос в поддержку. Не присылайте номер карты, CVV или банковские коды. Платёжные данные меняются только безопасным способом Prodamus. Нажмите кнопку: запрос с данными вашей подписки уйдёт нам, а ответ придёт в чат поддержки, на почту и в Telegram, если он привязан.</p>
             {error && <p role="alert" className="mt-2 text-sm text-red-600">{error}</p>}
             <div className="mt-3 flex flex-wrap gap-2.5">
               <button type="button" disabled={busy} onClick={() => void doCard()} className="rounded-full bg-ink px-5 py-2 text-sm font-semibold text-white hover:bg-ink/90 disabled:opacity-60">{busy ? 'Отправляем…' : 'Отправить запрос'}</button>

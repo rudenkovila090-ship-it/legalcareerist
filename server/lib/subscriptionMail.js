@@ -1,6 +1,7 @@
 // Письмо после оплаты подписки на сообщество: личная ссылка на вступление и её срок, сроки подписки, как отключить автопродление,
 // ссылка на кабинет резидента. Собирается здесь, а шлёт его сервер после первой оплаты (и повторно по запросу из кабинета и бота).
 
+import { preciseMoscowTime, graceDays } from './subscriptionAccess.js'
 const MSK = 'Europe/Moscow'
 const date = (ts) => new Intl.DateTimeFormat('ru-RU', { timeZone: MSK, day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(new Date(ts)).replace(/ г\./g, '') + ' (мск)'
 const rub = (n) => `${Math.round(n).toLocaleString('ru-RU')} ₽`
@@ -99,7 +100,7 @@ const CANCEL_HINT = 'Если планы изменились, отключит�
 
 /** Напоминание о списании за days дней (1 или 2). chargeAt — момент списания. */
 export function composeChargeReminderMail({ name, days, amount, chargeAt, siteUrl, botUsername, supportHandle }) {
-  const when = days === 1 ? 'завтра' : `через ${days} ${days < 5 ? 'дня' : 'дней'}`
+  const when = days === 1 ? 'через 24 часа' : `через ${days} ${days < 5 ? 'дня' : 'дней'}`
   const title = `Напоминаем: ${when}, ${date(chargeAt)}, произойдёт списание за подписку на сообщество «Карьерный юрист»${amount ? ` — ${rub(amount)}` : ''}.`
   const lines = ['Убедитесь, что на карте достаточно средств: тогда подписка продлится сама и доступ к сообществу сохранится.', CANCEL_HINT]
   const { text, html } = shell({ name, siteUrl, botUsername, supportHandle, title, lines })
@@ -115,10 +116,11 @@ export function composeChargeDoneMail({ name, amount, paidAt, nextPaymentAt, sit
 }
 
 /** Списание не прошло: что проверить и как не потерять доступ. */
-export function composeChargeFailedMail({ name, amount, chargeAt, siteUrl, botUsername, supportHandle }) {
+export function composeChargeFailedMail({ name, amount, chargeAt, graceUntil, siteUrl, botUsername, supportHandle }) {
   const title = `Не получилось списать оплату за подписку на сообщество «Карьерный юрист»${amount ? ` (${rub(amount)})` : ''}, списание было назначено на ${date(chargeAt)}.`
   const lines = [
     'Возможно, банк отклонил платёж или у карты закончился срок. Проверьте карту и баланс: платёжная система повторяет попытки списания несколько дней.',
+    chargeAt ? `Дополнительный доступ сохраняется до ${preciseMoscowTime(graceUntil ?? (Number(chargeAt) + graceDays() * 86400000))}. Прежняя цена сохраняется и после окончания доступа.` : 'Дату окончания проверит поддержка.',
     `Если карта устарела или её нужно сменить, напишите в поддержку (${supportHandle}) или нажмите «Сменить карту» в личном кабинете: мы поможем, чтобы подписка не прервалась.`,
   ]
   const { text, html } = shell({ name, siteUrl, botUsername, supportHandle, title, lines })

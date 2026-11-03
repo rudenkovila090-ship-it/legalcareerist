@@ -3,6 +3,7 @@
 // «Создание ссылки с автоплатежом» (help.prodamus.ru), подпись — через
 // hmac.js (проверено на реальных ссылках клубной системы, все совпали).
 import { HmacHelper, flattenForm } from './hmac.js'
+import { HISTORICAL_PLANS } from './subscriptionPricing.js'
 
 // У каждой платёжной страницы Prodamus свой домен и свой секретный ключ. Основная страница — подписки сообщества;
 // для материалов и мероприятий можно подключить отдельные страницы (другая ветка доходов): PRODAMUS_MATERIALS_DOMAIN /
@@ -73,9 +74,11 @@ const TARIFFS = {
  * можно опознать плательщика, даже если на странице оплаты он изменил
  * телефон или почту.
  */
-export function buildSubscriptionLink({ tariffId, tgUserId, phone, email, urlSuccess, name, telegram }) {
-  const tariff = TARIFFS[tariffId]
+export function buildSubscriptionLink({ tariffId, tgUserId, phone, email, urlSuccess, name, telegram, lockedPlan }) {
+  // lockedPlan is selected from an authenticated resident's history, never from request prices.
+  const tariff = lockedPlan ? { ...TARIFFS[tariffId], subscription: lockedPlan.subscriptionId, label: 'Продление по закреплённой цене', price: lockedPlan.amount } : TARIFFS[tariffId]
   if (!tariff) throw new Error(`unknown tariff: ${tariffId}`)
+  if (lockedPlan && (!/^\d+$/.test(String(lockedPlan.subscriptionId)) || !(lockedPlan.amount > 0))) throw new Error('price_lock_needs_review')
   if (!SECRET_KEY) throw new Error('PRODAMUS_SECRET_KEY not set')
   if (!tgUserId && !phone && !email) throw new Error('need tg_user_id, phone or email to identify customer')
 
@@ -166,7 +169,7 @@ async function createOneTimeLink({ payform = 'default', title, price, phone, ema
 /** Обратный поиск: по ID подписки Prodamus (из вебхука) — наш tariffId. */
 export function tariffIdBySubscriptionId(subscriptionId) {
   const entry = Object.entries(TARIFFS).find(([, t]) => String(t.subscription) === String(subscriptionId))
-  return entry?.[0] ?? null
+  return entry?.[0] ?? HISTORICAL_PLANS[String(subscriptionId)]?.tariffId ?? null
 }
 
 export { TARIFFS }

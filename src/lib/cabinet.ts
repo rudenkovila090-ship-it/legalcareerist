@@ -5,6 +5,8 @@ import { CONSENT_VERSION, MARKETING_CONSENT_VERSION, type ConsentChoice } from '
 const KEY = 'ky_cabinet_token'
 
 export interface ResidentInfo {
+  inGrace?: boolean
+  graceUntil?: number | null
   /** none — подписки нет; active — действует; ended — срок вышел; lifetime — бессрочная. */
   status: 'none' | 'active' | 'ended' | 'lifetime'
   tariff?: string
@@ -422,6 +424,8 @@ export interface SubscriptionPayment {
 }
 
 export interface SubscriptionInfo extends ResidentInfo {
+  lockedPrice?: number | null
+  canRenewLocked?: boolean
   /** Цена одного периода по тарифу, ₽. */
   price?: number | null
   period?: string | null
@@ -442,3 +446,5 @@ export const fetchSubscription = () => api<{ subscription: SubscriptionInfo }>('
 export const cancelSubscription = (reason: string) => api<{ confirmed: boolean; test: boolean; endsAt: number | null }>('/api/account/subscription/cancel', { method: 'POST', body: JSON.stringify({ reason }) })
 /** Запрос смены карты: уходит в чат поддержки с данными подписки. */
 export const requestCardChange = () => api<{ notified: boolean }>('/api/account/subscription/card', { method: 'POST', body: '{}' })
+
+export const renewLockedSubscription = () => api<{ url: string }>('/api/account/subscription/renew', { method: 'POST', body: '{}' })

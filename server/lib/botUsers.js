@@ -1,25 +1,10 @@
 // Пользователи бота (перенос воронки из BotHelp): кто запустил бота, метки
 // («пользователь», «согласие»), согласие на обработку персональных данных.
 // Ключ — Telegram id. Хранится в data/bot-users.json.
-import fs from 'node:fs'
-import path from 'node:path'
+import { createJsonStore } from './jsonStore.js'
 import { detectGender } from './gender.js'
 
-const DATA_DIR = path.join(import.meta.dirname, '..', 'data')
-const FILE = path.join(DATA_DIR, 'bot-users.json')
-
-function load() {
-  try {
-    return JSON.parse(fs.readFileSync(FILE, 'utf8'))
-  } catch {
-    return {}
-  }
-}
-
-function save(data) {
-  fs.mkdirSync(DATA_DIR, { recursive: true })
-  fs.writeFileSync(FILE, JSON.stringify(data, null, 2))
-}
+const { load, save } = createJsonStore('bot-users.json')
 
 export function listBotUsers() {
   return Object.values(load())

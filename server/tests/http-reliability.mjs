@@ -8,6 +8,7 @@ import { pathToFileURL, fileURLToPath } from 'node:url'
 
 const source = fileURLToPath(new URL('..', import.meta.url))
 const noPaymentKeys = process.argv.includes('--no-payment-keys')
+const lifecycleMode = process.argv.includes('--lifecycle')
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'legalcareerist-http-'))
 fs.cpSync(path.join(source, 'lib'), path.join(root, 'lib'), { recursive: true })
 for (const file of ['index.js', 'package.json']) fs.copyFileSync(path.join(source, file), path.join(root, file))
@@ -15,21 +16,29 @@ fs.symlinkSync(path.join(source, 'node_modules'), path.join(root, 'node_modules'
 for (const dir of ['assets', 'content']) if (fs.existsSync(path.join(source, dir))) fs.symlinkSync(path.join(source, dir), path.join(root, dir))
 fs.mkdirSync(path.join(root, 'data'))
 const { hashPassword } = await import('../lib/password.js')
-const env = { ...process.env, PORT: process.env.RELIABILITY_TEST_PORT || '3036', TELEGRAM_BOT_TOKEN: 'TEST_FAKE', TELEGRAM_ADMIN_CHAT_ID: '900000099', TELEGRAM_POLLING: '0', DISABLE_DAILY_REPORT: '1', DISABLE_BACKUP: '1', AUTO_EXCLUDE: '0', TEST_HOOKS: '1', SMTP_HOST: '', SMTP_USER: '', SMTP_PASS: '', ACCOUNT_LOGIN: 'test-owner', ACCOUNT_PASSWORD_HASH: hashPassword('Test-Owner-2026!'), PRODAMUS_SECRET_KEY: 'test-no-real-provider', SITE_URL: 'https://example.invalid' }
+const env = { ...process.env, PORT: process.env.RELIABILITY_TEST_PORT || '3036', TELEGRAM_BOT_TOKEN: 'TEST_FAKE', TELEGRAM_ADMIN_CHAT_ID: '900000099', TELEGRAM_POLLING: '0', TELEGRAM_WEBHOOK_SECRET: 'test-hook-secret', DISABLE_DAILY_REPORT: '1', DISABLE_BACKUP: '1', AUTO_EXCLUDE: '0', TEST_HOOKS: '1', SMTP_HOST: '', SMTP_USER: '', SMTP_PASS: '', ACCOUNT_LOGIN: 'test-owner', ACCOUNT_PASSWORD_HASH: hashPassword('Test-Owner-2026!'), PRODAMUS_SECRET_KEY: 'test-no-real-provider', SUBSCRIPTION_GRACE_DAYS: '4', COMMUNITY_CHAT_ID: '-100900000001', SITE_URL: 'https://example.invalid' }
+env.PRODAMUS_DOMAIN = 'legalcareerist.payform.ru'
+env.PRODAMUS_MATERIALS_DOMAIN = ''
+env.PRODAMUS_EVENTS_DOMAIN = ''
 env.PRODAMUS_MATERIALS_SECRET_KEY = ''
 env.PRODAMUS_EVENTS_SECRET_KEY = ''
+env.COMMUNITY_INVITE_LINK = 'https://t.me/+SYNTHETIC_INVITE'
 if (noPaymentKeys) env.PRODAMUS_SECRET_KEY = ''
 fs.writeFileSync(path.join(root, 'bootstrap.mjs'), `
 import fs from 'node:fs';
-globalThis.fetch = async (url) => {
-  if (String(url).includes('/rest/setActivity/')) return Response.json({success:fs.existsSync(new URL('./prodamus-cancel-ok', import.meta.url))});
+let clock = null; const realNow = Date.now; Date.now = () => clock ?? realNow();
+globalThis.fetch = async (url, init = {}) => {
+  const u = new URL(String(url));
+  if (u.hostname === 'legalcareerist.payform.ru' && u.searchParams.has('subscription')) fs.writeFileSync(new URL('./checkout-plan', import.meta.url), u.searchParams.get('subscription'));
+  if (u.hostname === 'api.telegram.org') { let body = {}; try { body = JSON.parse(init.body || '{}') } catch {} fs.appendFileSync(new URL('./telegram-calls.jsonl', import.meta.url), JSON.stringify({method:u.pathname.split('/').at(-1),body})+'\\n'); }
+  if (String(url).includes('/rest/setActivity/')) { const fail=new URL('./prodamus-cancel-fail-id', import.meta.url); return Response.json({success:fs.existsSync(new URL('./prodamus-cancel-ok', import.meta.url))&&(!fs.existsSync(fail)||new URLSearchParams(init.body).get('subscription')!==fs.readFileSync(fail,'utf8'))}); }
   if (String(url).startsWith('https://legalcareerist.payform.ru/')) return new Response('https://legalcareerist.payform.ru/SYNTHETIC_CHECKOUT/');
   if (!String(url).startsWith('https://api.telegram.org/')) throw Error('TEST outbound disabled');
   const success = fs.existsSync(new URL('./telegram-ok', import.meta.url));
-  return Response.json({ok:success,result:success?{message_id:1}:undefined,description:success?undefined:'TEST offline'},{status:success?200:503});
+  return Response.json({ok:success,result:success?(String(url).endsWith('/getChatMember')?{status:'member'}:{message_id:1}):undefined,description:success?undefined:'TEST offline'},{status:success?200:503});
 };
 await import('./index.js');
-process.on('message',async message=>{try { await globalThis.__hooks[message.hook](); process.send({id:message.id,ok:true}) } catch(e) {process.send({id:message.id,error:e.message})}});
+process.on('message',async message=>{try { if(message.clock!==undefined) clock=message.clock; if(message.raisePrice) { const {TARIFFS}=await import('./lib/prodamus.js'); TARIFFS['1m'].price=990; TARIFFS['1m'].subscription=9999999; } if(message.hook) await globalThis.__hooks[message.hook](); process.send({id:message.id,ok:true}) } catch(e) {process.send({id:message.id,error:e.message})}});
 `)
 const child = spawn(process.execPath, [path.join(root, 'bootstrap.mjs')], { env, stdio: ['ignore', 'pipe', 'pipe', 'ipc'] })
 let output = '', count = 0, nonce = 0
@@ -39,18 +48,18 @@ const base = `http://127.0.0.1:${env.PORT}`
 const wait = ms => new Promise(r => setTimeout(r, ms))
 const check = (name, fn) => { fn(); count++; console.log(`PASS ${name}`) }
 async function request(url, body, headers = {}) {
-  const response = await fetch(base + url, { method: body === undefined ? 'GET' : 'POST', headers: { ...(body === undefined ? {} : { 'Content-Type': 'application/json' }), ...headers }, body: body === undefined ? undefined : JSON.stringify(body) })
+  const response = await fetch(base + url, { method: body === undefined ? 'GET' : 'POST', headers: { ...(body === undefined ? {} : { 'Content-Type': 'application/json' }), ...(url === '/api/telegram/webhook' ? { 'X-Telegram-Bot-Api-Secret-Token': 'test-hook-secret' } : {}), ...headers }, body: body === undefined ? undefined : JSON.stringify(body) })
   const text = await response.text()
   let result
   try { result = JSON.parse(text) } catch { result = text }
   return { status: response.status, body: result }
 }
-async function hook(name) {
+async function hook(name, extra = {}) {
   const id = ++nonce
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(Error('hook timeout')), 10000)
     const listener = message => { if (message.id !== id) return; child.off('message', listener); clearTimeout(timer); if (message.error) reject(Error(message.error)); else resolve(message) }
-    child.on('message', listener); child.send({ id, hook: name })
+    child.on('message', listener); child.send({ id, hook: name, ...extra })
   })
 }
 const read = name => JSON.parse(fs.readFileSync(path.join(root, 'data', name), 'utf8'))
@@ -66,6 +75,10 @@ try {
     const r = await request('/api/prodamus/webhook', { payment_status: 'success', subscription: { id: '2854597' }, sum: '690' }, { sign: 'synthetic-signature' })
     check('missing verification keys reject payment before storage or accepted-event logging', () => { assert.equal(r.status, 503); assert.equal(fs.existsSync(path.join(root, 'data/pending-joins.json')), false); assert.equal(fs.existsSync(path.join(root, 'data/prodamus-webhooks.jsonl')), false) })
     console.log(`${count} missing-key check passed; no outbound provider calls`)
+  } else if (lifecycleMode) {
+    const { runLifecycle } = await import('./subscription-lifecycle-scenario.mjs')
+    await runLifecycle({ root, request, hook, read, check, wait, pathToFileURL })
+    console.log(`${count} full-cycle checks passed; provider and Telegram responses synthetic`)
   } else {
   const payload = { requestId: 'http-synthetic-request-0001', formType: 'contact', name: 'Synthetic Customer', phone: '+79000000222', email: 'http@example.invalid', contact: 'http@example.invalid', interest: ['Synthetic question'], ticketNumber: '41' }
   let r = await request('/api/notify', payload)
@@ -163,6 +176,10 @@ try {
   fs.writeFileSync(path.join(root, 'prodamus-cancel-ok'), '')
   r = await request('/api/account/subscription/cancel', { reason: 'Synthetic retry' }, { Authorization: `Bearer ${session.token}` })
   check('confirmed cancellation changes status but preserves the paid period and payments', () => { assert.equal(r.status, 200); assert.equal(r.body.confirmed, true); assert.equal(joins.getJoin(cancelToken).status, 'cancelled'); assert.equal(joins.getJoin(cancelToken).nextPaymentAt, until); assert.equal(joins.getJoin(cancelToken).payments.length, 1) })
+  joins.patchJoin(cancelToken, { status: 'active', payments: [...joins.getJoin(cancelToken).payments, { at: Date.now(), amount: 1770, subscriptionId: '3005286', orderKey: 'synthetic-other-plan' }] })
+  fs.writeFileSync(path.join(root, 'prodamus-cancel-fail-id'), '3005286')
+  r = await request('/api/account/subscription/cancel', {}, { Authorization: `Bearer ${session.token}` })
+  check('partial provider cancellation does not claim all historical subscriptions are stopped', () => { assert.equal(r.status, 200); assert.equal(r.body.confirmed, false); assert.equal(joins.getJoin(cancelToken).status, 'active') })
   console.log(`${count} integration checks passed; all users and outbound responses synthetic`)
   }
 } finally {

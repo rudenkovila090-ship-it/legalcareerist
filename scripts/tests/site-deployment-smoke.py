@@ -71,6 +71,10 @@ def run():
                 (root / relative).mkdir(parents=True, exist_ok=True)
                 (root / relative / (label + '.txt')).write_text(label)
             (root / 'server/node_modules/express').symlink_to(REPO / 'server/node_modules/express', target_is_directory=True)
+            for dependency in (REPO / 'server/node_modules').iterdir():
+                target = root / 'server/node_modules' / dependency.name
+                if not target.exists():
+                    target.symlink_to(dependency, target_is_directory=dependency.is_dir())
             (root / 'dist/index.html').write_text(label + ' website')
         (live / 'server/data').mkdir(parents=True)
         data_file = live / 'server/data/synthetic-payments.json'

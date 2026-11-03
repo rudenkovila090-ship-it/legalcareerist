@@ -1,7 +1,7 @@
 // Сообщения резиденту в бот о списаниях: напоминание, списание прошло, списание не прошло. То же самое уходит и письмом
 // (lib/subscriptionMail.js). Только тексты и кнопки; отправка и отметки «уже напоминали» — в server/index.js.
 
-import { preciseMoscowTime } from './subscriptionAccess.js'
+import { preciseMoscowTime, graceDays } from './subscriptionAccess.js'
 const MSK = 'Europe/Moscow'
 const day = (ts) => new Intl.DateTimeFormat('ru-RU', { timeZone: MSK, day: 'numeric', month: 'long' }).format(new Date(ts))
 const rub = (n) => `${Math.round(n).toLocaleString('ru-RU')} ₽`
@@ -19,11 +19,12 @@ export function chargeDoneText(amount, nextPaymentAt) {
   return ['Оплата подтверждена Prodamus ✅', amount ? `Оплачено: ${rub(amount)} за подписку на сообщество.` : 'Подписка на сообщество продлена.', nextPaymentAt ? `Подписка продлена до: ${preciseMoscowTime(nextPaymentAt)}.` : 'Дата окончания требует проверки: напиши в поддержку.', nextPaymentAt ? 'Следующее автосписание ожидается в указанное время. Деньги списывает Prodamus.' : null, '', 'Спасибо, что ты с нами! 💗'].filter((l) => l !== null).join('\n')
 }
 
-export function chargeFailedText(amount, chargeAt) {
+export function chargeFailedText(amount, chargeAt, graceUntil) {
   return [
     'Привет! Не получилось списать оплату за подписку на сообщество' + (amount ? ` (${rub(amount)}, ${day(chargeAt)})` : '') + '.',
     '',
     'Возможно, банк отклонил платёж или у карты закончился срок. Проверь карту и баланс: платёжная система повторит попытку в ближайшие дни.',
+    chargeAt ? `Дополнительное время на оплату: до ${preciseMoscowTime(graceUntil ?? (Number(chargeAt) + graceDays() * 86400000))}. Доступ сохранится до этого срока. Закреплённая цена не пропадает после закрытия доступа.` : 'Дата оплаты требует проверки в поддержке; автоматически закрывать доступ по неизвестной дате нельзя.',
     '',
     'Если карту нужно сменить, напиши в поддержку: поможем, чтобы подписка не прервалась.',
   ].join('\n')

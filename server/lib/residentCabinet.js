@@ -2,7 +2,8 @@
 // поддержка и «Настройки», где спрятано отключение подписки (подтверждение → причина → готово). Открывается только
 // тем, чей Telegram-аккаунт привязан к подписке, — так чужие данные по телефону получить нельзя. Кнопки — «r:…».
 import { gv } from './gender.js'
-import { hasAccess, paidUntil, preciseMoscowTime } from './subscriptionAccess.js'
+import { hasAccess, paidUntil, preciseMoscowTime, inGrace, accessUntil } from './subscriptionAccess.js'
+import { priceEntitlement, lockedAmount } from './subscriptionPricing.js'
 export { hasAccess } from './subscriptionAccess.js'
 
 const MSK = 'Europe/Moscow'
@@ -44,7 +45,7 @@ export function subscriptionScreen(join, tariffs, now = Date.now(), payUrl = '')
   }
   const paid = (join.payments ?? []).filter((p) => !p.estimated)
   const last = paid.at(-1) ?? (join.payments ?? []).at(-1)
-  const amount = Number(last?.amount) || tariffs[join.tariffId]?.price || null
+  const amount = lockedAmount(join, Number(last?.amount) || tariffs[join.tariffId]?.price || null)
   const plan = tariffs[join.tariffId]?.period ?? last?.subscriptionName ?? null
   const active = join.status === 'active' && hasAccess(join, now)
   const endsAt = paidUntil(join)
@@ -58,9 +59,11 @@ export function subscriptionScreen(join, tariffs, now = Date.now(), payUrl = '')
     '',
     `Статус: ${status}`,
     plan ? `Тариф: ${plan}${amount ? ` · ${rub(amount)}` : ''}` : amount ? `Сумма: ${rub(amount)}` : null,
-    `Начало подписки: ${join.firstPaidAt ? ruDate(join.firstPaidAt) : 'дата неизвестна'}`,
+    `Начало подписки: ${join.firstPaidAt ? preciseMoscowTime(join.firstPaidAt) : 'дата неизвестна'}`,
     until,
-    join.lastPaidAt ? `Последняя оплата: ${ruDate(join.lastPaidAt)}${amount ? ` · ${rub(amount)}` : ''}` : null,
+    inGrace(join, now) ? `Дополнительное время на оплату до: ${preciseMoscowTime(accessUntil(join))}. Доступ пока сохраняется.` : null,
+    priceEntitlement(join) ? `Закреплённая цена: ${rub(amount)} за прежний период; сохраняется после окончания доступа.` : null,
+    join.lastPaidAt ? `Последняя оплата: ${preciseMoscowTime(join.lastPaidAt)}${Number(last?.amount) > 0 ? ` · ${rub(Number(last.amount))}` : ''}` : null,
     paid.length ? `Всего оплат: ${paid.length}` : null,
     join.bonusDays ? `Бонусные дни: +${join.bonusDays}` : null,
   ].filter((l) => l !== null)
@@ -71,7 +74,9 @@ export function subscriptionScreen(join, tariffs, now = Date.now(), payUrl = '')
     lines.splice(at >= 0 ? at + 1 : lines.length, 0, `Осталось: ${left} ${plural(left, ['день', 'дня', 'дней'])}`)
   }
   const keyboard = [[{ text: '📜 История оплат', callback_data: 'r:hist' }]]
-  if ((!hasAccess(join, now) || join.status === 'cancelled') && payUrl) keyboard.push([{ text: join.status === 'cancelled' ? 'Возобновить подписку на сайте' : 'Оформить подписку на сайте', url: payUrl }])
+  if (priceEntitlement(join)?.subscriptionId && (inGrace(join, now) || !hasAccess(join, now) || join.status === 'cancelled' || join.oneTime)) keyboard.push([{ text: 'Продлить по закреплённой цене', callback_data: 'r:renew' }])
+  else if ((!hasAccess(join, now) || join.status === 'cancelled') && payUrl) keyboard.push([{ text: 'Проверить прежнюю цену — поддержка', callback_data: 'u:support' }])
+  keyboard.push([{ text: 'Смена карты через поддержку', callback_data: 'r:card' }])
   keyboard.push(BACK_ROW)
   return { text: lines.join('\n'), keyboard }
 }

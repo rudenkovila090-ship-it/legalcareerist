@@ -13,15 +13,23 @@ export function createJsonStore(fileName) {
 
   function load() {
     try {
-      return JSON.parse(fs.readFileSync(file, 'utf8'))
-    } catch {
-      return {}
+      const data = JSON.parse(fs.readFileSync(file, 'utf8'))
+      if (!data || Array.isArray(data) || typeof data !== 'object' || Object.values(data).some(v => !v || Array.isArray(v) || typeof v !== 'object')) throw Error('Invalid JSON store shape')
+      return data
+    } catch (error) {
+      if (error.code === 'ENOENT') return {}
+      throw Error(`Повреждено хранилище ${fileName}; запись остановлена до восстановления.`)
     }
   }
 
   function save(data) {
     fs.mkdirSync(DATA_DIR, { recursive: true })
-    fs.writeFileSync(file, JSON.stringify(data, null, 2))
+    const temp = file + '.writing-' + crypto.randomBytes(6).toString('hex')
+    try {
+      const fd = fs.openSync(temp, 'wx', 0o600)
+      try { fs.writeFileSync(fd, JSON.stringify(data, null, 2)); fs.fsyncSync(fd) } finally { fs.closeSync(fd) }
+      fs.renameSync(temp, file)
+    } finally { fs.rmSync(temp, { force: true }) }
   }
 
   function create(record) {
@@ -95,7 +103,7 @@ export function createJsonStore(fileName) {
     return true
   }
 
-  return { create, get, all, update, remove, markPaidByPhone, setField }
+  return { create, get, all, update, remove, markPaidByPhone, setField, load, save }
 }
 
 /** Оставляет только цифры и сводит ведущую "8" к "7" — для сравнения номеров. */

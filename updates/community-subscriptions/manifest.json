@@ -1,0 +1,510 @@
+{
+  "baseline": "b14a93b6ba0bf5cc2a2057576a875f8ae2aa0c8f",
+  "files": [
+    {
+      "path": "package-lock.json",
+      "before": "2401061dbdc469aea9bcfb4eb99da6624af16ffd1778d094bc1ffde3e2413923",
+      "after": "864b7c4b1c813bcab629db60518663c080f88a20994e22dac9d68a745ab19c0f",
+      "beforeAlternatives": [
+        "864b7c4b1c813bcab629db60518663c080f88a20994e22dac9d68a745ab19c0f"
+      ]
+    },
+    {
+      "path": "package.json",
+      "before": "72c2f206284a66ca42563b3daf6d4248354e8ad40f4793c2d6db42d9a22a34a5",
+      "after": "b6792f4c39cb4e06adf0197d26194ed9d17c68a18145c78a5ba3c726484cb39a",
+      "beforeAlternatives": [
+        "b6792f4c39cb4e06adf0197d26194ed9d17c68a18145c78a5ba3c726484cb39a"
+      ]
+    },
+    {
+      "path": "scripts/backup-site-private.sh",
+      "before": null,
+      "after": "81c7a81806575eb1aebb3b212abff42ebb8d4c6a50909798784ff025665b4dae",
+      "beforeAlternatives": [
+        "56c9f2e1ff63ee26fb1805963dc55c6d0f355163ea6546dcf6d060241a5d1082",
+        "81c7a81806575eb1aebb3b212abff42ebb8d4c6a50909798784ff025665b4dae"
+      ]
+    },
+    {
+      "path": "scripts/check-site-readonly.mjs",
+      "before": null,
+      "after": "8592d78b4f648079337edf8ca9e6041bce4e663c0b60390f4786c6d5a7fb2481",
+      "beforeAlternatives": [
+        "8592d78b4f648079337edf8ca9e6041bce4e663c0b60390f4786c6d5a7fb2481"
+      ]
+    },
+    {
+      "path": "server/index.js",
+      "before": "fc7b0c00ac5f7d3f8de46130c8be437cdc772c3b5de86a622420f37d0187a5ff",
+      "after": "dfe08a5fef85eac30b57836b958121a32bfd015086cce393f7c4e5a910fbf548",
+      "beforeAlternatives": [
+        "16ac5f0499203503276b68c10c455b98617f5cb0a8bf400acd50f79a8dca64c1",
+        "51910e036767a7c5fa5b3986442bd966c957d947f0e0aa1d4d137b96c9303690",
+        "df37b0334e2dcfe8740b6c38eb637d0deee8bbf14acc45bd33af0052a027598c",
+        "dfe08a5fef85eac30b57836b958121a32bfd015086cce393f7c4e5a910fbf548",
+        "f310419d6a0f4686350060f7f802efbec694d943cda25f77458d72d9c71077be"
+      ]
+    },
+    {
+      "path": "server/lib/accessExpiry.js",
+      "before": null,
+      "after": "4dc186840c1aa590f81c4b7fcd65f1465657d6c91b720be1e614954c9c430a36",
+      "beforeAlternatives": [
+        "4dc186840c1aa590f81c4b7fcd65f1465657d6c91b720be1e614954c9c430a36",
+        "ef923b8d43f88d0c2f2435400cce928edbd61bd4e0b992eacec2da220742e430"
+      ]
+    },
+    {
+      "path": "server/lib/accountProfile.js",
+      "before": "6d4c8bf21e88295151b3bffd67f2f3294144bdb791bdd5ebcc35870d08de37fd",
+      "after": "7cd579d48a573b20efbf036c3f511bd5669be248f6a5f5fd79ac7f30effc37e2",
+      "beforeAlternatives": [
+        "7cd579d48a573b20efbf036c3f511bd5669be248f6a5f5fd79ac7f30effc37e2",
+        "b34f27afa253a631d544193417ccb1a0b878e62e8573cb06fefd9a7c856ab5eb"
+      ]
+    },
+    {
+      "path": "server/lib/dayTasks.js",
+      "before": "92ac2e2ce69ea94fd2f647fe2c774d4ab8b5518ff3cf11b318d56c2a0e437183",
+      "after": "1cafc9e83616b505ce368faaa75446ad8b77ee37e16a5feb471873275e89dd32",
+      "beforeAlternatives": [
+        "1cafc9e83616b505ce368faaa75446ad8b77ee37e16a5feb471873275e89dd32"
+      ]
+    },
+    {
+      "path": "server/lib/leadInbox.js",
+      "before": null,
+      "after": "80d526c79f1169a8a1caf95c7134fe3e6000de9e8a9535437dd68ab3ae55696f",
+      "beforeAlternatives": [
+        "80d526c79f1169a8a1caf95c7134fe3e6000de9e8a9535437dd68ab3ae55696f"
+      ]
+    },
+    {
+      "path": "server/lib/pendingNotices.js",
+      "before": "4e02eda1bea83529ff1c483d74a2729a8fffbfd0c5322025a98c9927e555001a",
+      "after": "69c0238dfa80c936b3c17d08d01f54bb6056ce1520e93c708c9a7e0cd0fe7d74",
+      "beforeAlternatives": [
+        "69c0238dfa80c936b3c17d08d01f54bb6056ce1520e93c708c9a7e0cd0fe7d74"
+      ]
+    },
+    {
+      "path": "server/lib/personData.js",
+      "before": "a87e9509f817f09e3be1f9a498b8f102002a854d3dd539e4656681d26e414152",
+      "after": "a4a5510154795a687b6fc22ed2c9e4d9b6873027dda521350134857166805226",
+      "beforeAlternatives": [
+        "a4a5510154795a687b6fc22ed2c9e4d9b6873027dda521350134857166805226"
+      ]
+    },
+    {
+      "path": "server/lib/residentCabinet.js",
+      "before": "d2bcf67772818098a6049a5da57ee79ac3f2193537efab234c8704df68d0c42a",
+      "after": "4f175e712549d0391ca7ff23e00d53e541e27c8fc089ae4a58b5b846d6b5dcc5",
+      "beforeAlternatives": [
+        "4370268f6d6a0339257d82181db16310cf73ecffd4dd7e34b3f7533ea7ff0a8c",
+        "4f175e712549d0391ca7ff23e00d53e541e27c8fc089ae4a58b5b846d6b5dcc5",
+        "ae21b4ba261c98a3fe05c80641682c6127daa06d07afd82f317a38218fc105f5"
+      ]
+    },
+    {
+      "path": "server/lib/residentDelivery.js",
+      "before": null,
+      "after": "5bf126acf9ff2abfaff7d50ce248e0ca6dcc46accf6510f42fa350ccbe71ce02",
+      "beforeAlternatives": [
+        "5bf126acf9ff2abfaff7d50ce248e0ca6dcc46accf6510f42fa350ccbe71ce02"
+      ]
+    },
+    {
+      "path": "server/lib/residentNotices.js",
+      "before": "77d2ca3025bc9e4444d8e20b6df058fa3b25e3508c46cfee7a68d99351d0f8ec",
+      "after": "89ec52a25a763d0eea7714296aa83e8146de760c0900b2656fae123127208374",
+      "beforeAlternatives": [
+        "74d6f22ca7d58704dd69798fb3153cf1c7613bb713e26e984431be3396aed5aa",
+        "89ec52a25a763d0eea7714296aa83e8146de760c0900b2656fae123127208374"
+      ]
+    },
+    {
+      "path": "server/lib/store.js",
+      "before": "385a868da852d62aaf1b60a58d1678dec9d9f84417702e0fb18dd609eefadcd2",
+      "after": "f8770d597c23a35e397d5ff57e645fbf09b9d218d13adc7e6ddff948c89116ae",
+      "beforeAlternatives": [
+        "bb90fcac2d9d468f1e3f73cfcf48ef14cabddc0e93c0c90435ba62863fafaf6f",
+        "f8770d597c23a35e397d5ff57e645fbf09b9d218d13adc7e6ddff948c89116ae"
+      ]
+    },
+    {
+      "path": "server/lib/subscriptionAccess.js",
+      "before": null,
+      "after": "785f29a9c02278145c8460e8eb96863fb6953a60b2824d0b725113d895f9cae4",
+      "beforeAlternatives": [
+        "785f29a9c02278145c8460e8eb96863fb6953a60b2824d0b725113d895f9cae4",
+        "a5ed46496ee897af7d4d66f36b052b0e0c23948f5085b06741d4681333763842"
+      ]
+    },
+    {
+      "path": "server/lib/subscriptionMail.js",
+      "before": "d1235fdc8279a17cf770415ffe0d9d33e836a1e39c9744a9747d50ec5ed6182c",
+      "after": "4ac3fe0bcf3ee1108bdebcf4adc51ce99d3d945b1cf3008546546b66b13db4e6",
+      "beforeAlternatives": [
+        "4ac3fe0bcf3ee1108bdebcf4adc51ce99d3d945b1cf3008546546b66b13db4e6",
+        "a6a33606ccd3cf63f6654a12c1a418a559dc8e4cecfe050c861165f676febcb7"
+      ]
+    },
+    {
+      "path": "server/package-lock.json",
+      "before": "5cbad2a16573cf1d03719b8dab615e8607a1d49c891d33d186853f03148516ea",
+      "after": "34b3b8956d0acddce62616874719d1306bb1d75df3e7eec76eed4f8711f829d2",
+      "beforeAlternatives": [
+        "34b3b8956d0acddce62616874719d1306bb1d75df3e7eec76eed4f8711f829d2"
+      ]
+    },
+    {
+      "path": "server/package.json",
+      "before": "bbe3a3e53af3d56c9b4b3cc6167e8e0c697cdb8679cbb99e35969550d5a2271a",
+      "after": "b808f25fd08b227e660a720d40a3e2310f203eb451ba6589310091b4ae64a1ac",
+      "beforeAlternatives": [
+        "b808f25fd08b227e660a720d40a3e2310f203eb451ba6589310091b4ae64a1ac"
+      ]
+    },
+    {
+      "path": "server/tests/http-reliability.mjs",
+      "before": null,
+      "after": "2e522f434c8ab8883c6d6bf305aaad7efe7040d46b8608732a61ebbadeb71f5f",
+      "beforeAlternatives": [
+        "2e522f434c8ab8883c6d6bf305aaad7efe7040d46b8608732a61ebbadeb71f5f",
+        "4389b8e88672963bcff0f0bac9672084be02f0c14a04d904dae41ff904c872b8",
+        "722950d89c1614707ba1bed74352db454a10d4a01d18c6f42dc61eb3063f02c9",
+        "8e732904995467f6e97cc6c232260fa8bf8991dd40381da20ea6a7a910dcea80",
+        "e483633742dc4ffd7ea45f62b7e2cb35d21b145cd3189126969d1d3cfecfbe32"
+      ]
+    },
+    {
+      "path": "server/tests/reliability.test.mjs",
+      "before": null,
+      "after": "963a7cd705021cff01687730fb5e133e34e8f83cc897df20ab2c8d41941f9a0f",
+      "beforeAlternatives": [
+        "963a7cd705021cff01687730fb5e133e34e8f83cc897df20ab2c8d41941f9a0f",
+        "d95248ed30cc286c9ce7b55dc19e6f538d5e9d1507cc3ecb7d6a2db384b14dae"
+      ]
+    },
+    {
+      "path": "src/components/LeadForm.tsx",
+      "before": "72a373d0dab66d976c47513fa5d039a871e4a6db5ce19cb8172a0c6f6b241c31",
+      "after": "49e0036a0b727db58d32e0603d0822f324793409c223eccc241b7ff05ad2421b",
+      "beforeAlternatives": [
+        "49e0036a0b727db58d32e0603d0822f324793409c223eccc241b7ff05ad2421b"
+      ]
+    },
+    {
+      "path": "src/components/LeadSuccessCard.tsx",
+      "before": "2639b370bd6d9a7917ea66e29563ec3767666f7d27ad57a947d375b0ebfe9b3d",
+      "after": "8179f2ef125fa02c479260977f345bb90ef71ea3afb6141fcabfc72db4d4e0ba",
+      "beforeAlternatives": [
+        "8179f2ef125fa02c479260977f345bb90ef71ea3afb6141fcabfc72db4d4e0ba"
+      ]
+    },
+    {
+      "path": "src/components/TariffJoinBlock.tsx",
+      "before": "88b97ac1d607184f486c6c9c4cbb44871c3d5a28e3e66d3fa84729c701a16e64",
+      "after": "c997673facf5fc0d96bcab65f565d07db5cbf256e91d410d9a40d0713491de05",
+      "beforeAlternatives": [
+        "c997673facf5fc0d96bcab65f565d07db5cbf256e91d410d9a40d0713491de05"
+      ]
+    },
+    {
+      "path": "src/lib/leads.ts",
+      "before": "f1c70e72877399fe8163cfec09337081cd5248a145c39ee70213c719bf743642",
+      "after": "14d9afee5522a837c368de382b5015d4eb30266151b41b0d8fc0954ebf81129e",
+      "beforeAlternatives": [
+        "14d9afee5522a837c368de382b5015d4eb30266151b41b0d8fc0954ebf81129e"
+      ]
+    },
+    {
+      "path": "src/pages/Contacts.tsx",
+      "before": "7553c042ef14d5e200115d8126827d69502c9416823b24ccb81e68d73ac0fa00",
+      "after": "34a5e866714675889f264ba99900459c270af6fc4fc4c962447367113871b6d0",
+      "beforeAlternatives": [
+        "34a5e866714675889f264ba99900459c270af6fc4fc4c962447367113871b6d0"
+      ]
+    },
+    {
+      "path": "src/pages/account/CandidateAccount.tsx",
+      "before": "8d165156b2409caa5ba3a9a715b210fb6c5605b73f04ebf8214db22c73b847be",
+      "after": "e7e96aea50c1e738e24c1f82ccc140dd8a658477a99b5b7f7a7ca76729112475",
+      "beforeAlternatives": [
+        "e7e96aea50c1e738e24c1f82ccc140dd8a658477a99b5b7f7a7ca76729112475"
+      ]
+    },
+    {
+      "path": "src/pages/account/EmployerAccount.tsx",
+      "before": "4208cbda6b4b37bbcc10bf2ebad1e759907332ec296f5e878b545c6be486aa49",
+      "after": "a867d09d6fdbf0c387ba9ed915c68554483e807b50cfef40fd46a36b53c5b147",
+      "beforeAlternatives": [
+        "a867d09d6fdbf0c387ba9ed915c68554483e807b50cfef40fd46a36b53c5b147"
+      ]
+    },
+    {
+      "path": "src/pages/community/CommunityHome.tsx",
+      "before": "b36894fc2bea171e153bdfeeff5933eb82c74f5aa879f1ed78bf7e6896a28cf1",
+      "after": "cc8c1c18c7ca1ba2ea100a931dd6eb13c96ee47df5221f95e177e0af69d8e529",
+      "beforeAlternatives": [
+        "cc8c1c18c7ca1ba2ea100a931dd6eb13c96ee47df5221f95e177e0af69d8e529"
+      ]
+    },
+    {
+      "path": "src/pages/events/EventDetail.tsx",
+      "before": "b0bb6c858f85acf8df29002c62fbac65cbcd8c7ffdc8bc9574cccbb537f46607",
+      "after": "6b7e03c32268b09bfe679ced8d35ca36511a1e34225fc41e8d2b179211b9e06b",
+      "beforeAlternatives": [
+        "6b7e03c32268b09bfe679ced8d35ca36511a1e34225fc41e8d2b179211b9e06b"
+      ]
+    },
+    {
+      "path": "src/pages/events/EventsHome.tsx",
+      "before": "ba2fa22a6978fb979557a00eed1b727fe667c08992ec9fc27919de3b5223b9bc",
+      "after": "f9549d99354ab85d7925ea0693b7e660165ba7194645284cac5158b51657752a",
+      "beforeAlternatives": [
+        "f9549d99354ab85d7925ea0693b7e660165ba7194645284cac5158b51657752a"
+      ]
+    },
+    {
+      "path": "src/pages/kadry/Candidates.tsx",
+      "before": "cc1a01f7d2b1c0afcdb862dc311fdf4852d48c88328df42a38dbd965be902ded",
+      "after": "908c7cce9f5fba13dadc27a68464f221a93b57af63d647b9b4ca4bcc465e7145",
+      "beforeAlternatives": [
+        "908c7cce9f5fba13dadc27a68464f221a93b57af63d647b9b4ca4bcc465e7145"
+      ]
+    },
+    {
+      "path": "src/pages/kadry/CareerConsultation.tsx",
+      "before": "697334b59db5f8997fde4b9d217ce1695ec08cc763d64d46258f0872844e27d9",
+      "after": "191a4abb5c0e5d26cf867a056c76b7967727bfcd01b2e0a661925a25d3f5f0ed",
+      "beforeAlternatives": [
+        "191a4abb5c0e5d26cf867a056c76b7967727bfcd01b2e0a661925a25d3f5f0ed"
+      ]
+    },
+    {
+      "path": "src/pages/kadry/CareerReserve.tsx",
+      "before": "61a3bdf222aad07a62a567a6cf0c22ad9431eb31dad6831919a906122e088ae3",
+      "after": "804ac332c31af1464eaea47afcf7d9e8b076de407f5dda2eee7c7950773d3455",
+      "beforeAlternatives": [
+        "804ac332c31af1464eaea47afcf7d9e8b076de407f5dda2eee7c7950773d3455"
+      ]
+    },
+    {
+      "path": "src/pages/kadry/KadryHome.tsx",
+      "before": "065a36f47c84b664b4980c9ba6f5c339f51f9724dedbbf08b60b27b91259665a",
+      "after": "313a4a28c4837990656918841cfea5eee9fbe89ae9e9b8bce8281974f7afaf48",
+      "beforeAlternatives": [
+        "313a4a28c4837990656918841cfea5eee9fbe89ae9e9b8bce8281974f7afaf48"
+      ]
+    },
+    {
+      "path": "scripts/restore-material-pdfs.mjs",
+      "before": null,
+      "after": "5f0bf52b35fbb6b68d7f0b1cd6f700f10a110699d79d610fb0758995a0c85315",
+      "beforeAlternatives": [
+        "5f0bf52b35fbb6b68d7f0b1cd6f700f10a110699d79d610fb0758995a0c85315"
+      ]
+    },
+    {
+      "path": "src/pages/events/MaterialDetail.tsx",
+      "before": "dfaf82d3e925c0c459abcb98a99b94fa1028824ac63d46bc96b2c8157d309803",
+      "after": "2e5fc6cfb4f8f1edb38cc705872c4128f45ca18de79eb4baf21dd46ab0c82a28",
+      "beforeAlternatives": [
+        "2e5fc6cfb4f8f1edb38cc705872c4128f45ca18de79eb4baf21dd46ab0c82a28"
+      ]
+    },
+    {
+      "path": "server/lib/adminMaterials.js",
+      "before": null,
+      "after": "8c0ae9e9eddbf946d0e2b344a6014297c9cf9710a87b1356316b5bba2a40bb1a",
+      "beforeAlternatives": [
+        "8c0ae9e9eddbf946d0e2b344a6014297c9cf9710a87b1356316b5bba2a40bb1a"
+      ]
+    },
+    {
+      "path": "server/lib/materialPdfs.js",
+      "before": "2ea0bed8654c740c826ce21c193f1493885b2a6af246284aaa2b285709d73b9f",
+      "after": "24f475dbc94b8f7dc45128f1da17eca39382891a832d214c0d32ff224a8213b0",
+      "beforeAlternatives": [
+        "24f475dbc94b8f7dc45128f1da17eca39382891a832d214c0d32ff224a8213b0"
+      ]
+    },
+    {
+      "path": "server/tests/admin-materials.mjs",
+      "before": null,
+      "after": "637af1102f5c473697885e44ee51bf09cbee893800c02ee5119b3bdedfb1e2db",
+      "beforeAlternatives": [
+        "637af1102f5c473697885e44ee51bf09cbee893800c02ee5119b3bdedfb1e2db"
+      ]
+    },
+    {
+      "path": "src/lib/cabinet.ts",
+      "before": "256957dea2ee5eb89812bf8ecc0d4607b88d49e14cb1dec411317cb1c44f0cf5",
+      "after": "8e93dbd26aad264f12f3ccb68b66e9bcf9c6bdda0e8dd0c8a0f5fa92a8033b2d",
+      "beforeAlternatives": [
+        "8e93dbd26aad264f12f3ccb68b66e9bcf9c6bdda0e8dd0c8a0f5fa92a8033b2d",
+        "93d11c6aa1a2016acd2191df8660d8ea72640a8e4abafa8d0b1ba48a56bdce00"
+      ]
+    },
+    {
+      "path": "src/pages/cabinet/Cabinet.tsx",
+      "before": "e8299fede253aff6d4e85cd56da2ebd4b248f3e862d82afb7151d2205990de94",
+      "after": "5846b5dc1225fc6bfa2ec27f5d7d1df8b303ae377f8229fcb4c819c5d0043478",
+      "beforeAlternatives": [
+        "5846b5dc1225fc6bfa2ec27f5d7d1df8b303ae377f8229fcb4c819c5d0043478"
+      ]
+    },
+    {
+      "path": "src/pages/cabinet/MaterialManager.tsx",
+      "before": null,
+      "after": "93770478df2e83b542241fd8989c708cde8db28be3b000b63feb09457f427068",
+      "beforeAlternatives": [
+        "93770478df2e83b542241fd8989c708cde8db28be3b000b63feb09457f427068"
+      ]
+    },
+    {
+      "path": "server/lib/healthBackup.js",
+      "before": "c5bd10b8eeacc75fd85612930731e4af44c8dd95f319e89be1421acaa9d433f6",
+      "after": "e433d08d1e83cf442742d717d1cc246a7fa480f83dcaac0a87fdac319f32c920",
+      "beforeAlternatives": [
+        "e433d08d1e83cf442742d717d1cc246a7fa480f83dcaac0a87fdac319f32c920"
+      ]
+    },
+    {
+      "path": "server/lib/jsonStore.js",
+      "before": "0e8258a82e910240883f4846c6ed7626f49a0700795241324e340af6e5389bd6",
+      "after": "e341e7c009bb5ad083d4bc104eca9a1a6d12ba5ef179b8bc8e45a2867ef4e414",
+      "beforeAlternatives": [
+        "e341e7c009bb5ad083d4bc104eca9a1a6d12ba5ef179b8bc8e45a2867ef4e414"
+      ]
+    },
+    {
+      "path": "server/lib/adminCabinet.js",
+      "before": "8dcd0511700ff121e89259de401dfac9ae72709e9836cf9bfd91370d5b14d635",
+      "after": "fb36d5b3c1d84bec72a5ec0f6c0d0df7b68660661599b249da54561c4bf6c523",
+      "beforeAlternatives": [
+        "fb36d5b3c1d84bec72a5ec0f6c0d0df7b68660661599b249da54561c4bf6c523"
+      ]
+    },
+    {
+      "path": "server/lib/prodamus.js",
+      "before": "1fdf7b6879fcd402c867b12d31ecbfb8095cc6226bd32492becf8cf4fa11ea4d",
+      "after": "6841240b3e5f359498175173ee204ab411f6920323342887bf998beeff2db191",
+      "beforeAlternatives": [
+        "6841240b3e5f359498175173ee204ab411f6920323342887bf998beeff2db191"
+      ]
+    },
+    {
+      "path": "server/lib/subscriptionPricing.js",
+      "before": null,
+      "after": "6fa5892a9f4c242feb69df3bb6851204d97e845f2f4cd0f255e25987be00368e",
+      "beforeAlternatives": [
+        "6fa5892a9f4c242feb69df3bb6851204d97e845f2f4cd0f255e25987be00368e"
+      ]
+    },
+    {
+      "path": "server/lib/subscriptionReminders.js",
+      "before": null,
+      "after": "ee46143b7cfacac78d7e40d08e30a8aea6881a7725cefbe00c097a0337f5ae7d",
+      "beforeAlternatives": [
+        "ee46143b7cfacac78d7e40d08e30a8aea6881a7725cefbe00c097a0337f5ae7d"
+      ]
+    },
+    {
+      "path": "server/lib/subscriptionDemo.js",
+      "before": null,
+      "after": "06655862bd63969684e6e7d2e7428fcc01c5ea5ce5cab520dd7c18ad651cc695",
+      "beforeAlternatives": [
+        "06655862bd63969684e6e7d2e7428fcc01c5ea5ce5cab520dd7c18ad651cc695"
+      ]
+    },
+    {
+      "path": "server/lib/subscriptionPolicy.js",
+      "before": null,
+      "after": "073b3bbc213ba0251346b6285ca20e84204107bf20512400810b02ad35c6c87a",
+      "beforeAlternatives": [
+        "073b3bbc213ba0251346b6285ca20e84204107bf20512400810b02ad35c6c87a"
+      ]
+    },
+    {
+      "path": "server/tests/subscription-lifecycle.test.mjs",
+      "before": null,
+      "after": "9b2e117965bbbff03fd3d8c5de83b94a07001df3893e9573269a6e552fb2b682",
+      "beforeAlternatives": [
+        "9b2e117965bbbff03fd3d8c5de83b94a07001df3893e9573269a6e552fb2b682"
+      ]
+    },
+    {
+      "path": "server/tests/subscription-lifecycle-scenario.mjs",
+      "before": null,
+      "after": "d282fed16b2c411165362c6d8db1d4b9d14262b256e4e1159c149a1c9cb873a1",
+      "beforeAlternatives": [
+        "d282fed16b2c411165362c6d8db1d4b9d14262b256e4e1159c149a1c9cb873a1"
+      ]
+    },
+    {
+      "path": "src/pages/cabinet/CommunitySections.tsx",
+      "before": "182a869867e9987426946780de4b5affefd01734d78ff9422cbb72b9ae2007b3",
+      "after": "77ef9c419651b3eefc74cda74a63a33c229b9b4786ea8e0d05ec2c17dc3d8a01",
+      "beforeAlternatives": [
+        "74c98faf11170ed943049b29ef748f57403deda34dc75c5eba159ee5cbb5fb3d",
+        "77ef9c419651b3eefc74cda74a63a33c229b9b4786ea8e0d05ec2c17dc3d8a01"
+      ]
+    },
+    {
+      "path": "src/data/eventStories.ts",
+      "before": "d791ce52187b141e10ac87a310cd8a1628817d6124d58b751232ae8110583667",
+      "after": "91dc4751a72db73271784a401d418576dbfa160fca2143e902f292120302bc79",
+      "beforeAlternatives": [
+        "673ca6717279794d406643133728adc1b88c109366a1159b556b219533793ede",
+        "70deb3ce76cffbd3d8b270ca8a9fca874b8dd354c7fce885e94fb181c43d6bf3",
+        "91dc4751a72db73271784a401d418576dbfa160fca2143e902f292120302bc79"
+      ]
+    },
+    {
+      "path": "src/pages/events/NoirSections.tsx",
+      "before": "537a6ed0cfe640e7ea19df6731a54348d808b7249b28b230ca4c91bdaa467b9a",
+      "after": "739d01a26845d3d1fc286d7b1e5b11176661e40c3b10a7d2f58f1ca9d81fc399",
+      "beforeAlternatives": [
+        "739d01a26845d3d1fc286d7b1e5b11176661e40c3b10a7d2f58f1ca9d81fc399"
+      ]
+    },
+    {
+      "path": "src/pages/events/noir.css",
+      "before": "f153100a24aef70b6f60f650985e2a0042bcc520b1fcf67517a0be09d593bd5c",
+      "after": "8da168718b372af46949debf87d57d4e37323884dbec96dd528abed9baea831c",
+      "beforeAlternatives": [
+        "8da168718b372af46949debf87d57d4e37323884dbec96dd528abed9baea831c"
+      ]
+    },
+    {
+      "path": "src/assets/noir/partner-sma-spb.jpg",
+      "before": null,
+      "after": "64d5b87f2af2fa6b6a3427e6b743abd56eae15cf647fd80b8364a980857d21bc",
+      "beforeAlternatives": [
+        "64d5b87f2af2fa6b6a3427e6b743abd56eae15cf647fd80b8364a980857d21bc"
+      ]
+    },
+    {
+      "path": "src/assets/noir/partner-pro-career.jpg",
+      "before": null,
+      "after": "bdb379c677d7634c56674e7b81b770be7d815a6af016caf85824da53623097c4",
+      "beforeAlternatives": [
+        "bdb379c677d7634c56674e7b81b770be7d815a6af016caf85824da53623097c4"
+      ]
+    },
+    {
+      "path": "server/lib/botUsers.js",
+      "before": "090944c861602d0e38b8f9655bcdad24d3e6c69dd57e01c24adc2a90197d7112",
+      "after": "433ffa257466d5b8b09a6c9a0386aa50fe3683db93a921a14f769de0c76b5d75",
+      "beforeAlternatives": [
+        "433ffa257466d5b8b09a6c9a0386aa50fe3683db93a921a14f769de0c76b5d75"
+      ]
+    }
+  ],
+  "materialManager": true,
+  "recoverMaterials": false,
+  "subscriptionLifecycle": true
+}

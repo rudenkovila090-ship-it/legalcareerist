@@ -1,3 +1,5 @@
+// Existing zero-grace policy regression; the default four-day policy has its own lifecycle suite.
+process.env.SUBSCRIPTION_GRACE_DAYS = '0'
 import { test, after } from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
@@ -19,6 +21,28 @@ const profile = await import(pathToFileURL(path.join(temp, 'lib/accountProfile.j
 const pending = await import(pathToFileURL(path.join(temp, 'lib/pendingNotices.js')))
 after(() => fs.rmSync(temp, { recursive: true, force: true }))
 const now = Date.parse('2026-11-01T10:12:34.000Z')
+test('financial JSON rejects corrupt data instead of overwriting it', () => {
+  const file = path.join(temp, 'data/pending-joins.json')
+  const previous = fs.existsSync(file) ? fs.readFileSync(file) : null
+  try {
+    for (const broken of ['{', '[]', 'null', '{"bad":1}']) {
+      fs.writeFileSync(file, broken)
+      assert.throws(() => store.createPendingJoin({ tariffId: '1m', name: 'Synthetic' }))
+      assert.equal(fs.readFileSync(file, 'utf8'), broken)
+    }
+  } finally { if (previous) fs.writeFileSync(file, previous); else fs.rmSync(file, { force: true }) }
+})
+test('failed atomic rename leaves the previous financial store intact', () => {
+  const token = store.createPendingJoin({ tariffId: '1m', name: 'Synthetic atomic test' })
+  const file = path.join(temp, 'data/pending-joins.json'), previous = fs.readFileSync(file)
+  const rename = fs.renameSync
+  try {
+    fs.renameSync = () => { throw Error('synthetic failed rename') }
+    assert.throws(() => store.createPendingJoin({ tariffId: '1m', name: 'Synthetic rejected' }))
+    assert.deepEqual(fs.readFileSync(file), previous)
+    assert.equal(fs.readdirSync(path.dirname(file)).filter(f => f.includes('.writing-')).length, 0)
+  } finally { fs.renameSync = rename; store.removeJoin(token) }
+})
 const lead = n => inbox.normalizeLead({ name: 'Synthetic Customer', contact: 'test@example.invalid', email: 'test@example.invalid', formType: 'contact', requestId: `request-synthetic-${n}`, consent: { policy: true, processing: true }, interest: ['Test question'] }).body
 
 test('consents are strict, contact is required, invalid details rejected', () => {

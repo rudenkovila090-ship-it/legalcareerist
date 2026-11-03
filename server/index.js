@@ -1,3 +1,7 @@
+import { accessPeriodEnded, accessUntil, graceDays, preciseMoscowTime } from './lib/subscriptionAccess.js'
+import { createSubscriptionReminders } from './lib/subscriptionReminders.js'
+import { priceEntitlement } from './lib/subscriptionPricing.js'
+import { subscriptionDemo } from './lib/subscriptionDemo.js'
 // Бэкенд-эндпоинт сайта «Карьерный Юрист».
 // 1. POST /api/notify — заявка с сайта → уведомление админу в Telegram.
 // 2. POST /api/community/subscribe — выбор тарифа на сайте → подписанная
@@ -556,8 +560,8 @@ async function handleSubscriptionPayment(body, phone) {
   const email = body.customer_email
   const extra = parseCustomerExtra(body.customer_extra)
   const paidAt = parsePaymentDate(body.date)
-  const amount = Number(body.sum) || tariff?.price || 0
-  const orderKey = String(body.order_id || '') || null
+  const amount = body.sum !== undefined && Number.isFinite(Number(body.sum)) ? Number(body.sum) : Number(subscription.cost) || 0
+  const orderKey = String(body.order_id || '') || (subscription.profile_id && subscription.payment_num ? `sub:${subscription.id}:${subscription.profile_id}:${subscription.payment_num}` : null)
   const profileId = subscription.profile_id ? String(subscription.profile_id) : null
   const tgUserId = body.tg_user_id ? String(body.tg_user_id) : null
   const paymentNum = Number(subscription.payment_num) || null
@@ -601,6 +605,7 @@ async function handleSubscriptionPayment(body, phone) {
 
   // Первая оплата: личная ссылка на вступление и письмо с ней (и сроками, и тем, как отключить подписку).
   const adminLines = []
+  if (rec.priceLock?.amount > 0 && amount !== rec.priceLock.amount) adminLines.push(`⚠️ Сумма платежа ${amount} ₽ отличается от закреплённой цены ${rec.priceLock.amount} ₽. Доступ учтён по реальной оплате; проверьте тариф Prodamus. Закреплённая цена не изменена.`)
   let invite = null
   if (result.kind === 'first') {
     try {
@@ -618,11 +623,7 @@ async function handleSubscriptionPayment(body, phone) {
     }
   }
   // Renewals restore resident tags too (including a payment received after expiry).
-  if (rec.tgUserId) {
-    for (const tag of ['оплатил_подписку', 'резидент_сообщества']) addTag(rec.tgUserId, tag)
-    const user = getBotUser(rec.tgUserId)
-    if (user) updateBotUser(rec.tgUserId, { tags: [...(user.tags ?? []).filter(tag => tag !== 'контроль_списания' && !tag.startsWith('тариф_')), `тариф_${rec.tariffId || 'особый'}`] })
-  }
+  if (rec.tgUserId) syncResidentMetadata(rec, rec.tgUserId)
 
   await sendTelegramMessage(
     ADMIN_CHAT_ID,
@@ -680,7 +681,7 @@ async function handleChargeFailure(body) {
   const firstNotice = join.chargeFailedNoticeFor !== dueAt
   if (firstNotice) {
     const notices = process.env.AUTO_RESIDENT_REMINDERS !== '0' && process.env.CHARGE_FAILED_NOTICES !== '0'
-    const r = notices ? await notifyResident(join, { text: chargeFailedText(amount, dueAt), keyboard: CHARGE_FAILED_KEYBOARD }, composeChargeFailedMail({ name: join.name, amount, chargeAt: dueAt, ...mailContext() })) : null
+    const r = notices ? await notifyResident(join, { text: chargeFailedText(amount, dueAt, accessUntil(join)), keyboard: CHARGE_FAILED_KEYBOARD }, composeChargeFailedMail({ name: join.name, amount, chargeAt: dueAt, graceUntil: accessUntil(join), ...mailContext() })) : null
     if (r?.bot || r?.mail) patchJoin(join.token, { chargeFailedNoticeFor: dueAt })
     const told = r ? `${r.bot ? 'бот ✅' : r.bot === false ? 'бот ❌' : 'бота нет'}, ${r.mail ? 'почта ✅' : r.mail === false ? 'почта ❌' : 'почты нет'}` : 'уведомления клиентам выключены'
     await sendTelegramMessage(ADMIN_CHAT_ID, `🟡 Списание не прошло: ${label} · ${amount ? `${amount} ₽` : 'сумма неизвестна'}\nПричина: ${reason || 'не указана'}. Попытка ${attempt ?? '?'}${last ? ' (последняя)' : `, следующая: ${sub.date_next_payment ?? 'неизвестно'} мск`}.\nЧеловека предупредили: ${told}.`, undefined, quiet()).catch(() => false)
@@ -807,7 +808,7 @@ async function unbanForReturn(join) {
  */
 async function sendInviteLink(chatId, join) {
   const url = communityInviteUrl()
-  if (join?.joinedAt) {
+  if (join?.joinedAt && join.inChat === true) {
     await sendTelegramMessage(chatId, 'Подписка привязана ✅ Ты уже в закрытом чате сообщества.', [[{ text: 'Личный кабинет', callback_data: 'r:menu' }]])
     return
   }
@@ -820,11 +821,23 @@ async function sendInviteLink(chatId, join) {
   if (!url) await sendTelegramMessage(ADMIN_CHAT_ID, `⚠️ Оплата получена, но COMMUNITY_INVITE_LINK не задана: пришлите человеку (chat id ${chatId}) ссылку на сообщество вручную.`)
 }
 
+function syncResidentMetadata(join, tgUserId) {
+  ensureBotUser({ id: tgUserId })
+  for (const tag of ['оплатил_подписку', 'резидент_сообщества']) addTag(tgUserId, tag)
+  const user = getBotUser(tgUserId)
+  if (user) updateBotUser(tgUserId, {
+    tags: [...(user.tags || []).filter(tag => tag !== 'контроль_списания' && !tag.startsWith('тариф_') && !tag.startsWith('цена_')), `тариф_${join.tariffId || 'особый'}`, `цена_${priceEntitlement(join)?.amount || 'на_проверке'}`],
+    subscriptionStartedAt: join.firstPaidAt || null, subscriptionPaidUntil: join.nextPaymentAt || null,
+    subscriptionGraceUntil: accessUntil(join), subscriptionTariffId: join.tariffId || null, subscriptionLockedAmount: priceEntitlement(join)?.amount || null,
+  })
+}
+
 /** Метки и дата вступления: в карточке подписки и в карточке человека в боте (её заводим, если человек ещё не нажимал Start). */
 function markJoined(from, join, at) {
-  patchJoin(join.token, { joinedAt: join.joinedAt ?? at, lastJoinedAt: at, leftAt: undefined })
+  patchJoin(join.token, { joinedAt: join.joinedAt ?? at, lastJoinedAt: at, leftAt: undefined, inChat: true, accessClosedFor: undefined, accessClosedAt: undefined })
   if (!from?.id) return
   ensureBotUser(from)
+  syncResidentMetadata(join, from.id)
   for (const tag of ['оплатил_подписку', 'резидент_сообщества', 'вступил_в_сообщество']) addTag(from.id, tag)
   updateBotUser(from.id, { communityJoinedAt: join.joinedAt ?? at })
 }
@@ -852,8 +865,9 @@ async function handleJoinRequest(request) {
 
   if (verdict.bind) setTgUserId(verdict.join.token, String(userId))
   const res = await post('approveChatJoinRequest', { chat_id: COMMUNITY_CHAT_ID, user_id: userId })
-  if (!res.ok) {
-    console.error('[telegram] approveChatJoinRequest ошибка:', await res.text())
+  const approval = await res.json().catch(() => null)
+  if (!res.ok || approval?.ok !== true) {
+    console.error('[telegram] approveChatJoinRequest ошибка:', approval?.description || res.status)
     await sendTelegramMessage(ADMIN_CHAT_ID, `⚠️ Не удалось одобрить заявку ${name} (id ${userId}). Бот должен быть администратором чата сообщества с правом приглашать пользователей.`)
     return
   }
@@ -1363,6 +1377,28 @@ app.get('/api/account/kb/search', (req, res) => {
 const subscriptionAttempts = new Map()
 
 /** Отключение автопродления из кабинета: тот же путь, что в боте (Prodamus setActivity), доступ остаётся до конца оплаченного периода. */
+async function lockedRenewal(join) {
+  const lockedPlan = priceEntitlement(join)
+  if (!lockedPlan?.subscriptionId || !lockedPlan.amount || join.lifetime) throw Error('price_lock_needs_review')
+  if (!join.oneTime) {
+    const cancellation = await cancelSubscription(join, 'Переоформление на прежнюю цену, защита от двойного списания')
+    if (!cancellation.confirmed) throw Error('provider_cancellation_unconfirmed')
+  }
+  return createPaymentLink({ tariffId: join.tariffId, lockedPlan, tgUserId: join.tgUserId, phone: join.phone,
+    email: join.email, name: join.name, telegram: join.telegram,
+    urlSuccess: `${SITE_URL}/community/success?token=${join.token}` })
+}
+app.post('/api/account/subscription/renew', async (req, res) => {
+  const cfg = requireAccount(req, res)
+  if (!cfg) return
+  if (hitLimit(subscriptionAttempts, `renew:${cfg.login}`, 3, HOUR_MS)) return res.status(429).json({ ok: false, error: 'too_many_attempts' })
+  const join = residentJoin(cfg.tgId, cfg.email)
+  if (!join || join.lifetime) return res.status(404).json({ ok: false, error: 'no_subscription' })
+  if (join.status === 'active' && !join.oneTime && Number(join.nextPaymentAt) > Date.now()) return res.status(409).json({ ok: false, error: 'already_active' })
+  try { res.json({ ok: true, url: await lockedRenewal(join) }) }
+  catch (error) { res.status(503).json({ ok: false, error: error.message === 'provider_cancellation_unconfirmed' ? error.message : 'price_lock_needs_review' }) }
+})
+
 app.post('/api/account/subscription/cancel', async (req, res) => {
   const cfg = requireAccount(req, res)
   if (!cfg) return
@@ -1401,8 +1437,7 @@ app.post('/api/account/subscription/cancel', async (req, res) => {
 })
 
 /**
- * Смена карты для списаний. Prodamus не даёт ни клиенту, ни нам сменить карту самостоятельно (в REST API есть только включение и
- * выключение подписки, скидка и дата списания), поэтому запрос уходит в чат поддержки с данными подписки, а дальше это делает человек.
+ * Смена карты: запрос в поддержку. Самостоятельная замена реквизитов через API провайдера пока не подтверждена.
  */
 app.post('/api/account/subscription/card', async (req, res) => {
   const cfg = requireAccount(req, res)
@@ -2650,7 +2685,7 @@ async function extrasAction(parts, now, chatId) {
       if (!j) return overdueView(now)
       if (j.lastManualNoticeAt && now - j.lastManualNoticeAt < 6 * 3600 * 1000) return withNote(await overdueCardFor(j.token, now), `Напоминание уже отправляли ${ruDateShort(j.lastManualNoticeAt)} в последние 6 часов, повторно не отправляю.`)
       const amount = planAmount(j, TARIFFS)
-      const r = await notifyResident(j, { text: chargeFailedText(amount, j.nextPaymentAt), keyboard: CHARGE_FAILED_KEYBOARD }, composeChargeFailedMail({ name: j.name, amount, chargeAt: j.nextPaymentAt, ...mailContext() }))
+      const r = await notifyResident(j, { text: chargeFailedText(amount, j.nextPaymentAt, accessUntil(j)), keyboard: CHARGE_FAILED_KEYBOARD }, composeChargeFailedMail({ name: j.name, amount, chargeAt: j.nextPaymentAt, graceUntil: accessUntil(j), ...mailContext() }))
       patchJoin(j.token, { watch: 'charge', ...(r.bot || r.mail ? { chargeFailedNoticeFor: j.nextPaymentAt } : {}), lastManualNoticeAt: now })
       if (j.tgUserId) addTag(j.tgUserId, 'контроль_списания')
       return withNote(await overdueCardFor(j.token, now), `🔔 Напоминание отправлено: ${r.bot ? 'бот ✅' : r.bot === false ? 'бот ❌' : 'бота нет'}, ${r.mail ? 'почта ✅' : r.mail === false ? 'почта ❌' : 'почты нет'}.`)
@@ -3500,8 +3535,11 @@ async function handleUserCallback(query) {
 /** Отключение подписки по просьбе самого резидента: пробуем отключить в Prodamus, отмечаем в учёте, сообщаем админу. */
 async function cancelSubscription(join, reason) {
   const ids = new Set((join.payments ?? []).map((p) => p.subscriptionId).filter(Boolean).map(String))
-  if (TARIFFS[join.tariffId]) ids.add(String(TARIFFS[join.tariffId].subscription))
-  if (join.importedFromBotHelp) ['2611878', '2611880'].forEach((id) => ids.add(id)) // номера подписок из сценария BotHelp
+  if (!ids.size) {
+    const historicalId = priceEntitlement(join)?.subscriptionId
+    if (historicalId) ids.add(String(historicalId))
+    else if (!join.importedFromBotHelp && TARIFFS[join.tariffId]) ids.add(String(TARIFFS[join.tariffId].subscription))
+  }
   const results = []
   // Разовые подписки (350/500 ₽) без автопродления в Prodamus не отключаем — доступ просто закончится в срок.
   // Клиента в Prodamus ищем по Telegram id, а если карточка с сайта и Telegram не привязан — по телефону или почте.
@@ -3515,7 +3553,7 @@ async function cancelSubscription(join, reason) {
       }
     }
   }
-  const confirmed = join.oneTime || results.some((r) => r.ok)
+  const confirmed = join.oneTime || (results.length > 0 && results.every((r) => r.ok))
   if (confirmed) {
     setSubscriptionActive(join.token, false, Date.now())
     setCancelReason(join.token, 'other')
@@ -3590,6 +3628,16 @@ async function handleResidentCallback(query) {
   void ackCallback(query)
   if (isDuplicateTap(query)) return
   const fromUser = chatId && String(query.from?.id) === String(chatId) ? touchBotUser(query.from) : null
+  if (String(query.data).startsWith('r:demo:')) {
+    const user = fromUser ? getBotUser(chatId) : null
+    if (!user || !(user.subscriptionDemoUntil > Date.now())) {
+      await editOrSend(query, { text: 'Тестовый режим не включён для этого аккаунта.', keyboard: [[{ text: 'Главное меню', callback_data: 'u:menu' }]] })
+      return
+    }
+    const screen = subscriptionDemo(String(query.data).split(':')[2], user.subscriptionDemoStartedAt)
+    if (screen) await editOrSend(query, screen)
+    return
+  }
   if (fromUser) ensureLifetimeResident(fromUser)
   const join = fromUser ? residentByTelegramId(chatId) : null
   if (!join) {
@@ -3604,7 +3652,15 @@ async function handleResidentCallback(query) {
   }
   const user = getBotUser(chatId) ?? fromUser ?? {}
   let screen
-  if (action === 'hist') screen = paymentsScreen(join)
+  if (action === 'renew') {
+    if (join.status === 'active' && !join.oneTime && Number(join.nextPaymentAt) > Date.now()) screen = { text: 'Подписка действует, повторная оплата сейчас не нужна.', keyboard: CABINET_KEYBOARD }
+    else {
+      try { screen = { text: `Продление по закреплённой цене ${priceEntitlement(join)?.amount} ₽. Проверьте условия и подтвердите оплату на странице Prodamus.`, keyboard: [[{ text: 'Перейти к оплате', url: await lockedRenewal(join) }], ...CABINET_KEYBOARD] } }
+      catch { screen = { text: 'Нужно проверить прежний тариф и отключение прежнего автосписания. Обратитесь в поддержку; новая подписка по повышенной цене автоматически не создаётся.', keyboard: CHARGE_FAILED_KEYBOARD } }
+    }
+  }
+  else if (action === 'card') screen = { text: 'Для смены карты обратитесь в поддержку. Номер карты, CVV и коды банка присылать не нужно. Обновление платёжных данных выполняется через безопасный способ Prodamus, доступность которого проверит поддержка. Закреплённая цена сохраняется.', keyboard: CHARGE_FAILED_KEYBOARD }
+  else if (action === 'hist') screen = paymentsScreen(join)
   else if (action === 'sub') screen = subscriptionScreen(join, TARIFFS, Date.now(), siteLink(SITE_URL, '/community', 'bot_cabinet', '#join'))
   else if (action === 'link') {
     if (hasAccess(join) && !join.lifetime) await unbanForReturn(join)
@@ -3888,6 +3944,11 @@ async function handleTelegramUpdate(update) {
 // Вебхук оставлен на случай, если Telegram сможет достучаться до сервера, но
 // по умолчанию бот сам опрашивает Telegram (см. pollTelegramUpdates ниже).
 app.post('/api/telegram/webhook', async (req, res) => {
+  const expected = process.env.TELEGRAM_WEBHOOK_SECRET
+  if (!expected) return res.sendStatus(503)
+  const supplied = String(req.headers['x-telegram-bot-api-secret-token'] || '')
+  const a = Buffer.from(supplied), b = Buffer.from(expected)
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return res.sendStatus(403)
   res.sendStatus(200) // Telegram ждёт быстрый ответ, обрабатываем после
   dispatchUpdate(req.body)
 })
@@ -4172,7 +4233,7 @@ async function runDailyOnce(key, minHour, work) {
 /** Исключение из чата сообщества: сообщение подписчику, «кик» (блокировка и сразу разблокировка) и отметка в учёте. */
 async function kickAndNotify(join) {
   const current = getJoin(join.token)
-  if (!current?.tgUserId || !paidPeriodEnded(current) || protectedByOtherCard(current, listJoins(), Date.now())) return false
+  if (!current?.tgUserId || !accessPeriodEnded(current) || protectedByOtherCard(current, listJoins(), Date.now())) return false
   const call = async (method, extra = {}) => {
     const response = await telegramFetch(method, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: COMMUNITY_CHAT_ID, user_id: Number(current.tgUserId), ...extra }) })
     const data = await response.json()
@@ -4190,7 +4251,7 @@ async function kickAndNotify(join) {
   patchJoin(current.token, { accessUnbanPending: undefined })
   for (const card of listJoins().filter(c => String(c.tgUserId ?? '') === String(current.tgUserId))) patchJoin(card.token, { inChat: false })
   membershipCache.delete(String(current.tgUserId))
-  await sendTelegramMessage(current.tgUserId, 'Оплаченный срок доступа к сообществу закончился. Доступ временно закрыт.\n\nЕсли Prodamus подтвердит новую оплату, доступ восстановится. Вернуться в чат можно по ссылке в личном кабинете.\n\nЕсли вы уже оплатили, напишите в поддержку — проверим платёж.', [[{ text: 'Личный кабинет', callback_data: 'r:menu' }], [{ text: 'Поддержка', callback_data: 'u:support' }]]).catch(() => false)
+  await sendTelegramMessage(current.tgUserId, 'Оплаченный период и дополнительное время на оплату закончились. Доступ временно закрыт. Закреплённая цена подписки сохранена.\n\nЕсли Prodamus подтвердит новую оплату, доступ восстановится. Вернуться в чат можно по ссылке в личном кабинете.\n\nЕсли вы уже оплатили, напишите в поддержку — проверим платёж.', [[{ text: 'Личный кабинет', callback_data: 'r:menu' }], [{ text: 'Поддержка', callback_data: 'u:support' }]]).catch(() => false)
   return true
 }
 
@@ -4304,30 +4365,23 @@ const deliverRenewalNotices = createRenewalDelivery({
 })
 
 /**
- * Автонапоминания резидентам о списании: за 2 дня и за день, в бота и на почту, один раз на каждую дату списания.
+ * Автонапоминания резидентам о списании: за 24 часа, в бота и на почту, отдельно подтверждаем каждый канал.
  * Не получившим (ни бота, ни почты) пишет админ вручную: они видны в «Сообщество → Напоминания». Отключить: AUTO_RESIDENT_REMINDERS=0.
  * Заодно оповещает тех, у кого списание не прошло (sendChargeFailedNotices).
  */
+const deliverSubscriptionReminders = createSubscriptionReminders({
+  list: listJoins, patch: patchJoin,
+  send: async (join, channels) => notifyResident(
+    { ...join, tgUserId: channels.bot ? join.tgUserId : null, email: channels.mail ? join.email : null },
+    { text: ['Напоминание о подписке', `Следующее списание: ${preciseMoscowTime(join.nextPaymentAt)}.`, `Сумма: ${planAmount(join, TARIFFS)} ₽.`, 'Напоминание запланировано за 24 часа. Проверьте баланс и карту.', `При неудаче доступ сохранится ещё ${graceDays()} суток.`, 'Отключить автопродление можно в личном кабинете.'].join('\n'), keyboard: CABINET_KEYBOARD },
+    composeChargeReminderMail({ name: join.name, days: 1, amount: planAmount(join, TARIFFS), chargeAt: join.nextPaymentAt, ...mailContext() }),
+  ),
+})
 async function sendAutoResidentReminders() {
   if (process.env.AUTO_RESIDENT_REMINDERS === '0') return true
-  const now = Date.now()
-  const count = { bot: 0, mail: 0, none: 0 }
-  for (const days of [2, 1]) {
-    const targets = reminderTargets(listJoins(), now, days)
-    for (const join of [...targets.reachable, ...targets.unreachable]) {
-      const r = await notifyResident(join, { text: reminderMessage(join, SUPPORT_HANDLE, days, TARIFFS), keyboard: CABINET_KEYBOARD }, composeChargeReminderMail({ name: join.name, days, amount: planAmount(join, TARIFFS), chargeAt: join.nextPaymentAt, ...mailContext() }))
-      if (r.bot || r.mail) markReminded(join.token, `${join.nextPaymentAt}:${days}`)
-      if (r.bot) count.bot += 1
-      if (r.mail) count.mail += 1
-      if (!r.bot && !r.mail) count.none += 1
-    }
-  }
-  const failedCount = await sendChargeFailedNotices(now)
-  const lines = []
-  if (count.bot || count.mail || count.none) lines.push(`🔔 Напоминания о списании: в бот ${count.bot}, на почту ${count.mail}${count.none ? `, не дошло никуда ${count.none}` : ''}.`)
-  if (failedCount) lines.push(`🟡 Списание не прошло: предупредили ${failedCount}.`)
-  if (lines.length) await sendTelegramMessage(ADMIN_CHAT_ID, lines.join('\n'), undefined, quiet())
-  return count.none === 0 // не доставлено никуда — повторить, успешных получателей уже пропустит remindedFor
+  await deliverSubscriptionReminders()
+  await sendChargeFailedNotices(Date.now())
+  return true
 }
 
 /**
@@ -4346,7 +4400,7 @@ async function sendChargeFailedNotices(now) {
     // Уведомление о чужом платеже не доказывает неудачу списания этого человека.
     if (!j.lastChargeFailure || j.lastChargeFailure.at < j.nextPaymentAt) continue
     const amount = planAmount(j, TARIFFS)
-    const r = await notifyResident(j, { text: chargeFailedText(amount, j.nextPaymentAt), keyboard: CHARGE_FAILED_KEYBOARD }, composeChargeFailedMail({ name: j.name, amount, chargeAt: j.nextPaymentAt, ...mailContext() }))
+    const r = await notifyResident(j, { text: chargeFailedText(amount, j.nextPaymentAt, accessUntil(j)), keyboard: CHARGE_FAILED_KEYBOARD }, composeChargeFailedMail({ name: j.name, amount, chargeAt: j.nextPaymentAt, graceUntil: accessUntil(j), ...mailContext() }))
     patchJoin(j.token, { ...(r.bot || r.mail ? { chargeFailedNoticeFor: j.nextPaymentAt } : {}), watch: 'charge' })
     if (j.tgUserId) addTag(j.tgUserId, 'контроль_списания')
     sent += 1
@@ -4426,6 +4480,8 @@ if (BOT_TOKEN && process.env.TELEGRAM_POLLING !== '0') {
   pollTelegramUpdates()
 }
 
+setInterval(() => afterResponse('resident-reminders-24h', sendAutoResidentReminders), 60000).unref()
+
 // Access checks are independent of optional daily reports; AUTO_EXCLUDE remains the explicit switch.
 setInterval(() => afterResponse('renewal-notices', deliverRenewalNotices), 60000).unref()
 setInterval(() => {
@@ -4443,7 +4499,7 @@ setInterval(() => {
 if (process.env.DISABLE_DAILY_REPORT !== '1') {
   setInterval(() => afterResponse('pending-notices', sendPendingNoticesIfDue), 60 * 1000)
   setInterval(() => afterResponse('kadry-monthly', sendKadryMonthlyIfDue), 60 * 1000)
-  setInterval(() => afterResponse('resident-reminders', () => runDailyOnce('residentReminders', 10, sendAutoResidentReminders)), 60 * 1000)
+
   setInterval(() => afterResponse('expiry', () => runDailyOnce('expiry', 10, processExpiry)), 60 * 1000)
   setInterval(() => afterResponse('review-flow', processReviewFlow), 60 * 1000)
   setInterval(() => afterResponse('event-reminders', () => runDailyOnce('eventReminders', 10, sendEventReminders)), 60 * 1000)
