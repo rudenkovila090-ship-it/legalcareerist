@@ -106,6 +106,8 @@ globalThis.fetch=async(input,init={})=>{
                 second=subprocess.run(command,cwd=site,env=env,text=True,capture_output=True,timeout=30)
                 assert second.returncode==0,second.stdout+second.stderr
                 assert json.loads((site/'server/data/pending-joins.json').read_text())['active']['transitionAccessUntil']==deadline
+                assert len((root/'sent.jsonl').read_text().splitlines())==1
+                assert 'subscriptionDemoUntil' not in json.loads((site/'server/data/bot-users.json').read_text())['61']
         print('PASS setup controller:',mode, 'repeat' if repeat else '',flush=True)
     finally: shutil.rmtree(root)
 

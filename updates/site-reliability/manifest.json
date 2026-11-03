@@ -37,13 +37,14 @@
     {
       "path": "server/index.js",
       "before": "fc7b0c00ac5f7d3f8de46130c8be437cdc772c3b5de86a622420f37d0187a5ff",
-      "after": "dfe08a5fef85eac30b57836b958121a32bfd015086cce393f7c4e5a910fbf548",
+      "after": "f70fb478652f40b73367bd2919ce2b79cc33d303b74c5c2c3b61cfc2ee7ca907",
       "beforeAlternatives": [
         "16ac5f0499203503276b68c10c455b98617f5cb0a8bf400acd50f79a8dca64c1",
         "51910e036767a7c5fa5b3986442bd966c957d947f0e0aa1d4d137b96c9303690",
         "df37b0334e2dcfe8740b6c38eb637d0deee8bbf14acc45bd33af0052a027598c",
         "dfe08a5fef85eac30b57836b958121a32bfd015086cce393f7c4e5a910fbf548",
-        "f310419d6a0f4686350060f7f802efbec694d943cda25f77458d72d9c71077be"
+        "f310419d6a0f4686350060f7f802efbec694d943cda25f77458d72d9c71077be",
+        "f70fb478652f40b73367bd2919ce2b79cc33d303b74c5c2c3b61cfc2ee7ca907"
       ]
     },
     {
@@ -58,8 +59,9 @@
     {
       "path": "server/lib/accountProfile.js",
       "before": "6d4c8bf21e88295151b3bffd67f2f3294144bdb791bdd5ebcc35870d08de37fd",
-      "after": "7cd579d48a573b20efbf036c3f511bd5669be248f6a5f5fd79ac7f30effc37e2",
+      "after": "6326cb2975d907dad8c8265b6df3de836c38f14a5b37be3383cdb4c1fa19aad2",
       "beforeAlternatives": [
+        "6326cb2975d907dad8c8265b6df3de836c38f14a5b37be3383cdb4c1fa19aad2",
         "7cd579d48a573b20efbf036c3f511bd5669be248f6a5f5fd79ac7f30effc37e2",
         "b34f27afa253a631d544193417ccb1a0b878e62e8573cb06fefd9a7c856ab5eb"
       ]
@@ -91,8 +93,9 @@
     {
       "path": "server/lib/personData.js",
       "before": "a87e9509f817f09e3be1f9a498b8f102002a854d3dd539e4656681d26e414152",
-      "after": "a4a5510154795a687b6fc22ed2c9e4d9b6873027dda521350134857166805226",
+      "after": "71a33838c473a3c873cbd5cd67dc63cb8e85f1ea9bc6dc68abe2e5d048421679",
       "beforeAlternatives": [
+        "71a33838c473a3c873cbd5cd67dc63cb8e85f1ea9bc6dc68abe2e5d048421679",
         "a4a5510154795a687b6fc22ed2c9e4d9b6873027dda521350134857166805226"
       ]
     },
@@ -126,18 +129,20 @@
     {
       "path": "server/lib/store.js",
       "before": "385a868da852d62aaf1b60a58d1678dec9d9f84417702e0fb18dd609eefadcd2",
-      "after": "f8770d597c23a35e397d5ff57e645fbf09b9d218d13adc7e6ddff948c89116ae",
+      "after": "f88fab2d5f425eba5a20b9d0346ffd1f6f64ddb3efb765e990bcef99a153f02f",
       "beforeAlternatives": [
         "bb90fcac2d9d468f1e3f73cfcf48ef14cabddc0e93c0c90435ba62863fafaf6f",
-        "f8770d597c23a35e397d5ff57e645fbf09b9d218d13adc7e6ddff948c89116ae"
+        "f8770d597c23a35e397d5ff57e645fbf09b9d218d13adc7e6ddff948c89116ae",
+        "f88fab2d5f425eba5a20b9d0346ffd1f6f64ddb3efb765e990bcef99a153f02f"
       ]
     },
     {
       "path": "server/lib/subscriptionAccess.js",
       "before": null,
-      "after": "785f29a9c02278145c8460e8eb96863fb6953a60b2824d0b725113d895f9cae4",
+      "after": "7b0843744adcd4608b4bc8a0fc099aaa5ef8a676864603bda6d8bad1ec39c176",
       "beforeAlternatives": [
         "785f29a9c02278145c8460e8eb96863fb6953a60b2824d0b725113d895f9cae4",
+        "7b0843744adcd4608b4bc8a0fc099aaa5ef8a676864603bda6d8bad1ec39c176",
         "a5ed46496ee897af7d4d66f36b052b0e0c23948f5085b06741d4681333763842"
       ]
     },
@@ -169,10 +174,11 @@
     {
       "path": "server/tests/http-reliability.mjs",
       "before": null,
-      "after": "2e522f434c8ab8883c6d6bf305aaad7efe7040d46b8608732a61ebbadeb71f5f",
+      "after": "5d02e5059bec0812e78decbcd85772fcf7c1c966beb2dcf11af90e32b6685a69",
       "beforeAlternatives": [
         "2e522f434c8ab8883c6d6bf305aaad7efe7040d46b8608732a61ebbadeb71f5f",
         "4389b8e88672963bcff0f0bac9672084be02f0c14a04d904dae41ff904c872b8",
+        "5d02e5059bec0812e78decbcd85772fcf7c1c966beb2dcf11af90e32b6685a69",
         "722950d89c1614707ba1bed74352db454a10d4a01d18c6f42dc61eb3063f02c9",
         "8e732904995467f6e97cc6c232260fa8bf8991dd40381da20ea6a7a910dcea80",
         "e483633742dc4ffd7ea45f62b7e2cb35d21b145cd3189126969d1d3cfecfbe32"
@@ -206,9 +212,10 @@
     {
       "path": "src/components/TariffJoinBlock.tsx",
       "before": "88b97ac1d607184f486c6c9c4cbb44871c3d5a28e3e66d3fa84729c701a16e64",
-      "after": "c997673facf5fc0d96bcab65f565d07db5cbf256e91d410d9a40d0713491de05",
+      "after": "d6521350987d48c63adf59b76a4beebfb909f2f6dac0cd45a36f474663dd0000",
       "beforeAlternatives": [
-        "c997673facf5fc0d96bcab65f565d07db5cbf256e91d410d9a40d0713491de05"
+        "c997673facf5fc0d96bcab65f565d07db5cbf256e91d410d9a40d0713491de05",
+        "d6521350987d48c63adf59b76a4beebfb909f2f6dac0cd45a36f474663dd0000"
       ]
     },
     {
@@ -246,8 +253,9 @@
     {
       "path": "src/pages/community/CommunityHome.tsx",
       "before": "b36894fc2bea171e153bdfeeff5933eb82c74f5aa879f1ed78bf7e6896a28cf1",
-      "after": "cc8c1c18c7ca1ba2ea100a931dd6eb13c96ee47df5221f95e177e0af69d8e529",
+      "after": "8dca920f0fcc9d434fbc1056692aa15ab40a2b71c91b58435e647273dd26107c",
       "beforeAlternatives": [
+        "8dca920f0fcc9d434fbc1056692aa15ab40a2b71c91b58435e647273dd26107c",
         "cc8c1c18c7ca1ba2ea100a931dd6eb13c96ee47df5221f95e177e0af69d8e529"
       ]
     },
@@ -342,8 +350,9 @@
     {
       "path": "src/lib/cabinet.ts",
       "before": "256957dea2ee5eb89812bf8ecc0d4607b88d49e14cb1dec411317cb1c44f0cf5",
-      "after": "8e93dbd26aad264f12f3ccb68b66e9bcf9c6bdda0e8dd0c8a0f5fa92a8033b2d",
+      "after": "19d7a369e5ed8055c824054955d8cc9a4f72d1f2a38aff30f157df5eeabb19e7",
       "beforeAlternatives": [
+        "19d7a369e5ed8055c824054955d8cc9a4f72d1f2a38aff30f157df5eeabb19e7",
         "8e93dbd26aad264f12f3ccb68b66e9bcf9c6bdda0e8dd0c8a0f5fa92a8033b2d",
         "93d11c6aa1a2016acd2191df8660d8ea72640a8e4abafa8d0b1ba48a56bdce00"
       ]
@@ -383,8 +392,9 @@
     {
       "path": "server/lib/adminCabinet.js",
       "before": "8dcd0511700ff121e89259de401dfac9ae72709e9836cf9bfd91370d5b14d635",
-      "after": "fb36d5b3c1d84bec72a5ec0f6c0d0df7b68660661599b249da54561c4bf6c523",
+      "after": "2bee11e08ade5293e52bc372de3c90f47316bb11ae9e456df98cef4fa7fb8b26",
       "beforeAlternatives": [
+        "2bee11e08ade5293e52bc372de3c90f47316bb11ae9e456df98cef4fa7fb8b26",
         "fb36d5b3c1d84bec72a5ec0f6c0d0df7b68660661599b249da54561c4bf6c523"
       ]
     },
@@ -399,8 +409,9 @@
     {
       "path": "server/lib/subscriptionPricing.js",
       "before": null,
-      "after": "6fa5892a9f4c242feb69df3bb6851204d97e845f2f4cd0f255e25987be00368e",
+      "after": "1835a59f891c183cf6d95783ae93d2202445286cc5a9f13e17fdfd6023af9839",
       "beforeAlternatives": [
+        "1835a59f891c183cf6d95783ae93d2202445286cc5a9f13e17fdfd6023af9839",
         "6fa5892a9f4c242feb69df3bb6851204d97e845f2f4cd0f255e25987be00368e"
       ]
     },
@@ -447,10 +458,11 @@
     {
       "path": "src/pages/cabinet/CommunitySections.tsx",
       "before": "182a869867e9987426946780de4b5affefd01734d78ff9422cbb72b9ae2007b3",
-      "after": "77ef9c419651b3eefc74cda74a63a33c229b9b4786ea8e0d05ec2c17dc3d8a01",
+      "after": "e4c46ff5bebfa24acecaba2c0411f6dff040d371e362f6431647d07d3f7294ea",
       "beforeAlternatives": [
         "74c98faf11170ed943049b29ef748f57403deda34dc75c5eba159ee5cbb5fb3d",
-        "77ef9c419651b3eefc74cda74a63a33c229b9b4786ea8e0d05ec2c17dc3d8a01"
+        "77ef9c419651b3eefc74cda74a63a33c229b9b4786ea8e0d05ec2c17dc3d8a01",
+        "e4c46ff5bebfa24acecaba2c0411f6dff040d371e362f6431647d07d3f7294ea"
       ]
     },
     {
@@ -501,6 +513,46 @@
       "after": "433ffa257466d5b8b09a6c9a0386aa50fe3683db93a921a14f769de0c76b5d75",
       "beforeAlternatives": [
         "433ffa257466d5b8b09a6c9a0386aa50fe3683db93a921a14f769de0c76b5d75"
+      ]
+    },
+    {
+      "path": "server/lib/subscriptionCancellation.js",
+      "before": null,
+      "after": "ee38fdb543af6deaf5607c29556b3d0a09fc1e262f1251fef995ea9ced3dd58f",
+      "beforeAlternatives": [
+        "ee38fdb543af6deaf5607c29556b3d0a09fc1e262f1251fef995ea9ced3dd58f"
+      ]
+    },
+    {
+      "path": "server/lib/subscriptionRetention.js",
+      "before": null,
+      "after": "dfb398736c066f5db564e066c2e2149b9bd33b1f069cee1cc6b8278ebabbed98",
+      "beforeAlternatives": [
+        "dfb398736c066f5db564e066c2e2149b9bd33b1f069cee1cc6b8278ebabbed98"
+      ]
+    },
+    {
+      "path": "server/tests/subscription-retention.test.mjs",
+      "before": null,
+      "after": "e76135e732cb6f958ef7fe5f046064619a2ebb073bfda37c95ecdf5dd3c21b28",
+      "beforeAlternatives": [
+        "e76135e732cb6f958ef7fe5f046064619a2ebb073bfda37c95ecdf5dd3c21b28"
+      ]
+    },
+    {
+      "path": "server/tests/subscription-retention-scenario.mjs",
+      "before": null,
+      "after": "1733d364012ef1dda4a605cdf391045c169c0877575008be5860ac79f496928a",
+      "beforeAlternatives": [
+        "1733d364012ef1dda4a605cdf391045c169c0877575008be5860ac79f496928a"
+      ]
+    },
+    {
+      "path": "src/data/tariffs.ts",
+      "before": "15e7c4919ac8c9db3ee9255c25adca4da1f5c0de565ed73b51a83f5a4c33a5da",
+      "after": "6de94f3fbacea26a438aedaa22ef2568f4d1b7159dd612522612e041034096e0",
+      "beforeAlternatives": [
+        "6de94f3fbacea26a438aedaa22ef2568f4d1b7159dd612522612e041034096e0"
       ]
     }
   ],

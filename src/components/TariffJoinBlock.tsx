@@ -106,19 +106,13 @@ export default function TariffJoinBlock() {
         Доступ к закрытому сообществу открывается автоматически в Telegram-боте сразу после оплаты.
       </p>
 
-      <div className="mt-6 grid gap-3 sm:grid-cols-3">
+      <div className="mx-auto mt-6 grid max-w-sm gap-3">
         {tariffs.map((t) => {
-          const recommended = t.id === '3m'
           return (
             <div
               key={t.id}
               className="glass-dark relative flex min-h-60 flex-col items-center rounded-xl p-5 pt-7 text-center"
             >
-              {recommended && (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-gold-light px-3 py-1 text-xs font-semibold text-ink">
-                  Популярный выбор
-                </span>
-              )}
               <div className="text-xs font-medium uppercase tracking-wide text-white/50">Подписка</div>
               <div className="mt-1 text-base font-semibold">{t.period}</div>
               <div className="mt-2 text-2xl font-semibold text-gold-light">{t.priceLabel}</div>

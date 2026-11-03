@@ -622,9 +622,8 @@ export default function CommunityHome() {
         <div className="container-page text-center">
           <div className="mb-8 text-sm font-bold uppercase tracking-wide text-gold-light">Присоединиться</div>
 
-          <div className="mx-auto grid max-w-3xl gap-4 sm:grid-cols-3">
+          <div className="mx-auto grid max-w-sm gap-4">
                 {tariffs.map((t) => {
-                  const recommended = t.id === '3m'
                   const selected = tariffId === t.id
                   return (
                     <div
@@ -637,11 +636,6 @@ export default function CommunityHome() {
                         selected ? 'border-gold-light' : ''
                       }`}
                     >
-                      {recommended && (
-                        <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-gold-light px-3 py-1 text-xs font-semibold text-ink">
-                          Популярный выбор
-                        </span>
-                      )}
                       <span
                         className={`h-4 w-4 shrink-0 rounded-full border-2 ${
                           selected ? 'border-gold-light bg-gold-light' : 'border-white/30'

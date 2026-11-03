@@ -1,4 +1,6 @@
 import { priceEntitlement, lockedAmount } from './subscriptionPricing.js'
+import { retentionOfferView } from './subscriptionRetention.js'
+import { voluntaryAccessEnd } from './subscriptionCancellation.js'
 // Данные личного кабинета: кто вошёл и статус подписки резидента (по карточкам подписчиков, привязанным к Telegram id).
 import { listJoins } from './store.js'
 import { getBotUser } from './botUsers.js'
@@ -73,6 +75,9 @@ export function subscriptionDetails(tgId, email = '', now = Date.now()) {
     price: lockedAmount(join, payments.find((p) => p.amount)?.amount ?? tariff?.price ?? null),
     lockedPrice: priceEntitlement(join)?.amount ?? null,
     canRenewLocked: Boolean(priceEntitlement(join)?.subscriptionId && !join.lifetime),
+    canRenewNow: Boolean(!join.lifetime && paidUntil(join) && paidUntil(join) <= now),
+    retentionOffer: retentionOfferView(join, now),
+    cancellationEndsAt: voluntaryAccessEnd(join, now),
     period: tariff?.period ?? null,
     nextPayment: renews ? Number(join.nextPaymentAt) || null : null,
     canCancel: renews && !join.lifetime,

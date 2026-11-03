@@ -9,6 +9,7 @@ import { pathToFileURL, fileURLToPath } from 'node:url'
 const source = fileURLToPath(new URL('..', import.meta.url))
 const noPaymentKeys = process.argv.includes('--no-payment-keys')
 const lifecycleMode = process.argv.includes('--lifecycle')
+const retentionMode = process.argv.includes('--retention')
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'legalcareerist-http-'))
 fs.cpSync(path.join(source, 'lib'), path.join(root, 'lib'), { recursive: true })
 for (const file of ['index.js', 'package.json']) fs.copyFileSync(path.join(source, file), path.join(root, file))
@@ -75,6 +76,10 @@ try {
     const r = await request('/api/prodamus/webhook', { payment_status: 'success', subscription: { id: '2854597' }, sum: '690' }, { sign: 'synthetic-signature' })
     check('missing verification keys reject payment before storage or accepted-event logging', () => { assert.equal(r.status, 503); assert.equal(fs.existsSync(path.join(root, 'data/pending-joins.json')), false); assert.equal(fs.existsSync(path.join(root, 'data/prodamus-webhooks.jsonl')), false) })
     console.log(`${count} missing-key check passed; no outbound provider calls`)
+  } else if (retentionMode) {
+    const { runRetention } = await import('./subscription-retention-scenario.mjs')
+    await runRetention({ root, request, hook, read, check, wait, pathToFileURL })
+    console.log(`${count} retention checks passed; provider and Telegram responses synthetic`)
   } else if (lifecycleMode) {
     const { runLifecycle } = await import('./subscription-lifecycle-scenario.mjs')
     await runLifecycle({ root, request, hook, read, check, wait, pathToFileURL })
@@ -172,13 +177,17 @@ try {
   joins.recordPayment(cancelToken, { tariffId: '1m', amount: 690, paidAt: Date.now(), orderKey: 'synthetic-cancellation', nextPaymentAt: until, subscriptionId: '2854597' })
   const cancellationBefore = joins.getJoin(cancelToken)
   r = await request('/api/account/subscription/cancel', { reason: 'Synthetic cancellation request' }, { Authorization: `Bearer ${session.token}` })
-  check('provider cancellation failure preserves active status and allows retry', () => { assert.equal(r.status, 200); assert.equal(r.body.confirmed, false); assert.deepEqual(joins.getJoin(cancelToken), cancellationBefore) })
+  check('provider cancellation failure preserves finance/access and stores the requested reason for retry', () => {
+    assert.equal(r.status, 200); assert.equal(r.body.confirmed, false)
+    const { cancelReason, cancelReasonText, cancelRequest, ...financial } = joins.getJoin(cancelToken)
+    assert.deepEqual(financial, cancellationBefore); assert.equal(cancelReason, 'other'); assert.equal(cancelReasonText, 'Synthetic cancellation request'); assert.equal(cancelRequest.status, 'pending')
+  })
   fs.writeFileSync(path.join(root, 'prodamus-cancel-ok'), '')
   r = await request('/api/account/subscription/cancel', { reason: 'Synthetic retry' }, { Authorization: `Bearer ${session.token}` })
   check('confirmed cancellation changes status but preserves the paid period and payments', () => { assert.equal(r.status, 200); assert.equal(r.body.confirmed, true); assert.equal(joins.getJoin(cancelToken).status, 'cancelled'); assert.equal(joins.getJoin(cancelToken).nextPaymentAt, until); assert.equal(joins.getJoin(cancelToken).payments.length, 1) })
   joins.patchJoin(cancelToken, { status: 'active', payments: [...joins.getJoin(cancelToken).payments, { at: Date.now(), amount: 1770, subscriptionId: '3005286', orderKey: 'synthetic-other-plan' }] })
   fs.writeFileSync(path.join(root, 'prodamus-cancel-fail-id'), '3005286')
-  r = await request('/api/account/subscription/cancel', {}, { Authorization: `Bearer ${session.token}` })
+  r = await request('/api/account/subscription/cancel', { reason: 'Synthetic partial cancellation' }, { Authorization: `Bearer ${session.token}` })
   check('partial provider cancellation does not claim all historical subscriptions are stopped', () => { assert.equal(r.status, 200); assert.equal(r.body.confirmed, false); assert.equal(joins.getJoin(cancelToken).status, 'active') })
   console.log(`${count} integration checks passed; all users and outbound responses synthetic`)
   }

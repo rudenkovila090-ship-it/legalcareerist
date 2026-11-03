@@ -10,7 +10,7 @@ export const HISTORICAL_PLANS = {
   '2854598': { tariffId: null, price: 4200, months: 12 },
 }
 
-export function priceEntitlement(join) {
+export function basePriceEntitlement(join) {
   if (!join?.paid || join.lifetime) return null
   if (join.priceLock?.amount > 0) {
     const plan = HISTORICAL_PLANS[join.priceLock.subscriptionId]
@@ -28,6 +28,17 @@ export function priceEntitlement(join) {
   const mismatch = known && known.price !== Number(first.amount)
   return { amount: Number(first.amount), currency: 'RUB', subscriptionId: mismatch ? null : subscriptionId, needsProviderPlanReview: Boolean(mismatch), tariffId: first.tariffId || join.tariffId || known?.tariffId || null,
     months: known?.months || null, recordedAt: Number(first.at) || join.firstPaidAt || null, source: first.estimated ? 'imported_record' : 'confirmed_payment' }
+}
+
+export function priceEntitlement(join) {
+  if (!join?.paid || join.lifetime) return null
+  const retained = join.retentionPrice
+  return retained?.confirmedAt && retained.amount > 0 && retained.subscriptionId ? retained : basePriceEntitlement(join)
+}
+
+/** Existing provider plan, selected by the owner: monthly 690 -> monthly 500. */
+export function retentionPlans() {
+  return { '2854597': { subscriptionId: '2611880', amountMinor: 50000, months: 1 } }
 }
 
 export function lockedAmount(join, fallback = 0) {

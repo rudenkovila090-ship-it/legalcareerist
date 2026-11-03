@@ -2,6 +2,9 @@ import { accessPeriodEnded, accessUntil, graceDays, preciseMoscowTime } from './
 import { createSubscriptionReminders } from './lib/subscriptionReminders.js'
 import { priceEntitlement } from './lib/subscriptionPricing.js'
 import { subscriptionDemo } from './lib/subscriptionDemo.js'
+import { cancellationReason, voluntaryAccessEnd } from './lib/subscriptionCancellation.js'
+import { prepareRetentionOffer, retentionOfferView, matchingRetentionPayment, createAccessEndingReminders } from './lib/subscriptionRetention.js'
+import { retentionPlans } from './lib/subscriptionPricing.js'
 // Бэкенд-эндпоинт сайта «Карьерный Юрист».
 // 1. POST /api/notify — заявка с сайта → уведомление админу в Telegram.
 // 2. POST /api/community/subscribe — выбор тарифа на сайте → подписанная
@@ -555,8 +558,8 @@ function buildCancellationNotification({ record, tariff, at }) {
  */
 async function handleSubscriptionPayment(body, phone) {
   const subscription = body.subscription
-  const tariffId = tariffIdBySubscriptionId(subscription.id)
-  const tariff = TARIFFS[tariffId]
+  let tariffId = tariffIdBySubscriptionId(subscription.id)
+  let tariff = TARIFFS[tariffId]
   const email = body.customer_email
   const extra = parseCustomerExtra(body.customer_extra)
   const paidAt = parsePaymentDate(body.date)
@@ -570,6 +573,10 @@ async function handleSubscriptionPayment(body, phone) {
   console.log('[prodamus] подписка сообщества — телефон:', phone, 'почта:', email, 'тариф:', tariffId, 'профиль:', profileId, 'платёж №', paymentNum)
 
   let match = findJoinForPayment({ phone, email, telegram: extra.telegram, tgUserId, profileId, tariffId })
+  if (match && matchingRetentionPayment(match.join, { subscriptionId: subscription.id, amount, paidAt })) {
+    tariffId = match.join.retentionOffer.tariffId || '1m'
+    tariff = TARIFFS[tariffId]
+  }
   const orphan = !match
   // Карточка уже оплачена и действует: если это «первая оплата» (платёж №1) по новой подписке, у человека могут быть две подписки.
   const prior = match?.join
@@ -605,7 +612,9 @@ async function handleSubscriptionPayment(body, phone) {
 
   // Первая оплата: личная ссылка на вступление и письмо с ней (и сроками, и тем, как отключить подписку).
   const adminLines = []
-  if (rec.priceLock?.amount > 0 && amount !== rec.priceLock.amount) adminLines.push(`⚠️ Сумма платежа ${amount} ₽ отличается от закреплённой цены ${rec.priceLock.amount} ₽. Доступ учтён по реальной оплате; проверьте тариф Prodamus. Закреплённая цена не изменена.`)
+  const promisedAmount = String(rec.retentionCheckout?.subscriptionId) === String(subscription.id) && rec.retentionOffer
+    ? rec.retentionOffer.amountMinor / 100 : priceEntitlement(rec)?.amount
+  if (promisedAmount > 0 && amount !== promisedAmount) adminLines.push(`⚠️ Сумма платежа ${amount} ₽ отличается от закреплённой цены ${promisedAmount} ₽. Доступ учтён по реальной оплате; проверьте тариф Prodamus. Закреплённая цена не изменена.`)
   let invite = null
   if (result.kind === 'first') {
     try {
@@ -757,10 +766,13 @@ function findJoinForSubscriptionEvent(body) {
  */
 async function handleSubscriptionState(body) {
   const sub = body.subscription
-  if (!sub) return
+  // Payment/failure payloads may carry an older snapshot of flags. Only explicit
+  // action events change auto-renewal; payment itself never reverses a cancellation.
+  if (!sub || sub.type !== 'action') return
   const flags = ['active', 'active_user', 'active_manager'].filter((k) => sub[k] !== undefined && sub[k] !== '')
   if (!flags.length) return
   const inactive = flags.some((k) => String(sub[k]) === '0')
+  const voluntary = inactive && sub.action_code === 'finish' && String(sub.active_user) === '0'
   const join = findJoinForSubscriptionEvent(body)
   if (!join) {
     if (sub.type === 'action') {
@@ -772,6 +784,9 @@ async function handleSubscriptionState(body) {
 
   const at = Date.now()
   const result = setSubscriptionActive(join.token, !inactive, at)
+  if (voluntary && !getJoin(join.token)?.cancellation?.confirmed) {
+    patchJoin(join.token, { cancellation: { confirmed: true, source: 'prodamus', confirmedAt: at, accessUntil: voluntaryAccessEnd(join, at) }, retentionOffer: prepareRetentionOffer(join, at) })
+  }
   if (!result?.changed) return
 
   console.log(`[prodamus] статус подписки ${join.token} изменился →`, inactive ? 'отключена' : 'включена')
@@ -781,7 +796,7 @@ async function handleSubscriptionState(body) {
       buildCancellationNotification({ record: result.record, tariff: TARIFFS[result.record.tariffId], at }),
     )
     // Вопрос о причине — только если подписку отключил сам клиент (active_user 0), а не менеджер в Prodamus; отключается CANCEL_SURVEY=0.
-    if (result.record.tgUserId && String(sub.active_user) === '0' && process.env.CANCEL_SURVEY !== '0') {
+    if (result.record.tgUserId && voluntary && process.env.CANCEL_SURVEY !== '0') {
       await sendTelegramMessage(
         result.record.tgUserId,
         `Здравствуйте! Мы увидели, что вы отключили подписку на сообщество «Карьерный юрист». Нам важно понять, что можно улучшить — если не сложно, напишите причину: ${SUPPORT_HANDLE}. Спасибо, что были с нами!`,
@@ -1394,9 +1409,39 @@ app.post('/api/account/subscription/renew', async (req, res) => {
   if (hitLimit(subscriptionAttempts, `renew:${cfg.login}`, 3, HOUR_MS)) return res.status(429).json({ ok: false, error: 'too_many_attempts' })
   const join = residentJoin(cfg.tgId, cfg.email)
   if (!join || join.lifetime) return res.status(404).json({ ok: false, error: 'no_subscription' })
-  if (join.status === 'active' && !join.oneTime && Number(join.nextPaymentAt) > Date.now()) return res.status(409).json({ ok: false, error: 'already_active' })
+  if (!paidUntil(join)) return res.status(503).json({ ok: false, error: 'subscription_period_unknown' })
+  if (paidUntil(join) > Date.now()) return res.status(409).json({ ok: false, error: 'paid_access_remaining' })
   try { res.json({ ok: true, url: await lockedRenewal(join) }) }
   catch (error) { res.status(503).json({ ok: false, error: error.message === 'provider_cancellation_unconfirmed' ? error.message : 'price_lock_needs_review' }) }
+})
+
+app.post('/api/account/subscription/retention', async (req, res) => {
+  const cfg = requireAccount(req, res)
+  if (!cfg) return
+  if (hitLimit(subscriptionAttempts, `retention:${cfg.login}`, 12, HOUR_MS)) return res.status(429).json({ ok: false, error: 'too_many_attempts' })
+  const join = residentJoin(cfg.tgId, cfg.email), offer = retentionOfferView(join)
+  if (!offer) return res.status(404).json({ ok: false, error: 'no_retention_offer' })
+  const now = Date.now()
+  if (req.body?.action === 'claim') {
+    patchJoin(join.token, { retentionOffer: { ...join.retentionOffer, claimedAt: join.retentionOffer.claimedAt || now } })
+    return res.json({ ok: true, offer: retentionOfferView(getJoin(join.token)) })
+  }
+  if (req.body?.action !== 'checkout') return res.status(400).json({ ok: false, error: 'invalid_action' })
+  if (!offer.canCheckout) return res.status(409).json({ ok: false, error: 'paid_access_remaining', checkoutAt: offer.checkoutAt })
+  try {
+    const cancellation = await cancelSubscription(join, 'Возвращение по персональной цене: проверка прежних списаний')
+    if (!cancellation.confirmed) return res.status(503).json({ ok: false, error: 'provider_cancellation_unconfirmed' })
+    const current = getJoin(join.token)
+    if (hasAccess(current)) return res.status(409).json({ ok: false, error: 'paid_access_remaining' })
+    const plan = retentionPlans()[current.retentionOffer.baseSubscriptionId]
+    if (!plan || plan.amountMinor !== current.retentionOffer.amountMinor) throw Error('retention_plan_unavailable')
+    if (current.retentionCheckout?.url && now - current.retentionCheckout.createdAt < 15 * 60000 && String(current.retentionCheckout.subscriptionId) === String(plan.subscriptionId)) return res.json({ ok: true, url: current.retentionCheckout.url })
+    const url = await createPaymentLink({ tariffId: current.tariffId, lockedPlan: { subscriptionId: plan.subscriptionId, amount: offer.amount },
+      tgUserId: current.tgUserId, phone: current.phone, email: current.email, name: current.name, telegram: current.telegram,
+      urlSuccess: `${SITE_URL}/community/success?token=${current.token}` })
+    patchJoin(current.token, { retentionCheckout: { subscriptionId: String(plan.subscriptionId), createdAt: now, url } })
+    res.json({ ok: true, url })
+  } catch { res.status(503).json({ ok: false, error: 'retention_plan_unavailable' }) }
 })
 
 app.post('/api/account/subscription/cancel', async (req, res) => {
@@ -1406,11 +1451,13 @@ app.post('/api/account/subscription/cancel', async (req, res) => {
   const join = residentJoin(cfg.tgId, cfg.email)
   if (!join) return res.status(404).json({ ok: false, error: 'no_subscription' })
   if (join.status !== 'active') return res.status(409).json({ ok: false, error: 'already_cancelled' })
-  const reason = String(req.body?.reason ?? '').replace(/\s+/g, ' ').trim().slice(0, 500) || 'не указана'
+  const reason = cancellationReason(req.body?.reason, req.body?.reasonCode)
+  if (!reason) return res.status(400).json({ ok: false, error: 'cancellation_reason_required' })
   // Основатель проходит путь клиента целиком, но подписка не меняется (иначе он потерял бы доступ).
   const test = Boolean(join.lifetime)
-  const { confirmed, results } = test ? { confirmed: true, results: [] } : await cancelSubscription(join, reason)
-  const endsAt = test ? join.endsAt : join.nextPaymentAt
+  const { confirmed, results } = test ? { confirmed: true, results: [] } : await cancelSubscription(join, reason, { voluntary: true, source: 'website' })
+  const endsAt = test ? join.endsAt : accessUntil(getJoin(join.token))
+  if (confirmed && !test) void afterResponse('access-ending', sendAccessEndingReminders)
   logActivity(cfg.login, confirmed ? 'subscription_cancelled' : 'subscription_cancel_failed')
   if (BOT_TOKEN && ADMIN_CHAT_ID) {
     const who = accountIdentity(cfg)
@@ -1424,7 +1471,7 @@ app.post('/api/account/subscription/cancel', async (req, res) => {
       email: who.email,
       telegram: who.telegram,
       details: [
-        `Причина: ${reason}`,
+        `Причина: ${reason.text}`,
         test ? 'ТЕСТ основателя: ничего не отключено, подписка осталась активной' : join.oneTime ? 'Разовая подписка — доступ закончится в срок, списаний нет' : confirmed ? 'Отключена в Prodamus автоматически' : '⚠️ Автоматически отключить в Prodamus не удалось — отключите вручную, иначе спишут деньги',
         ...results.map((r) => `Prodamus, подписка ${r.id}: ${r.ok ? 'OK' : 'ошибка'} (${r.raw ?? r.status})`),
         endsAt ? `Доступ до ${new Date(endsAt).toLocaleDateString('ru-RU', { timeZone: 'Europe/Moscow' })}` : 'Дата окончания неизвестна',
@@ -1815,7 +1862,7 @@ app.get('/api/account/lead-inbox', (req, res) => {
 // вернёт человека на urlSuccess (страница сайта), где предлагаем перейти в бота.
 app.post('/api/community/subscribe', async (req, res) => {
   const { tariffId } = req.body ?? {}
-  if (!TARIFFS[tariffId]) return res.status(400).json({ ok: false, error: 'unknown_tariff' })
+  if (tariffId !== '1m') return res.status(400).json({ ok: false, error: 'tariff_not_available' })
   // Без согласия на обработку персональных данных ссылку на оплату не выдаём.
   if (!consentGiven(req.body)) return res.status(400).json({ ok: false, error: 'consent_required' })
 
@@ -2740,7 +2787,7 @@ async function extrasAction(parts, now, chatId) {
       return j ? cancelReasonPicker(j) : cancelTasksScreen(listJoins(), now)
     }
     case 'dgcr': {
-      if (['price', 'time', 'content', 'other'].includes(arg2)) setCancelReason(arg, arg2)
+      if (['price', 'time', 'content', 'payment', 'other'].includes(arg2)) setCancelReason(arg, arg2)
       return withNote(cancelTasksScreen(listJoins(), now), `✅ Причина отписки записана: ${CANCEL_REASONS[arg2] ?? '—'}`)
     }
     case 'ret':
@@ -3533,7 +3580,11 @@ async function handleUserCallback(query) {
 }
 
 /** Отключение подписки по просьбе самого резидента: пробуем отключить в Prodamus, отмечаем в учёте, сообщаем админу. */
-async function cancelSubscription(join, reason) {
+async function cancelSubscription(join, reason, { voluntary = false, source = 'system' } = {}) {
+  const normalized = typeof reason === 'object' ? reason : cancellationReason(reason)
+  if (!normalized) return { confirmed: false, results: [] }
+  if (voluntary) patchJoin(join.token, { cancelReason: normalized.code, cancelReasonText: normalized.text,
+    cancelRequest: { source, reasonCode: normalized.code, text: normalized.text, requestedAt: Date.now(), status: 'pending' } })
   const ids = new Set((join.payments ?? []).map((p) => p.subscriptionId).filter(Boolean).map(String))
   if (!ids.size) {
     const historicalId = priceEntitlement(join)?.subscriptionId
@@ -3556,8 +3607,11 @@ async function cancelSubscription(join, reason) {
   const confirmed = join.oneTime || (results.length > 0 && results.every((r) => r.ok))
   if (confirmed) {
     setSubscriptionActive(join.token, false, Date.now())
-    setCancelReason(join.token, 'other')
-    setJoinField(join.token, 'cancelReasonText', reason)
+    if (voluntary) patchJoin(join.token, {
+      cancellation: { source, confirmed: true, confirmedAt: Date.now(), accessUntil: voluntaryAccessEnd(join) },
+      cancelRequest: { ...getJoin(join.token).cancelRequest, status: 'confirmed' },
+      retentionOffer: prepareRetentionOffer(getJoin(join.token)),
+    })
   }
   return { confirmed, results }
 }
@@ -3572,8 +3626,9 @@ async function finishCancellation(chatId, flow, reason) {
   }
   // Основатель проходит путь клиента целиком, но подписка не меняется (иначе он потерял бы доступ).
   const test = Boolean(join.lifetime)
-  const { confirmed, results } = test ? { confirmed: true, results: [] } : await cancelSubscription(join, reason)
-  const endsAt = test ? join.endsAt : join.nextPaymentAt
+  const { confirmed, results } = test ? { confirmed: true, results: [] } : await cancelSubscription(join, reason, { voluntary: true, source: 'bot' })
+  const endsAt = test ? join.endsAt : accessUntil(getJoin(join.token))
+  if (confirmed && !test) void afterResponse('access-ending', sendAccessEndingReminders)
   const screen = cancelDoneScreen(endsAt, confirmed, test)
   await sendTelegramMessage(chatId, screen.text, screen.keyboard)
   const ticket = nextTicketNumber()
@@ -3653,7 +3708,8 @@ async function handleResidentCallback(query) {
   const user = getBotUser(chatId) ?? fromUser ?? {}
   let screen
   if (action === 'renew') {
-    if (join.status === 'active' && !join.oneTime && Number(join.nextPaymentAt) > Date.now()) screen = { text: 'Подписка действует, повторная оплата сейчас не нужна.', keyboard: CABINET_KEYBOARD }
+    if (!paidUntil(join)) screen = { text: 'Неизвестен оплаченный срок. Обратитесь в поддержку для проверки подписки.', keyboard: CHARGE_FAILED_KEYBOARD }
+    else if (paidUntil(join) > Date.now()) screen = { text: 'Текущий оплаченный период ещё действует. Новое оформление доступно после его окончания.', keyboard: CABINET_KEYBOARD }
     else {
       try { screen = { text: `Продление по закреплённой цене ${priceEntitlement(join)?.amount} ₽. Проверьте условия и подтвердите оплату на странице Prodamus.`, keyboard: [[{ text: 'Перейти к оплате', url: await lockedRenewal(join) }], ...CABINET_KEYBOARD] } }
       catch { screen = { text: 'Нужно проверить прежний тариф и отключение прежнего автосписания. Обратитесь в поддержку; новая подписка по повышенной цене автоматически не создаётся.', keyboard: CHARGE_FAILED_KEYBOARD } }
@@ -4364,6 +4420,22 @@ const deliverRenewalNotices = createRenewalDelivery({
   ),
 })
 
+const sendAccessEndingReminders = createAccessEndingReminders({
+  list: listJoins, patch: patchJoin,
+  send: async (join, offer, channels) => {
+    const date = preciseMoscowTime(accessUntil(join))
+    const botUser = join.tgUserId ? getBotUser(join.tgUserId) : null
+    const marketing = botUser?.mailingConsent === false ? false : botUser?.mailingConsent === true || Boolean(join.marketingAt)
+    const lines = ['Автопродление отключено.', `Доступ к сообществу закончится ${date}.`,
+      offer && marketing ? `Для вас доступна постоянная цена ${formatRub(offer.amount)} в месяц вместо ${formatRub(offer.baseAmount)}. Цена сохраняется после перерыва. Сохранение предложения не включает списания.` : null,
+      'Управлять подпиской можно в личном кабинете.'].filter(Boolean)
+    const url = `${SITE_URL}/cabinet/resident`
+    return notifyResident({ ...join, tgUserId: channels.bot ? join.tgUserId : null, email: channels.mail ? join.email : null },
+      { text: lines.join('\n\n'), keyboard: [[{ text: 'Личный кабинет', url }]] },
+      { subject: 'Доступ к сообществу заканчивается', text: lines.join('\n\n') + '\n\n' + url })
+  },
+})
+
 /**
  * Автонапоминания резидентам о списании: за 24 часа, в бота и на почту, отдельно подтверждаем каждый канал.
  * Не получившим (ни бота, ни почты) пишет админ вручную: они видны в «Сообщество → Напоминания». Отключить: AUTO_RESIDENT_REMINDERS=0.
@@ -4481,6 +4553,7 @@ if (BOT_TOKEN && process.env.TELEGRAM_POLLING !== '0') {
 }
 
 setInterval(() => afterResponse('resident-reminders-24h', sendAutoResidentReminders), 60000).unref()
+setInterval(() => afterResponse('access-ending-reminders', sendAccessEndingReminders), 60000).unref()
 
 // Access checks are independent of optional daily reports; AUTO_EXCLUDE remains the explicit switch.
 setInterval(() => afterResponse('renewal-notices', deliverRenewalNotices), 60000).unref()
@@ -4520,7 +4593,7 @@ process.on('unhandledRejection', (err) => console.error('[unhandledRejection]', 
 process.on('uncaughtException', (err) => console.error('[uncaughtException]', err))
 
 // Для автотестов: доступ к фоновым задачам без ожидания расписания.
-if (process.env.TEST_HOOKS === '1') globalThis.__hooks = { runRetentionJob, sendEventReminders, processExpiry, processAccessExpiry, deliverRenewalNotices, processReviewFlow, sendAutoResidentReminders, sendMorningDigest, sendEveningClose, refreshChatMembership, processCampaigns, sendPendingNoticesIfDue }
+if (process.env.TEST_HOOKS === '1') globalThis.__hooks = { runRetentionJob, sendEventReminders, processExpiry, processAccessExpiry, deliverRenewalNotices, sendAccessEndingReminders, processReviewFlow, sendAutoResidentReminders, sendMorningDigest, sendEveningClose, refreshChatMembership, processCampaigns, sendPendingNoticesIfDue }
 
 const PORT = process.env.PORT || 3001
 ensureBuiltInPromos()

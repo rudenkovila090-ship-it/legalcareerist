@@ -424,8 +424,11 @@ export interface SubscriptionPayment {
 }
 
 export interface SubscriptionInfo extends ResidentInfo {
+  cancellationEndsAt?: number | null
+  retentionOffer?: { amount: number; baseAmount: number; claimed: boolean; redeemed: boolean; checkoutAt: number; canCheckout: boolean } | null
   lockedPrice?: number | null
   canRenewLocked?: boolean
+  canRenewNow?: boolean
   /** Цена одного периода по тарифу, ₽. */
   price?: number | null
   period?: string | null
@@ -443,7 +446,9 @@ export interface SubscriptionInfo extends ResidentInfo {
 
 export const fetchSubscription = () => api<{ subscription: SubscriptionInfo }>('/api/account/subscription')
 /** Отключение автопродления: доступ сохраняется до конца оплаченного периода. confirmed — подтверждено ли отключение в платёжной системе. */
-export const cancelSubscription = (reason: string) => api<{ confirmed: boolean; test: boolean; endsAt: number | null }>('/api/account/subscription/cancel', { method: 'POST', body: JSON.stringify({ reason }) })
+export const cancelSubscription = (reason: string, reasonCode?: string) => api<{ confirmed: boolean; test: boolean; endsAt: number | null }>('/api/account/subscription/cancel', { method: 'POST', body: JSON.stringify({ reason, reasonCode }) })
+export const claimRetentionOffer = () => api<{ offer: NonNullable<SubscriptionInfo['retentionOffer']> }>('/api/account/subscription/retention', { method: 'POST', body: JSON.stringify({ action: 'claim' }) })
+export const retentionCheckout = () => api<{ url: string }>('/api/account/subscription/retention', { method: 'POST', body: JSON.stringify({ action: 'checkout' }) })
 /** Запрос смены карты: уходит в чат поддержки с данными подписки. */
 export const requestCardChange = () => api<{ notified: boolean }>('/api/account/subscription/card', { method: 'POST', body: '{}' })
 

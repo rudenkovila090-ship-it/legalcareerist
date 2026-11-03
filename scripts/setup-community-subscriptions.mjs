@@ -45,20 +45,24 @@ ensure(!fs.lstatSync(dataDir).isSymbolicLink(), 'Нужна обычная па�
 const originalEnv = fs.readFileSync(envFile)
 const policyFile = path.join(dataDir, 'subscription-policy.json')
 const oldPolicy = fs.existsSync(policyFile) ? read(policyFile) : null
+const runDemo = process.env.SUBSCRIPTION_SEND_DEMO === '1' || (!oldPolicy?.activatedAt && process.env.SUBSCRIPTION_SKIP_DEMO !== '1')
 let days = Number(process.env.SUBSCRIPTION_SETUP_GRACE_DAYS || oldPolicy?.graceDays || 4)
 ensure(Number.isInteger(days) && days >= 1 && days <= 30, 'Некорректная длительность общей отсрочки.')
 run('node', [path.join(release, 'scripts/install-site-reliability.mjs'), '--verify-files', site], site, { env: { ...process.env, SITE_RELIABILITY_MANIFEST: manifestName } })
 let username = String(process.env.SUBSCRIPTION_TEST_USERNAME || '').trim().replace(/^@/, '')
+let target = null
+const usersFile = path.join(dataDir, 'bot-users.json')
+if (runDemo) {
 if (!username) {
   ensure(process.stdin.isTTY, 'Укажите SUBSCRIPTION_TEST_USERNAME для тестового сообщения.')
   const input = createInterface({ input: process.stdin, output: process.stdout })
   try { username = (await input.question('Точный @username личного аккаунта для теста: ')).trim().replace(/^@/, '') } finally { input.close() }
 }
 ensure(/^[A-Za-z][A-Za-z0-9_]{4,31}$/.test(username), 'Нужно точное Telegram-имя; угадывать получателя нельзя.')
-const usersFile = path.join(dataDir, 'bot-users.json')
 const matches = Object.values(read(usersFile)).filter(u => String(u.username || '').replace(/^@/, '').toLowerCase() === username.toLowerCase())
 ensure(matches.length === 1 && matches[0].id, 'Нет однозначной карточки этого аккаунта. Откройте @legalcareerist_bot с личного аккаунта и нажмите Start.')
-const target = String(matches[0].id)
+target = String(matches[0].id)
+}
 async function telegram(method, body = {}) {
   const attempts = method.startsWith('get') ? 3 : 1
   for (let i = 0; i < attempts; i++) {
@@ -73,15 +77,15 @@ async function telegram(method, body = {}) {
     }
   }
 }
-const [me, hook, person] = await Promise.all([telegram('getMe'), telegram('getWebhookInfo'), telegram('getChat', { chat_id: target })])
-ensure(person.type === 'private' && String(person.username || '').toLowerCase() === username.toLowerCase(), 'Аккаунт изменился: тестовое сообщение не отправлено.')
+const [me, hook, person] = await Promise.all([telegram('getMe'), telegram('getWebhookInfo'), runDemo ? telegram('getChat', { chat_id: target }) : null])
+if (runDemo) ensure(person.type === 'private' && String(person.username || '').toLowerCase() === username.toLowerCase(), 'Аккаунт изменился: тестовое сообщение не отправлено.')
 const member = await telegram('getChatMember', { chat_id: chatId, user_id: me.id })
 ensure(member.status === 'creator' || (member.status === 'administrator' && member.can_invite_users && member.can_restrict_members), 'Боту нужны права приглашать и ограничивать участников.')
 const siteUrl = new URL(value('SITE_URL') || 'https://legalcareerist.ru')
 if (hook.url) ensure(new URL(hook.url).hostname === siteUrl.hostname && new URL(hook.url).pathname === '/api/telegram/webhook', 'У бота чужой вебхук. Автоматическое переключение не выполняется.')
 const polling = value('TELEGRAM_POLLING') !== '0'
 ensure(polling || hook.url, 'Отключён опрос и не установлен собственный вебхук.')
-console.log(`Получатель теста подтверждён: @${username}. Общая отсрочка: ${days} суток.`)
+console.log(runDemo ? `Получатель теста подтверждён: @${username}. Общая отсрочка: ${days} суток.` : `Обновление без повторного демо. Общая отсрочка ошибок оплаты: ${days} суток.`)
 console.log('До включения удаления старым просроченным активным карточкам будет дано одинаковое переходное окно.')
 const backupRoot = process.env.SITE_RELIABILITY_BACKUPS || '/root/legalcareerist-backups'
 fs.mkdirSync(backupRoot, { recursive: true, mode: 0o700 })
@@ -99,10 +103,20 @@ try {
   const file = path.join(dataDir, 'pending-joins.json'), before = read(file)
   const prepared = prepareSubscriptionPolicy(before, oldPolicy, Date.now(), days)
   save(file, JSON.stringify(prepared.cards, null, 2))
-  const people = read(usersFile), startedAt = Date.now()
+  const startedAt = Date.now()
+  if (runDemo) {
+  const people = read(usersFile)
   ensure(people[target] && String(people[target].username || '').replace(/^@/, '').toLowerCase() === username.toLowerCase(), 'Получатель теста изменился во время установки.')
   people[target] = { ...people[target], subscriptionDemoStartedAt: startedAt, subscriptionDemoUntil: startedAt + 86400000 }
   save(usersFile, JSON.stringify(people, null, 2))
+  } else {
+    const people = read(usersFile)
+    let changed = false
+    for (const person of Object.values(people)) if (person.subscriptionDemoUntil || person.subscriptionDemoStartedAt) {
+      delete person.subscriptionDemoUntil; delete person.subscriptionDemoStartedAt; changed = true
+    }
+    if (changed) save(usersFile, JSON.stringify(people, null, 2))
+  }
   const webhookSecret = value('TELEGRAM_WEBHOOK_SECRET') || crypto.randomBytes(32).toString('hex')
   let env = fs.readFileSync(envFile, 'utf8')
   const settings = { SUBSCRIPTION_GRACE_DAYS: String(days), AUTO_EXCLUDE: '1', AUTO_RESIDENT_REMINDERS: '1', CHARGE_FAILED_NOTICES: '1', TELEGRAM_WEBHOOK_SECRET: webhookSecret }
@@ -112,7 +126,7 @@ try {
   }
   save(envFile, env)
   envWritten = true; writtenEnvHash = hash(Buffer.from(env))
-  for (const [key, v] of Object.entries(pm2)) if (/^(TELEGRAM_|PRODAMUS_|SMTP_|COMMUNITY_|ACCOUNT_|BOT_USERNAME$|SITE_URL$|SUPPORT_HANDLE$|AUTO_|DISABLE_|RETENTION_|LIFETIME_|EXPIRY_|REVIEW_|CAMPAIGNS$|CHARGE_FAILED_)/.test(key) && typeof v !== 'object' && v !== undefined) process.env[key] = String(v)
+  for (const [key, v] of Object.entries(pm2)) if (/^(TELEGRAM_|PRODAMUS_|SMTP_|COMMUNITY_|ACCOUNT_|SUBSCRIPTION_|BOT_USERNAME$|SITE_URL$|SUPPORT_HANDLE$|AUTO_|DISABLE_|RETENTION_|LIFETIME_|EXPIRY_|REVIEW_|CAMPAIGNS$|CHARGE_FAILED_)/.test(key) && typeof v !== 'object' && v !== undefined) process.env[key] = String(v)
   Object.assign(process.env, settings)
   if (!polling) await telegram('setWebhook', { url: hook.url, secret_token: webhookSecret, allowed_updates: ['message', 'callback_query', 'chat_join_request', 'chat_member'], drop_pending_updates: false })
   run('pm2', ['restart', 'legalcareerist-api', '--update-env']); stopped = false
@@ -148,10 +162,13 @@ try {
     'git archive "$subscription_ref" | tar -x -C "$subscription_release"',
     'flock -n /run/lock/legalcareerist-subscriptions.lock node --env-file=server/.env "$subscription_release/scripts/setup-community-subscriptions.mjs" "$PWD"', '',
   ].join('\n'), { mode: 0o700, flag: 'wx' })
-  const screen = subscriptionDemo('paid', startedAt)
-  let sent = false
-  try { await telegram('sendMessage', { chat_id: target, text: screen.text, reply_markup: { inline_keyboard: screen.keyboard } }); sent = true } catch { console.log('Тестовое сообщение не подтверждено. Проверьте личный чат с ботом; повторно автоматически не отправляем.') }
-  console.log(JSON.stringify({ installed: true, graceDays: days, autoExclusion: true, transitionDeadline: new Date(prepared.policy.activatedAt + days * 86400000).toISOString(), migration: prepared.stats, testAccount: '@' + username, testMessageConfirmed: sent, realTestCharges: 0, realTestRemovals: 0, addressAndUtmUnchanged: true, privateBackup: extraBackup }, null, 2))
+  let sent = null
+  if (runDemo) {
+    const screen = subscriptionDemo('paid', startedAt)
+    sent = false
+    try { await telegram('sendMessage', { chat_id: target, text: screen.text, reply_markup: { inline_keyboard: screen.keyboard } }); sent = true } catch { console.log('Тестовое сообщение не подтверждено. Проверьте личный чат с ботом; повторно автоматически не отправляем.') }
+  }
+  console.log(JSON.stringify({ installed: true, graceDays: days, autoExclusion: true, transitionDeadline: new Date(prepared.policy.activatedAt + days * 86400000).toISOString(), migration: prepared.stats, testAccount: runDemo ? '@' + username : null, testMessageConfirmed: sent, realTestCharges: 0, realTestRemovals: 0, addressAndUtmUnchanged: true, privateBackup: extraBackup }, null, 2))
 } catch (error) {
   if (installed) {
     try {

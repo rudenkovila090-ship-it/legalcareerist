@@ -233,7 +233,7 @@ export function dueScreen(joins, now, tariffs = {}, horizonDays = 2) {
   return { text: lines.join('\n'), keyboard: DUE_KEYBOARD }
 }
 
-export const CANCEL_REASONS = { price: 'Дорого', time: 'Нет времени', content: 'Не то содержание', other: 'Другое', expired: 'Срок истёк, не продлил' }
+export const CANCEL_REASONS = { price: 'Дорого', time: 'Нет времени', content: 'Не то содержание', payment: 'Проблема с оплатой', other: 'Другое', expired: 'Срок истёк, не продлил' }
 
 /** Отписки: кто, когда (день и время), на каком тарифе сидел и причина (если указана). */
 export function cancelledScreen(joins, tariffs = {}) {

@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { renewLockedSubscription, cancelSubscription, fetchEvents, fetchSubscription, linkTelegram, requestCardChange, unlinkTelegram, type CabinetEvent, type CabinetUser, type SubscriptionInfo } from '../../lib/cabinet'
+import { renewLockedSubscription, cancelSubscription, claimRetentionOffer, retentionCheckout, fetchEvents, fetchSubscription, linkTelegram, requestCardChange, unlinkTelegram, type CabinetEvent, type CabinetUser, type SubscriptionInfo } from '../../lib/cabinet'
 import { events as catalogEvents } from '../../data/events'
 import { eventStories } from '../../data/eventStories'
 import { eventTimeRange } from '../../lib/eventTime'
@@ -270,6 +270,7 @@ export function StatusSection({ user, onRefresh }: { user: CabinetUser; onRefres
   const [failed, setFailed] = useState(false)
   const [panel, setPanel] = useState<'none' | 'history' | 'cancel' | 'card'>('none')
   const [reason, setReason] = useState('')
+  const [reasonCode, setReasonCode] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [done, setDone] = useState<{ kind: 'cancel' | 'card'; text: string } | null>(null)
@@ -303,12 +304,13 @@ export function StatusSection({ user, onRefresh }: { user: CabinetUser; onRefres
     const r = await renewLockedSubscription()
     setBusy(false)
     if (r.ok) window.location.assign(r.data.url)
-    else setError('Не удалось безопасно подготовить продление по прежней цене. Попробуйте позже или обратитесь в поддержку; новая оплата не создана.')
+    else setError(r.error === 'paid_access_remaining' ? 'Текущий оплаченный период ещё действует. Новое оформление доступно после его окончания.' : 'Не удалось безопасно подготовить продление по прежней цене. Попробуйте позже или обратитесь в поддержку; новая оплата не создана.')
   }
   async function doCancel() {
+    if (!reasonCode || (reasonCode === 'other' && !reason.trim())) { setError('Выберите причину отключения. Для варианта «Другое» напишите короткий ответ.'); return }
     setBusy(true)
     setError('')
-    const r = await cancelSubscription(reason)
+    const r = await cancelSubscription(reason, reasonCode)
     setBusy(false)
     if (!r.ok) {
       setError(r.error === 'too_many_attempts' ? 'Слишком много попыток. Попробуйте позже или напишите в чат поддержки.' : r.error === 'already_cancelled' ? 'Подписка уже отключена. Обновите страницу.' : 'Не получилось отключить. Попробуйте ещё раз или напишите в чат поддержки.')
@@ -316,6 +318,7 @@ export function StatusSection({ user, onRefresh }: { user: CabinetUser; onRefres
     }
     setPanel('none')
     setReason('')
+    setReasonCode('')
     if (r.data.confirmed && !r.data.test) {
       setSub((prev) => (prev ? { ...prev, canCancel: false, cancelled: true, autoRenew: false, nextPayment: null } : prev))
     }
@@ -324,12 +327,27 @@ export function StatusSection({ user, onRefresh }: { user: CabinetUser; onRefres
       text: r.data.test
         ? 'Тест основателя: путь отключения пройден, подписка не изменилась.'
         : r.data.confirmed
-          ? `Автопродление отключено, списаний больше не будет. Доступ к сообществу сохранится${r.data.endsAt ? ` до ${longDate(r.data.endsAt)}` : ' до конца оплаченного периода'}.`
+          ? `Отключение автопродления подтверждено. Доступ к сообществу сохранится${r.data.endsAt ? ` до ${subscriptionDate(r.data.endsAt)}` : ' до конца оплаченного периода'}.`
           : 'Не удалось подтвердить отключение в платёжной системе. Автопродление пока остаётся включённым. Попробуйте ещё раз или обратитесь в чат поддержки.',
     })
     const refreshed = await fetchSubscription()
     if (refreshed.ok) setSub(refreshed.data.subscription)
     await onRefresh()
+  }
+
+  async function doRetention(action: 'claim' | 'checkout') {
+    setBusy(true); setError('')
+    if (action === 'checkout') {
+      const result = await retentionCheckout()
+      setBusy(false)
+      if (result.ok) window.location.assign(result.data.url)
+      else setError(result.error === 'paid_access_remaining' ? 'Текущий доступ ещё действует. Новый период можно оплатить после его окончания.' : 'Не удалось подготовить оплату по персональной цене. Обратитесь в поддержку; списания не включены.')
+    } else {
+      const result = await claimRetentionOffer()
+      setBusy(false)
+      if (result.ok) setSub(prev => prev ? { ...prev, retentionOffer: result.data.offer } : prev)
+      else setError('Не удалось сохранить предложение. Обновите страницу или обратитесь в поддержку.')
+    }
   }
 
   async function copyInvite(url: string) {
@@ -366,6 +384,15 @@ export function StatusSection({ user, onRefresh }: { user: CabinetUser; onRefres
       <Card>
         <div className="flex flex-wrap items-center gap-2">{badge}</div>
         {sub.inGrace && <p className="my-3 rounded-xl bg-gold/10 p-4 text-sm">Оплата ожидается. Дополнительный доступ сохраняется до {subscriptionDate(sub.graceUntil)}. Закреплённая цена: {money(sub.lockedPrice)}.</p>}
+        {sub.retentionOffer && <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+          <h3 className="font-semibold">{sub.retentionOffer.redeemed ? 'Ваша персональная цена сохранена' : 'Оставайтесь за 500 ₽ в месяц'}</h3>
+          <p className="mt-2 text-sm">{money(sub.retentionOffer.amount)} в месяц вместо {money(sub.retentionOffer.baseAmount)}. Цена действует на последующие оплаты и сохраняется после перерыва. Повторная отмена не снижает её ещё раз.</p>
+          <p className="mt-2 text-sm">{sub.retentionOffer.claimed ? 'Предложение сохранено. ' : ''}Автопродление остаётся отключённым. {sub.retentionOffer.canCheckout ? 'Оплату и условия автопродления вы подтвердите на странице Prodamus.' : `Новый период можно оплатить после ${subscriptionDate(sub.retentionOffer.checkoutAt)}.`}</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {!sub.retentionOffer.claimed && <button type="button" disabled={busy} onClick={() => void doRetention('claim')} className="rounded-full bg-ink px-5 py-2 text-sm font-semibold text-white disabled:opacity-60">Сохранить цену {money(sub.retentionOffer.amount)}</button>}
+            {sub.retentionOffer.canCheckout && <button type="button" disabled={busy} onClick={() => void doRetention('checkout')} className="rounded-full border border-ink/20 px-5 py-2 text-sm font-semibold disabled:opacity-60">Вернуться за {money(sub.retentionOffer.amount)}</button>}
+          </div>
+        </div>}
         {status === 'none' ? (
           <>
             <p className="mt-3 text-lg font-semibold">Вы пока не резидент сообщества</p>
@@ -411,7 +438,7 @@ export function StatusSection({ user, onRefresh }: { user: CabinetUser; onRefres
               <ActionButton on={panel === 'history'} onClick={() => toggle('history')}>История оплат</ActionButton>
               {sub.canCancel && <ActionButton on={panel === 'cancel'} onClick={() => toggle('cancel')} danger>Отключить автопродление</ActionButton>}
               {!lifetime && <ActionButton on={panel === 'card'} onClick={() => toggle('card')}>Запросить смену карты</ActionButton>}
-              {(status === 'ended' || sub.inGrace || sub.cancelled || sub.oneTime) && (sub.canRenewLocked
+              {!sub.retentionOffer && sub.canRenewNow && (status === 'ended' || sub.inGrace || sub.cancelled || sub.oneTime) && (sub.canRenewLocked
                 ? <button type="button" disabled={busy} onClick={() => void doRenew()} className="rounded-full bg-ink px-5 py-2 text-sm font-semibold text-white disabled:opacity-60">Продлить по прежней цене {money(sub.lockedPrice)}</button>
                 : <Link to="/cabinet/support" className="font-semibold underline">Проверить прежнюю цену в поддержке</Link>)}
               {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
@@ -447,12 +474,15 @@ export function StatusSection({ user, onRefresh }: { user: CabinetUser; onRefres
         {panel === 'cancel' && (
           <div className="mt-5 rounded-xl border border-red-200 bg-red-50/50 p-4">
             <h3 className="text-sm font-semibold">Отключить автопродление?</h3>
-            <p className="mt-1 text-sm text-ink/70">Списаний больше не будет. Доступ к сообществу сохранится до {subscriptionDate(sub.until)}, потом закончится. Подписку можно оформить заново в любой момент.</p>
-            <label htmlFor="cancel-reason" className="mt-3 block text-sm font-medium text-ink/80">Почему отключаете? Необязательно, но нам это важно</label>
-            <textarea id="cancel-reason" value={reason} onChange={(e) => setReason(e.target.value)} rows={3} maxLength={500} className="mt-1.5 w-full rounded-xl border border-ink/15 bg-white px-4 py-3 text-base focus:border-ink/40 focus:outline-none sm:text-sm" />
+            <p className="mt-1 text-sm text-ink/70">После подтверждения Prodamus автопродление будет отключено. Доступ сохранится до {subscriptionDate(sub.cancellationEndsAt ?? sub.until)}. Выберите причину и подтвердите отключение.</p>
+            <label htmlFor="cancel-reason-code" className="mt-3 block text-sm font-medium text-ink/80">Почему отключаете? Выберите один вариант</label>
+            <select id="cancel-reason-code" required value={reasonCode} onChange={e => { setReasonCode(e.target.value); setError('') }} className="mt-1.5 w-full rounded-xl border border-ink/15 bg-white px-4 py-3 text-base sm:text-sm">
+              <option value="">Выберите причину</option><option value="price">Дорого</option><option value="time">Нет времени</option><option value="content">Не подошёл формат</option><option value="payment">Проблема с оплатой</option><option value="other">Другое</option>
+            </select>
+            {reasonCode === 'other' && <><label htmlFor="cancel-reason" className="mt-3 block text-sm font-medium">Напишите коротко причину</label><textarea id="cancel-reason" required value={reason} onChange={(e) => setReason(e.target.value)} rows={3} maxLength={500} className="mt-1.5 w-full rounded-xl border border-ink/15 bg-white px-4 py-3 text-base focus:border-ink/40 focus:outline-none sm:text-sm" /></>}
             {error && <p role="alert" className="mt-2 text-sm text-red-600">{error}</p>}
             <div className="mt-3 flex flex-wrap gap-2.5">
-              <button type="button" disabled={busy} onClick={() => void doCancel()} className="rounded-full bg-red-600 px-5 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60">{busy ? 'Отключаем…' : 'Отключить'}</button>
+              <button type="button" disabled={busy || !reasonCode || (reasonCode === 'other' && !reason.trim())} onClick={() => void doCancel()} className="rounded-full bg-red-600 px-5 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60">{busy ? 'Отключаем…' : 'Подтвердить отключение'}</button>
               <button type="button" onClick={() => setPanel('none')} className="rounded-full border border-ink/15 px-5 py-2 text-sm font-semibold text-ink/70 hover:text-ink">Не отключать</button>
             </div>
           </div>

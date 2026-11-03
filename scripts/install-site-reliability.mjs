@@ -164,9 +164,11 @@ async function install(site) {
   command('node', ['server/tests/reliability.test.mjs'], release)
   if (manifest.subscriptionLifecycle) {
     command('node', ['server/tests/subscription-lifecycle.test.mjs'], release)
+    command('node', ['server/tests/subscription-retention.test.mjs'], release)
     command('node', ['server/tests/http-reliability.mjs'], release)
     command('node', ['server/tests/http-reliability.mjs', '--no-payment-keys'], release)
     command('node', ['server/tests/http-reliability.mjs', '--lifecycle'], release)
+    command('node', ['server/tests/http-reliability.mjs', '--retention'], release)
   }
   if (manifest.materialManager) command('node', ['server/tests/admin-materials.mjs'], release)
   command('npm', ['run', 'lint'], release)

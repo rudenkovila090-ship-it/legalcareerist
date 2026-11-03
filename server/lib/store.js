@@ -1,4 +1,5 @@
 import { priceEntitlement } from './subscriptionPricing.js'
+import { matchingRetentionPayment } from './subscriptionRetention.js'
 // Участники сообщества: token → { tariffId, name, phone, email, telegram,
 // tgUserId, paid, status, payments[], firstPaidAt, lastPaidAt, nextPaymentAt,
 // createdAt }. Запись появляется в момент "выбрал тариф на сайте", живёт
@@ -135,7 +136,7 @@ export function recordPayment(token, { tariffId, amount, paidAt, orderKey, nextP
       ...(!stale ? (oneTime === true ? { oneTime: true } : oneTime === false ? { oneTime: undefined } : {}) : {}),
       ...(!stale && join.watch ? { watch: undefined } : {}), // успешная оплата снимает жёлтую метку «на контроле списания»
       paid: true,
-      status: stale ? join.status : 'active',
+      status: stale || (join.status === 'cancelled' && join.cancellation?.confirmed && (!profileId || String(profileId) === String(join.prodamusProfileId))) ? join.status : 'active',
       payments,
       firstPaidAt: join.firstPaidAt ?? paidAt,
       lastPaidAt: Math.max(Number(join.lastPaidAt) || 0, paidAt),
@@ -143,6 +144,11 @@ export function recordPayment(token, { tariffId, amount, paidAt, orderKey, nextP
       renewalNotices: enqueueConfirmation && !stale && kind === 'renewal'
         ? [...(join.renewalNotices ?? []), { id: orderKey || `${paidAt}:${amount}`, amount, paidAt, nextPaymentAt, botDone: false, mailDone: false }]
         : join.renewalNotices,
+    }
+    const retained = !stale && matchingRetentionPayment(join, { subscriptionId, amount, paidAt })
+    if (retained) {
+      next.retentionPrice = retained
+      next.retentionOffer = { ...join.retentionOffer, redeemedAt: paidAt }
     }
     if (!next.priceLock) next.priceLock = priceEntitlement(next)
     result = { duplicate: false, stale, kind, number: paymentNum || payments.length, record: { token, ...next } }
