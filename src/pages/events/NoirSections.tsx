@@ -174,7 +174,7 @@ export function NoirHero({ event, story, onBuy, share, views }: NoirHeroProps) {
 
             <Rise delay={2.95} className="mt-8">
               <div className="flex flex-wrap items-center gap-3">
-                {event.registrationLink ? <a
+                {event.registrationLink && !event.collectTicketLead ? <a
                   href={event.registrationLink}
                   target="_blank"
                   rel="noreferrer"

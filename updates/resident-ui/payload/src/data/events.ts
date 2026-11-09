@@ -129,7 +129,7 @@ export const events: EventItem[] = [
     endDateTime: '2026-11-28T22:00:00+03:00',
     offerPath: '/legal/offer-legal-night-jazz-2',
     price: 3990,
-    externalRegistration: true,
+    collectTicketLead: true,
     registrationLink: 'https://payform.ru/obcMOZJ/',
     registrationNote: 'Билет стоит 3 990 ₽. Оплата проходит на защищённой странице Prodamus.',
     status: 'open',

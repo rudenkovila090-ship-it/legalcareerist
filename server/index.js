@@ -58,6 +58,7 @@ import { utmLabel } from './lib/utm.js'
 import { createApplication, listApplications } from './lib/candidateApplications.js'
 import { createConsultation, listConsultations, getConsultation, setConsultationStatus, CONSULTATION_STATUSES } from './lib/consultations.js'
 import { createAmbassador, listAmbassadors, getAmbassador, addReferral, deleteAmbassador } from './lib/ambassadors.js'
+import { fixedEventPaymentLink } from './lib/eventPaymentTarget.js'
 import { createEventLead, listEventLeads, getEventLead, setEventLeadStatus, markEventLeadPaid, setEventLeadField } from './lib/eventLeads.js'
 import { sendMail, mailConfigured } from './lib/mailer.js'
 import { listPromos, addPromo, removePromo, findPromo, applyPromo, markPromoUsed, parsePromoInput, promoLabel, ensureBuiltInPromos } from './lib/promoCodes.js'
@@ -2199,7 +2200,8 @@ function promoRateLimited(ip) {
 function priceTicket(slug, tariffId, promoCode) {
   const event = findEvent(slug)
   if (!event) return { error: 'unknown_event', status: 404 }
-  if (event.status !== 'open' || event.registrationLink) return { error: 'not_for_sale', status: 400 }
+  if (event.status !== 'open' || (event.registrationLink && !event.collectTicketLead)) return { error: 'not_for_sale', status: 400 }
+  if (event.collectTicketLead && promoCode) return { error: 'fixed_price', status: 400 }
   const tariff = event.tariffs.find((t) => t.id === tariffId)
   if (!tariff || !(tariff.price > 0)) return { error: 'unknown_tariff', status: 400 }
   if (!promoCode) return { event, tariff, price: tariff.price, discount: 0, promo: null }
@@ -2249,7 +2251,9 @@ app.post('/api/event/:slug/checkout', async (req, res) => {
     }
     const orderId = `ev-${lead.number}`
     const urlSuccess = `${SITE_URL}/events/${event.slug}?paid=1&t=${lead.token}`
-    const url = await createEventPaymentLink({ title: `${event.title} — ${tariff.name}`, price: ticket.price, orderId, phone, email: EMAIL_RE.test(email) ? email : '', urlSuccess, name })
+    const url = event.collectTicketLead
+      ? fixedEventPaymentLink({ event, orderId, phone, email, urlSuccess, name })
+      : await createEventPaymentLink({ title: `${event.title} — ${tariff.name}`, price: ticket.price, orderId, phone, email: EMAIL_RE.test(email) ? email : '', urlSuccess, name })
     if (BOT_TOKEN && ADMIN_CHAT_ID && getAdminSettings().unpaidNotices) {
       // Не шлём сразу: если человек оплатит в ближайшие минуты, придёт одно сообщение «Билет оплачен», а это — только если не оплатил.
       const text = buildLeadNotification({ direction: 'Мероприятия', service: 'Билет на мероприятие', date: new Date().toISOString(), name, phone, email, telegram, details: [`Мероприятие: ${event.title}`, `Билет: ${tariff.name} — ${formatRub(ticket.price)}${ticket.promo ? ` (промокод ${ticket.promo.code}: −${formatRub(ticket.discount)} от ${formatRub(tariff.price)})` : ''}`, ...(lead.howHeard ? [`Откуда узнали: ${lead.howHeard}`] : [])], ticketNumber: String(lead.number) })

@@ -282,7 +282,7 @@ export default function EventDetail() {
     if (!form.fio.trim() || (!form.phone.trim() && !form.email.trim())) return
     // Платный билет: сервер заводит регистрацию «ждёт оплаты» и отдаёт ссылку Prodamus;
     // оплату фиксирует вебхук (статус «Оплатил», письмо участнику, уведомление админу).
-    if (tariff.price > 0 && !event.registrationLink) {
+    if (tariff.price > 0 && (!event.registrationLink || event.collectTicketLead)) {
       setPaying(true)
       setPayError(false)
       // Ввели промокод, но не нажали «Применить» — проверяем сами; неверный код не даём «молча» проигнорировать.
@@ -339,6 +339,8 @@ export default function EventDetail() {
       email: partnerForm.email || undefined,
       howHeard: partnerForm.howHeard,
       interest: [event.title, partnerForm.company],
+      eventSlug: event.slug,
+      company: partnerForm.company,
       consent,
     })
     setPartnerSent(true)
@@ -426,7 +428,7 @@ export default function EventDetail() {
           )}
 
           <div className="mt-8 flex flex-wrap items-center gap-3">
-            {event.registrationLink ? (
+            {event.registrationLink && !event.collectTicketLead ? (
               <a
                 href={event.registrationLink}
                 target="_blank"
@@ -753,7 +755,7 @@ export default function EventDetail() {
                   {event.registrationNote || (event.type === 'championship' ? 'Регистрация и приём работ проходят на сайте организатора.' : 'Регистрация проходит на сайте организатора.')}
                   {event.keyDates?.[0] && <> Срок: <span className="font-semibold text-ink">{event.keyDates[0].when}</span>.</>}
                 </p>
-                {event.registrationLink && (
+                {event.registrationLink && !event.collectTicketLead && (
                   <a
                     href={event.registrationLink}
                     target="_blank"
@@ -808,7 +810,7 @@ export default function EventDetail() {
                   <div className="mt-2 text-xs text-ink/50">Промокод: {event.promoCode}</div>
                 )}
 
-                {event.registrationLink && (
+                {event.registrationLink && !event.collectTicketLead && (
                   <a
                     href={event.registrationLink}
                     target="_blank"
@@ -819,11 +821,11 @@ export default function EventDetail() {
                     Регистрация на сайте организатора
                   </a>
                 )}
-                {event.registrationLink && (
+                {event.registrationLink && !event.collectTicketLead && (
                   <div className="mt-3 text-center text-xs text-ink/40">или зарегистрируйтесь через тарифы ниже</div>
                 )}
 
-                {justPaid && (
+                {justPaid && (!story || receipt.state === 'paid') && (
                   <div className="mt-4 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">
                     Оплата получена — вы зарегистрированы. Подтверждение придет на почту, за день до мероприятия — напоминание.
                     {receipt.state === 'paid' && !receiptOpen && (
@@ -858,9 +860,9 @@ export default function EventDetail() {
                       type="email"
                       value={form.email}
                       onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-                      placeholder={tariff.price > 0 && !event.registrationLink ? 'Почта (пришлем подтверждение)' : 'Почта'}
+                      placeholder={tariff.price > 0 && (!event.registrationLink || event.collectTicketLead) ? 'Почта (пришлем подтверждение)' : 'Почта'}
                       aria-label="Почта"
-                      required={tariff.price > 0 && !event.registrationLink}
+                      required={tariff.price > 0 && (!event.registrationLink || event.collectTicketLead)}
                       className="rounded-lg border border-ink/15 px-3.5 py-2.5 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40"
                     />
                     <input aria-label="Telegram"

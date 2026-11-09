@@ -100,7 +100,7 @@ try{
   const built=JSON.parse(fs.readFileSync(path.join(frontend,'server/data/event-catalog.json'),'utf8'))
   for(const [i,data]of [...new Set(apps.map(p=>p.data))].entries()){
    const file=path.join(data,'event-catalog.json'),before=readCatalog(file),entries=[]
-   for(const update of manifest.catalogUpdates){const row=built.find(e=>e.slug===update.slug);if(!row||row.price!==update.price||row.registrationLink!==update.registrationLink||row.tariffs?.length!==1||row.tariffs[0].price!==update.price)throw Error('Проверка новой цены мероприятия не пройдена.');const old=before.find(e=>e.slug===update.slug)??null;entries.push({slug:update.slug,before:old,after:{...(old||row),price:update.price,registrationLink:update.registrationLink,tariffs:row.tariffs}})}
+   for(const update of manifest.catalogUpdates){const row=built.find(e=>e.slug===update.slug);if(!row||row.price!==update.price||row.registrationLink!==update.registrationLink||row.collectTicketLead!==update.collectTicketLead||row.tariffs?.length!==1||row.tariffs[0].price!==update.price)throw Error('Проверка новой цены мероприятия не пройдена.');const old=before.find(e=>e.slug===update.slug)??null;entries.push({slug:update.slug,before:old,after:{...(old||row),price:update.price,registrationLink:update.registrationLink,collectTicketLead:update.collectTicketLead,tariffs:row.tariffs}})}
    write(path.join(stage,'catalog-'+i+'.before.json'),JSON.stringify(before,null,2));catalogPlans.push({file,entries,written:false})
   }
  }

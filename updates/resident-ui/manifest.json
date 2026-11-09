@@ -35,7 +35,7 @@
     },
     {
       "path": "scripts/export-vacancy-catalog.mjs",
-      "sha256": "85104fbde41c9e7fcb8f31d9d159d71f0139546220f97e63e88baab4d3e8c817"
+      "sha256": "734b5af0932a754fea81ea677ff9b9d0b88bc0b97730a5f6419c945012a88034"
     },
     {
       "path": "src/components/Header.tsx",
@@ -63,7 +63,7 @@
     },
     {
       "path": "src/data/events.ts",
-      "sha256": "b3ecb933e78726d89fbf2695a33befca702d9f5f451f523defe2d07ded1b39c4"
+      "sha256": "19485a0fb67b619ea09ffb8cd59b9ccef27f6c8b3f70991bee85e6f5b060a8ea"
     },
     {
       "path": "src/data/materials.ts",
@@ -191,7 +191,7 @@
     },
     {
       "path": "src/pages/events/EventDetail.tsx",
-      "sha256": "9965bd1a9eab12f466617699aa53450bf239f2dcf6073e013cba8509ec6b8748"
+      "sha256": "7fd14278387294f4d6f3644323a77b56fcb2d316a8d430cb7347d56151e0be62"
     },
     {
       "path": "src/pages/events/EventPhotos.tsx",
@@ -207,7 +207,11 @@
     },
     {
       "path": "src/pages/events/NoirSections.tsx",
-      "sha256": "10c673e4a8192be76dad9e0306800158a6c6cfea77fb3ba557cec8e241bd82d6"
+      "sha256": "4cbaaf33cf5a302db820c8ea7c3a0aff9c06f7bcbc07560a6e6ac75a1718e755"
+    },
+    {
+      "path": "src/pages/events/noir.css",
+      "sha256": "7f5dd8ed6197d3d7a465726b7bef7d7d23da32700f6202bc963f5d9764703b84"
     },
     {
       "path": "src/pages/kadry/Candidates.tsx",
@@ -219,7 +223,7 @@
     },
     {
       "path": "src/types.ts",
-      "sha256": "2d7aa6a5a81ebe4f6c291f1c116ccbc286572f43fe0b08c47f777198a3ae724b"
+      "sha256": "b877085cfb301f2fdd63ec1ac12205fe3d73540e28f30b58f7f8f6382f97aadc"
     }
   ],
   "backend": [
@@ -288,15 +292,32 @@
         [
           "app.use(express.json())",
           "app.use('/api/account/profile', express.json({ limit: '4mb' }))\napp.use(express.json())"
+        ],
+        [
+          "import { createEventLead,",
+          "import { fixedEventPaymentLink } from './lib/eventPaymentTarget.js'\nimport { createEventLead,"
+        ],
+        [
+          "if (event.status !== 'open' || event.registrationLink) return { error: 'not_for_sale', status: 400 }",
+          "if (event.status !== 'open' || (event.registrationLink && !event.collectTicketLead)) return { error: 'not_for_sale', status: 400 }\n  if (event.collectTicketLead && promoCode) return { error: 'fixed_price', status: 400 }"
+        ],
+        [
+          "const url = await createEventPaymentLink({ title: `${event.title} — ${tariff.name}`, price: ticket.price, orderId, phone, email: EMAIL_RE.test(email) ? email : '', urlSuccess, name })",
+          "const url = event.collectTicketLead\n      ? fixedEventPaymentLink({ event, orderId, phone, email, urlSuccess, name })\n      : await createEventPaymentLink({ title: `${event.title} — ${tariff.name}`, price: ticket.price, orderId, phone, email: EMAIL_RE.test(email) ? email : '', urlSuccess, name })"
         ]
       ]
+    },
+    {
+      "path": "lib/eventPaymentTarget.js",
+      "sha256": "eb46e6f32cd8f1644823b50fb6e59341211115983226491d01f58ffd142f7357"
     }
   ],
   "catalogUpdates": [
     {
       "slug": "dzhazovyy-vecher-dlya-yuristov-2",
       "price": 3990,
-      "registrationLink": "https://payform.ru/obcMOZJ/"
+      "registrationLink": "https://payform.ru/obcMOZJ/",
+      "collectTicketLead": true
     }
   ]
 }
