@@ -102,7 +102,7 @@ function sandbox(app) {
     if (req.path === '/api/account/login') return next()
     const session = sessionFor(bearer(req)), account = session?.login?.startsWith('u:') ? getAccount(session.login.slice(2)) : null
     if (!account || account.email !== meta.email) return res.status(401).json({ ok: false, error: 'unauthorized' })
-    if (['/api/account/contact-email/request', '/api/account/contact-email/confirm', '/api/account/password', '/api/account/telegram/link', '/api/account/telegram', '/api/account/contact'].includes(req.path) && req.method !== 'GET') return res.status(403).json({ ok: false, error: 'demo_shared_account' })
+    if (['/api/account/password', '/api/account/telegram/link', '/api/account/telegram', '/api/account/contact'].includes(req.path) && req.method !== 'GET') return res.status(403).json({ ok: false, error: 'demo_shared_account' })
     if (req.path.startsWith('/api/account/materials')) return res.status(403).json({ ok: false, error: 'admin_only' })
     const join = residentJoin('', account.email)
     if (req.path === '/api/account/subscription/cancel' && req.method === 'POST') {

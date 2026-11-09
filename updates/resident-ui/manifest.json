@@ -195,17 +195,8 @@
       ]
     },
     {
-      "path": "lib/residentDemo.js",
-      "edits": [
-        [
-          "    if (req.path === '/api/account/login') return next()\n    const session = sessionFor(bearer(req)), account = session?.login?.startsWith('u:') ? getAccount(session.login.slice(2)) : null\n    if (!account || account.email !== meta.email) return res.status(401).json({ ok: false, error: 'unauthorized' })\n    if (['/api/account/password', '/api/account/telegram/link', '/api/account/telegram', '/api/account/contact'].includes(req.path) && req.method !== 'GET') return res.status(403).json({ ok: false, error: 'demo_shared_account' })\n    if (req.path.startsWith('/api/account/materials')) return res.status(403).json({ ok: false, error: 'admin_only' })\n    const join = residentJoin('', account.email)\n    if (req.path === '/api/account/subscription/cancel' && req.method === 'POST') {\n",
-          "    if (req.path === '/api/account/login') return next()\n    const session = sessionFor(bearer(req)), account = session?.login?.startsWith('u:') ? getAccount(session.login.slice(2)) : null\n    if (!account || account.email !== meta.email) return res.status(401).json({ ok: false, error: 'unauthorized' })\n    if (['/api/account/contact-email/request', '/api/account/contact-email/confirm', '/api/account/password', '/api/account/telegram/link', '/api/account/telegram', '/api/account/contact'].includes(req.path) && req.method !== 'GET') return res.status(403).json({ ok: false, error: 'demo_shared_account' })\n    if (req.path.startsWith('/api/account/materials')) return res.status(403).json({ ok: false, error: 'admin_only' })\n    const join = residentJoin('', account.email)\n    if (req.path === '/api/account/subscription/cancel' && req.method === 'POST') {\n"
-        ]
-      ]
-    },
-    {
       "path": "lib/accountEmail.js",
-      "sha256": "4ab24a974b7dce45ffc0b9a8fe8aa37da8659d920d84999666fd7eaba9aae4aa"
+      "sha256": "e3dcc05825696527b5fb1beec7e7ab5fda76947d358432f32f5636ffc1fb2105"
     },
     {
       "path": "index.js",

@@ -1,8 +1,10 @@
 import { requestContactEmail, confirmContactEmail } from './accountUsers.js'
 
 export function registerContactEmail(app, { requireAccount, mailConfigured, sendMail }) {
+  const demoMode = process.env.RESIDENT_DEMO_MODE === '1'
   const attempts = new Map()
   app.post('/api/account/contact-email/request', async (req, res) => {
+    if (demoMode) return res.status(403).json({ ok: false, error: 'demo_shared_account' })
     const cfg = requireAccount(req, res)
     if (!cfg) return
     if (!String(cfg.login).startsWith('u:')) return res.status(400).json({ ok: false, error: 'not_supported' })
@@ -19,6 +21,7 @@ export function registerContactEmail(app, { requireAccount, mailConfigured, send
     res.json({ ok: true, email: r.email })
   })
   app.post('/api/account/contact-email/confirm', (req, res) => {
+    if (demoMode) return res.status(403).json({ ok: false, error: 'demo_shared_account' })
     const cfg = requireAccount(req, res)
     if (!cfg) return
     if (!String(cfg.login).startsWith('u:')) return res.status(400).json({ ok: false, error: 'not_supported' })

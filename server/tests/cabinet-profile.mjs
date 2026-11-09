@@ -19,7 +19,6 @@ write('accounts.json', Object.fromEntries([[aid,'alpha'],[bid,'beta']].map(([id,
 write('pending-joins.json', { fixture: { token:'fixture',email:'alpha@example.invalid',paid:true,status:'active',tariffId:'1m',nextPaymentAt:now+86400000*30,payments:[{at:now,amount:500,subscriptionId:'2611880'}] } })
 const moneyBefore=fs.readFileSync(file('pending-joins.json'))
 const users = await import(pathToFileURL(path.join(root,'server/lib/accountUsers.js')))
-const store = await import(pathToFileURL(path.join(root,'server/lib/accountStore.js')))
 let child, logs=''
 const pause=ms=>new Promise(r=>setTimeout(r,ms))
 try {
@@ -72,6 +71,13 @@ try {
  const code=sent[0].text.match(/[0-9]{8}/)[0]
  routes.get('/api/account/contact-email/confirm')({ body:{code} },response); assert.equal(response.body.email,'confirmed@example.invalid')
  console.log('PASS email routes with fake mail: code delivered once, response omits code, confirmation succeeds')
+ const demoRoutes=new Map(), previousDemo=process.env.RESIDENT_DEMO_MODE;process.env.RESIDENT_DEMO_MODE='1'
+ registerContactEmail({post:(route,handler)=>demoRoutes.set(route,handler)},{requireAccount:()=>{throw Error('Demo reached account mutation')},mailConfigured:()=>true,sendMail:async()=>{throw Error('Demo sent a real email')}})
+ if(previousDemo===undefined)delete process.env.RESIDENT_DEMO_MODE;else process.env.RESIDENT_DEMO_MODE=previousDemo
+ const accountsBeforeDemo=fs.readFileSync(file('accounts.json'))
+ for(const handler of demoRoutes.values()){await handler({body:{email:'demo@example.invalid',password,code:'12345678'}},response);assert.equal(response.code,403);assert.equal(response.body.error,'demo_shared_account')}
+ assert.deepEqual(fs.readFileSync(file('accounts.json')),accountsBeforeDemo)
+ console.log('PASS both demo email routes blocked without modifying legacy sandbox, sending mail or changing accounts')
  console.log('PASS HTTP: authentication, private address book CRUD, reload, account isolation, conflict protection, billing untouched')
  if(process.argv.includes('--serve')) { fs.mkdirSync('/tmp/cabinet-redesign',{recursive:true});fs.writeFileSync('/tmp/cabinet-redesign/fixture.json',JSON.stringify({origin,token:a,root}));console.log('FIXTURE_READY '+origin);await new Promise(resolve=>{process.on('SIGTERM',resolve);process.on('SIGINT',resolve)}) }
 } finally {if(child){child.kill('SIGTERM');await pause(100)}fs.rmSync(root,{recursive:true,force:true})}

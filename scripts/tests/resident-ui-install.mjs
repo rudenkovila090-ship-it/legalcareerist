@@ -27,6 +27,7 @@ async function scenario(kind){
    if(kind==='unknown-source'&&f.path==='index.js')before=before.replace('import { startRegistration, startReset','import { startRegistration, /* changed */ startReset')
    write(path.join(appRoot,f.path),before)
   }
+  write(path.join(appRoot,'lib/residentDemo.js'), '// Arbitrary existing minified sandbox; installer must preserve every byte\nexport const legacySandbox=()=>true;\n')
   write(path.join(appRoot,'lib/protected-billing.js'),'export const paid = true\n')
   write(path.join(appRoot,'data/payments.json'),'SYNTHETIC FINANCIAL HISTORY')
   write(path.join(appRoot,'.env'),'SYNTHETIC_SECRET=do-not-log')
@@ -64,7 +65,7 @@ async function scenario(kind){
    for(const f of beforeFiles)assert.deepEqual(fs.existsSync(f.file)?fs.readFileSync(f.file):null,f.body,f.file)
    console.log('PASS installation failure '+kind+': original site and API code preserved/restored')
   }
-  for(const app of apps){const base=path.dirname(app.pm2_env.pm_exec_path);assert.equal(fs.readFileSync(path.join(base,'data/payments.json'),'utf8'),'SYNTHETIC FINANCIAL HISTORY');assert.equal(fs.readFileSync(path.join(base,'.env'),'utf8'),'SYNTHETIC_SECRET=do-not-log');assert.equal(fs.readFileSync(path.join(base,'lib/protected-billing.js'),'utf8'),'export const paid = true\n')}
+  for(const app of apps){const base=path.dirname(app.pm2_env.pm_exec_path);assert.equal(fs.readFileSync(path.join(base,'data/payments.json'),'utf8'),'SYNTHETIC FINANCIAL HISTORY');assert.equal(fs.readFileSync(path.join(base,'.env'),'utf8'),'SYNTHETIC_SECRET=do-not-log');assert.equal(fs.readFileSync(path.join(base,'lib/protected-billing.js'),'utf8'),'export const paid = true\n');assert.equal(fs.readFileSync(path.join(base,'lib/residentDemo.js'),'utf8'),'// Arbitrary existing minified sandbox; installer must preserve every byte\nexport const legacySandbox=()=>true;\n')}
   checks++
  }finally{await new Promise(r=>server.close(r))}
 }
