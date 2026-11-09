@@ -36,6 +36,7 @@ async function scenario(kind){
  }
  const beforeFiles=apps.flatMap(a=>manifest.backend.map(f=>{const file=path.join(path.dirname(a.pm2_env.pm_exec_path),f.path);return {file,body:fs.existsSync(file)?fs.readFileSync(file):null}}))
  const server=http.createServer((req,res)=>{
+  if(/^\/api\/event\/[^/]+\/(promo|checkout)$/.test(req.url)){res.statusCode=400;res.setHeader('Content-Type','application/json');res.end(JSON.stringify({ok:false,error:kind==='checkout-stale'?'not_for_sale':req.url.endsWith('/promo')?'invalid_promo':'consent_required'}));return}
   if(req.url.startsWith('/api/health')){res.setHeader('Content-Type','application/json');res.end(JSON.stringify({ok:true,autoExclude:true,graceDays:4,cardBlockHours:72,providerStopBeforeRemoval:true}));return}
   const folder=/^\s*root\s+([^;]+);/m.exec(fs.readFileSync(conf,'utf8'))[1]
   const requested=path.join(folder,req.url.split('?')[0]);const file=fs.existsSync(requested)&&fs.statSync(requested).isFile()?requested:path.join(folder,'index.html')
@@ -71,4 +72,4 @@ async function scenario(kind){
   checks++
  }finally{await new Promise(r=>server.close(r))}
 }
-try{for(const kind of ['success','unknown-source','build-failure','restart-failure','public-failure'])await scenario(kind);console.log(checks+' release-installation scenarios passed')}finally{fs.rmSync(temp,{recursive:true,force:true})}
+try{for(const kind of ['success','unknown-source','build-failure','restart-failure','public-failure','checkout-stale'])await scenario(kind);console.log(checks+' release-installation scenarios passed')}finally{fs.rmSync(temp,{recursive:true,force:true})}

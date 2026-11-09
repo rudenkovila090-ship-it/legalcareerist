@@ -191,7 +191,7 @@
     },
     {
       "path": "src/pages/events/EventDetail.tsx",
-      "sha256": "7fd14278387294f4d6f3644323a77b56fcb2d316a8d430cb7347d56151e0be62"
+      "sha256": "da4b90d93ed98f7279409c15d98a069ceb22ab784a6c68c56bc641bcbb4595b0"
     },
     {
       "path": "src/pages/events/EventPhotos.tsx",
@@ -298,12 +298,18 @@
           "import { fixedEventPaymentLink } from './lib/eventPaymentTarget.js'\nimport { createEventLead,"
         ],
         [
-          "if (event.status !== 'open' || event.registrationLink) return { error: 'not_for_sale', status: 400 }",
-          "if (event.status !== 'open' || (event.registrationLink && !event.collectTicketLead)) return { error: 'not_for_sale', status: 400 }\n  if (event.collectTicketLead && promoCode) return { error: 'fixed_price', status: 400 }"
+          "if (event.status !== 'open' || event.registrationLink) return { error: 'not_for_sale', status: 400 }\n  const tariff = event.tariffs.find((t) => t.id === tariffId)",
+          "if (event.status !== 'open' || (event.registrationLink && !event.collectTicketLead)) return { error: 'not_for_sale', status: 400 }\n  // Discounted tickets use a signed, server-priced payment link.\n  const tariff = event.tariffs.find((t) => t.id === tariffId)",
+          [
+            "if (event.status !== 'open' || (event.registrationLink && !event.collectTicketLead)) return { error: 'not_for_sale', status: 400 }\n  if (event.collectTicketLead && promoCode) return { error: 'fixed_price', status: 400 }\n  const tariff = event.tariffs.find((t) => t.id === tariffId)"
+          ]
         ],
         [
           "const url = await createEventPaymentLink({ title: `${event.title} — ${tariff.name}`, price: ticket.price, orderId, phone, email: EMAIL_RE.test(email) ? email : '', urlSuccess, name })",
-          "const url = event.collectTicketLead\n      ? fixedEventPaymentLink({ event, orderId, phone, email, urlSuccess, name })\n      : await createEventPaymentLink({ title: `${event.title} — ${tariff.name}`, price: ticket.price, orderId, phone, email: EMAIL_RE.test(email) ? email : '', urlSuccess, name })"
+          "const url = event.collectTicketLead && !ticket.promo\n      ? fixedEventPaymentLink({ event, orderId, phone, email, urlSuccess, name })\n      : await createEventPaymentLink({ title: `${event.title} — ${tariff.name}`, price: ticket.price, orderId, phone, email: EMAIL_RE.test(email) ? email : '', urlSuccess, name })",
+          [
+            "const url = event.collectTicketLead\n      ? fixedEventPaymentLink({ event, orderId, phone, email, urlSuccess, name })\n      : await createEventPaymentLink({ title: `${event.title} — ${tariff.name}`, price: ticket.price, orderId, phone, email: EMAIL_RE.test(email) ? email : '', urlSuccess, name })"
+          ]
         ]
       ]
     },

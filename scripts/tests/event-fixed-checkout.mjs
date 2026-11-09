@@ -10,8 +10,10 @@ const root = fs.mkdtempSync(path.join(os.tmpdir(), 'event-fixed-checkout-'))
 try {
   fs.mkdirSync(path.join(root, 'lib'))
   fs.writeFileSync(path.join(root, 'package.json'), '{"type":"module"}')
-  for (const name of ['eventLeads.js', 'jsonStore.js', 'consentLog.js', 'eventPaymentTarget.js']) fs.copyFileSync(path.join(repo, 'server/lib', name), path.join(root, 'lib', name))
+  for (const name of ['eventLeads.js', 'jsonStore.js', 'consentLog.js', 'eventPaymentTarget.js', 'promoCodes.js']) fs.copyFileSync(path.join(repo, 'server/lib', name), path.join(root, 'lib', name))
   const leads = await import(pathToFileURL(path.join(root, 'lib/eventLeads.js')))
+  const promos = await import(pathToFileURL(path.join(root, 'lib/promoCodes.js')))
+  promos.addPromo({code:'SYNTHETIC50',kind:'percent',value:50})
   const { recordConsent } = await import(pathToFileURL(path.join(root, 'lib/consentLog.js')))
   const { fixedEventPaymentLink } = await import(pathToFileURL(path.join(root, 'lib/eventPaymentTarget.js')))
   const manifest = JSON.parse(fs.readFileSync(path.join(repo, 'updates/resident-ui/manifest.json')))
@@ -23,12 +25,12 @@ try {
   const priceCode = source.slice(source.indexOf('function priceTicket('), source.indexOf("app.post('/api/event/:slug/promo'"))
   const routeCode = source.slice(source.indexOf("app.post('/api/event/:slug/checkout'"), source.indexOf('// Апдейты от Telegram-бота'))
   const event = { slug: 'dzhazovyy-vecher-dlya-yuristov-2', title: 'Synthetic jazz', status: 'open', collectTicketLead: true, registrationLink: 'https://payform.ru/obcMOZJ/', tariffs: [{ id: 'light', name: 'Билет', price: 3990 }] }
-  let handler, failStorage = false, dynamicCalls = 0
+  let handler, failStorage = false, dynamicCalls = 0, lastDynamicArgs
   const notices = []
   const env = {
     app: { post: (_url, fn) => { handler = fn } },
     findEvent: slug => slug === event.slug ? event : null,
-    findPromo: () => null, applyPromo: () => { throw Error('unexpected promo') },
+    findPromo: promos.findPromo, applyPromo: promos.applyPromo,
     consentGiven: b => b.consent?.policy === true && b.consent?.processing === true,
     consentChoice: b => b.consent, consentVersion: () => '2026-10-17',
     marketingFields: b => ({ marketing: b.consent.marketing, marketingVersion: '2026-10-17' }),
@@ -37,7 +39,7 @@ try {
     utmLabel: () => 'test', cleanHowHeard: v => String(v || ''),
     createEventLead: payload => { if (failStorage) throw Error('synthetic_storage_failure'); return leads.createEventLead(payload) },
     setEventLeadField: leads.setEventLeadField, recordConsent, fixedEventPaymentLink,
-    createEventPaymentLink: async () => { dynamicCalls++; return 'https://example.invalid/dynamic' },
+    createEventPaymentLink: async args => { dynamicCalls++; lastDynamicArgs=args; return 'https://example.invalid/dynamic' },
     SITE_URL: 'https://example.invalid', BOT_TOKEN: 'synthetic', ADMIN_CHAT_ID: 'synthetic',
     getAdminSettings: () => ({ unpaidNotices: true }), buildLeadNotification: () => 'synthetic notice',
     formatRub: n => n + ' ₽', retitle: s => s, PENDING_MINUTES: 10,
@@ -73,10 +75,19 @@ try {
   assert.deepEqual(leads.getEventLead(existing.number), existing)
   assert.ok(fs.readFileSync(path.join(root, 'data/consent-log.jsonl'), 'utf8').includes('event_ticket'))
   for (const body of [{ consent: {} }, { name: '' }, { email: 'invalid' }, { tariffId: 'invalid' }, { promoCode: 'DISCOUNT' }]) assert.equal((await request(body)).code, 400)
+  const discounted = await request({promoCode:'synthetic50',price:1,discount:3989})
+  assert.equal(discounted.code,200)
+  assert.equal(discounted.body.url,'https://example.invalid/dynamic')
+  assert.equal(dynamicCalls,1)
+  assert.equal(lastDynamicArgs.price,1995,'Provider amount must be calculated by server, ignoring client amount')
+  const discountedLead=leads.listEventLeads().find(e=>e.promo==='SYNTHETIC50')
+  assert.equal(discountedLead.price,1995);assert.equal(discountedLead.basePrice,3990);assert.equal(discountedLead.discount,1995)
+  assert.equal(discountedLead.status,'registered');assert.equal(discountedLead.amount,null)
+  assert.equal(lastDynamicArgs.orderId,'ev-'+discountedLead.number)
   assert.equal((await request({}, 'unknown')).code, 404)
   event.status = 'closed'; assert.equal((await request()).code, 400); event.status = 'open'
   event.collectTicketLead = false; assert.equal((await request()).code, 400)
-  event.registrationLink = ''; assert.equal((await request()).code, 200); assert.equal(dynamicCalls, 1)
+  event.registrationLink = ''; assert.equal((await request()).code, 200); assert.equal(dynamicCalls, 2)
   event.collectTicketLead = true; event.registrationLink = 'https://payform.ru/obcMOZJ/'
   const count = leads.listEventLeads().length
   failStorage = true
@@ -89,5 +100,5 @@ try {
   const paid = leads.markEventLeadPaid(saved.number, 3990, 'synthetic-provider-payment')
   assert.equal(paid.status, 'paid'); assert.equal(paid.amount, 3990)
   assert.equal(leads.markEventLeadPaid(saved.number, 3990, 'synthetic-provider-payment').duplicate, true)
-  console.log('PASS legacy checkout: durable pending lead, consent, exact fixed payment page/order mapping, unpaid notice, validation, storage failure, existing dynamic checkout and webhook mapping')
+  console.log('PASS legacy checkout: durable pending lead, consent, exact fixed payment page/order mapping, unpaid notice, validation, storage failure, server-priced 50% promo (1995 ₽), existing dynamic checkout and webhook mapping')
 } finally { fs.rmSync(root, { recursive: true, force: true }) }

@@ -171,6 +171,18 @@ function ShareButtons({ title }: { title: string }) {
   )
 }
 
+function ticketFormError(code: unknown, fallback = 'Не получилось перейти к оплате. Проверьте соединение и попробуйте ещё раз. Заполненные поля сохранены.'): string {
+  switch (code) {
+    case 'demo_only': case 'demo_shared_account': return 'В демо-кабинете реальные покупки отключены. Для покупки откройте эту страницу в приватном окне браузера или выйдите из демо-кабинета.'
+    case 'unknown_event': case 'not_for_sale': case 'unknown_tariff': return 'Не удалось подтвердить доступность билета. Обновите страницу. Если ошибка повторится, обратитесь к организатору.'
+    case 'consent_required': return 'Подтвердите ознакомление с политикой и согласие на обработку персональных данных.'
+    case 'email_required': return 'Укажите действующую почту — на неё придёт билет.'
+    case 'name_required': return 'Укажите имя участника.'
+    case 'invalid_promo': return 'Такого промокода нет или он больше не действует.'
+    default: return fallback
+  }
+}
+
 export default function EventDetail() {
   const { slug } = useParams()
   const event = events.find((e) => e.slug === slug)
@@ -192,7 +204,7 @@ export default function EventDetail() {
   const [promo, setPromo] = useState<{ code: string; label: string; price: number; discount: number } | null>(null)
   const [promoError, setPromoError] = useState('')
   const [promoChecking, setPromoChecking] = useState(false)
-  const [payError, setPayError] = useState(false)
+  const [payError, setPayError] = useState<string | null>(null)
   // Prodamus возвращает сюда после оплаты (urlSuccess ?paid=1) — показываем подтверждение.
   const [searchParams] = useSearchParams()
   const justPaid = searchParams.get('paid') === '1'
@@ -231,7 +243,7 @@ export default function EventDetail() {
       const data = await res.json()
       if (!res.ok || !data.ok) {
         setPromo(null)
-        setPromoError(res.status === 429 ? 'Слишком много попыток. Попробуйте через несколько минут.' : 'Такого промокода нет или он больше не действует.')
+        setPromoError(ticketFormError(data.error, res.status === 429 ? 'Слишком много попыток. Попробуйте через несколько минут.' : 'Такого промокода нет или он больше не действует.'))
         return false
       }
       setPromo({ code: data.code, label: data.label, price: data.price, discount: data.discount })
@@ -284,7 +296,7 @@ export default function EventDetail() {
     // оплату фиксирует вебхук (статус «Оплатил», письмо участнику, уведомление админу).
     if (tariff.price > 0 && (!event.registrationLink || event.collectTicketLead)) {
       setPaying(true)
-      setPayError(false)
+      setPayError(null)
       // Ввели промокод, но не нажали «Применить» — проверяем сами; неверный код не даём «молча» проигнорировать.
       if (promoInput.trim() && !promo && !(await applyPromoCode(tariff.id))) {
         setPaying(false)
@@ -297,12 +309,16 @@ export default function EventDetail() {
           body: JSON.stringify({ tariffId: tariff.id, name: form.fio, phone: form.phone, email: form.email, telegram: form.telegram, howHeard: form.howHeard, promoCode: promo?.code, utm: getUtm(), consent }),
         })
         const data = await res.json()
-        if (!res.ok || !data.url) throw new Error('checkout_failed')
+        if (!res.ok || !data.ok || !data.url) {
+          setPayError(typeof data.error === 'string' ? data.error : 'checkout_failed')
+          setPaying(false)
+          return
+        }
         registerForEvent(event.id, event.title)
         window.location.assign(data.url)
       } catch {
         setPaying(false)
-        setPayError(true)
+        setPayError('checkout_failed')
       }
       return
     }
@@ -843,7 +859,7 @@ export default function EventDetail() {
                 {registered ? (
                   <div className="mt-4 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">Вы зарегистрированы. Напоминание придет заранее.</div>
                 ) : (
-                  <form onSubmit={withLeadSubmission(handleRegister)} className="mt-4 grid gap-2.5">
+                  <form onSubmit={withLeadSubmission(handleRegister)} className="mt-4 grid min-w-0 grid-cols-1 gap-2.5">
                     <input aria-label="ФИО"
                       value={form.fio}
                       onChange={(e) => setForm((f) => ({ ...f, fio: e.target.value }))}
@@ -871,7 +887,7 @@ export default function EventDetail() {
                       placeholder="Telegram"
                       className="rounded-lg border border-ink/15 px-3.5 py-2.5 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40"
                     />
-                    {tariff.price > 0 && !event.registrationLink && (
+                    {tariff.price > 0 && (!event.registrationLink || event.collectTicketLead) && (
                       <div>
                         <div className="flex gap-2">
                           <input aria-label="Промокод (если есть)"
@@ -903,7 +919,7 @@ export default function EventDetail() {
                       </div>
                     )}
                     {!story && <HowHeardField value={form.howHeard} onChange={(v) => setForm((f) => ({ ...f, howHeard: v }))} className="rounded-lg border border-ink/15 px-3.5 py-2.5 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40" />}
-                    {payError && <div className="text-xs text-red-600">Не получилось перейти к оплате. Попробуйте еще раз или напишите нам.</div>}
+                    {payError && <div role="alert" className="text-xs text-red-600">{ticketFormError(payError)}</div>}
                     <ConsentCheck />
                     <button id="btn-ticket-buy" type="submit" disabled={paying} className="mt-1 rounded-lg bg-ink py-2.5 text-sm font-semibold text-white hover:bg-ink/90 disabled:opacity-60">
                       {paying ? 'Переходим к оплате…' : tariff.price === 0 ? 'Приобрести билет' : `Приобрести билет — ${(promo?.price ?? tariff.price).toLocaleString('ru-RU')} ₽`}

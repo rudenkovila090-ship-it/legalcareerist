@@ -22,6 +22,18 @@ const deploymentHealth=async(app)=>{
  const value=await r.json();if(value.ok!==true)throw Error('Проверка API не пройдена: '+app.name)
  return Object.fromEntries(['ok','autoExclude','graceDays','cardBlockHours','providerStopBeforeRemoval','subscriptionExpiry','subscriptionRecovery','subscriptionOffboarding'].map(k=>[k,value[k]??null]))
 }
+async function verifyEventCheckout(base) {
+ for(const event of manifest.catalogUpdates||[])if(event.collectTicketLead){
+  for(const [route,body,expected]of [
+   ['promo',{tariffId:'light',code:'__UI_CHECK_INVALID_20261109__'},'invalid_promo'],
+   ['checkout',{tariffId:'light',consent:{}},'consent_required'],
+  ]){
+   const response=await fetch(base+'/api/event/'+encodeURIComponent(event.slug)+'/'+route,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(7000)})
+   const result=await response.json().catch(()=>({}))
+   if(response.status!==400||result.error!==expected)throw Error('API не подтвердил форму билета и промокод: '+route+' ('+response.status+').')
+  }
+ }
+}
 function sourceAndConfigs(){
  const dump=run('nginx',['-T']).toString(),configs=new Map()
  for(const match of dump.matchAll(/^# configuration file (.+):\r?\n([\s\S]*?)(?=^# configuration file |$(?![\s\S]))/gm)){
@@ -44,9 +56,10 @@ function sourceAndConfigs(){
 }
 function patch(source,edits,file){
  let value=source
- for(const [before,after]of edits){
+ for(const [before,after,previous=[]]of edits){
   if(value.split(after).length===2)continue
-  if(value.split(before).length===2){value=value.replace(before,after);continue}
+  const candidates=[before,...previous].filter(v=>value.split(v).length===2)
+  if(candidates.length===1){value=value.replace(candidates[0],after);continue}
   throw Error('Не удалось совместить обновление с файлом '+file+'. Рабочая версия сохранена.')
  }
  return value
@@ -117,6 +130,7 @@ try{
  console.log('API обновлены. Проверяю доступность и прежние настройки подписок…')
  for(const app of apps){let good=false;for(let i=0;i<25;i++){try{if(JSON.stringify(await deploymentHealth(app))===JSON.stringify(app.health)){good=true;break}}catch{}await pause(500)}if(!good)throw Error('API не подтвердил запуск: '+app.name);checkProtected(app)}
  for(const plan of catalogPlans){let current=readCatalog(plan.file);for(const entry of plan.entries){if(JSON.stringify(current.find(e=>e.slug===entry.slug)??null)!==JSON.stringify(entry.before))throw Error('Изменился каталог мероприятия во время подготовки.');current=replaceCatalogEntry(current,entry.slug,entry.after)}write(plan.file,JSON.stringify(current,null,2));plan.written=true}
+ await verifyEventCheckout('http://127.0.0.1:'+apps.find(a=>a.name==='legalcareerist-api').port)
  for(const item of configs){if(fs.readFileSync(item.file,'utf8')!==item.before)throw Error('Конфигурация Nginx изменилась.');item.after=item.before.replace(/(^[ \t]*root[ \t]+)("[^"\r\n]+"|'[^'\r\n]+'|[^;\s]+)([ \t]*;)/gm,(all,prefix,raw,suffix)=>item.roots.includes(raw.replace(/^(["'])(.*)\1$/,'$2'))?prefix+nextDist+suffix:all)}
  nginxWritten=true;for(const item of configs)write(item.file,item.after,item.mode);run('nginx',['-t']);run('nginx',['-s','reload'])
  const cover=manifest.frontend.find(f=>f.path.startsWith('public/materials/covers/'))
@@ -125,6 +139,7 @@ try{
  if(!verified)throw Error('Сайт не подтвердил новую сборку. Восстанавливаю прежнюю версию.')
  for(const app of apps){checkProtected(app);if(JSON.stringify(await deploymentHealth(app))!==JSON.stringify(app.health))throw Error('Настройки API изменились.')}
  for(const plan of catalogPlans){const current=readCatalog(plan.file);for(const entry of plan.entries)if(JSON.stringify(current.find(e=>e.slug===entry.slug)??null)!==JSON.stringify(entry.after))throw Error('Каталог не подтвердил новую цену мероприятия.')}
+ await verifyEventCheckout(publicUrl)
  write(path.join(stage,'deployment.json'),JSON.stringify({release,source:found.source,configs:configs.map(({file,before,after,mode})=>({file,before,after,mode})),backend:apps.map(({name,script,data})=>({name,script,data})),catalogs:catalogPlans.map(({file,entries})=>({file,entries})),installedAt:Date.now(),manifestSha:sha(fs.readFileSync(path.join(pkg,'manifest.json')))}))
  // Compatibility with subsequent publishers that look for source folders next to deployment.json.
  for(const name of ['src','public','scripts','dist','node_modules'])fs.symlinkSync(path.join(frontend,name),path.join(stage,name))
