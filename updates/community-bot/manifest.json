@@ -1,0 +1,177 @@
+{
+  "kind": "community-bot-20261110-v1",
+  "backend": [
+    {
+      "path": "lib/subscriptionExpirySync.js",
+      "sha256": "8a816c1937349eb9afd4ec56e0f74af691112a6725b5824d48be45e7161ff160",
+      "beforeSha256": [
+        "f5ca82d0cc112cc32be8901c8e3235a5dcb68089d6abd29b78c59730a580e8b8"
+      ]
+    },
+    {
+      "path": "lib/subscriptionAccess.js",
+      "sha256": "347d3c905067554d24d1f5c366d50e1111f20e9b2be8fd64e125ea29948454c0",
+      "beforeSha256": [
+        "5df3a4601f052bc9c9103c442caf7758a972887b59deed1db1f4b98039263422"
+      ]
+    },
+    {
+      "path": "lib/accessExpiry.js",
+      "sha256": "5d9467aa2284e66f469222e2b3ab06487a7e1b332c90993d993ae6cb16b014a3",
+      "beforeSha256": [
+        "7c416e12b964d0d0f24129199470ff50e4797d41afe36cb1390d079f60c0bf3f"
+      ]
+    },
+    {
+      "path": "lib/communityInvite.js",
+      "sha256": "ddc40912c82babe668adbf1de9b2c83899c103692770511f872dcebdf8ad5664",
+      "beforeSha256": [
+        "a86488a52283fb0532a146e07c6c66b09d7d54895208d4c9bd2600a57f925ea9"
+      ]
+    },
+    {
+      "path": "lib/store.js",
+      "sha256": "83f646c6f74a27ec7f0fffd427be398297f1bb34d308f2daca5e2c7b4c34b3c7",
+      "beforeSha256": [
+        "35cf2418bead510689f0e1325fd4ff66eb820fe5cdaa2fa5c8fc1ec1bcff1a55"
+      ]
+    },
+    {
+      "path": "lib/communityAdmission.js",
+      "sha256": "5fcbead73837d7274bb69b1624b1fd426484e216aec6c9cba47558dc8911432b",
+      "beforeSha256": [
+        null
+      ]
+    },
+    {
+      "path": "lib/communityMaintenance.js",
+      "sha256": "44abba0688d87bf54041ea13c729da7a23cd24683ce1d2188ff6659e4aa69813",
+      "beforeSha256": [
+        null
+      ]
+    },
+    {
+      "path": "lib/accountProfile.js",
+      "edits": [
+        [
+          "tariff: 'Основатель — бессрочно'",
+          "tariff: best.complimentary ? `Резидент — бессрочно (тариф ${best.complimentary.nominalAmount} ₽)` : 'Основатель — бессрочно'"
+        ]
+      ]
+    },
+    {
+      "path": "lib/residentCabinet.js",
+      "edits": [
+        [
+          "'Тариф: Основатель — бессрочно',",
+          "join.complimentary ? `Тариф: Резидент — ${rub(join.complimentary.nominalAmount)}, бессрочно` : 'Тариф: Основатель — бессрочно',"
+        ],
+        [
+          "const canCancel = join.status === 'active'",
+          "const canCancel = join.status === 'active' && !join.complimentary"
+        ],
+        [
+          "if (join.lifetime) lines.push('Основатель: отмена работает в тестовом режиме — подписка остаётся активной.')",
+          "if (join.complimentary) lines.push('Бессрочный доступ без списаний, пока вы остаётесь в сообществе.')\n  else if (join.lifetime) lines.push('Основатель: отмена работает в тестовом режиме — подписка остаётся активной.')"
+        ]
+      ]
+    },
+    {
+      "path": "index.js",
+      "edits": [
+        [
+          "import { accessPeriodEnded, accessUntil, graceDays, preciseMoscowTime } from './lib/subscriptionAccess.js'\nimport { createSubscriptionReminders } from './lib/subscriptionReminders.js'\nimport { priceEntitlement, HISTORICAL_PLANS } from './lib/subscriptionPricing.js'\n",
+          "import { repairCommunityCards } from './lib/communityMaintenance.js'\nimport { createCommunityAdmission } from './lib/communityAdmission.js'\nimport { accessPeriodEnded, accessUntil, graceDays, preciseMoscowTime } from './lib/subscriptionAccess.js'\nimport { createSubscriptionReminders } from './lib/subscriptionReminders.js'\nimport { priceEntitlement, HISTORICAL_PLANS } from './lib/subscriptionPricing.js'\n"
+        ],
+        [
+          "  const lines = [\n    '🔕 Подписка отключена',\n    '',\n    `Сообщество → Подписка · ${tariff?.period ?? 'тариф не определён'}`,\n    '',\n    `📅 ${formatMoscowDateTime(new Date(at).toISOString())}`,\n    '',\n",
+          "  const lines = [\n    '🔕 Подписка отключена',\n    '',\n    `Сообщество → Подписка · ${tariff?.period || record.subscriptionName || (priceEntitlement(record)?.amount ? String(priceEntitlement(record).amount) + ' ₽' : 'особый тариф')}`,\n    '',\n    `📅 ${formatMoscowDateTime(new Date(at).toISOString())}`,\n    '',\n"
+        ],
+        [
+          "    record.telegram ? `💬 телеграм: ${record.telegram}` : null,\n    '',\n    record.lastPaidAt ? `💰 Последняя оплата: ${formatMoscowDateTime(new Date(record.lastPaidAt).toISOString()).split(',')[0]}` : null,\n    'Стоит написать человеку и узнать, что пошло не так.',\n  ].filter((l) => l !== null)\n  return lines.join('\\n')\n}\n",
+          "    record.telegram ? `💬 телеграм: ${record.telegram}` : null,\n    '',\n    record.lastPaidAt ? `💰 Последняя оплата: ${formatMoscowDateTime(new Date(record.lastPaidAt).toISOString()).split(',')[0]}` : null,\n    record.providerCancellation?.actor === 'manager' ? 'Источник: отключение менеджером в Prodamus. Это не добровольная отписка резидента.' : record.providerCancellation?.actor === 'resident' ? 'Источник: отключение резидентом.' : 'Источник: событие платёжного провайдера; отказ резидента не подтверждён.',\n    'Оплаченный доступ и история денег сохранены.',\n  ].filter((l) => l !== null)\n  return lines.join('\\n')\n}\n"
+        ],
+        [
+          "  patchJoin(rec.token, { nextPaymentSource: prodamusNext ? 'prodamus' : nextPaymentAt ? 'calculated' : 'unknown' })\n  console.log(`[prodamus] оплата учтена: ${rec.token} (${result.kind}, платёж №${result.number}), следующее списание:`, nextPaymentAt ? new Date(nextPaymentAt).toISOString() : 'неизвестно')\n\n  // Первая оплата: личная ссылка на вступление и письмо с ней (и сроками, и тем, как отключить подписку).\n  const adminLines = []\n  if (recoveryPeriodReview) adminLines.push(`⚠️ Восстановление: дата следующего списания Prodamus отличается от нового оплачиваемого периода. Ожидаемый конец: ${preciseMoscowTime(expectedRecoveryEnd)}. Проверьте расписание в Prodamus; платёж записан, старую историю не меняли.`)\n",
+          "  patchJoin(rec.token, { nextPaymentSource: prodamusNext ? 'prodamus' : nextPaymentAt ? 'calculated' : 'unknown' })\n  console.log(`[prodamus] оплата учтена: ${rec.token} (${result.kind}, платёж №${result.number}), следующее списание:`, nextPaymentAt ? new Date(nextPaymentAt).toISOString() : 'неизвестно')\n\n  await communityAdmission.process()\n\n  // Первая оплата: личная ссылка на вступление и письмо с ней (и сроками, и тем, как отключить подписку).\n  const adminLines = []\n  if (recoveryPeriodReview) adminLines.push(`⚠️ Восстановление: дата следующего списания Prodamus отличается от нового оплачиваемого периода. Ожидаемый конец: ${preciseMoscowTime(expectedRecoveryEnd)}. Проверьте расписание в Prodamus; платёж записан, старую историю не меняли.`)\n"
+        ],
+        [
+          "      const full = getJoin(rec.token) ?? rec\n      invite = communityInviteUrl() ? { url: communityInviteUrl() } : null\n      adminLines.push(invite ? '🔗 Ссылка на вступление показана на странице оплаты и отправлена в письме' : '⚠️ COMMUNITY_INVITE_LINK не задана: ссылку на вступление человеку пришлите вручную')\n      const mail = await sendSubscriptionMail(full, invite, { amount, paidAt })\n      adminLines.push(mailStatusLine(mail))\n      // Новая подписка при уже действующей: человек мог заплатить заново, когда старая не списалась, а потом старая всё же списалась.\n      const others = listJoins().filter((j) => j.token !== rec.token && j.paid && !j.lifetime && j.status === 'active' && j.nextPaymentAt && samePerson(j, full))\n",
+          "      const full = getJoin(rec.token) ?? rec\n      invite = communityInviteUrl() ? { url: communityInviteUrl() } : null\n      adminLines.push(invite ? '🔗 Ссылка на вступление показана на странице оплаты и отправлена в письме' : '⚠️ COMMUNITY_INVITE_LINK не задана: ссылку на вступление человеку пришлите вручную')\n      const mail = { ok: full.inviteDelivery?.mailPending === false }\n      adminLines.push(mailStatusLine(mail))\n      // Новая подписка при уже действующей: человек мог заплатить заново, когда старая не списалась, а потом старая всё же списалась.\n      const others = listJoins().filter((j) => j.token !== rec.token && j.paid && !j.lifetime && j.status === 'active' && j.nextPaymentAt && samePerson(j, full))\n"
+        ],
+        [
+          "    }),\n  )\n\n  if (result.kind === 'first' && rec.tgUserId) {\n    await sendInviteLink(rec.tgUserId, getJoin(rec.token) ?? rec)\n  } else if (result.kind === 'renewal') {\n    await deliverRenewalNotices()\n  }\n}\n",
+          "    }),\n  )\n\n  if (result.kind === 'renewal') {\n    await deliverRenewalNotices()\n  }\n}\n"
+        ],
+        [
+          "    patchJoin(join.token, { billingReview: { ...join.billingReview, state: 'resolved', holdUntil: 0, resolvedAt: Date.now() } })\n  }\n  const failedPeriod = join.lastChargeFailure?.verified && join.lastChargeFailure.dueAt === paidUntil(join)\n  const voluntary = inactive && sub.action_code === 'finish' && String(sub.active_user) === '0' && !join.recoveryStopIntent && !failedPeriod\n\n  const at = receivedAt\n  const result = setSubscriptionActive(join.token, !inactive, at)\n  if (voluntary && !getJoin(join.token)?.cancellation?.confirmed) {\n    patchJoin(join.token, { cancellation: { confirmed: true, source: 'prodamus', confirmedAt: at, accessUntil: voluntaryAccessEnd(join, at) }, retentionOffer: prepareRetentionOffer(join, at) })\n",
+          "    patchJoin(join.token, { billingReview: { ...join.billingReview, state: 'resolved', holdUntil: 0, resolvedAt: Date.now() } })\n  }\n  const failedPeriod = join.lastChargeFailure?.verified && join.lastChargeFailure.dueAt === paidUntil(join)\n  const voluntary = inactive && sub.action_code === 'finish' && String(sub.active_user) === '0' && String(sub.active_manager) !== '0' && !join.recoveryStopIntent && !failedPeriod\n\n  const at = receivedAt\n  const cancellationActor = String(sub.active_manager) === '0' ? 'manager' : voluntary ? 'resident' : 'provider'\n  if (inactive) patchJoin(join.token, { providerCancellation: { actor: cancellationActor, action: sub.action_code || '', observedAt: at } })\n  const result = setSubscriptionActive(join.token, !inactive, at)\n  if (voluntary && !getJoin(join.token)?.cancellation?.confirmed) {\n    patchJoin(join.token, { cancellation: { confirmed: true, source: 'prodamus', confirmedAt: at, accessUntil: voluntaryAccessEnd(join, at) }, retentionOffer: prepareRetentionOffer(join, at) })\n"
+        ],
+        [
+          " * заявку принимает бот, и только если подписка оплачена.\n */\nasync function sendInviteLink(chatId, join) {\n  const url = communityInviteUrl()\n  if (join?.inChat === true) {\n    await sendTelegramMessage(chatId, 'Подписка привязана ✅ Ты уже в закрытом чате сообщества.', [[{ text: 'Личный кабинет', callback_data: 'r:menu' }]])\n    return\n  }\n  await unbanForReturn(join)\n  await sendTelegramMessage(\n    chatId,\n    'Отлично! Оплата получена ✅\\n\\nНажми кнопку «Вступить в сообщество» и подай заявку, я сразу её приму.\\n\\nЖду тебя внутри!',\n    url ? [[{ text: 'Вступить в сообщество', url }], [{ text: 'Личный кабинет', callback_data: 'r:menu' }]] : undefined,\n  )\n  if (!url) await sendTelegramMessage(ADMIN_CHAT_ID, `⚠️ Оплата получена, но COMMUNITY_INVITE_LINK не задана: пришлите человеку (chat id ${chatId}) ссылку на сообщество вручную.`)\n}\n\nfunction syncResidentMetadata(join, tgUserId) {\n  ensureBotUser({ id: tgUserId })\n  for (const tag of ['оплатил_подписку', 'резидент_сообщества']) addTag(tgUserId, tag)\n  const user = getBotUser(tgUserId)\n  if (user) updateBotUser(tgUserId, {\n    tags: [...(user.tags || []).filter(tag => !['контроль_списания', 'восстановление_ожидается', 'бывший_резидент', 'доступ_закрыт', 'предложение_500', 'проверка_подписки'].includes(tag) && !tag.startsWith('тариф_') && !tag.startsWith('цена_')), `тариф_${join.tariffId || 'особый'}`, `цена_${priceEntitlement(join)?.amount || 'на_проверке'}`],\n    communityAccessStatus: 'active',\n    subscriptionStartedAt: join.firstPaidAt || null, subscriptionPaidUntil: join.nextPaymentAt || null,\n    subscriptionGraceUntil: accessUntil(join), subscriptionTariffId: join.tariffId || null, subscriptionLockedAmount: priceEntitlement(join)?.amount || null,\n  })\n}\n\n",
+          " * заявку принимает бот, и только если подписка оплачена.\n */\nasync function sendInviteLink(chatId, join) {\n  if (!hasAccess(join)) return false\n  const url = communityInviteUrl()\n  if (join?.inChat === true) {\n    return await sendTelegramMessage(chatId, 'Подписка привязана ✅ Ты уже в закрытом чате сообщества.', [[{ text: 'Личный кабинет', callback_data: 'r:menu' }]])\n    return\n  }\n  await unbanForReturn(join)\n  const delivered = await sendTelegramMessage(\n    chatId,\n    'Отлично! Оплата получена ✅\\n\\nНажми кнопку «Вступить в сообщество» и подай заявку, я сразу её приму.\\n\\nЖду тебя внутри!',\n    url ? [[{ text: 'Вступить в сообщество', url }], [{ text: 'Личный кабинет', callback_data: 'r:menu' }]] : undefined,\n  )\n  if (!url) await sendTelegramMessage(ADMIN_CHAT_ID, `⚠️ Оплата получена, но COMMUNITY_INVITE_LINK не задана: пришлите человеку (chat id ${chatId}) ссылку на сообщество вручную.`)\n  return Boolean(url && delivered)\n}\n\nfunction syncResidentMetadata(join, tgUserId) {\n  ensureBotUser({ id: tgUserId })\n  for (const tag of join.complimentary ? ['резидент_сообщества'] : ['оплатил_подписку', 'резидент_сообщества']) addTag(tgUserId, tag)\n  const user = getBotUser(tgUserId)\n  const displayedTariff = join.complimentary ? '1m' : join.tariffId\n  const displayedAmount = join.complimentary?.nominalAmount || priceEntitlement(join)?.amount || null\n  if (user) updateBotUser(tgUserId, {\n    tags: [...(user.tags || []).filter(tag => !['контроль_списания', 'восстановление_ожидается', 'бывший_резидент', 'доступ_закрыт', 'предложение_500', 'проверка_подписки'].includes(tag) && !tag.startsWith('тариф_') && !tag.startsWith('цена_')), `тариф_${displayedTariff || 'особый'}`, `цена_${displayedAmount || 'на_проверке'}`, ...(join.lifetime ? ['бессрочный_доступ'] : [])],\n    communityAccessStatus: 'active',\n    subscriptionStartedAt: join.firstPaidAt || null, subscriptionPaidUntil: join.nextPaymentAt || null,\n    subscriptionGraceUntil: accessUntil(join), subscriptionTariffId: displayedTariff || null, subscriptionLockedAmount: displayedAmount,\n  })\n}\n\n"
+        ],
+        [
+          "  if (!from?.id) return\n  ensureBotUser(from)\n  syncResidentMetadata(join, from.id)\n  for (const tag of ['оплатил_подписку', 'резидент_сообщества', 'вступил_в_сообщество']) addTag(from.id, tag)\n  updateBotUser(from.id, { communityJoinedAt: join.joinedAt ?? at })\n}\n\n",
+          "  if (!from?.id) return\n  ensureBotUser(from)\n  syncResidentMetadata(join, from.id)\n  for (const tag of join.complimentary ? ['резидент_сообщества', 'вступил_в_сообщество'] : ['оплатил_подписку', 'резидент_сообщества', 'вступил_в_сообщество']) addTag(from.id, tag)\n  updateBotUser(from.id, { communityJoinedAt: join.joinedAt ?? at })\n}\n\n"
+        ],
+        [
+          " * запускал, по нику с сайта (decideJoinRequest): привязываем Telegram к оплаченной подписке, одобряем заявку, ставим метки и дату вступления.\n * Оплаты не нашли: заявку не трогаем, админу сообщение (одобрит вручную, если всё в порядке).\n */\nasync function handleJoinRequest(request) {\n  if (String(request.chat?.id) !== String(COMMUNITY_CHAT_ID)) return\n  const userId = request.from?.id\n  const name = [request.from?.first_name, request.from?.last_name].filter(Boolean).join(' ')\n  const who = `${name || 'без имени'}${request.from?.username ? ` (@${request.from.username})` : ''}, id ${userId}`\n",
+          " * запускал, по нику с сайта (decideJoinRequest): привязываем Telegram к оплаченной подписке, одобряем заявку, ставим метки и дату вступления.\n * Оплаты не нашли: заявку не трогаем, админу сообщение (одобрит вручную, если всё в порядке).\n */\nconst communityRequestStore = createJsonStore('community-join-requests.json')\nconst communityAdmission = createCommunityAdmission({\n  requests: () => communityRequestStore.load(),\n  saveRequest: (key, value) => communityRequestStore.save({ ...communityRequestStore.load(), [key]: value }),\n  deleteRequest: key => { const data = communityRequestStore.load(); delete data[key]; communityRequestStore.save(data) },\n  list: () => listJoins().map(j => ({ ...j, accessUntil: accessUntil(j) })), find: residentByTelegramId,\n  bind: setTgUserId, membership: chatMembership, patch: patchJoin,\n  approve: async id => { const r = await telegramFetch('approveChatJoinRequest', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: COMMUNITY_CHAT_ID, user_id: Number(id) }) }); return r.ok && (await r.json()).ok === true },\n  joined: markJoined, sendInvite: sendInviteLink,\n  sendMail: (join, notice) => sendSubscriptionMail(join, communityInviteUrl() ? { url: communityInviteUrl() } : null, { amount: notice.amount, paidAt: notice.paidAt }),\n})\n\nasync function handleJoinRequest(request) {\n  if (String(request.chat?.id) !== String(COMMUNITY_CHAT_ID)) return\n  communityAdmission.remember(request)\n  const userId = request.from?.id\n  const name = [request.from?.first_name, request.from?.last_name].filter(Boolean).join(' ')\n  const who = `${name || 'без имени'}${request.from?.username ? ` (@${request.from.username})` : ''}, id ${userId}`\n"
+        ],
+        [
+          "  const resident = getJoin(verdict.join.token)\n  const now = Date.now()\n  markJoined(request.from, resident, now)\n  await sendTelegramMessage(ADMIN_CHAT_ID, `✅ Вступил(а) в сообщество: ${who}${verdict.bind ? `\\nTelegram привязан к подписке по нику с сайта (${resident.telegram})` : ''}`, undefined, quiet()).catch(() => false)\n\n  const days = resident.nextPaymentAt ? Math.max(1, Math.round((resident.nextPaymentAt - now) / 86400000)) : (TARIFFS[resident.tariffId]?.months ?? 1) * 30\n",
+          "  const resident = getJoin(verdict.join.token)\n  const now = Date.now()\n  markJoined(request.from, resident, now)\n  { const pending = communityRequestStore.load(); delete pending[String(userId)]; communityRequestStore.save(pending) }\n  await sendTelegramMessage(ADMIN_CHAT_ID, `✅ Вступил(а) в сообщество: ${who}${verdict.bind ? `\\nTelegram привязан к подписке по нику с сайта (${resident.telegram})` : ''}`, undefined, quiet()).catch(() => false)\n\n  const days = resident.nextPaymentAt ? Math.max(1, Math.round((resident.nextPaymentAt - now) / 86400000)) : (TARIFFS[resident.tariffId]?.months ?? 1) * 30\n"
+        ],
+        [
+          "    markJoined(user, resident, Date.now())\n    await sendTelegramMessage(ADMIN_CHAT_ID, `✅ Вступил(а) в сообщество (не по заявке бота): ${[user.first_name, user.last_name].filter(Boolean).join(' ')}${user.username ? ` (@${user.username})` : ''}`, undefined, quiet()).catch(() => false)\n  } else if (inChat(was) && (now === 'left' || now === 'kicked')) {\n    patchJoin(resident.token, { leftAt: Date.now() })\n    addTag(user.id, 'вышел_из_сообщества')\n  }\n}\n",
+          "    markJoined(user, resident, Date.now())\n    await sendTelegramMessage(ADMIN_CHAT_ID, `✅ Вступил(а) в сообщество (не по заявке бота): ${[user.first_name, user.last_name].filter(Boolean).join(' ')}${user.username ? ` (@${user.username})` : ''}`, undefined, quiet()).catch(() => false)\n  } else if (inChat(was) && (now === 'left' || now === 'kicked')) {\n    patchJoin(resident.token, { leftAt: Date.now(), ...(resident.complimentary?.untilDeparture ? { lifetime: false, complimentary: { ...resident.complimentary, revokedAt: Date.now() } } : {}) })\n    if (resident.complimentary?.untilDeparture) {\n      const old = getBotUser(user.id)\n      if (old) updateBotUser(user.id, { tags: [...new Set((old.tags || []).filter(t => !['резидент_сообщества', 'бессрочный_доступ', 'проверка_подписки'].includes(t)).concat('бывший_резидент', 'доступ_закрыт'))], communityAccessStatus: 'closed' })\n    }\n    addTag(user.id, 'вышел_из_сообщества')\n  }\n}\n"
+        ],
+        [
+          "  }\n\n  if (message.from) touchBotUser({ ...message.from, id: message.from.id ?? chatId })\n  const join = setTgUserId(token, chatId)\n  if (!join) {\n    await sendTelegramMessage(chatId, 'Не нашли вашу заявку — попробуйте оформить подписку заново на сайте.')\n",
+          "  }\n\n  if (message.from) touchBotUser({ ...message.from, id: message.from.id ?? chatId })\n  const existing = getJoin(token)\n  if (existing?.tgUserId && String(existing.tgUserId) !== String(chatId)) {\n    await sendTelegramMessage(chatId, 'Эта подписка уже привязана к другому Telegram-аккаунту. Для смены аккаунта обратитесь в поддержку.')\n    return\n  }\n  const join = setTgUserId(token, chatId)\n  if (!join) {\n    await sendTelegramMessage(chatId, 'Не нашли вашу заявку — попробуйте оформить подписку заново на сайте.')\n"
+        ],
+        [
+          "  // Логируем полный payload — точные поля события уточнили по первым\n  // реальным платежам: payment_status \"success\"/что-то ещё, customer_phone,\n  // subscription.id и т.д.\n  console.log('[prodamus] webhook:', JSON.stringify(body))\n  if (!logWebhook(body)) return res.sendStatus(503)\n  processingProdamus++\n  res.sendStatus(200)\n",
+          "  // Логируем полный payload — точные поля события уточнили по первым\n  // реальным платежам: payment_status \"success\"/что-то ещё, customer_phone,\n  // subscription.id и т.д.\n  console.log('[prodamus] accepted event:', JSON.stringify({ status: body.payment_status || null, subscriptionId: body.subscription?.id || null, type: body.subscription?.type || null }))\n  if (!logWebhook(body)) return res.sendStatus(503)\n  processingProdamus++\n  res.sendStatus(200)\n"
+        ],
+        [
+          "\n/** Исключение из чата сообщества: сообщение подписчику, «кик» (блокировка и сразу разблокировка) и отметка в учёте. */\nasync function kickAndNotify(join) {\n  const current = getJoin(join.token)\n  if (!current?.tgUserId || !accessPeriodEnded(current) || protectedByOtherCard(current, listJoins(), Date.now())) return false\n  const call = async (method, extra = {}) => {\n",
+          "\n/** Исключение из чата сообщества: сообщение подписчику, «кик» (блокировка и сразу разблокировка) и отметка в учёте. */\nasync function kickAndNotify(join) {\n  if (communityMaintenanceRunning) return false\n  const current = getJoin(join.token)\n  if (!current?.tgUserId || !accessPeriodEnded(current) || protectedByOtherCard(current, listJoins(), Date.now())) return false\n  const call = async (method, extra = {}) => {\n"
+        ],
+        [
+          "  return true\n}\n\nconst pendingExpiryPayment = createPendingPaymentGuard({ list: listJoins, file: path.join(import.meta.dirname, 'data/prodamus-webhooks.jsonl'), processing: () => processingProdamus > 0 })\nconst replayProdamus = createProdamusReplay({\n  file: path.join(import.meta.dirname, 'data/prodamus-webhooks.jsonl'), trustedFrom: Number(process.env.PRODAMUS_LOG_TRUST_FROM) || 0,\n  isApplied: key => Boolean(appliedProdamus.get(key)), appliedKeys: () => new Set(Object.keys(appliedProdamus.load())), processing: () => processingProdamus > 0,\n  apply: async (body, receivedAt) => { processingProdamus++; try { await applyAcceptedProdamus(body, receivedAt) } finally { processingProdamus-- } },\n})\nconst reconcileExpiryBilling = createExpiryBillingSync({\n  get: getJoin, patch: patchJoin, pendingPayment: pendingExpiryPayment,\n  stop: (join, planId) => setSubscriptionActivity({ subscriptionId: planId, tgUserId: join.tgUserId, phone: join.phone, email: join.email, active: false }),\n  notifyReview: async (join, reason) => {\n    if (join.tgUserId) {\n      ensureBotUser({ id: join.tgUserId })\n      addTag(join.tgUserId, 'проверка_подписки')\n",
+          "  return true\n}\n\nconst pendingExpiryPayment = createPendingPaymentGuard({ list: listJoins, file: path.join(import.meta.dirname, 'data/prodamus-webhooks.jsonl'), trustedFrom: Number(process.env.PRODAMUS_LOG_TRUST_FROM) || 0, processing: () => processingProdamus > 0 })\nconst replayProdamus = createProdamusReplay({\n  file: path.join(import.meta.dirname, 'data/prodamus-webhooks.jsonl'), trustedFrom: Number(process.env.PRODAMUS_LOG_TRUST_FROM) || 0,\n  isApplied: key => Boolean(appliedProdamus.get(key)), appliedKeys: () => new Set(Object.keys(appliedProdamus.load())), processing: () => processingProdamus > 0,\n  apply: async (body, receivedAt) => { processingProdamus++; try { await applyAcceptedProdamus(body, receivedAt) } finally { processingProdamus-- } },\n})\nconst reconcileExpiryBilling = createExpiryBillingSync({\n  get: getJoin, patch: patchJoin, pendingPayment: pendingExpiryPayment, stopOnExpiry: false,\n  stop: (join, planId) => setSubscriptionActivity({ subscriptionId: planId, tgUserId: join.tgUserId, phone: join.phone, email: join.email, active: false }),\n  notifyReview: async (join, reason) => {\n    if (join.lifetime || join.inChat === false || (join.tgUserId && await chatMembership(join.tgUserId) === 'out')) return true\n    if (join.tgUserId) {\n      ensureBotUser({ id: join.tgUserId })\n      addTag(join.tgUserId, 'проверка_подписки')\n"
+        ],
+        [
+          "    const reasons = { provider_plan_unknown: 'Не установлен действующий договор Prodamus.', nonpayment_not_verified: 'Нет подтверждённой ошибки оплаты за текущий период.',\n      provider_stop_unconfirmed: 'Prodamus не подтвердил остановку автопродления.', provider_unavailable: 'Prodamus недоступен.',\n      unprocessed_payment: 'В журнале есть ещё не учтённая оплата.', payment_journal_unreadable: 'Журнал оплат недоступен или повреждён.', telegram_id_unknown: 'Не установлен Telegram ID.', payment_during_stop: 'Оплата поступила во время отключения автопродления; оплаченный доступ сохранён.' }\n    return sendTelegramMessage(ADMIN_CHAT_ID, `Проверка подписки: ${join.name || join.telegram || join.tgUserId || 'карточка без имени'}.\\n${reasons[reason] || 'Требуется сверка данных.'}\\nОкончательное закрытие доступа приостановлено. Оплаченные даты и история денег сохранены. Проверьте карточку в Prodamus.`, undefined, quiet())\n  },\n})\nasync function restoreExpiryAccess(tgUserId) {\n",
+          "    const reasons = { provider_plan_unknown: 'Не установлен действующий договор Prodamus.', nonpayment_not_verified: 'Нет подтверждённой ошибки оплаты за текущий период.',\n      provider_stop_unconfirmed: 'Prodamus не подтвердил остановку автопродления.', provider_unavailable: 'Prodamus недоступен.',\n      unprocessed_payment: 'В журнале есть ещё не учтённая оплата.', payment_journal_unreadable: 'Журнал оплат недоступен или повреждён.', telegram_id_unknown: 'Не установлен Telegram ID.', payment_during_stop: 'Оплата поступила во время отключения автопродления; оплаченный доступ сохранён.' }\n    return sendTelegramMessage(ADMIN_CHAT_ID, `Проверка подписки: ${join.name || join.telegram || join.tgUserId || 'карточка без имени'}.\\n${reasons[reason] || 'Требуется сверка данных.'}\\nПроверка доступа приостановлена до учёта оплаты или сверки данных. Автопродление бот не отключал. Оплаченные даты и история денег сохранены.`, undefined, quiet())\n  },\n})\nasync function restoreExpiryAccess(tgUserId) {\n"
+        ],
+        [
+          "    return response.ok && (await response.json()).ok === true\n  },\n})\nasync function processAutomaticExpiry() {\n  if (!await replayProdamus() || processingProdamus > 0) return\n  await processAccessExpiry()\n}\n",
+          "    return response.ok && (await response.json()).ok === true\n  },\n})\nlet communityMaintenanceRunning = false\nasync function processAutomaticExpiry() {\n  if (communityMaintenanceRunning) return\n  await communityAdmission.process()\n  if (!await replayProdamus() || processingProdamus > 0) return\n  await processAccessExpiry()\n}\n"
+        ],
+        [
+          "\napp.post('/api/internal/subscription-policy', async (req, res) => {\n  if (!validRecoveryRequest(req.body, req.headers['x-recovery-signature'], process.env.PRODAMUS_SECRET_KEY)) return res.sendStatus(403)\n  if (req.body.operation !== 'audit_expiry') return res.sendStatus(400)\n  try {\n    const logFile = path.join(import.meta.dirname, 'data/prodamus-webhooks.jsonl')\n",
+          "\napp.post('/api/internal/subscription-policy', async (req, res) => {\n  if (!validRecoveryRequest(req.body, req.headers['x-recovery-signature'], process.env.PRODAMUS_SECRET_KEY)) return res.sendStatus(403)\n  if (req.body.operation === 'repair_community_20261110') {\n    if (communityMaintenanceRunning) return res.status(409).json({ ok: false, error: 'maintenance_running' })\n    communityMaintenanceRunning = true\n    let result\n    try {\n      result = await repairCommunityCards({ list: listJoins, users: listBotUsers, bind: setTgUserId, patch: patchJoin, createLifetime: createLifetimeJoin, updateUser: updateBotUser, syncMetadata: syncResidentMetadata,\n        member: async id => { try { const r = await telegramFetch('getChatMember', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: COMMUNITY_CHAT_ID, user_id: Number(id) }) }); const b = await r.json(); return r.ok && b.ok ? b.result : { status: 'unknown' } } catch { return { status: 'unknown' } } },\n      })\n    } catch { return res.status(503).json({ ok: false, error: 'maintenance_unavailable' }) }\n    finally { communityMaintenanceRunning = false }\n    try { await processAutomaticExpiry() }\n    catch { return res.status(503).json({ ok: false, error: 'payment_reconciliation_unavailable', ...result }) }\n    return res.json({ ok: true, ...result })\n  }\n  if (req.body.operation !== 'audit_expiry') return res.sendStatus(400)\n  try {\n    const logFile = path.join(import.meta.dirname, 'data/prodamus-webhooks.jsonl')\n"
+        ],
+        [
+          "      const pending = await pendingExpiryPayment(join)\n      const decision = expiryBillingDecision(join)\n      const membership = period && end <= Date.now() && join.tgUserId && join.accessClosedFor !== period ? await chatMembership(join.tgUserId) : null\n      const reason = !period ? 'paid_date_unknown' : join.accessClosedFor === period ? 'already_closed' : end > Date.now() ? 'extra_access_or_verification' : !join.tgUserId ? 'telegram_id_unknown' : protectedByOtherCard(join, cards, Date.now()) ? 'other_active_card' : membership === 'admin' ? 'chat_administrator' : membership === 'unknown' ? 'membership_unknown' : pending || (!decision.allowed ? decision.reason : 'ready')\n      rows.push({ telegramId: String(join.tgUserId || ''), paidUntil: period, accessUntil: end, reason, reviewReason: join.billingReview?.period === period && join.billingReview.state === 'pending' ? join.billingReview.reason : null, planId: decision.planId || null })\n    }\n    res.json({ ok: true, version: 2, autoExclude: process.env.AUTO_EXCLUDE === '1', graceDays: graceDays(), intervalSeconds: 30,\n      counts: Object.fromEntries([...new Set(rows.map(r => r.reason))].map(reason => [reason, rows.filter(r => r.reason === reason).length])), rows })\n  } catch { res.status(503).json({ ok: false, error: 'audit_unavailable' }) }\n})\n",
+          "      const pending = await pendingExpiryPayment(join)\n      const decision = expiryBillingDecision(join)\n      const membership = period && end <= Date.now() && join.tgUserId && join.accessClosedFor !== period ? await chatMembership(join.tgUserId) : null\n      const reason = !period ? 'paid_date_unknown' : join.accessClosedFor === period ? 'already_closed' : end > Date.now() ? 'extra_access_or_verification' : !join.tgUserId ? 'telegram_id_unknown' : protectedByOtherCard(join, cards, Date.now()) ? 'other_active_card' : membership === 'admin' ? 'chat_administrator' : membership === 'unknown' ? 'membership_unknown' : pending || 'ready'\n      rows.push({ telegramId: String(join.tgUserId || ''), paidUntil: period, accessUntil: end, reason, reviewReason: join.billingReview?.period === period && join.billingReview.state === 'pending' ? join.billingReview.reason : null, planId: decision.planId || null })\n    }\n    res.json({ ok: true, version: 3, automaticProviderCancellation: false, autoExclude: process.env.AUTO_EXCLUDE === '1', graceDays: graceDays(), intervalSeconds: 30,\n      counts: Object.fromEntries([...new Set(rows.map(r => r.reason))].map(reason => [reason, rows.filter(r => r.reason === reason).length])), rows })\n  } catch { res.status(503).json({ ok: false, error: 'audit_unavailable' }) }\n})\n"
+        ],
+        [
+          "setInterval(() => afterResponse('access-ending-reminders', sendAccessEndingReminders), 60000).unref()\n\n// Access checks are independent of optional daily reports; AUTO_EXCLUDE remains the explicit switch.\nsetInterval(() => afterResponse('renewal-notices', deliverRenewalNotices), 60000).unref()\nsetInterval(() => {\n  if (BOT_TOKEN && process.env.AUTO_RESIDENT_REMINDERS !== '0') afterResponse('charge-failed-notices', () => sendChargeFailedNotices(Date.now()))\n",
+          "setInterval(() => afterResponse('access-ending-reminders', sendAccessEndingReminders), 60000).unref()\n\n// Access checks are independent of optional daily reports; AUTO_EXCLUDE remains the explicit switch.\nsetInterval(() => afterResponse('community-admission', () => communityAdmission.process()), 30000).unref()\nsetInterval(() => afterResponse('renewal-notices', deliverRenewalNotices), 60000).unref()\nsetInterval(() => {\n  if (BOT_TOKEN && process.env.AUTO_RESIDENT_REMINDERS !== '0') afterResponse('charge-failed-notices', () => sendChargeFailedNotices(Date.now()))\n"
+        ],
+        [
+          "process.on('uncaughtException', (err) => console.error('[uncaughtException]', err))\n\n// Для автотестов: доступ к фоновым задачам без ожидания расписания.\nif (process.env.TEST_HOOKS === '1') globalThis.__hooks = { runRetentionJob, sendEventReminders, processExpiry, processAccessExpiry, processAutomaticExpiry, deliverRenewalNotices, sendAccessEndingReminders, processReviewFlow, sendAutoResidentReminders, sendMorningDigest, sendEveningClose, refreshChatMembership, processCampaigns, sendPendingNoticesIfDue }\n\nconst PORT = process.env.PORT || 3001\nensureBuiltInPromos()\n",
+          "process.on('uncaughtException', (err) => console.error('[uncaughtException]', err))\n\n// Для автотестов: доступ к фоновым задачам без ожидания расписания.\nif (process.env.TEST_HOOKS === '1') globalThis.__hooks = { runRetentionJob, sendEventReminders, processExpiry, processAccessExpiry, processAutomaticExpiry, processCommunityAdmission: () => communityAdmission.process(), deliverRenewalNotices, sendAccessEndingReminders, processReviewFlow, sendAutoResidentReminders, sendMorningDigest, sendEveningClose, refreshChatMembership, processCampaigns, sendPendingNoticesIfDue }\n\nconst PORT = process.env.PORT || 3001\nensureBuiltInPromos()\n"
+        ],
+        [
+          "subscriptionExpiry: 2,",
+          "subscriptionExpiry: 3, subscriptionAdmission: 1, automaticProviderCancellation: false,"
+        ]
+      ]
+    }
+  ]
+}

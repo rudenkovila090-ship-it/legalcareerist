@@ -51,7 +51,7 @@ export function listJoins() {
  * 3 месяца с того же номера.
  */
 export function findJoinForPayment({ phone, email, telegram, tgUserId, profileId, tariffId, orderKey, paidAt }) {
-  const all = store.all()
+  const all = store.all().filter(j => !j.complimentary)
   if (orderKey) {
     const duplicate = all.find(j => (j.payments || []).some(p => p.orderKey === orderKey))
     if (duplicate) return { join: duplicate, isFirst: false }
@@ -90,7 +90,7 @@ export function findJoinForPayment({ phone, email, telegram, tgUserId, profileId
  * Telegram id, телефону, почте. Неоплаченные заявки не берём: в отличие от findJoinForPayment здесь это не первая оплата.
  */
 export function findPaidJoin({ profileId, tgUserId, phone, email }) {
-  const paid = store.all().filter((j) => j.paid && !j.lifetime).sort((a, b) => (b.lastPaidAt ?? b.createdAt ?? 0) - (a.lastPaidAt ?? a.createdAt ?? 0))
+  const paid = store.all().filter((j) => j.paid && !j.lifetime && !j.complimentary).sort((a, b) => (b.lastPaidAt ?? b.createdAt ?? 0) - (a.lastPaidAt ?? a.createdAt ?? 0))
   const phoneKey = normalizePhone(phone)
   const emailKey = String(email ?? '').trim().toLowerCase()
   const by = [
@@ -148,6 +148,7 @@ export function recordPayment(token, { tariffId, amount, paidAt, orderKey, nextP
       firstPaidAt: join.firstPaidAt ?? paidAt,
       lastPaidAt: Math.max(Number(join.lastPaidAt) || 0, paidAt),
       nextPaymentAt: stale ? join.nextPaymentAt : nextPaymentAt,
+      ...(!stale && enqueueConfirmation && (kind === 'first' || join.inChat === false) ? { inviteDelivery: { key: orderKey || `${paidAt}:${amount}`, pending: true, mailPending: kind === 'first', amount, paidAt, createdAt: paidAt } } : {}),
       renewalNotices: enqueueConfirmation && !stale && kind === 'renewal'
         ? [...(join.renewalNotices ?? []), { id: orderKey || `${paidAt}:${amount}`, amount, paidAt, nextPaymentAt, botDone: false, mailDone: false }]
         : join.renewalNotices,

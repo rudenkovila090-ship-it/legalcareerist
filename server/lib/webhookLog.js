@@ -10,9 +10,11 @@ const FILE = path.join(DATA_DIR, 'prodamus-webhooks.jsonl')
 export function logWebhook(body) {
   try {
     fs.mkdirSync(DATA_DIR, { recursive: true })
-    fs.appendFileSync(FILE, `${JSON.stringify({ receivedAt: Date.now(), body })}\n`)
+    fs.appendFileSync(FILE, `${JSON.stringify({ receivedAt: Date.now(), verified: true, body })}\n`)
+    return true
   } catch (err) {
     console.error('[prodamus] не удалось записать журнал вебхуков:', err.message)
+    return false
   }
 }
 

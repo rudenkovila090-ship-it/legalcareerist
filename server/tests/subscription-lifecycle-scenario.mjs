@@ -60,6 +60,7 @@ export async function runLifecycle({ root, request, hook, read, check, wait, pat
   check('failed charge retains paid end, records failure and allows four days of access', () => { const j = joins.getJoin(token); assert.equal(j.nextPaymentAt, due); assert.ok(j.lastChargeFailure); assert.equal(hasAccess(j, due + 1), true); assert.equal(j.payments.length, 1) })
   await hook('', { clock: due + 4 * DAY - 1 }); await hook('processAccessExpiry')
   check('resident is not removed one millisecond before grace expiry', () => assert.equal(userCalls('banChatMember').length, 0))
+  fs.writeFileSync(path.join(root, 'prodamus-cancel-ok'), '')
   await hook('', { clock: due + 4 * DAY }); await hook('processAccessExpiry')
   check('grace expiry closes access, releases ban for return and preserves original price', () => {
     const j = joins.getJoin(token)
@@ -76,7 +77,7 @@ export async function runLifecycle({ root, request, hook, read, check, wait, pat
   check('card-change request creates a support message without collecting payment-card data', () => { assert.equal(r.status, 200); assert.equal(r.body.ok, true); assert.deepEqual(joins.getJoin(token).payments, beforeDemo.payments) })
   await hook('', { raisePrice: true })
   r = await request('/api/account/subscription/renew', {}, headers)
-  check('unconfirmed provider cancellation blocks a potentially duplicate new checkout', () => { assert.equal(r.status, 503); assert.equal(joins.getJoin(token).status, 'active') })
+  check('return checkout reuses the already confirmed automatic cancellation', () => { assert.equal(r.status, 200); assert.equal(joins.getJoin(token).status, 'cancelled') })
   fs.writeFileSync(path.join(root, 'prodamus-cancel-ok'), '')
   r = await request('/api/account/subscription/renew', { amount: 1, subscriptionId: 9999999 }, headers)
   check('return after public price increase uses stored old provider plan, never client-supplied prices', () => { assert.equal(r.status, 200); assert.equal(fs.readFileSync(path.join(root, 'checkout-plan'), 'utf8'), '2854597'); assert.equal(joins.getJoin(token).priceLock.amount, 690) })

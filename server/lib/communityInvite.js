@@ -6,7 +6,8 @@
 /** Общая ссылка на вступление или пустая строка, если не задана. Читается при каждом обращении: после правки .env хватит перезапуска. */
 export const communityInviteUrl = () => String(process.env.COMMUNITY_INVITE_LINK ?? '').trim()
 
-const nick = (v) => String(v ?? '').trim().replace(/^@/, '').toLowerCase()
+export const normalizeCommunityUsername = (v) => String(v ?? '').trim().replace(/^https?:\/\/(?:www\.)?(?:t\.me|telegram\.me)\//i, '').replace(/^@/, '').split(/[/?#]/)[0].toLowerCase()
+const nick = normalizeCommunityUsername
 
 /**
  * Что делать с заявкой на вступление. Вход: Telegram-аккаунт подавшего, поиск резидента по Telegram id, все карточки подписок и проверка

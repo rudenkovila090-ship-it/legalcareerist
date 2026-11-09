@@ -36,7 +36,7 @@ export function residentStatus(tgId, now = Date.now(), email = '') {
   const best = residentJoin(tgId, email)
   if (!best) return { status: 'none' }
   if (best.lifetime) {
-    return { status: 'lifetime', tariff: 'Основатель — бессрочно', until: best.endsAt ?? null, since: best.startAt ?? best.firstPaidAt ?? best.createdAt, autoRenew: false, cancelled: false, daysLeft: null }
+    return { status: 'lifetime', tariff: best.complimentary ? `Резидент — бессрочно (тариф ${best.complimentary.nominalAmount} ₽)` : 'Основатель — бессрочно', until: best.endsAt ?? null, since: best.startAt ?? best.firstPaidAt ?? best.createdAt, autoRenew: false, cancelled: false, daysLeft: null }
   }
   const until = endOf(best) || null
   const active = hasAccess(best, now)

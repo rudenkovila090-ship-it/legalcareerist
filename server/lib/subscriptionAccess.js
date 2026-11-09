@@ -19,8 +19,11 @@ export function hasAccess(join, now = Date.now()) {
 export function accessUntil(join) {
   const until = paidUntil(join)
   if (until === null) return null
-  if (join.status === 'cancelled' && join.cancellation?.confirmed) return Math.max(until, Number(join.cancellation.accessUntil) || 0, Number(join.recoveryAccessUntil) || 0)
-  return Math.max(until + graceDays() * DAY, Number(join.transitionAccessUntil) || 0, Number(join.recoveryAccessUntil) || 0)
+  if (join.manualAccessClosedFor === until) return until
+  const review = join.billingReview?.period === until && join.billingReview.state === 'pending' && (join.billingReview.policy === 'stop_before_removal' || ['unprocessed_payment', 'payment_processing', 'payment_journal_unreadable'].includes(join.billingReview.reason)) ? Number(join.billingReview.holdUntil) || 0 : 0
+  if (join.status === 'cancelled' && join.cancellation?.confirmed) return Math.max(until, Number(join.cancellation.accessUntil) || 0, Number(join.recoveryAccessUntil) || 0, review)
+  const blocked = join.lastChargeFailure?.verified && join.lastChargeFailure.dueAt === until ? Number(join.lastChargeFailure.blockedUntil) || 0 : 0
+  return Math.max(until + graceDays() * DAY, Number(join.transitionAccessUntil) || 0, Number(join.recoveryAccessUntil) || 0, blocked, review)
 }
 
 export function inGrace(join, now = Date.now()) {

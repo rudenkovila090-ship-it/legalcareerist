@@ -183,6 +183,17 @@ export { TARIFFS }
  * определяется по Telegram id (или телефону/почте). Возвращает { ok, status, raw }: формат ответа Prodamus мы
  * проверяем по факту, поэтому сырой ответ отдаём вызывающему — админу он показывается в уведомлении.
  */
+export function subscriptionActivityConfirmed(httpOk, text) {
+  if (!httpOk) return false
+  let value
+  try { value = JSON.parse(String(text).trim()) } catch { return /^(?:success|ok|true|1)$/i.test(String(text).trim()) }
+  if (typeof value === 'string') return /^(?:success|ok)$/i.test(value.trim())
+  if (value === true || value === 1) return true
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+  if (value.error || (value.error_code && String(value.error_code) !== '0') || (value.errors && Object.keys(value.errors).length) || value.success === false || value.success === 0 || value.success === '0' || value.success === 'false' || /^(?:error|failed|failure)$/i.test(String(value.status))) return false
+  return value.success === true || value.success === 1 || value.success === '1' || String(value.status).toLowerCase() === 'success'
+}
+
 export async function setSubscriptionActivity({ subscriptionId, tgUserId, phone, email, active }) {
   if (!SECRET_KEY) throw new Error('PRODAMUS_SECRET_KEY not set')
   const data = { subscription: String(subscriptionId), active_user: active ? '1' : '0' }
@@ -197,12 +208,6 @@ export async function setSubscriptionActivity({ subscriptionId, tgUserId, phone,
     signal: AbortSignal.timeout(20000),
   })
   const text = (await res.text()).trim()
-  let json = null
-  try {
-    json = JSON.parse(text)
-  } catch {
-    // ответ не JSON — смотрим по тексту
-  }
-  const ok = res.ok && (json ? json.success === true || json.success === 1 || json.status === 'success' : /success|ok/i.test(text) && !/error|ошиб/i.test(text))
+  const ok = subscriptionActivityConfirmed(res.ok, text)
   return { ok, status: res.status, raw: text.slice(0, 200) }
 }

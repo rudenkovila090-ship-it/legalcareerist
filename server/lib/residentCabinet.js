@@ -36,7 +36,7 @@ export function subscriptionScreen(join, tariffs, now = Date.now(), payUrl = '')
       '📋 Моя подписка',
       '',
       'Статус: 🟢 активна',
-      'Тариф: Основатель — бессрочно',
+      join.complimentary ? `Тариф: Резидент — ${rub(join.complimentary.nominalAmount)}, бессрочно` : 'Тариф: Основатель — бессрочно',
       `Начало подписки: ${ruDate(join.startAt ?? join.firstPaidAt ?? join.createdAt)}`,
       `Действует до: ${join.endsAt ? ruDate(join.endsAt) : 'бессрочно'}`,
       'Списаний нет — доступ к сообществу сохраняется.',
@@ -128,13 +128,14 @@ export function linkScreen(join, url, now = Date.now()) {
 /** «Настройки»: рассылка и отключение подписки (внизу, чтобы до него доходили только намеренно). */
 export function settingsScreen(join, user, now = Date.now()) {
   const mailing = user?.mailingConsent === true
-  const canCancel = join.status === 'active' // у основателя кнопка тоже есть — чтобы видеть путь клиента (по факту ничего не отключается)
+  const canCancel = join.status === 'active' && !join.complimentary // у основателя кнопка тоже есть — чтобы видеть путь клиента (по факту ничего не отключается)
   const keyboard = [[{ text: mailing ? '🔔 Рассылка: включена (нажми, чтобы выключить)' : '🔕 Рассылка: выключена (нажми, чтобы включить)', callback_data: 'r:mail' }]]
   if (canCancel) keyboard.push([{ text: 'Отменить подписку', callback_data: 'r:cancel' }])
   keyboard.push(BACK_ROW)
   const lines = ['⚙️ Настройки личного кабинета', '', `Рекламная рассылка: ${mailing ? 'включена' : 'выключена'}`]
   if (join.status === 'cancelled') lines.push(`Подписка отключена${join.nextPaymentAt ? `, доступ ${join.nextPaymentAt > now ? 'заканчивается' : 'закончился'} ${ruDate(join.nextPaymentAt)}` : ''}.`)
-  if (join.lifetime) lines.push('Основатель: отмена работает в тестовом режиме — подписка остаётся активной.')
+  if (join.complimentary) lines.push('Бессрочный доступ без списаний, пока вы остаётесь в сообществе.')
+  else if (join.lifetime) lines.push('Основатель: отмена работает в тестовом режиме — подписка остаётся активной.')
   return { text: lines.join('\n'), keyboard }
 }
 
