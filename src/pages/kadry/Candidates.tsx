@@ -4,14 +4,13 @@ import PageHero from '../../components/PageHero'
 import Testimonials from '../../components/Testimonials'
 import { consultationTestimonials } from '../../data/testimonials'
 import FAQSection from '../../components/FAQSection'
-import { TagRow } from '../../components/Tag'
+import VacancyCardContent, { vacancyCardClass } from '../../components/VacancyCardContent'
 import PhoneInput from '../../components/PhoneInput'
 import LeadSuccessCard from '../../components/LeadSuccessCard'
-import { submitLead, nextTicketNumber, leadSubmissionId, withLeadSubmission } from '../../lib/leads'
+import { submitLead, nextTicketNumber, leadSubmissionId, withLeadSubmission } from '../../lib/leadFormCompatibility'
 import VacancyDetailBody from '../../components/VacancyDetailBody'
 import VacancyApplyPanel from '../../components/VacancyApplyPanel'
 import { vacancies } from '../../data/vacancies'
-import { salaryLabel } from '../../lib/vacancySalary'
 import { IndustryFilter, EducationFilter } from '../../components/VacancyFilters'
 import {
   SPECIALIZATIONS, EMPLOYMENT_TYPES, WORK_SCHEDULES, EXPERIENCE_BUCKETS,
@@ -23,7 +22,6 @@ import CareerReserve from './CareerReserve'
 import CareerConsultation from './CareerConsultation'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import { pluralRu } from '../../lib/plural'
-import { useVacancyViewCounts } from '../../lib/useVacancyViews'
 import { SHOW_PERSONAL_ACCOUNTS } from '../../lib/featureFlags'
 import KadryFooter from './KadryFooter'
 import HowHeardField from '../../components/HowHeardField'
@@ -109,7 +107,7 @@ const candidateTabs = [
 const vacancySpecIds: Specialization[] = ['inhouse', 'consulting', 'advocacy', 'notary', 'law_enforcement', 'government']
 const vacancySpecs = vacancySpecIds.map((id) => SPECIALIZATIONS.find((s) => s.id === id)!)
 
-const CITIES = ['Москва', 'Санкт-Петербург', 'Екатеринбург']
+const CITIES = [...new Set(vacancies.filter(v => v.status === 'open').map(v => v.city))].sort((a, b) => a.localeCompare(b, 'ru'))
 
 const formats: { id: WorkFormat; label: string }[] = [
   { id: 'office', label: 'Офис' },
@@ -184,8 +182,6 @@ export default function Candidates() {
   }
   const [selectedVacancySlug, setSelectedVacancySlug] = useState<string | null>(null)
   const selectedVacancy = vacancies.find((v) => v.slug === selectedVacancySlug) ?? null
-  // Просмотры в списке — реальные, те же, что на странице вакансии; перечитываем, когда человек вернулся из вакансии в список.
-  const viewCounts = useVacancyViewCounts(selectedVacancySlug)
   useDocumentTitle(selectedVacancy?.title ?? 'Кадры — Соискателям')
   // Открытие конкретной вакансии подменяет список ее карточкой прямо на месте
   // (без перехода по роуту) — список короче карточки, поэтому без сброса
@@ -221,7 +217,7 @@ export default function Candidates() {
           {/* Без flex-wrap — высота панели всегда постоянна (важна для
               top-[Npx] у sticky-формы отклика справа), при нехватке
               ширины вкладки скроллятся по горизонтали, а не переносятся. */}
-          <div className="flex justify-end gap-2 overflow-x-auto">
+          <div className="flex min-w-0 flex-1 justify-start gap-2 overflow-x-auto lg:justify-end">
           {candidateTabs.filter((t) => t.id !== 'account' || SHOW_PERSONAL_ACCOUNTS).map((t) => (
             <button
               key={t.id}
@@ -398,43 +394,39 @@ export default function Candidates() {
       )}
 
       {tab === 'vacancies' && !selectedVacancy && (
-        <section className="container-page pb-16">
-          <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Вакансии</div>
-          <h2 className="mb-6 text-2xl font-semibold">Доска вакансий</h2>
+        <section className="container-page pb-12" aria-label="Поиск вакансий">
+          <h1 className="sr-only">Вакансии</h1>
           {/* relative z-20 — у .glass своя изолированная область наложения
               (isolation: isolate), без явного z-index раскрывающиеся списки
               фильтров все равно оказывались под карточками вакансий ниже. */}
-          <div className="glass relative z-20 mb-8 space-y-4 rounded-xl p-4">
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="glass relative z-20 mb-5 space-y-2 rounded-xl p-2.5">
+            <div className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
               <select aria-label="Направление"
                 value={spec}
                 onChange={(e) => setSpec(e.target.value as Specialization | 'all')}
-                className="rounded-lg border border-ink/15 px-3 py-2 text-sm"
+                className="h-8 min-w-0 rounded-lg border border-ink/15 bg-white px-2 py-1 text-base sm:h-7 sm:text-xs"
               >
-                <option value="all" disabled hidden>Направление</option>
-                {spec !== 'all' && <option value="all">Все направления</option>}
+                <option value="all">{spec === 'all' ? 'Направление' : 'Все направления'}</option>
                 {vacancySpecs.map((s) => (
                   <option key={s.id} value={s.id}>{s.label}</option>
                 ))}
               </select>
-              <IndustryFilter value={industrySel} onChange={setIndustrySel} />
-              <EducationFilter value={educationSel} onChange={setEducationSel} />
+              <IndustryFilter compact value={industrySel} onChange={setIndustrySel} />
+              <EducationFilter compact value={educationSel} onChange={setEducationSel} />
               <select aria-label="Город"
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
-                className="rounded-lg border border-ink/15 px-3 py-2 text-sm"
+                className="h-8 min-w-0 rounded-lg border border-ink/15 bg-white px-2 py-1 text-base sm:h-7 sm:text-xs"
               >
-                <option value="" disabled hidden>Город</option>
-                {city && <option value="">Все города</option>}
+                <option value="">{!city ? 'Город' : 'Все города'}</option>
                 {CITIES.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
               <select aria-label="Опыт работы"
                 value={experience}
                 onChange={(e) => setExperience(e.target.value as ExperienceBucket | 'any')}
-                className="rounded-lg border border-ink/15 px-3 py-2 text-sm"
+                className="h-8 min-w-0 rounded-lg border border-ink/15 bg-white px-2 py-1 text-base sm:h-7 sm:text-xs"
               >
-                <option value="any" disabled hidden>Опыт работы</option>
-                {experience !== 'any' && <option value="any">Любой опыт</option>}
+                <option value="any">{experience === 'any' ? 'Опыт работы' : 'Любой опыт'}</option>
                 {EXPERIENCE_BUCKETS.map((b) => (
                   <option key={b.id} value={b.id}>{b.label}</option>
                 ))}
@@ -442,16 +434,15 @@ export default function Candidates() {
               <input aria-label="Заработная плата, ₽ (например, 100 000)"
                 value={salaryText}
                 onChange={(e) => setSalaryText(e.target.value)}
-                placeholder="Заработная плата, ₽ (например, 100 000)"
-                className="rounded-lg border border-ink/15 px-3 py-2 text-sm"
+                placeholder="Зарплата от, ₽"
+                className="h-8 min-w-0 rounded-lg border border-ink/15 bg-white px-2 py-1 text-base sm:h-7 sm:text-xs"
               />
               <select aria-label="Формат"
                 value={format}
                 onChange={(e) => setFormat(e.target.value as WorkFormat | 'any')}
-                className="rounded-lg border border-ink/15 px-3 py-2 text-sm"
+                className="h-8 min-w-0 rounded-lg border border-ink/15 bg-white px-2 py-1 text-base sm:h-7 sm:text-xs"
               >
-                <option value="any" disabled hidden>Формат</option>
-                {format !== 'any' && <option value="any">Любой формат</option>}
+                <option value="any">{format === 'any' ? 'Формат' : 'Любой формат'}</option>
                 {formats.map((f) => (
                   <option key={f.id} value={f.id}>{f.label}</option>
                 ))}
@@ -459,10 +450,9 @@ export default function Candidates() {
               <select aria-label="График"
                 value={schedule}
                 onChange={(e) => setSchedule(e.target.value as WorkSchedule | 'any')}
-                className="rounded-lg border border-ink/15 px-3 py-2 text-sm"
+                className="h-8 min-w-0 rounded-lg border border-ink/15 bg-white px-2 py-1 text-base sm:h-7 sm:text-xs"
               >
-                <option value="any" disabled hidden>График</option>
-                {schedule !== 'any' && <option value="any">Любой график</option>}
+                <option value="any">{schedule === 'any' ? 'График' : 'Любой график'}</option>
                 {WORK_SCHEDULES.map((s) => (
                   <option key={s.id} value={s.id}>{s.label}</option>
                 ))}
@@ -470,44 +460,27 @@ export default function Candidates() {
               <select aria-label="Занятость"
                 value={employment}
                 onChange={(e) => setEmployment(e.target.value as EmploymentType | 'any')}
-                className="rounded-lg border border-ink/15 px-3 py-2 text-sm"
+                className="h-8 min-w-0 rounded-lg border border-ink/15 bg-white px-2 py-1 text-base sm:h-7 sm:text-xs"
               >
-                <option value="any" disabled hidden>Занятость</option>
-                {employment !== 'any' && <option value="any">Любая занятость</option>}
+                <option value="any">{employment === 'any' ? 'Занятость' : 'Любая занятость'}</option>
                 {EMPLOYMENT_TYPES.map((f) => (
                   <option key={f.id} value={f.id}>{f.label}</option>
                 ))}
               </select>
             </div>
 
-            <div className="text-sm text-ink/50">{filteredVacancies.length} {pluralRu(filteredVacancies.length, ['вакансия', 'вакансии', 'вакансий'])}</div>
+            <div className="text-xs text-ink/50">{filteredVacancies.length} {pluralRu(filteredVacancies.length, ['вакансия', 'вакансии', 'вакансий'])}</div>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {filteredVacancies.map((v) => (
               <button
                 key={v.id}
                 type="button"
                 onClick={() => setSelectedVacancySlug(v.slug)}
-                className="glass block rounded-xl p-5 text-left"
+                className={vacancyCardClass}
               >
-                <div className="flex items-start justify-between gap-3">
-                  <h3 className="font-semibold leading-snug">{v.title}</h3>
-                  {v.urgent && <span className="shrink-0 rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-600">Срочно</span>}
-                </div>
-                {v.technicalExample && (
-                  <div className="mt-1 text-xs font-medium text-amber-700">Технический пример</div>
-                )}
-                <div className="mt-1 text-sm text-ink/60">{v.anonymous ? 'Компания скрыта' : v.company} · {v.city}</div>
-                {salaryLabel(v) && <div className="mt-2 text-sm font-medium text-ink">{salaryLabel(v)}</div>}
-                <div className="mt-3">
-                  <TagRow specialization={v.specialization} industry={v.industry} />
-                </div>
-                {viewCounts && (
-                  <div className="mt-3 text-xs text-ink/40">
-                    {viewCounts[v.slug] ?? 0} {pluralRu(viewCounts[v.slug] ?? 0, ['просмотр', 'просмотра', 'просмотров'])}
-                  </div>
-                )}
+                <VacancyCardContent vacancy={v} />
               </button>
             ))}
             {filteredVacancies.length === 0 && <p className="text-ink/50">По заданным фильтрам вакансий не найдено.</p>}

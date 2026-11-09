@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom'
 import type { Article, EventItem, MaterialItem, NewsItem, Vacancy } from '../types'
-import { TagRow } from './Tag'
 import { useArticleViewCount } from '../lib/useArticleViews'
 import { useNewsViewCount } from '../lib/useNewsViews'
 import { materialKindLabel } from '../lib/materialLabels'
@@ -8,29 +7,13 @@ import { pluralRu } from '../lib/plural'
 import { startEventMusicOnClick } from '../lib/eventMusic'
 import { eventDateRange } from '../lib/eventTime'
 import { eventFormatText, eventPriceText } from '../lib/eventFormat'
-import { salaryLabel } from '../lib/vacancySalary'
+import VacancyCardContent, { vacancyCardClass } from './VacancyCardContent'
 import MaterialCover from './MaterialCover'
 
 const money = new Intl.NumberFormat('ru-RU')
 
 export function VacancyCard({ v }: { v: Vacancy }) {
-  const salary = salaryLabel(v)
-  return (
-    <Link to={`/vacancies/${v.slug}`} className="glass block rounded-xl p-5">
-      <div className="flex items-start justify-between gap-3">
-        <h3 className="font-semibold leading-snug">{v.title}</h3>
-        {v.urgent && <span className="shrink-0 rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-600">Срочно</span>}
-      </div>
-      {v.technicalExample && (
-        <div className="mt-1 text-xs font-medium text-amber-700">Технический пример</div>
-      )}
-      <div className="mt-1 text-sm text-ink/60">{v.anonymous ? 'Компания скрыта' : v.company} · {v.city}</div>
-      {salary && <div className="mt-2 text-sm font-medium text-ink">{salary}</div>}
-      <div className="mt-3">
-        <TagRow specialization={v.specialization} industry={v.industry} />
-      </div>
-    </Link>
-  )
+  return <Link to={`/vacancies/${v.slug}`} className={vacancyCardClass}><VacancyCardContent vacancy={v} /></Link>
 }
 
 // onSelect — для встраивания внутрь вкладки другой страницы (см. KnowledgeList

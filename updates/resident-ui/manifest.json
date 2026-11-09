@@ -46,8 +46,16 @@
       "sha256": "a414924a2ee74c78dff3eef76a39905fcda42562e620b5db5a4cbd088c80b4ef"
     },
     {
+      "path": "src/components/VacancyCardContent.tsx",
+      "sha256": "45c8c1a5ab351567148ed5e1ed5652ae6cc26803d3f33f037784a83b7079f889"
+    },
+    {
+      "path": "src/components/VacancyFilters.tsx",
+      "sha256": "88fc1ca222315859a0bf27aa9275b07be24f184b1c0cb1c5c897e0591ef9dddf"
+    },
+    {
       "path": "src/components/cards.tsx",
-      "sha256": "57ca328df281a713af1eddb18091e42173517448c65b2a621802dc3f564ca2f8"
+      "sha256": "18b3d4b181df4651275f1346ce7c4d9accaffe56bfde9bd46cc5641ebb6842a1"
     },
     {
       "path": "src/components/layouts/HolyGrail.tsx",
@@ -202,8 +210,16 @@
       "sha256": "c7445daeb1980d911c1b32d1bb13455ecc2c5b6ad2d4ec064ba9c5a3c67aa446"
     },
     {
+      "path": "src/pages/kadry/Candidates.tsx",
+      "sha256": "4d3f3c6906a7b3ada2da618ce715e70d26a4e6911fbfdad4b8f038bc631c5b5f"
+    },
+    {
+      "path": "src/pages/kadry/Vacancies.tsx",
+      "sha256": "65f58cdcb91feb3312ea3bf6066d519920168f6b2b44c80ff8c88a5fbe5bf4fa"
+    },
+    {
       "path": "src/types.ts",
-      "sha256": "a68b14030ddf080d7b781f75af468ebe6ad6d0ad83320bd8bf7b588d7a5c5299"
+      "sha256": "2d7aa6a5a81ebe4f6c291f1c116ccbc286572f43fe0b08c47f777198a3ae724b"
     }
   ],
   "backend": [

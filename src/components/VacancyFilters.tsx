@@ -21,12 +21,13 @@ function Chevron({ open }: { open: boolean }) {
   )
 }
 
-function FilterDropdownButton({ label, count, open, onToggle }: { label: string; count: number; open: boolean; onToggle: () => void }) {
+function FilterDropdownButton({ label, count, open, onToggle, compact = false }: { compact?: boolean; label: string; count: number; open: boolean; onToggle: () => void }) {
   return (
     <button
       type="button"
       onClick={onToggle}
-      className="flex w-full items-center justify-between gap-2 rounded-lg border border-ink/15 px-3 py-2 text-left text-sm"
+      aria-expanded={open}
+      className={`flex w-full items-center justify-between gap-2 rounded-lg border border-ink/15 bg-white text-left ${compact ? 'h-8 min-w-0 px-2 py-1 text-base sm:h-7 sm:text-xs' : 'px-3 py-2 text-sm'}`}
     >
       <span className={count > 0 ? 'text-ink' : 'text-ink/50'}>{label}{count > 0 ? ` (${count})` : ''}</span>
       <Chevron open={open} />
@@ -38,7 +39,7 @@ function FilterDropdownButton({ label, count, open, onToggle }: { label: string;
 // места, пока фильтр не нужен). Категория и ее подкатегории — единый блок:
 // отметили общий профиль (категорию) — считаем выбранными сразу все его
 // подкатегории, а не только сам общий пункт.
-export function IndustryFilter({ value, onChange }: { value: Set<string>; onChange: (next: Set<string>) => void }) {
+export function IndustryFilter({ value, onChange, compact = false }: { compact?: boolean; value: Set<string>; onChange: (next: Set<string>) => void }) {
   const [open, setOpen] = useState(false)
   const ref = useClickOutside(() => setOpen(false))
 
@@ -66,9 +67,9 @@ export function IndustryFilter({ value, onChange }: { value: Set<string>; onChan
 
   return (
     <div ref={ref} className="relative">
-      <FilterDropdownButton label="Отрасль компании" count={value.size} open={open} onToggle={() => setOpen((o) => !o)} />
+      <FilterDropdownButton compact={compact} label="Отрасль компании" count={value.size} open={open} onToggle={() => setOpen((o) => !o)} />
       {open && (
-        <div className="absolute left-0 top-full z-30 mt-1 max-h-72 w-full min-w-[280px] overflow-y-auto rounded-lg border border-ink/15 bg-white p-3 shadow-xl">
+        <div className="absolute left-0 top-full z-30 mt-1 max-h-72 w-full min-w-0 sm:min-w-[240px] overflow-y-auto rounded-lg border border-ink/15 bg-white p-3 shadow-xl">
           <div className="space-y-2">
             {COMPANY_INDUSTRY_TREE.map((group) => (
               <div key={group.category}>
@@ -102,7 +103,7 @@ export function IndustryFilter({ value, onChange }: { value: Set<string>; onChan
 }
 
 // Образование — тот же раскрывающийся паттерн, без иерархии категорий.
-export function EducationFilter({ value, onChange }: { value: Set<EducationLevel>; onChange: (next: Set<EducationLevel>) => void }) {
+export function EducationFilter({ value, onChange, compact = false }: { compact?: boolean; value: Set<EducationLevel>; onChange: (next: Set<EducationLevel>) => void }) {
   const [open, setOpen] = useState(false)
   const ref = useClickOutside(() => setOpen(false))
 
@@ -115,9 +116,9 @@ export function EducationFilter({ value, onChange }: { value: Set<EducationLevel
 
   return (
     <div ref={ref} className="relative">
-      <FilterDropdownButton label="Образование" count={value.size} open={open} onToggle={() => setOpen((o) => !o)} />
+      <FilterDropdownButton compact={compact} label="Образование" count={value.size} open={open} onToggle={() => setOpen((o) => !o)} />
       {open && (
-        <div className="absolute left-0 top-full z-30 mt-1 w-full min-w-[240px] rounded-lg border border-ink/15 bg-white p-3 shadow-xl">
+        <div className="absolute left-0 top-full z-30 mt-1 w-full min-w-0 rounded-lg border border-ink/15 bg-white p-3 shadow-xl">
           <div className="flex flex-wrap gap-x-4 gap-y-2">
             {EDUCATION_LEVELS.map((e) => (
               <label key={e.id} className="flex items-center gap-2 text-sm text-ink/70">

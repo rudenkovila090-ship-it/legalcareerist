@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react'
-import PageHero from '../../components/PageHero'
 import { VacancyCard } from '../../components/cards'
 import { vacancies } from '../../data/vacancies'
 import { IndustryFilter, EducationFilter } from '../../components/VacancyFilters'
@@ -55,46 +54,39 @@ export default function Vacancies() {
 
   return (
     <div>
-      <PageHero
-        eyebrow="Кадры"
-        title="Доска вакансий"
-        description="Актуальные вакансии для юристов: фильтры по направлению, городу, формату работы, опыту и зарплате."
-      />
-      <div className="container-page py-10">
+      <div className="container-page pt-6"><h1 className="text-2xl font-semibold">Вакансии</h1></div>
+      <div className="container-page pb-10 pt-4">
         {/* Схема Two Column: фильтры слева (на телефоне сворачиваются), список справа. Колонка фильтров поднята над списком (z-20 в TwoColumn),
             иначе раскрывающиеся списки отраслей и образования оказывались бы под карточками вакансий. */}
-        <TwoColumn collapseLabel="Фильтры" aside={
-        <div className="glass space-y-4 rounded-xl p-4">
-          <div className="grid gap-3 [&_input]:w-full [&_select]:w-full [&>*]:min-w-0">
+        <TwoColumn asideWidth="sm" collapseLabel="Фильтры" aside={
+        <div className="glass space-y-2 rounded-xl p-2.5">
+          <div className="grid gap-1.5 [&_input]:w-full [&_select]:w-full [&>*]:min-w-0">
             <select aria-label="Направление"
               value={spec}
               onChange={(e) => setSpec(e.target.value as Specialization | 'all')}
-              className="rounded-lg border border-ink/15 px-3 py-2 text-sm"
+              className="h-8 min-w-0 rounded-lg border border-ink/15 bg-white px-2 py-1 text-base sm:h-7 sm:text-xs"
             >
-              <option value="all" disabled hidden>Направление</option>
-              {spec !== 'all' && <option value="all">Все направления</option>}
+              <option value="all">{spec === 'all' ? 'Направление' : 'Все направления'}</option>
               {vacancySpecs.map((s) => (
                 <option key={s.id} value={s.id}>{s.label}</option>
               ))}
             </select>
-            <IndustryFilter value={industrySel} onChange={setIndustrySel} />
-            <EducationFilter value={educationSel} onChange={setEducationSel} />
+            <IndustryFilter compact value={industrySel} onChange={setIndustrySel} />
+            <EducationFilter compact value={educationSel} onChange={setEducationSel} />
             <select aria-label="Город"
               value={city}
               onChange={(e) => setCity(e.target.value)}
-              className="rounded-lg border border-ink/15 px-3 py-2 text-sm"
+              className="h-8 min-w-0 rounded-lg border border-ink/15 bg-white px-2 py-1 text-base sm:h-7 sm:text-xs"
             >
-              <option value="" disabled hidden>Город</option>
-              {city && <option value="">Все города</option>}
+              <option value="">{!city ? 'Город' : 'Все города'}</option>
               {cityOptions.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
             <select aria-label="Опыт работы"
               value={experience}
               onChange={(e) => setExperience(e.target.value as ExperienceBucket | 'any')}
-              className="rounded-lg border border-ink/15 px-3 py-2 text-sm"
+              className="h-8 min-w-0 rounded-lg border border-ink/15 bg-white px-2 py-1 text-base sm:h-7 sm:text-xs"
             >
-              <option value="any" disabled hidden>Опыт работы</option>
-              {experience !== 'any' && <option value="any">Любой опыт</option>}
+              <option value="any">{experience === 'any' ? 'Опыт работы' : 'Любой опыт'}</option>
               {EXPERIENCE_BUCKETS.map((b) => (
                 <option key={b.id} value={b.id}>{b.label}</option>
               ))}
@@ -102,16 +94,15 @@ export default function Vacancies() {
             <input aria-label="Заработная плата, ₽ (например, 100 000)"
               value={salaryText}
               onChange={(e) => setSalaryText(e.target.value)}
-              placeholder="Заработная плата, ₽ (например, 100 000)"
-              className="rounded-lg border border-ink/15 px-3 py-2 text-sm"
+              placeholder="Зарплата от, ₽"
+              className="h-8 min-w-0 rounded-lg border border-ink/15 bg-white px-2 py-1 text-base sm:h-7 sm:text-xs"
             />
             <select aria-label="Формат"
               value={format}
               onChange={(e) => setFormat(e.target.value as WorkFormat | 'any')}
-              className="rounded-lg border border-ink/15 px-3 py-2 text-sm"
+              className="h-8 min-w-0 rounded-lg border border-ink/15 bg-white px-2 py-1 text-base sm:h-7 sm:text-xs"
             >
-              <option value="any" disabled hidden>Формат</option>
-              {format !== 'any' && <option value="any">Любой формат</option>}
+              <option value="any">{format === 'any' ? 'Формат' : 'Любой формат'}</option>
               {WORK_FORMATS.map((f) => (
                 <option key={f.id} value={f.id}>{f.label}</option>
               ))}
@@ -119,10 +110,9 @@ export default function Vacancies() {
             <select aria-label="График"
               value={schedule}
               onChange={(e) => setSchedule(e.target.value as WorkSchedule | 'any')}
-              className="rounded-lg border border-ink/15 px-3 py-2 text-sm"
+              className="h-8 min-w-0 rounded-lg border border-ink/15 bg-white px-2 py-1 text-base sm:h-7 sm:text-xs"
             >
-              <option value="any" disabled hidden>График</option>
-              {schedule !== 'any' && <option value="any">Любой график</option>}
+              <option value="any">{schedule === 'any' ? 'График' : 'Любой график'}</option>
               {WORK_SCHEDULES.map((s) => (
                 <option key={s.id} value={s.id}>{s.label}</option>
               ))}
@@ -130,10 +120,9 @@ export default function Vacancies() {
             <select aria-label="Занятость"
               value={employment}
               onChange={(e) => setEmployment(e.target.value as EmploymentType | 'any')}
-              className="rounded-lg border border-ink/15 px-3 py-2 text-sm"
+              className="h-8 min-w-0 rounded-lg border border-ink/15 bg-white px-2 py-1 text-base sm:h-7 sm:text-xs"
             >
-              <option value="any" disabled hidden>Занятость</option>
-              {employment !== 'any' && <option value="any">Любая занятость</option>}
+              <option value="any">{employment === 'any' ? 'Занятость' : 'Любая занятость'}</option>
               {EMPLOYMENT_TYPES.map((f) => (
                 <option key={f.id} value={f.id}>{f.label}</option>
               ))}
