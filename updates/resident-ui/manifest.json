@@ -38,6 +38,10 @@
       "sha256": "9119e682c899fa13a2945be8ad93c13e680f06f61d236f8ba81df84a5315dc4c"
     },
     {
+      "path": "src/lib/leadFormCompatibility.ts",
+      "sha256": "562fb38ec2d791397627c4c611672f208436619e4c714fae71c540bb220661f4"
+    },
+    {
       "path": "src/lib/organizerEvents.ts",
       "sha256": "af90368dc9420ae314120af1d920937974bb3eb131b0bbcd28334b4be3533175"
     },
@@ -47,11 +51,11 @@
     },
     {
       "path": "src/pages/account/CandidateAccount.tsx",
-      "sha256": "0228c41d1a9df40aec1978573eb175a109f408bf591cafb0a96c8612c231b131"
+      "sha256": "f0f2c41bd26cbc791875c29302387a0d0a949bbe2d1439f2721c723d96f6d800"
     },
     {
       "path": "src/pages/account/EmployerAccount.tsx",
-      "sha256": "5fd47b65e98f628504f343bc63119a3936268b96c3758f86202a50b53dee183b"
+      "sha256": "1c015ec275929330bdcd4bb362ec4d29f794f13b44475828d69b4a3ae00f2c45"
     },
     {
       "path": "src/pages/account/ModeratorAccount.tsx",
@@ -84,6 +88,10 @@
     {
       "path": "src/pages/cabinet/KnowledgeBase.tsx",
       "sha256": "ecc69c04f0f1b6e918f8705d862cbbe4216636b823f9e00d6288c3a02b7fad10"
+    },
+    {
+      "path": "src/pages/cabinet/MaterialManager.tsx",
+      "sha256": "93770478df2e83b542241fd8989c708cde8db28be3b000b63feb09457f427068"
     },
     {
       "path": "src/pages/cabinet/NetworkingSection.tsx",
@@ -131,7 +139,7 @@
     },
     {
       "path": "src/pages/events/EventDetail.tsx",
-      "sha256": "e8eb9ebf180ebf231e0a616cbda05853a52bbef208d37cfef030f03c9f0fb07e"
+      "sha256": "6f4e47fe6dedce70d8fa9866321a68419bc58f7adb7805ac2991713be14f2672"
     },
     {
       "path": "src/pages/events/EventPhotos.tsx",
@@ -139,7 +147,7 @@
     },
     {
       "path": "src/pages/events/EventsHome.tsx",
-      "sha256": "ba4b13f1310b1b09347e5a5e9251b25caff2a5c4c26cb1eb68d13d9af2e6e1dd"
+      "sha256": "518f5b3940268f451744670ccfd13b3f62a1483278a5f61115bdf7aafca996db"
     },
     {
       "path": "src/pages/events/NoirSections.tsx",

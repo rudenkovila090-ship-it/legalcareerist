@@ -1,7 +1,7 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { events } from '../../data/events'
-import { submitLead, nextTicketNumber, leadSubmissionId, withLeadSubmission } from '../../lib/leads'
+import { submitLead, nextTicketNumber, leadSubmissionId, withLeadSubmission } from '../../lib/leadFormCompatibility'
 import PhoneInput from '../../components/PhoneInput'
 import LeadSuccessCard from '../../components/LeadSuccessCard'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'

@@ -89,7 +89,7 @@ try{
  fs.mkdirSync(path.join(frontend,'server/data'),{recursive:true});fs.symlinkSync(fs.realpathSync(path.join(found.source,'node_modules')),path.join(frontend,'node_modules'))
  for(const item of manifest.frontend)write(path.join(frontend,item.path),fs.readFileSync(path.join(pkg,'payload',item.path)))
  console.log('Изменения проверены. Собираю кабинет и блог…')
- try{write(path.join(stage,'build.log'),run('npm',['run','build'],{cwd:frontend,timeout:240000}))}catch(e){write(path.join(stage,'build.log'),Buffer.concat([e.stdout||Buffer.alloc(0),e.stderr||Buffer.alloc(0)]));throw Error('Сборка не прошла. Действующий сайт сохранён. Журнал: '+path.join(stage,'build.log'))}
+ try{write(path.join(stage,'build.log'),run('npm',['run','build'],{cwd:frontend,timeout:240000}))}catch(e){const log=Buffer.concat([e.stdout||Buffer.alloc(0),e.stderr||Buffer.alloc(0)]);write(path.join(stage,'build.log'),log);for(const line of log.toString().split(/\r?\n/).filter(s=>/error TS[0-9]+:|^error during build:|^Error:|Could not resolve|Cannot find module/.test(s)).slice(0,25))console.error(line.slice(0,600));throw Error('Сборка не прошла. Действующий сайт сохранён. Журнал: '+path.join(stage,'build.log'))}
  const dist=path.join(frontend,'dist'),index=fs.readFileSync(path.join(dist,'index.html')),entry=/src="([^"<>]+\.js)"/.exec(index.toString())?.[1]
  if(!entry)throw Error('В сборке не найден входной файл.')
  const bundles=fs.readdirSync(path.join(dist,'assets')).filter(n=>n.endsWith('.js')).map(n=>fs.readFileSync(path.join(dist,'assets',n),'utf8')).join('\n')

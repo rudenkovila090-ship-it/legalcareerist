@@ -15,7 +15,7 @@ import { getResumes, saveUploadedResume, deleteResume } from '../../lib/resumes'
 import {
   getCreditsState, isFreeAvailable, freeAvailableAt, canGenerate, addCredits, formatCountdown, RESUME_CREDITS_KEY,
 } from '../../lib/generationCredits'
-import { submitDraftLead as submitLead, getLeads } from '../../lib/leads'
+import { submitDraftLead as submitLead, getLeads } from '../../lib/leadFormCompatibility'
 import { getTestResults, saveSkillTestResult, saveSoftSkillTestResult } from '../../lib/testing'
 import { skillQuestions, softSkillStatements } from '../../data/skillTests'
 import { getNotifications, markNotificationRead, markAllNotificationsRead, unreadCount } from '../../lib/notifications'
