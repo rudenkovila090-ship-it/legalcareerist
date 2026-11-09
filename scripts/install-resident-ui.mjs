@@ -61,7 +61,7 @@ function checkProtected(app){for(const [file,hash]of Object.entries(app.protecte
 let stage,release,configs=[],apps=[],backendWritten=false,nginxWritten=false
 try{
  if(manifest.kind!=='resident-ui-20261109-v1')throw Error('Неизвестный пакет обновления.')
- for(const f of manifest.frontend){if(!/^(src\/|scripts\/)[A-Za-z0-9_./-]+$/.test(f.path)||f.path.split('/').includes('..'))throw Error('Неверный путь в пакете.');if(sha(fs.readFileSync(path.join(pkg,'payload',f.path)))!==f.sha256)throw Error('Проверка пакета не пройдена: '+f.path)}
+ for(const f of manifest.frontend){if(!/^(src\/|scripts\/|public\/materials\/covers\/)[A-Za-z0-9_./-]+$/.test(f.path)||f.path.split('/').includes('..'))throw Error('Неверный путь в пакете.');if(sha(fs.readFileSync(path.join(pkg,'payload',f.path)))!==f.sha256)throw Error('Проверка пакета не пройдена: '+f.path)}
  const processes=readProcesses().map(details)
  if(new Set(processes.map(p=>p.name)).size!==processes.length||processes.filter(p=>p.name==='legalcareerist-api').length!==1||processes.some(p=>p.status!=='online'))throw Error('Нужны работающие основной API и запущенный демо-процесс, если он установлен.')
  for(const p of processes){
@@ -108,15 +108,16 @@ try{
  for(const app of apps){let good=false;for(let i=0;i<25;i++){try{if(JSON.stringify(await deploymentHealth(app))===JSON.stringify(app.health)){good=true;break}}catch{}await pause(500)}if(!good)throw Error('API не подтвердил запуск: '+app.name);checkProtected(app)}
  for(const item of configs){if(fs.readFileSync(item.file,'utf8')!==item.before)throw Error('Конфигурация Nginx изменилась.');item.after=item.before.replace(/(^[ \t]*root[ \t]+)("[^"\r\n]+"|'[^'\r\n]+'|[^;\s]+)([ \t]*;)/gm,(all,prefix,raw,suffix)=>item.roots.includes(raw.replace(/^(["'])(.*)\1$/,'$2'))?prefix+nextDist+suffix:all)}
  nginxWritten=true;for(const item of configs)write(item.file,item.after,item.mode);run('nginx',['-t']);run('nginx',['-s','reload'])
+ const cover=manifest.frontend.find(f=>f.path.startsWith('public/materials/covers/'))
  let verified=false
- for(let i=0;i<12;i++){try{const page=await fetch(publicUrl+'/blog?ui='+path.basename(release),{signal:AbortSignal.timeout(5000),headers:{'Cache-Control':'no-cache'}}),html=await page.text();if(!page.ok||!html.includes(entry))throw Error();const asset=await fetch(publicUrl+entry,{signal:AbortSignal.timeout(5000)});if(!asset.ok||sha(Buffer.from(await asset.arrayBuffer()))!==sha(fs.readFileSync(path.join(dist,entry.replace(/^\//,'')))))throw Error();verified=true;break}catch{}await pause(1000)}
+ for(let i=0;i<12;i++){try{const page=await fetch(publicUrl+'/blog?ui='+path.basename(release),{signal:AbortSignal.timeout(5000),headers:{'Cache-Control':'no-cache'}}),html=await page.text();if(!page.ok||!html.includes(entry))throw Error();const asset=await fetch(publicUrl+entry,{signal:AbortSignal.timeout(5000)});if(!asset.ok||sha(Buffer.from(await asset.arrayBuffer()))!==sha(fs.readFileSync(path.join(dist,entry.replace(/^\//,'')))))throw Error();if(cover){const photo=await fetch(publicUrl+'/'+cover.path.slice(7),{signal:AbortSignal.timeout(10000)});if(!photo.ok||sha(Buffer.from(await photo.arrayBuffer()))!==cover.sha256)throw Error()}verified=true;break}catch{}await pause(1000)}
  if(!verified)throw Error('Сайт не подтвердил новую сборку. Восстанавливаю прежнюю версию.')
  for(const app of apps){checkProtected(app);if(JSON.stringify(await deploymentHealth(app))!==JSON.stringify(app.health))throw Error('Настройки API изменились.')}
  write(path.join(stage,'deployment.json'),JSON.stringify({release,source:found.source,configs:configs.map(({file,before,after,mode})=>({file,before,after,mode})),backend:apps.map(({name,script,data})=>({name,script,data})),installedAt:Date.now(),manifestSha:sha(fs.readFileSync(path.join(pkg,'manifest.json')))}))
  // Compatibility with subsequent publishers that look for source folders next to deployment.json.
  for(const name of ['src','public','scripts','dist','node_modules'])fs.symlinkSync(path.join(frontend,name),path.join(stage,name))
  for(const name of fs.readdirSync(frontend).filter(f=>/^(package(?:-lock)?\.json|tsconfig.*\.json|vite\.config\.[cm]?[jt]s|index\.html)$/.test(f)))fs.copyFileSync(path.join(frontend,name),path.join(stage,name))
- console.log('ОБНОВЛЕНИЕ_ГОТОВО '+JSON.stringify({cabinet:publicUrl+'/cabinet',podcast:publicUrl+'/blog?category='+encodeURIComponent('Подкаст'),blog:publicUrl+'/blog',api:apps.map(p=>p.name),billingModulesUnchanged:true,subscriptionSettingsPreserved:true,backup:stage,release}))
+ console.log('ОБНОВЛЕНИЕ_ГОТОВО '+JSON.stringify({cabinet:publicUrl+'/cabinet',podcast:publicUrl+'/blog?category='+encodeURIComponent('Подкаст'),blog:publicUrl+'/blog',api:apps.map(p=>p.name),materialCovers:8,billingModulesUnchanged:true,subscriptionSettingsPreserved:true,backup:stage,release}))
 }catch(error){
  let rolled=true
  if(nginxWritten)try{for(const c of configs){const value=fs.readFileSync(c.file,'utf8');if(c.after&&value===c.after)write(c.file,c.before,c.mode);else if(value!==c.before)throw Error('Concurrent Nginx change')}run('nginx',['-t']);run('nginx',['-s','reload'])}catch{rolled=false}

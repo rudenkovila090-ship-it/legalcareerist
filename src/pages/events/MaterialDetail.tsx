@@ -16,6 +16,7 @@ import { combineRating, reviewsWord, useMaterialRatings } from '../../lib/materi
 import ConsentCheck from '../../components/ConsentCheck'
 import FreeMaterialForm from '../../components/FreeMaterialForm'
 import { consentOf, type ConsentChoice } from '../../lib/consent'
+import MaterialCover from '../../components/MaterialCover'
 
 const money = new Intl.NumberFormat('ru-RU')
 
@@ -119,10 +120,11 @@ export default function MaterialDetail() {
     <div className="container-page py-12">
       <Link to="/marketplace" className="text-sm text-ink/50 hover:text-ink">← Все материалы</Link>
 
-      <div className="mt-4 grid gap-8 lg:grid-cols-[2fr_1fr]">
-        <div>
+      <div className="mt-4 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <div className="min-w-0">
           <span className="text-sm font-medium uppercase tracking-wide text-gold">{kindLabel[material.kind]}</span>
           <h1 className="mt-1 text-3xl font-semibold">{material.title}</h1>
+          <MaterialCover material={material} priority className="mx-auto mt-5 max-w-sm lg:hidden" />
           <div className="mt-3"><TagRow specialization={material.specialization} industry={material.industry} /></div>
 
           {(() => {
@@ -153,8 +155,9 @@ export default function MaterialDetail() {
         </div>
 
         {/* Блок приобретения — справа, закреплен при скролле */}
-        <aside className="lg:sticky lg:top-24 lg:self-start">
+        <aside className="min-w-0 lg:sticky lg:top-24 lg:self-start">
           <div className="glass rounded-xl p-6">
+            <MaterialCover material={material} priority className="mb-5 hidden lg:block" />
             {material.inDevelopment ? (
               <>
                 <div className="text-2xl font-semibold">{money.format(material.price)} ₽</div>

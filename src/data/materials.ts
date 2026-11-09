@@ -7,6 +7,7 @@ export const materials: MaterialItem[] = [
   {
     id: 'm4',
     slug: 'longlist-studencheskie-yuridicheskie-meropriyatiya',
+    cover: '/materials/covers/longlist-studencheskie-yuridicheskie-meropriyatiya-f57d794b01.png',
     title: 'Лонглист «Студенческие юридические мероприятия»',
     kind: 'longlist',
     direction: ['career', 'events'],
@@ -39,6 +40,7 @@ export const materials: MaterialItem[] = [
   {
     id: 'm16',
     slug: 'gaid-kariera-yurista-v-notariate',
+    cover: '/materials/covers/gaid-kariera-yurista-v-notariate-1b3cf9f947.png',
     title: 'Гайд «Карьера юриста в нотариате»',
     kind: 'guide',
     direction: ['notary', 'career'],
@@ -55,6 +57,7 @@ export const materials: MaterialItem[] = [
   {
     id: 'm17',
     slug: 'gaid-stipendii-i-granty',
+    cover: '/materials/covers/gaid-stipendii-i-granty-b754a63140.png',
     title: 'Гайд «Стипендии и гранты»',
     kind: 'guide',
     direction: ['career'],
@@ -75,6 +78,7 @@ export const materials: MaterialItem[] = [
   {
     id: 'm19',
     slug: 'gaid-kariera-yurista-v-privacy',
+    cover: '/materials/covers/gaid-kariera-yurista-v-privacy-2cf0dd398a.png',
     title: 'Гайд «Карьера юриста в Privacy»',
     kind: 'guide',
     direction: ['career', 'inhouse'],
@@ -89,6 +93,7 @@ export const materials: MaterialItem[] = [
   {
     id: 'm20',
     slug: 'gaid-ilfy-rulfy-nyulfy',
+    cover: '/materials/covers/gaid-ilfy-rulfy-nyulfy-ca443371cc.png',
     title: 'Гайд «Ильфы, рульфы и ньюльфы»',
     kind: 'guide',
     direction: ['career', 'consulting'],
@@ -103,6 +108,7 @@ export const materials: MaterialItem[] = [
   {
     id: 'm21',
     slug: 'gaid-kariera-yurista-v-nko',
+    cover: '/materials/covers/gaid-kariera-yurista-v-nko-6bb17bd389.png',
     title: 'Гайд «Как построить карьеру юриста в НКО»',
     kind: 'guide',
     direction: ['career'],
@@ -117,6 +123,8 @@ export const materials: MaterialItem[] = [
   {
     id: 'm22',
     slug: 'gaid-karernoe-planirovanie',
+    cover: '/materials/covers/gaid-karernoe-planirovanie-5365a8afca.png',
+    coverRegion: { x: 70, y: 890, width: 1058, height: 394, sourceWidth: 1199, sourceHeight: 1312 },
     title: 'Гайд «Карьерное планирование: как студенту выстроить путь уверенно»',
     kind: 'guide',
     direction: ['career'],
@@ -131,6 +139,7 @@ export const materials: MaterialItem[] = [
   {
     id: 'm23',
     slug: 'gaid-poshagovyy-poisk-raboty',
+    cover: '/materials/covers/gaid-poshagovyy-poisk-raboty-0672847657.png',
     title: 'Гайд «Пошаговый план поиска работы для молодого юриста»',
     kind: 'guide',
     direction: ['career'],

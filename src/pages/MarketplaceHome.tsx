@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import MaterialCover from '../components/MaterialCover'
 import PageHero from '../components/PageHero'
 import { materials } from '../data/materials'
 import { materialKindLabel } from '../lib/materialLabels'
@@ -87,9 +88,9 @@ function ProductCard({ m }: { m: MaterialItem }) {
   const fromPrice = m.sale ? Math.min(...Object.values(m.sale).filter((v): v is number => v !== undefined)) : m.price
   return (
     <Link to={`/materials/${m.slug}`} className="glass flex flex-col overflow-hidden rounded-xl">
-      <div className="flex h-32 items-center justify-center bg-gradient-to-br from-ink to-gold text-white">
+      {m.cover ? <MaterialCover material={m} className="rounded-b-none" /> : <div className="flex h-32 items-center justify-center bg-gradient-to-br from-ink to-gold text-white">
         <span className="text-xs font-semibold uppercase tracking-wide opacity-80">{materialKindLabel[m.kind]}</span>
-      </div>
+      </div>}
       <div className="flex flex-1 flex-col p-5">
         <h3 className="font-semibold leading-snug">{m.title}</h3>
         <p className="mt-1.5 line-clamp-2 text-sm text-ink/60">{m.description}</p>

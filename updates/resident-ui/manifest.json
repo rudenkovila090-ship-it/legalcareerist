@@ -2,6 +2,38 @@
   "kind": "resident-ui-20261109-v1",
   "frontend": [
     {
+      "path": "public/materials/covers/gaid-ilfy-rulfy-nyulfy-ca443371cc.png",
+      "sha256": "ca443371cc6c41548f1cd93da730f3e03dccd8b4c9e777f00355f70002680e80"
+    },
+    {
+      "path": "public/materials/covers/gaid-karernoe-planirovanie-5365a8afca.png",
+      "sha256": "5365a8afcab46ecec35d833d6fe2d26e2ca95d21dc919ca510dc7fd6af574d29"
+    },
+    {
+      "path": "public/materials/covers/gaid-kariera-yurista-v-nko-6bb17bd389.png",
+      "sha256": "6bb17bd389b8df60eb318d18e29106db432dfc2c810b1cf223b35145d97ab408"
+    },
+    {
+      "path": "public/materials/covers/gaid-kariera-yurista-v-notariate-1b3cf9f947.png",
+      "sha256": "1b3cf9f947f342ddbc1e17f9075966111f614b5d7608e434f13f4833bd9b3ca1"
+    },
+    {
+      "path": "public/materials/covers/gaid-kariera-yurista-v-privacy-2cf0dd398a.png",
+      "sha256": "2cf0dd398a228c907d8dcf0a2db16fb31ffec13a47062eca62492f2588395f52"
+    },
+    {
+      "path": "public/materials/covers/gaid-poshagovyy-poisk-raboty-0672847657.png",
+      "sha256": "06728476570eae5dc1a705f54b6c83de714b494d8eb976fc58db187cb4a951a3"
+    },
+    {
+      "path": "public/materials/covers/gaid-stipendii-i-granty-b754a63140.png",
+      "sha256": "b754a63140fcef5b135c01023265385723cf54c298a8cca6d908ac0916198f1f"
+    },
+    {
+      "path": "public/materials/covers/longlist-studencheskie-yuridicheskie-meropriyatiya-f57d794b01.png",
+      "sha256": "f57d794b0137788febaf18003a49a295e2cec48d65f9401d2da04fffe76e99f9"
+    },
+    {
       "path": "scripts/export-vacancy-catalog.mjs",
       "sha256": "85104fbde41c9e7fcb8f31d9d159d71f0139546220f97e63e88baab4d3e8c817"
     },
@@ -10,8 +42,12 @@
       "sha256": "ad5d14c6edc07e618e735e001505326a27e453166acc56afc1283d7a69c2ab78"
     },
     {
+      "path": "src/components/MaterialCover.tsx",
+      "sha256": "a414924a2ee74c78dff3eef76a39905fcda42562e620b5db5a4cbd088c80b4ef"
+    },
+    {
       "path": "src/components/cards.tsx",
-      "sha256": "b855d9f67dd4ce7ffa45781c71c8efcf036b6772d214961f5a1ee8bcabae433d"
+      "sha256": "57ca328df281a713af1eddb18091e42173517448c65b2a621802dc3f564ca2f8"
     },
     {
       "path": "src/components/layouts/HolyGrail.tsx",
@@ -20,6 +56,10 @@
     {
       "path": "src/data/events.ts",
       "sha256": "87dfabf1f0115192738f36eec2712a9d3713f4a0d100e9f1f6aa49d49626cc66"
+    },
+    {
+      "path": "src/data/materials.ts",
+      "sha256": "023a82ec09a9ea428f7a7e92e777d04556f306dd63b7fbb0d7f15793dc19f428"
     },
     {
       "path": "src/data/podcast.ts",
@@ -48,6 +88,10 @@
     {
       "path": "src/pages/BlogHome.tsx",
       "sha256": "051ede980f1b577c016303c9c65cb57399e99f6d0c7cc4d4072ab5e5fa7deea8"
+    },
+    {
+      "path": "src/pages/MarketplaceHome.tsx",
+      "sha256": "55d0bdcbf8c5b881c692fbb0ad4dee93c158a62c1d895aae45832413daa4475e"
     },
     {
       "path": "src/pages/account/CandidateAccount.tsx",
@@ -150,12 +194,16 @@
       "sha256": "518f5b3940268f451744670ccfd13b3f62a1483278a5f61115bdf7aafca996db"
     },
     {
+      "path": "src/pages/events/MaterialDetail.tsx",
+      "sha256": "99e20ad3ff87f68381c1e5eae140b3556c7bd4d0f2ee9efdf23c56260b62da7b"
+    },
+    {
       "path": "src/pages/events/NoirSections.tsx",
       "sha256": "c7445daeb1980d911c1b32d1bb13455ecc2c5b6ad2d4ec064ba9c5a3c67aa446"
     },
     {
       "path": "src/types.ts",
-      "sha256": "7ff6ed304b60d129878acf5c2b0c9c7d169848ffa06d97f5fc3dda013fe81804"
+      "sha256": "a68b14030ddf080d7b781f75af468ebe6ad6d0ad83320bd8bf7b588d7a5c5299"
     }
   ],
   "backend": [

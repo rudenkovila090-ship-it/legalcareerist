@@ -9,6 +9,7 @@ import { startEventMusicOnClick } from '../lib/eventMusic'
 import { eventDateRange } from '../lib/eventTime'
 import { eventFormatText, eventPriceText } from '../lib/eventFormat'
 import { salaryLabel } from '../lib/vacancySalary'
+import MaterialCover from './MaterialCover'
 
 const money = new Intl.NumberFormat('ru-RU')
 
@@ -111,15 +112,18 @@ export function EventCard({ e }: { e: EventItem }) {
 
 export function MaterialCard({ m }: { m: MaterialItem }) {
   return (
-    <Link to={`/materials/${m.slug}`} className="glass block rounded-xl p-5">
+    <Link to={`/materials/${m.slug}`} className="glass flex h-full flex-col overflow-hidden rounded-xl">
+      <MaterialCover material={m} className="rounded-b-none" />
+      <div className="flex flex-1 flex-col items-start p-5">
       <span className="text-xs font-medium uppercase tracking-wide text-gold">
         {materialKindLabel[m.kind]}
       </span>
       <h3 className="mt-1 font-semibold leading-snug">{m.title}</h3>
-      <p className="mt-2 text-sm text-ink/60">{m.description}</p>
-      <div className="mt-2 flex flex-wrap items-center gap-2 text-sm font-medium">
+      <p className="mt-2 line-clamp-3 text-sm text-ink/60">{m.description}</p>
+      <div className="mt-auto flex flex-wrap items-center gap-2 pt-4 text-sm font-medium">
         <span>{m.price === 0 ? 'Бесплатно' : `${money.format(m.price)} ₽`}</span>
         {m.inDevelopment && <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-800">В разработке</span>}
+      </div>
       </div>
     </Link>
   )

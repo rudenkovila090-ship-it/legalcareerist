@@ -37,7 +37,7 @@ async function scenario(kind){
  const server=http.createServer((req,res)=>{
   if(req.url.startsWith('/api/health')){res.setHeader('Content-Type','application/json');res.end(JSON.stringify({ok:true,autoExclude:true,graceDays:4,cardBlockHours:72,providerStopBeforeRemoval:true}));return}
   const folder=/^\s*root\s+([^;]+);/m.exec(fs.readFileSync(conf,'utf8'))[1]
-  const file=req.url.startsWith('/assets/')?path.join(folder,req.url.split('?')[0]):path.join(folder,'index.html')
+  const requested=path.join(folder,req.url.split('?')[0]);const file=fs.existsSync(requested)&&fs.statSync(requested).isFile()?requested:path.join(folder,'index.html')
   if(kind==='public-failure'&&!fs.readFileSync(conf).equals(configBefore)){res.end('old cache');return}
   if(!fs.existsSync(file)){res.statusCode=404;res.end();return}res.end(fs.readFileSync(file))
  })
@@ -48,7 +48,7 @@ async function scenario(kind){
  write(path.join(bin,'package.json'),'{"type":"module"}')
  write(path.join(bin,'pm2'),common+`if(args[0]==='jlist')process.stdout.write(fs.readFileSync(path.join(root,'pm2.json')));else if(${JSON.stringify(kind)}==='restart-failure'&&!fs.existsSync(path.join(root,'restart.failed'))){fs.writeFileSync(path.join(root,'restart.failed'),'1');process.exit(1)}`)
  write(path.join(bin,'nginx'),common+`if(args[0]==='-T')process.stdout.write('# configuration file '+${JSON.stringify(conf)}+':\\n'+fs.readFileSync(${JSON.stringify(conf)},'utf8'))`)
- write(path.join(bin,'npm'),common+`if(${JSON.stringify(kind)}==='build-failure')process.exit(1);const dest=path.join(process.cwd(),'dist');fs.mkdirSync(path.join(dest,'assets'),{recursive:true});fs.writeFileSync(path.join(dest,'index.html'),'<html><script src="/assets/index-release.js"></script></html>');fs.writeFileSync(path.join(dest,'assets/index-release.js'),${JSON.stringify(['https://legalcareerist.mave.digital/ep-19','https://legalcareerist.mave.digital/ep-22','/api/account/contact-email/request','Моя записная книжка'].join('\n'))});`)
+ write(path.join(bin,'npm'),common+`if(${JSON.stringify(kind)}==='build-failure')process.exit(1);const dest=path.join(process.cwd(),'dist');fs.mkdirSync(path.join(dest,'assets'),{recursive:true});fs.cpSync(path.join(process.cwd(),'public'),dest,{recursive:true});fs.writeFileSync(path.join(dest,'index.html'),'<html><script src="/assets/index-release.js"></script></html>');fs.writeFileSync(path.join(dest,'assets/index-release.js'),${JSON.stringify(['https://legalcareerist.mave.digital/ep-19','https://legalcareerist.mave.digital/ep-22','/api/account/contact-email/request','Моя записная книжка'].join('\n'))});`)
  for(const name of ['pm2','nginx','npm'])fs.chmodSync(path.join(bin,name),0o755)
  const env={...process.env,PATH:bin+path.delimiter+process.env.PATH,UI_SITE_ROOT:site,UI_BUILD_ROOT:builds,UI_PUBLIC_ROOT:publicRoot,UI_PUBLIC_URL:'http://127.0.0.1:'+port}
  async function install(){return await new Promise(resolve=>{let output='';const c=spawn(process.execPath,[installer,path.join(repo,'updates/resident-ui')],{env});c.stdout.on('data',b=>output+=b);c.stderr.on('data',b=>output+=b);c.on('close',code=>resolve({code,output}))})}

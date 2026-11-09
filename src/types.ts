@@ -599,6 +599,10 @@ export interface MaterialItem extends Tagged {
   id: string
   slug: string
   title: string
+  /** Обложка продукта из /public/materials/covers; исходное изображение целиком. */
+  cover?: string
+  /** Область макета в исходном коллаже; пиксели файла не изменяются. */
+  coverRegion?: { x: number; y: number; width: number; height: number; sourceWidth: number; sourceHeight: number }
   kind: MaterialKind
   direction: MarketplaceDirection[]
   price: number
