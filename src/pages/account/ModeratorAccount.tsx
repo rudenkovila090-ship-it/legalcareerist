@@ -1,3 +1,5 @@
+import { eventPriceText } from '../../lib/eventFormat'
+import { eventScheduleText } from '../../lib/eventTime'
 import { useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import PageHero from '../../components/PageHero'
@@ -16,8 +18,10 @@ const eventTypeLabel: Record<EventType, string> = {
   tour: 'Экскурсия',
   internship: 'Стажировка',
   championship: 'Кейс-чемпионат',
+  meeting: 'Бизнес-встреча',
+  course: 'Курс',
 }
-const eventFormatLabel: Record<EventFormat, string> = { online: 'Онлайн', offline: 'Офлайн' }
+const eventFormatLabel: Record<EventFormat, string> = { online: 'Онлайн', offline: 'Офлайн', hybrid: 'Очно и онлайн' }
 const statusLabel: Record<OrganizerEventStatus, string> = {
   draft: 'Черновик',
   pending_moderation: 'На модерации',
@@ -32,7 +36,6 @@ const statusClass: Record<OrganizerEventStatus, string> = {
   rejected: 'bg-red-50 text-red-700',
   closed: 'bg-ink/[0.06] text-ink/50',
 }
-const money = new Intl.NumberFormat('ru-RU')
 
 // /account/moderator — демо-роль администратора площадки, отдельная от
 // кабинета работодателя-организатора: видит очередь мероприятий на
@@ -122,9 +125,9 @@ export default function ModeratorAccount() {
                     </div>
                     <div className="mt-1 text-xs text-ink/50">
                       {eventTypeLabel[ev.data.type]}
-                      {' · '}{ev.data.format === 'online' ? eventFormatLabel.online : `${eventFormatLabel.offline}${ev.data.city ? `, ${ev.data.city}` : ''}`}
-                      {' · '}{new Date(ev.data.dateTime).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}
-                      {' · '}{ev.data.price === 0 ? 'Бесплатно' : `${money.format(ev.data.price)} ₽`}
+                      {' · '}{eventFormatLabel[ev.data.format]}{ev.data.format !== 'online' && ev.data.city ? `, ${ev.data.city}` : ''}
+                      {' · '}{eventScheduleText(ev.data)}
+                      {' · '}{eventPriceText(ev.data)}
                     </div>
                     {ev.data.description && (
                       <p className="mt-1.5 max-w-xl text-sm text-ink/60">{ev.data.description}</p>

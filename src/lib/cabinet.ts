@@ -34,6 +34,7 @@ export interface CabinetUser {
   memberSince: number | null
   /** Почта аккаунта резидента (у администратора может быть пустой). */
   email?: string
+  communityRole?: 'resident' | 'ambassador'
   role: 'client'
   /** Есть ли карточка этого человека в Telegram-боте (по ней находится подписка). */
   telegramLinked: boolean
@@ -197,7 +198,10 @@ export async function signOut() {
 
 // ---- Профиль и данные ----
 
+export interface NetworkingContact { id: string; name: string; company: string; role: string; email: string; phone: string; telegram: string; metWhere: string; notes: string }
+
 export interface Profile {
+  networking: { intro: string; contacts: NetworkingContact[]; version: number }
   consentAt: number | null
   updatedAt: number | null
   practices: { main: string; related: string[] }
@@ -244,7 +248,7 @@ export const fetchOptions = () => api<ProfileOptions>('/api/account/options')
 export const fetchEvents = () => api<{ events: CabinetEvent[] }>('/api/account/events')
 
 /** Сохранение частей профиля. consent — галочки (нужны только при первом сохранении). */
-export const saveProfile = (parts: Partial<Pick<Profile, 'practices' | 'experience' | 'expectations' | 'privacy'>>, consent?: ConsentChoice) =>
+export const saveProfile = (parts: Partial<Pick<Profile, 'practices' | 'experience' | 'expectations' | 'privacy' | 'networking'>>, consent?: ConsentChoice) =>
   api<{ profile: Profile }>('/api/account/profile', { method: 'PUT', body: JSON.stringify({ ...parts, ...(consent ? { consent, consentVersion: CONSENT_VERSION, marketingVersion: MARKETING_CONSENT_VERSION } : {}) }) })
 
 export const setMarketing = (marketing: boolean) => api<{ marketing: boolean; at: number; applied: boolean }>('/api/account/marketing', { method: 'POST', body: JSON.stringify({ marketing, consentVersion: CONSENT_VERSION, marketingVersion: MARKETING_CONSENT_VERSION }) })
@@ -453,3 +457,6 @@ export const retentionCheckout = () => api<{ url: string }>('/api/account/subscr
 export const requestCardChange = () => api<{ notified: boolean }>('/api/account/subscription/card', { method: 'POST', body: '{}' })
 
 export const renewLockedSubscription = () => api<{ url: string }>('/api/account/subscription/renew', { method: 'POST', body: '{}' })
+
+export const requestContactEmail = (email: string, password: string) => api<{ email: string }>('/api/account/contact-email/request', { method: 'POST', body: JSON.stringify({ email, password }) })
+export const confirmContactEmail = (code: string) => api<{ email: string }>('/api/account/contact-email/confirm', { method: 'POST', body: JSON.stringify({ code }) })

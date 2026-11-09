@@ -30,7 +30,7 @@ export interface TabDef {
 }
 
 /** Вкладки-пилюли: активная белая с тенью, остальные плоские; прокручиваются по горизонтали на узких экранах. */
-export function PillTabs({ tabs, active, hrefOf, label }: { tabs: TabDef[]; active: string; hrefOf: (id: string) => string; label: string }) {
+export function PillTabs({ tabs, active, hrefOf, label, contrast = false }: { contrast?: boolean; tabs: TabDef[]; active: string; hrefOf: (id: string) => string; label: string }) {
   return (
     <nav aria-label={label} className="-mx-1 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       <ul className="flex w-max min-w-full gap-1">
@@ -41,9 +41,9 @@ export function PillTabs({ tabs, active, hrefOf, label }: { tabs: TabDef[]; acti
               <Link
                 to={hrefOf(t.id)}
                 aria-current={on ? 'page' : undefined}
-                className={`flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-[13px] font-medium transition-colors ${on ? `bg-white text-ink ${shadowLift}` : 'text-ink/60 hover:bg-white/60 hover:text-ink'} ${focusRing}`}
+                className={`flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-[13px] font-medium transition-colors ${on ? `${contrast ? 'bg-ink text-white' : 'bg-white text-ink'} ${shadowLift}` : 'text-ink/60 hover:bg-white/60 hover:text-ink'} ${focusRing}`}
               >
-                <span className={`[&>svg]:h-4 [&>svg]:w-4 ${on ? 'text-ink' : 'text-ink/50'}`}>{t.icon}</span>
+                <span className={`[&>svg]:h-4 [&>svg]:w-4 ${on && contrast ? 'text-white' : on ? 'text-ink' : 'text-ink/50'}`}>{t.icon}</span>
                 {t.label}
                 {t.count !== undefined && t.count > 0 && (
                   <span className={`min-w-[1.125rem] rounded-full px-1.5 py-0.5 text-center text-[10px] font-bold leading-none tabular-nums ${t.attention ? accent : 'bg-ink text-white'}`}>{t.count}</span>

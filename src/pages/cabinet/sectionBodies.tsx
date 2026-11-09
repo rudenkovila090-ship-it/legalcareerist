@@ -1,3 +1,4 @@
+import NetworkingSection from './NetworkingSection'
 import type { ReactNode } from 'react'
 import type { CabinetUser, DashboardData } from '../../lib/cabinet'
 import { ActivitySection, ProfileInfoSection, SettingsSection } from './AccountSections'
@@ -22,6 +23,7 @@ export interface BodyContext {
 /** Содержимое готового раздела; null — раздел ещё не сделан (показывается «В разработке» с перечнем). */
 export function sectionBody(id: string, { user, onRefresh, onRead }: BodyContext): ReactNode | null {
   switch (id) {
+    case 'contacts': return <NetworkingSection />
     case 'profile': return <ProfileInfoSection user={user} onSaved={onRefresh} />
     case 'activity': return <ActivitySection />
     case 'settings': return <SettingsSection user={user} />

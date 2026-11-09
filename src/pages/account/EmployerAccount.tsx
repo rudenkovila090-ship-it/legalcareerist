@@ -1,3 +1,5 @@
+import { eventPriceText } from '../../lib/eventFormat'
+import { eventScheduleText } from '../../lib/eventTime'
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import PageHero from '../../components/PageHero'
@@ -109,10 +111,13 @@ const eventTypeOptions: { id: EventType; label: string }[] = [
   { id: 'tour', label: 'Экскурсия' },
   { id: 'internship', label: 'Стажировка' },
   { id: 'championship', label: 'Кейс-чемпионат' },
+  { id: 'meeting', label: 'Бизнес-встреча' },
+  { id: 'course', label: 'Курс' },
 ]
 const eventFormatOptions: { id: EventFormat; label: string }[] = [
   { id: 'online', label: 'Онлайн' },
   { id: 'offline', label: 'Офлайн' },
+  { id: 'hybrid', label: 'Очно и онлайн' },
 ]
 
 /** Просмотры и переходы к регистрации мероприятия из публичного каталога —
@@ -1895,7 +1900,7 @@ export default function EmployerAccount() {
                                     className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
                                   />
                                   <input
-                                    type="datetime-local"
+                                    type={eventForm.dateOnly ? 'date' : 'datetime-local'}
                                     value={eventForm.dateTime.slice(0, 16)}
                                     onChange={(e) => setEventForm((f) => f && { ...f, dateTime: e.target.value })}
                                     className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm focus:border-ink/40 focus:outline-none"
@@ -1903,8 +1908,8 @@ export default function EmployerAccount() {
                                   <input aria-label="Цена, ₽ (0 — бесплатно)"
                                     type="number"
                                     min={0}
-                                    value={eventForm.price}
-                                    onChange={(e) => setEventForm((f) => f && { ...f, price: Number(e.target.value) })}
+                                    value={eventForm.price ?? ''}
+                                    onChange={(e) => setEventForm((f) => f && { ...f, price: e.target.value === '' ? null : Number(e.target.value) })}
                                     placeholder="Цена, ₽ (0 — бесплатно)"
                                     className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
                                   />
@@ -1948,9 +1953,9 @@ export default function EmployerAccount() {
                                   </div>
                                   <div className="mt-1 text-xs text-ink/50">
                                     {eventTypeOptions.find((t) => t.id === ev.data.type)?.label}
-                                    {' · '}{ev.data.format === 'online' ? 'Онлайн' : ev.data.city || 'Офлайн'}
-                                    {' · '}{new Date(ev.data.dateTime).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}
-                                    {' · '}{ev.data.price === 0 ? 'Бесплатно' : `${money.format(ev.data.price)} ₽`}
+                                    {' · '}{ev.data.format === 'online' ? 'Онлайн' : ev.data.format === 'hybrid' ? `${ev.data.city || 'Очно'} + онлайн` : ev.data.city || 'Офлайн'}
+                                    {' · '}{eventScheduleText(ev.data)}
+                                    {' · '}{eventPriceText(ev.data)}
                                   </div>
                                   {ev.status === 'rejected' && ev.rejectionReason && (
                                     <div className="mt-1 text-xs text-red-600">Причина отказа: {ev.rejectionReason}</div>

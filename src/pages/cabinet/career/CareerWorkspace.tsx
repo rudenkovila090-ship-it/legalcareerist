@@ -1,3 +1,4 @@
+import ProfessionalProfile from '../ProfessionalProfile'
 import type { CabinetPage } from '../sections'
 import { icon } from '../sections'
 import { isMember } from '../shared'
@@ -17,9 +18,10 @@ import { useCareer } from './useCareer'
 // в порядке важности: план и подготовка к интервью, затем шаблоны, рекомендация, портфолио, подкаст. Адрес вкладки — /cabinet/<раздел>
 // (career, route, interview-prep, templates, recommendations, portfolio, achievements, capital, mediakit, podcast): ссылки можно сохранять.
 
-type CareerTab = 'overview' | 'plan' | 'interview' | 'templates' | 'recommendation' | 'portfolio' | 'podcast'
+type CareerTab = 'overview' | 'plan' | 'interview' | 'templates' | 'recommendation' | 'portfolio' | 'podcast' | 'profile' | 'market' | 'photo'
 
 const HREF: Record<CareerTab, string> = {
+  profile: '/cabinet/career-profile', market: '/cabinet/market', photo: '/cabinet/photo',
   overview: '/cabinet/career',
   plan: '/cabinet/route',
   interview: '/cabinet/interview-prep',
@@ -30,6 +32,7 @@ const HREF: Record<CareerTab, string> = {
 }
 
 const ANCHOR_TAB: Record<string, { tab: CareerTab; sub?: PortfolioSub }> = {
+  'career-profile': { tab: 'profile' }, practices: { tab: 'profile' }, expectations: { tab: 'profile' }, privacy: { tab: 'profile' }, documents: { tab: 'profile' }, expert: { tab: 'profile' }, market: { tab: 'market' }, photo: { tab: 'photo' },
   route: { tab: 'plan' },
   'interview-prep': { tab: 'interview' },
   templates: { tab: 'templates' },
@@ -51,16 +54,18 @@ export default function CareerWorkspace({ page, ctx }: { page: CabinetPage; ctx:
 
   const st = career.state
   const tabs: TabDef[] = [
+    { id: 'profile', label: 'Профессиональный профиль', icon: icon.user },
     { id: 'overview', label: 'Обзор', icon: icon.home },
     { id: 'plan', label: 'Карьерный план', icon: icon.route },
     { id: 'interview', label: 'Подготовка к интервью', icon: icon.mic },
     { id: 'templates', label: 'Шаблоны', icon: icon.book },
     { id: 'recommendation', label: 'Рекомендация', icon: icon.star, count: st?.recommendations.ready, attention: true },
     { id: 'portfolio', label: 'Портфолио', icon: icon.folder },
-    { id: 'podcast', label: 'Подкаст', icon: icon.headphones },
+    { id: 'podcast', label: 'Подкаст · стать гостем', icon: icon.headphones },
   ]
 
-  if (!member) {
+  tabs.push({ id: 'market', label: 'Оценка рынка · скоро', icon: icon.chart }, { id: 'photo', label: 'Фото для CV · скоро', icon: icon.user })
+  if (!member && tab !== 'profile') {
     const ended = user.resident.status === 'ended'
     return (
       <Workspace>
@@ -81,7 +86,7 @@ export default function CareerWorkspace({ page, ctx }: { page: CabinetPage; ctx:
     <Workspace>
       <PillTabs tabs={tabs} active={tab} hrefOf={hrefOf} label="Разделы вкладки «Построение карьеры»" />
       <div className="mt-2 min-h-[22rem]">
-        {career.failed && !st ? (
+        {tab === 'profile' ? <ProfessionalProfile key={page.anchor} ctx={ctx} initial={page.anchor} /> : tab === 'market' || tab === 'photo' ? <Surface><h2 className="text-base font-semibold">{tab === 'market' ? 'Оценка рынка' : 'Фото для CV'}</h2><p className="mt-2 text-sm text-ink/60">Раздел готовится. Сообщим в сообществе, когда он станет доступен.</p></Surface> : career.failed && !st ? (
           <Surface><p className="text-[13px] text-ink/60">Не получилось загрузить раздел. Обновите страницу через минуту.</p></Surface>
         ) : !st ? (
           <TabSkeleton rows={3} />

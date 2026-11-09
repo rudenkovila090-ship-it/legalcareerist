@@ -2,7 +2,8 @@ import { NavLink } from 'react-router-dom'
 import { useCabinetGreeting } from '../lib/cabinetGreeting'
 
 const nav = [
-  { to: '/kadry/employers', label: 'Кадры' },
+  { to: '/kadry/employers', label: 'Работодателям' },
+  { to: '/kadry/candidates', label: 'Соискателям' },
   { to: '/community', label: 'Сообщество' },
   { to: '/events', label: 'Мероприятия' },
   { to: '/marketplace', label: 'Маркетплейс' },
@@ -18,13 +19,8 @@ function IconAccount() {
   )
 }
 
-const kadryAudience = [
-  { to: '/kadry/employers', label: 'Работодателям' },
-  { to: '/kadry/candidates', label: 'Соискателям' },
-]
-
 function linkClass({ isActive }: { isActive: boolean }) {
-  return `rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
+  return `shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
     isActive ? 'bg-ink/[0.08] text-ink' : 'text-ink/60 hover:bg-ink/[0.04] hover:text-ink'
   }`
 }
@@ -33,8 +29,8 @@ export default function Header() {
   const greeting = useCabinetGreeting()
   return (
     <header className="sticky top-0 z-40 border-b border-ink/10 bg-white/70 backdrop-blur-xl [transform:translateZ(0)] [will-change:transform]">
-      <div className={`${greeting ? 'container-wide' : 'container-page'} flex h-16 items-center justify-between`}>
-        <NavLink to="/" className="flex items-center gap-1.5">
+      <div className={`${greeting ? 'container-wide' : 'container-page'} flex h-16 items-center justify-between gap-4`}>
+        <NavLink to="/" className="flex shrink-0 items-center gap-1.5">
           {/* На референсе иконка заметно выше двухстрочного текста — выступает
               и сверху, и снизу за его пределы, а не равна ему по высоте.
               viewBox обрезан по содержимому (было 0 0 100 100 с пустым полем
@@ -55,37 +51,12 @@ export default function Header() {
           </span>
         </NavLink>
 
-        <nav className="hidden items-center gap-2 md:flex lg:gap-6">
-          {nav.map((item) =>
-            item.label === 'Кадры' ? (
-              // «Кадры» — по наведению открывает выбор аудитории (Работодателям/
-              // Соискателям) вместо отдельной всегда видимой панели под шапкой.
-              <div key={item.to} className="group relative">
-                <NavLink to={item.to} className={linkClass}>{item.label}</NavLink>
-                <div className="invisible absolute left-0 top-full z-50 pt-2 opacity-0 transition-opacity duration-150 group-hover:visible group-hover:opacity-100">
-                  <div className="w-48 rounded-xl border border-ink/10 bg-white p-1.5 shadow-xl">
-                    {kadryAudience.map((a) => (
-                      <NavLink
-                        key={a.to}
-                        to={a.to}
-                        className={({ isActive }) =>
-                          `block rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                            isActive ? 'bg-ink/5 text-ink' : 'text-ink/60 hover:bg-ink/5 hover:text-ink'
-                          }`
-                        }
-                      >
-                        {a.label}
-                      </NavLink>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <NavLink key={item.to} to={item.to} className={linkClass}>
-                {item.label}
-              </NavLink>
-            ),
-          )}
+        <nav aria-label="Основная навигация" className={`hidden items-center gap-1 ${greeting ? 'xl:flex' : 'lg:flex'} xl:gap-2`}>
+          {nav.map((item) => (
+            <NavLink key={item.to} to={item.to} className={linkClass}>
+              {item.label}
+            </NavLink>
+          ))}
         </nav>
 
         <div className="flex min-w-0 items-center gap-3">
@@ -102,7 +73,7 @@ export default function Header() {
             aria-label="Личный кабинет"
             title="Личный кабинет"
             className={({ isActive }) =>
-              `flex h-10 w-10 items-center justify-center rounded-full border transition-colors ${
+              `flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition-colors ${
                 isActive ? 'border-ink bg-ink text-white' : 'border-ink/15 text-ink/70 hover:border-ink/40 hover:text-ink'
               }`
             }
@@ -111,29 +82,11 @@ export default function Header() {
           </NavLink>
         </div>
       </div>
-      <div className="relative md:hidden">
-        <nav className="container-page flex items-center gap-4 overflow-x-auto pb-3">
+      <div className={`relative ${greeting ? 'xl:hidden' : 'lg:hidden'}`}>
+        <nav aria-label="Основная навигация" className="container-page flex items-center gap-1 overflow-x-auto pb-3 pr-10">
           {nav.map((item) => (
             <NavLink key={item.to} to={item.to} className={linkClass}>
               {item.label}
-            </NavLink>
-          ))}
-          {/* На тач-устройствах нет наведения — переключатель аудитории «Кадры»
-              показываем явными пилюлями-ссылками, а не только скрытым по ховеру
-              меню. Видны всегда (не только когда onKadry) — иначе выбор
-              «Соискателям» негде увидеть до того, как уже попал на страницу
-              «Работодателям» по умолчанию через сам пункт «Кадры». */}
-          {kadryAudience.map((a) => (
-            <NavLink
-              key={a.to}
-              to={a.to}
-              className={({ isActive }) =>
-                `shrink-0 rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
-                  isActive ? 'bg-ink text-white' : 'border border-ink/15 text-ink/60'
-                }`
-              }
-            >
-              {a.label}
             </NavLink>
           ))}
         </nav>

@@ -9,7 +9,8 @@ import EventsFooter from './EventsFooter'
 import { INDUSTRIES, type EventItem, type Industry, type AudienceLevel } from '../../types'
 import { SHOW_CREATE_EVENT, SHOW_EVENTS_ACCOUNT } from '../../lib/featureFlags'
 import HowHeardField from '../../components/HowHeardField'
-import { eventTimeRange } from '../../lib/eventTime'
+import { eventScheduleText, eventTimeRange } from '../../lib/eventTime'
+import { eventFormatText, eventPriceText, matchesEventFormat } from '../../lib/eventFormat'
 import { startEventMusicOnClick } from '../../lib/eventMusic'
 import { eventStories } from '../../data/eventStories'
 import { pluralRu } from '../../lib/plural'
@@ -30,6 +31,8 @@ const posterTone: Record<EventItem['type'], string> = {
   tour: 'from-gold-light to-ink',
   internship: 'from-gold-light via-gold to-ink',
   championship: 'from-ink via-gold to-ink',
+  meeting: 'from-[#5b20b8] to-[#30105e]',
+  course: 'from-ink via-gold to-[#344b70]',
 }
 
 const eventTypeLabel: Record<EventItem['type'], string> = {
@@ -40,6 +43,8 @@ const eventTypeLabel: Record<EventItem['type'], string> = {
   tour: 'Экскурсия',
   internship: 'Стажировка',
   championship: 'Кейс-чемпионат',
+  meeting: 'Бизнес-встреча',
+  course: 'Курс',
 }
 
 function IconMic() {
@@ -91,6 +96,8 @@ const posterIcon: Record<EventItem['type'], typeof IconMic> = {
   tour: IconStage,
   internship: IconCap,
   championship: IconCap,
+  meeting: IconMic,
+  course: IconCap,
 }
 
 function IconSearch({ className = 'h-5 w-5' }: { className?: string }) {
@@ -151,6 +158,8 @@ const eventTypeOptions: { id: EventItem['type']; label: string }[] = [
   { id: 'tour', label: 'Экскурсии' },
   { id: 'internship', label: 'Стажировки' },
   { id: 'championship', label: 'Кейс-чемпионаты' },
+  { id: 'meeting', label: 'Бизнес-встречи' },
+  { id: 'course', label: 'Курсы' },
 ]
 
 const audienceLabel: Record<AudienceLevel, string> = {
@@ -186,13 +195,12 @@ function matchesCollection(e: EventItem, id: CollectionId, thisMonth: number, th
 
 function EventCard({ e }: { e: EventItem }) {
   const Icon = posterIcon[e.type]
-  const date = new Date(e.dateTime)
   const past = e.status === 'completed'
   return (
-    <Link to={`/events/${e.slug}`} className="glass block overflow-hidden rounded-2xl">
+    <Link to={`/events/${e.slug}`} className="glass flex h-full flex-col overflow-hidden rounded-2xl">
       {e.cover ? (
         // афиша организатора целиком (без обрезки), вписана в невысокую полосу; поля вокруг — цвета фона афиши
-        <div className={`relative h-40 overflow-hidden bg-ink ${past ? 'grayscale' : ''}`} style={e.coverColor ? { backgroundColor: e.coverColor } : undefined}>
+        <div className={`relative h-24 shrink-0 overflow-hidden bg-ink ${past ? 'grayscale' : ''}`} style={e.coverColor ? { backgroundColor: e.coverColor } : undefined}>
           <img src={e.cover} alt={`Афиша: ${e.title}`} loading="lazy" className="h-full w-full object-contain" />
           {(e.partner || e.international) && (
             <div className="absolute right-3 top-3 flex flex-wrap justify-end gap-1.5">
@@ -207,7 +215,7 @@ function EventCard({ e }: { e: EventItem }) {
           )}
         </div>
       ) : (
-      <div className={`relative flex h-40 flex-col justify-between bg-gradient-to-br p-5 text-white ${posterTone[e.type]} ${past ? 'grayscale' : ''}`}>
+      <div className={`relative flex h-24 shrink-0 flex-col justify-between bg-gradient-to-br p-3.5 text-white ${posterTone[e.type]} ${past ? 'grayscale' : ''}`}>
         <div className="flex items-start justify-between gap-2">
           <Icon />
           <div className="flex flex-wrap justify-end gap-1.5">
@@ -226,18 +234,18 @@ function EventCard({ e }: { e: EventItem }) {
         )}
       </div>
       )}
-      <div className={e.cover ? 'p-4' : 'p-5'}>
+      <div className="flex flex-1 flex-col p-3.5">
         <div className="text-xs font-medium uppercase tracking-wide text-gold">{eventTypeLabel[e.type]}</div>
-        <h3 className={`mt-1 font-semibold leading-snug ${e.cover ? 'text-base' : 'text-lg'}`}>{e.title}</h3>
+        <h3 className="mt-1 text-sm font-semibold leading-snug">{e.title}</h3>
 
-        <div className={`space-y-1 text-ink/60 ${e.cover ? 'mt-2 text-xs' : 'mt-3 text-sm'}`}>
-          <div>{e.format === 'online' ? 'Онлайн' : e.city}{e.cover && ` · ${date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })} · ${eventTimeRange(e)}`}</div>
-          {!e.cover && <div>{date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })} · {eventTimeRange(e)}</div>}
+        <div className="mt-2 space-y-1 text-xs text-ink/60">
+          <div>{eventFormatText(e)}{e.cover && ` · ${eventScheduleText(e)}`}</div>
+          {!e.cover && <div>{eventScheduleText(e)}</div>}
           {e.location && !e.cover && <div>{e.location}</div>}
         </div>
 
         {past && e.sale ? (
-          <div className="mt-3 flex flex-wrap gap-1.5">
+          <div className="mt-auto flex flex-wrap items-end gap-1.5 pt-3">
             {e.sale.bundle !== undefined && (
               <span className="rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-white">
                 Запись + материалы {e.sale.bundle === 0 ? '· бесплатно' : `· ${money.format(e.sale.bundle)} ₽`}
@@ -251,11 +259,11 @@ function EventCard({ e }: { e: EventItem }) {
             )}
           </div>
         ) : (
-          <div className={`flex flex-wrap items-center gap-2 ${e.cover ? 'mt-2.5' : 'mt-3'}`}>
-            <span className="inline-block rounded-full bg-ink px-4 py-1.5 text-sm font-semibold text-white">
-              {e.price === 0 ? 'Бесплатно' : `${money.format(e.price)} ₽`}
+          <div className="mt-auto flex items-end gap-2 pt-3">
+            <span className="inline-block shrink-0 whitespace-nowrap rounded-full bg-ink px-4 py-1.5 text-sm font-semibold text-white">
+              {eventPriceText(e)}
             </span>
-            {e.externalRegistration && <span className="text-xs font-medium text-ink/55">регистрация у организатора</span>}
+            {e.externalRegistration && <span className="min-w-0 self-center break-words text-xs font-medium text-ink/55">регистрация у организатора</span>}
           </div>
         )}
       </div>
@@ -282,11 +290,11 @@ function FeaturedEventCard({ e, image }: { e: EventItem; image: string }) {
           <span className="hidden h-4 w-px bg-[#eadfc8]/30 sm:block" aria-hidden="true" />
           <span>{eventTimeRange(e)}</span>
           <span className="hidden h-4 w-px bg-[#eadfc8]/30 sm:block" aria-hidden="true" />
-          <span>{e.format === 'online' ? 'Онлайн' : e.city}</span>
+          <span>{eventFormatText(e)}</span>
         </div>
         <div className="mt-6 flex flex-wrap items-center gap-3">
           <span className="rounded-full bg-[#a3202a] px-5 py-2 text-sm font-semibold text-white transition-colors group-hover:bg-[#d3303b]">
-            {e.price === 0 ? 'Бесплатно' : `${money.format(e.price)} ₽`}
+            {eventPriceText(e)}
           </span>
           <span className="text-sm font-semibold text-[#eadfc8]/80">Подробнее →</span>
         </div>
@@ -334,7 +342,7 @@ export default function EventsHome() {
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<'all' | EventItem['type']>('all')
   const [cityFilter, setCityFilter] = useState('all')
-  const [formatFilter, setFormatFilter] = useState<'all' | 'online' | 'offline'>('all')
+  const [formatFilter, setFormatFilter] = useState<'all' | EventItem['format']>('all')
   const [industryFilter, setIndustryFilter] = useState<'all' | Industry>('all')
   const [audienceFilter, setAudienceFilter] = useState<'all' | AudienceLevel>('all')
   const [priceFilter, setPriceFilter] = useState<'all' | 'free' | 'paid'>('all')
@@ -355,11 +363,11 @@ export default function EventsHome() {
       if (collection !== 'all' && !matchesCollection(e, collection, now.getMonth(), now.getFullYear())) return false
       if (typeFilter !== 'all' && e.type !== typeFilter) return false
       if (cityFilter !== 'all' && e.city !== cityFilter) return false
-      if (formatFilter !== 'all' && e.format !== formatFilter) return false
+      if (!matchesEventFormat(e, formatFilter)) return false
       if (industryFilter !== 'all' && !e.industry.includes(industryFilter)) return false
       if (audienceFilter !== 'all' && !e.audienceLevel.includes(audienceFilter)) return false
       if (priceFilter === 'free' && e.price !== 0) return false
-      if (priceFilter === 'paid' && e.price === 0) return false
+      if (priceFilter === 'paid' && (e.price === null || e.price <= 0)) return false
       if (regionFilter === 'ru' && e.international) return false
       if (regionFilter === 'intl' && !e.international) return false
       if (searchNorm) {
@@ -368,8 +376,8 @@ export default function EventsHome() {
       }
       return true
     })
-    if (sort === 'price_asc') return [...list].sort((a, b) => a.price - b.price)
-    if (sort === 'price_desc') return [...list].sort((a, b) => b.price - a.price)
+    if (sort === 'price_asc') return [...list].sort((a, b) => (a.price ?? Infinity) - (b.price ?? Infinity))
+    if (sort === 'price_desc') return [...list].sort((a, b) => (b.price ?? -Infinity) - (a.price ?? -Infinity))
     if (sort === 'date_asc') return [...list].sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())
     return [...list].sort((a, b) => Number(a.status === 'completed') - Number(b.status === 'completed'))
   }, [collection, typeFilter, cityFilter, formatFilter, industryFilter, audienceFilter, priceFilter, regionFilter, sort, searchNorm, now])
@@ -595,10 +603,11 @@ export default function EventsHome() {
                 <option value="all">Город мероприятия</option>
                 {cities.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
-              <select aria-label="Способ участия" value={formatFilter} onChange={(e) => setFormatFilter(e.target.value as 'all' | 'online' | 'offline')} className="rounded-md border border-ink/15 px-2 py-1 text-xs">
+              <select aria-label="Способ участия" value={formatFilter} onChange={(e) => setFormatFilter(e.target.value as 'all' | EventItem['format'])} className="rounded-md border border-ink/15 px-2 py-1 text-xs">
                 <option value="all">Способ участия</option>
                 <option value="online">Онлайн</option>
                 <option value="offline">Офлайн</option>
+                <option value="hybrid">Очно и онлайн</option>
               </select>
               <select aria-label="Направление права" value={industryFilter} onChange={(e) => setIndustryFilter(e.target.value as 'all' | Industry)} className="rounded-md border border-ink/15 px-2 py-1 text-xs">
                 <option value="all">Направление права</option>

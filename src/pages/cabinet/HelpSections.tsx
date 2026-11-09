@@ -10,13 +10,6 @@ const focusRing = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-
 
 // ---- Помощь и FAQ ----
 export function HelpSection() {
-  const [query, setQuery] = useState('')
-  const q = query.trim().toLowerCase()
-  const groups = useMemo(() => {
-    const found = FAQ.filter((f) => !q || f.q.toLowerCase().includes(q) || f.group.toLowerCase().includes(q))
-    return [...new Set(found.map((f) => f.group))].map((group) => ({ group, items: found.filter((f) => f.group === group) }))
-  }, [q])
-
   return (
     <div className="space-y-6">
       <div className="grid gap-3 sm:grid-cols-3">
@@ -24,7 +17,26 @@ export function HelpSection() {
         <ContactTile href="mailto:info@legalcareerist.ru" icon={icon.mail} title="Почта" note="info@legalcareerist.ru" />
         <ContactTile href="https://t.me/legalcareerist_support" icon={icon.telegram} title="Telegram" note="@legalcareerist_support" />
       </div>
+      <section aria-labelledby="help-faq-title" className="space-y-4">
+        <h2 id="help-faq-title" className="text-lg font-semibold">Частые вопросы</h2>
+        <FrequentQuestions />
+      </section>
+    </div>
+  )
+}
 
+/** Один список вопросов для помощи и раздела поддержки, с общим поиском и ответами. */
+function FrequentQuestions() {
+  const [query, setQuery] = useState('')
+  const q = query.trim().toLowerCase()
+  const groups = useMemo(() => {
+    const found = FAQ.filter((f) => !q || f.q.toLowerCase().includes(q) || f.group.toLowerCase().includes(q))
+    return [...new Set(found.map((f) => f.group))].map((group) => ({ group, items: found.filter((f) => f.group === group) }))
+  }, [q])
+
+
+  return (
+    <div className="space-y-6">
       <div>
         <label htmlFor="faq-search" className="sr-only">Поиск по вопросам</label>
         <input id="faq-search" value={query} onChange={(e) => setQuery(e.target.value)} type="search" placeholder="Найти вопрос: пароль, билет, подписка…" className={fieldClass} />
@@ -34,12 +46,12 @@ export function HelpSection() {
         <Card className="flex flex-col items-center gap-3 py-10 text-center">
           <IconBubble tone="soft">{icon.help}</IconBubble>
           <p className="text-sm text-ink/60">Ничего не нашли по запросу «{query.trim()}».</p>
-          <Link to="/cabinet/support" className={`rounded-full bg-ink px-6 py-2.5 text-sm font-semibold text-white hover:bg-ink/90 ${focusRing}`}>Спросить в чате</Link>
+          <Link to="/cabinet/support#support-chat" className={`rounded-full bg-ink px-6 py-2.5 text-sm font-semibold text-white hover:bg-ink/90 ${focusRing}`}>Спросить в чате</Link>
         </Card>
       ) : (
         groups.map(({ group, items }) => (
           <section key={group} aria-label={group}>
-            <h2 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-ink/40">{group}</h2>
+            <h3 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-ink/40">{group}</h3>
             <div className="glass divide-y divide-ink/10 rounded-2xl">
               {items.map((f) => (
                 <details key={f.id} className="group px-4 py-3.5" open={Boolean(q) && items.length === 1}>
@@ -54,7 +66,7 @@ export function HelpSection() {
           </section>
         ))
       )}
-      <p className="px-1 text-xs text-ink/50">Не нашли ответ? <Link to="/cabinet/support" className="underline hover:text-ink">Напишите в чат поддержки</Link>.</p>
+      <p className="px-1 text-xs text-ink/50">Не нашли ответ? <Link to="/cabinet/support#support-chat" className="underline hover:text-ink">Напишите в чат поддержки</Link>.</p>
     </div>
   )
 }
@@ -161,69 +173,75 @@ export function SupportSection({ onRead }: { onRead: () => void }) {
 
   const list = messages ?? []
   return (
-    <div className="flex h-[min(42rem,calc(100svh-9rem))] min-h-[26rem] flex-col overflow-hidden rounded-2xl border border-ink/10 bg-white/70 shadow-sm">
-      <div className="flex items-center gap-3 border-b border-ink/10 px-4 py-3.5 sm:px-5">
-        <IconBubble>{icon.lifebuoy}</IconBubble>
-        <div className="min-w-0">
-          <div className="text-sm font-semibold">Служба поддержки</div>
-          <div className="truncate text-xs text-ink/50">Ответ придёт сюда, на почту и в Telegram, если он привязан</div>
-        </div>
-      </div>
-
-      <div ref={listRef} role="log" aria-live="polite" aria-label="Переписка с поддержкой" className="flex-1 space-y-3 overflow-y-auto px-4 py-4 sm:px-5">
-        {messages === null && <p className="py-10 text-center text-sm text-ink/50">Загружаем…</p>}
-        {messages !== null && list.length === 0 && (
-          <div className="flex h-full flex-col items-center justify-center gap-4 py-6 text-center">
-            <IconBubble tone="soft">{icon.chat}</IconBubble>
-            <div>
-              <p className="text-sm font-semibold">Задайте вопрос</p>
-              <p className="mt-1 max-w-xs text-xs text-ink/60">Опишите, что случилось. Не присылайте пароли и данные банковских карт.</p>
-            </div>
-            <div className="flex flex-wrap justify-center gap-2">
-              {SUGGESTIONS.map((s) => (
-                <button key={s} type="button" onClick={() => { setText(s); window.setTimeout(() => { areaRef.current?.focus(); resize() }, 0) }} className={`rounded-full border border-ink/15 px-3 py-1.5 text-xs font-medium text-ink/70 hover:border-ink/30 hover:text-ink ${focusRing}`}>
-                  {s}
-                </button>
-              ))}
-            </div>
+    <div className="space-y-6">
+      <div id="support-chat" className="scroll-mt-24 flex h-[min(42rem,calc(100svh-9rem))] min-h-[26rem] flex-col overflow-hidden rounded-2xl border border-ink/10 bg-white/70 shadow-sm">
+        <div className="flex items-center gap-3 border-b border-ink/10 px-4 py-3.5 sm:px-5">
+          <IconBubble>{icon.lifebuoy}</IconBubble>
+          <div className="min-w-0">
+            <div className="text-sm font-semibold">Служба поддержки</div>
+            <div className="truncate text-xs text-ink/50">Ответ придёт сюда, на почту и в Telegram, если он привязан</div>
           </div>
-        )}
-        {list.map((m, i) => {
-          const mine = m.from === 'user'
-          const newDay = i === 0 || dayTitle(list[i - 1].at) !== dayTitle(m.at)
-          return (
-            <div key={m.id}>
-              {newDay && <div className="mb-3 text-center text-xs font-medium text-ink/40">{dayTitle(m.at)}</div>}
-              <div className={`flex flex-col ${mine ? 'items-end' : 'items-start'}`}>
-                <div className={`max-w-[85%] whitespace-pre-wrap break-words rounded-2xl px-4 py-2.5 text-sm leading-relaxed sm:max-w-[75%] ${mine ? 'rounded-br-md bg-ink text-white' : 'rounded-bl-md bg-ink/[0.06] text-ink'}`}>{m.text}</div>
-                <div className="mt-1 px-1 text-[11px] text-ink/40">{mine ? 'Вы' : 'Поддержка'} · {timeOfDay(m.at)}</div>
+        </div>
+
+        <div ref={listRef} role="log" aria-live="polite" aria-label="Переписка с поддержкой" className="flex-1 space-y-3 overflow-y-auto px-4 py-4 sm:px-5">
+          {messages === null && <p className="py-10 text-center text-sm text-ink/50">Загружаем…</p>}
+          {messages !== null && list.length === 0 && (
+            <div className="flex h-full flex-col items-center justify-center gap-4 py-6 text-center">
+              <IconBubble tone="soft">{icon.chat}</IconBubble>
+              <div>
+                <p className="text-sm font-semibold">Задайте вопрос</p>
+                <p className="mt-1 max-w-xs text-xs text-ink/60">Опишите, что случилось. Не присылайте пароли и данные банковских карт.</p>
+              </div>
+              <div className="flex flex-wrap justify-center gap-2">
+                {SUGGESTIONS.map((s) => (
+                  <button key={s} type="button" onClick={() => { setText(s); window.setTimeout(() => { areaRef.current?.focus(); resize() }, 0) }} className={`rounded-full border border-ink/15 px-3 py-1.5 text-xs font-medium text-ink/70 hover:border-ink/30 hover:text-ink ${focusRing}`}>
+                    {s}
+                  </button>
+                ))}
               </div>
             </div>
-          )
-        })}
-      </div>
-
-      <form onSubmit={submit} className="border-t border-ink/10 bg-white/80 px-3 py-3 sm:px-4">
-        {(error || note) && <p role={error ? 'alert' : 'status'} className={`mb-2 px-1 text-xs ${error ? 'text-red-600' : 'text-ink/60'}`}>{error || note}</p>}
-        <div className="flex items-end gap-2">
-          <label htmlFor="support-text" className="sr-only">Сообщение</label>
-          <textarea
-            id="support-text"
-            ref={areaRef}
-            value={text}
-            onChange={(e) => { setText(e.target.value); resize() }}
-            onKeyDown={onKeyDown}
-            rows={1}
-            maxLength={max}
-            placeholder="Напишите сообщение…"
-            className={`${fieldClass} max-h-40 resize-none`}
-          />
-          <button type="submit" disabled={busy || !text.trim()} aria-label="Отправить" className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-ink text-white hover:bg-ink/90 disabled:opacity-40 ${focusRing}`}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5" aria-hidden="true"><path d="m5 12 14-7-5 14-2.5-5.5L5 12Z" /></svg>
-          </button>
+          )}
+          {list.map((m, i) => {
+            const mine = m.from === 'user'
+            const newDay = i === 0 || dayTitle(list[i - 1].at) !== dayTitle(m.at)
+            return (
+              <div key={m.id}>
+                {newDay && <div className="mb-3 text-center text-xs font-medium text-ink/40">{dayTitle(m.at)}</div>}
+                <div className={`flex flex-col ${mine ? 'items-end' : 'items-start'}`}>
+                  <div className={`max-w-[85%] whitespace-pre-wrap break-words rounded-2xl px-4 py-2.5 text-sm leading-relaxed sm:max-w-[75%] ${mine ? 'rounded-br-md bg-ink text-white' : 'rounded-bl-md bg-ink/[0.06] text-ink'}`}>{m.text}</div>
+                  <div className="mt-1 px-1 text-[11px] text-ink/40">{mine ? 'Вы' : 'Поддержка'} · {timeOfDay(m.at)}</div>
+                </div>
+              </div>
+            )
+          })}
         </div>
-        {text.length > max - 200 && <div className="mt-1 px-1 text-right text-[11px] text-ink/40">{text.length} / {max}</div>}
-      </form>
+
+        <form onSubmit={submit} className="border-t border-ink/10 bg-white/80 px-3 py-3 sm:px-4">
+          {(error || note) && <p role={error ? 'alert' : 'status'} className={`mb-2 px-1 text-xs ${error ? 'text-red-600' : 'text-ink/60'}`}>{error || note}</p>}
+          <div className="flex items-end gap-2">
+            <label htmlFor="support-text" className="sr-only">Сообщение</label>
+            <textarea
+              id="support-text"
+              ref={areaRef}
+              value={text}
+              onChange={(e) => { setText(e.target.value); resize() }}
+              onKeyDown={onKeyDown}
+              rows={1}
+              maxLength={max}
+              placeholder="Напишите сообщение…"
+              className={`${fieldClass} max-h-40 resize-none`}
+            />
+            <button type="submit" disabled={busy || !text.trim()} aria-label="Отправить" className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-ink text-white hover:bg-ink/90 disabled:opacity-40 ${focusRing}`}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5" aria-hidden="true"><path d="m5 12 14-7-5 14-2.5-5.5L5 12Z" /></svg>
+            </button>
+          </div>
+          {text.length > max - 200 && <div className="mt-1 px-1 text-right text-[11px] text-ink/40">{text.length} / {max}</div>}
+        </form>
+      </div>
+      <section aria-labelledby="support-faq-title" className="space-y-4">
+        <h2 id="support-faq-title" className="text-lg font-semibold">Частые вопросы</h2>
+        <FrequentQuestions />
+      </section>
     </div>
   )
 }

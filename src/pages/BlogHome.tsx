@@ -17,7 +17,7 @@ const blogTabs = [
 // главном меню (Кадры/Сообщество/Мероприятия/Маркетплейс), Подкаст —
 // последним. Один и тот же ряд чипов фильтрует и новости, и статьи базы
 // знаний вместе — единая лента, а не разнесенные по разделам блоки.
-const categoryChips: NewsCategory[] = ['Карьерный юрист', 'Кадры', 'Сообщество', 'Мероприятия', 'Маркетплейс', 'Подкаст']
+const categoryChips: NewsCategory[] = ['Карьерный юрист', 'Кадры', 'Сообщество', 'Мероприятия', 'Подкаст']
 
 // Статья попадает в категорию через свою аудиторию (employers/candidates
 // — Кадры, community — Сообщество, events — Мероприятия); одна статья
@@ -99,21 +99,22 @@ export default function BlogHome() {
 
           {category === 'Подкаст' ? (
             <div>
-              <p className="mb-8 max-w-2xl text-sm text-ink/60">
+              <p className="mb-8 w-full text-sm text-ink/60">
                 Подкаст, в котором профессионалы из разных областей права и резиденты Сообщества
                 рассказывают о своём опыте, карьерных сложностях и особенностях профессии, а также
                 делятся практическими советами для тех, кто только начинает или уже строит свою
                 юридическую карьеру.
               </p>
-              <div className="mb-6 text-sm font-semibold uppercase tracking-wide text-ink/40">1 сезон</div>
+              {[...new Set(podcastEpisodes.map((ep) => ep.season))].sort((a, b) => b - a).map((season) => <section key={season} className="mb-8" aria-label={`${season} сезон подкаста`}>
+              <h2 className="mb-6 text-sm font-semibold uppercase tracking-wide text-ink/40">{season} сезон</h2>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                {podcastEpisodes.map((ep) => (
-                  <div key={ep.episode} className="flex flex-col justify-between rounded-xl bg-ink p-5 text-white">
+                {podcastEpisodes.filter((ep) => ep.season === season).map((ep) => (
+                  <div key={`${ep.season}-${ep.episode}`} className="flex flex-col justify-between rounded-xl bg-ink p-5 text-white">
                     <div>
                       <div className="text-xs font-semibold uppercase tracking-wide text-gold-light">
                         {ep.season} сезон {ep.episode} выпуск
                       </div>
-                      <div className="mt-1 text-xs text-white/50">{ep.date}</div>
+                      {ep.date && <div className="mt-1 text-xs text-white/50">{ep.date}</div>}
                       <p className="mt-3 text-sm leading-snug text-white/85">{ep.title}</p>
                     </div>
                     <a
@@ -127,6 +128,7 @@ export default function BlogHome() {
                   </div>
                 ))}
               </div>
+              </section>)}
             </div>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

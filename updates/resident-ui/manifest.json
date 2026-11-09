@@ -1,0 +1,232 @@
+{
+  "kind": "resident-ui-20261109-v1",
+  "frontend": [
+    {
+      "path": "scripts/export-vacancy-catalog.mjs",
+      "sha256": "85104fbde41c9e7fcb8f31d9d159d71f0139546220f97e63e88baab4d3e8c817"
+    },
+    {
+      "path": "src/components/Header.tsx",
+      "sha256": "ad5d14c6edc07e618e735e001505326a27e453166acc56afc1283d7a69c2ab78"
+    },
+    {
+      "path": "src/components/cards.tsx",
+      "sha256": "b855d9f67dd4ce7ffa45781c71c8efcf036b6772d214961f5a1ee8bcabae433d"
+    },
+    {
+      "path": "src/components/layouts/HolyGrail.tsx",
+      "sha256": "9d81f39fe54a0b9dcd5edb045d835b165b007d11a5391dc6375a618412a95836"
+    },
+    {
+      "path": "src/data/events.ts",
+      "sha256": "87dfabf1f0115192738f36eec2712a9d3713f4a0d100e9f1f6aa49d49626cc66"
+    },
+    {
+      "path": "src/data/podcast.ts",
+      "sha256": "785c35de21e9cf9e78529fa878baa7967a22adeb267c188044111e79b8e195d1"
+    },
+    {
+      "path": "src/lib/cabinet.ts",
+      "sha256": "d343de1c6b1afd4731ffbaa809d9a314973a5b82ed8e94330796064fe7bef94c"
+    },
+    {
+      "path": "src/lib/eventFormat.ts",
+      "sha256": "314b2526b862be31b4ec8362d7f2b68145e136afb036dc55b936e5cae845e60a"
+    },
+    {
+      "path": "src/lib/eventTime.ts",
+      "sha256": "9119e682c899fa13a2945be8ad93c13e680f06f61d236f8ba81df84a5315dc4c"
+    },
+    {
+      "path": "src/lib/organizerEvents.ts",
+      "sha256": "af90368dc9420ae314120af1d920937974bb3eb131b0bbcd28334b4be3533175"
+    },
+    {
+      "path": "src/pages/BlogHome.tsx",
+      "sha256": "051ede980f1b577c016303c9c65cb57399e99f6d0c7cc4d4072ab5e5fa7deea8"
+    },
+    {
+      "path": "src/pages/account/CandidateAccount.tsx",
+      "sha256": "0228c41d1a9df40aec1978573eb175a109f408bf591cafb0a96c8612c231b131"
+    },
+    {
+      "path": "src/pages/account/EmployerAccount.tsx",
+      "sha256": "5fd47b65e98f628504f343bc63119a3936268b96c3758f86202a50b53dee183b"
+    },
+    {
+      "path": "src/pages/account/ModeratorAccount.tsx",
+      "sha256": "d7f3df8b96e64343f52d3011b1ff5dcfb855f3db03afb98f373691b32d5a365e"
+    },
+    {
+      "path": "src/pages/cabinet/AccountSections.tsx",
+      "sha256": "105a85c6ab525a1a30f163e1ee42f04ad9a92a2d03d4b59c1cbfc4e32029eb06"
+    },
+    {
+      "path": "src/pages/cabinet/Cabinet.tsx",
+      "sha256": "2088a8e81c91a4d4a344d6be2932c2756a1b2436c6aaa7bd881bb8215e4c644c"
+    },
+    {
+      "path": "src/pages/cabinet/CommunitySections.tsx",
+      "sha256": "734dd25305c2bfc2bd881c52faceb5a32d33c7b0fae752788d392e8d568e880a"
+    },
+    {
+      "path": "src/pages/cabinet/ContactEmail.tsx",
+      "sha256": "9414b68f485ce401b9ae9c164d27c85e1993742307ae3f132d4b841c88750189"
+    },
+    {
+      "path": "src/pages/cabinet/Dashboard.tsx",
+      "sha256": "2e0795cd03d5fd694e462c88b3fc4c5092fd7247c9fd06c0ec50c212a9fafae5"
+    },
+    {
+      "path": "src/pages/cabinet/HelpSections.tsx",
+      "sha256": "0ec8d874ed3ef5bfb2a2ff5dcf8085e2a817d1da2d233113c4b201513fdfcd1e"
+    },
+    {
+      "path": "src/pages/cabinet/KnowledgeBase.tsx",
+      "sha256": "ecc69c04f0f1b6e918f8705d862cbbe4216636b823f9e00d6288c3a02b7fad10"
+    },
+    {
+      "path": "src/pages/cabinet/NetworkingSection.tsx",
+      "sha256": "0fd22707e64011664b9363fbd9e66f7a19da25772ca83b48304fb85c9eef8e01"
+    },
+    {
+      "path": "src/pages/cabinet/ProfessionalProfile.tsx",
+      "sha256": "17d8dab9bfbf4dd8bd89f04318c89bdfc030f7617fc0dc5cc3581a6d23155771"
+    },
+    {
+      "path": "src/pages/cabinet/ProfileCard.tsx",
+      "sha256": "4048985dd9c3e98e3ce028bf29bc575bc2a08c32eff09b95d26a11de70e8e54a"
+    },
+    {
+      "path": "src/pages/cabinet/career/CareerWorkspace.tsx",
+      "sha256": "207785147d82541c8b12a2a591803b66a9c9f061bdc14cf96ca175c35b33f66b"
+    },
+    {
+      "path": "src/pages/cabinet/career/OverviewTab.tsx",
+      "sha256": "59d8fbf043f693d0db7eeff530193f0c0009277b967c60164f00711fd1ecf741"
+    },
+    {
+      "path": "src/pages/cabinet/faq.tsx",
+      "sha256": "31e5ee87414e6243097f14962262b080e7656bbd001c39f45550424f0498f5c0"
+    },
+    {
+      "path": "src/pages/cabinet/kit.tsx",
+      "sha256": "61c1baad6aa108fb1602c2c6c4512791227c3a1c3dd47be26d7277e901c9a601"
+    },
+    {
+      "path": "src/pages/cabinet/sectionBodies.tsx",
+      "sha256": "2657f4d98fc2a46ae1a0d3056140dfb08b55b795cfda3b2a04088237c35e9c87"
+    },
+    {
+      "path": "src/pages/cabinet/sections.tsx",
+      "sha256": "36e7bf9d2406e38c765f1583657cd5eee29d57c539ccd138b677841b655af257"
+    },
+    {
+      "path": "src/pages/cabinet/shared.ts",
+      "sha256": "b502fb32ef2d14990c7b7f31b324ee556aa6139d598a76e7f8b800157615fd80"
+    },
+    {
+      "path": "src/pages/cabinet/vacancies/VacanciesWorkspace.tsx",
+      "sha256": "e5996108389508d83575d84f5ded756ea28b731bc11c0bcc8d8e629773e5611a"
+    },
+    {
+      "path": "src/pages/events/EventDetail.tsx",
+      "sha256": "e8eb9ebf180ebf231e0a616cbda05853a52bbef208d37cfef030f03c9f0fb07e"
+    },
+    {
+      "path": "src/pages/events/EventPhotos.tsx",
+      "sha256": "7c8e0bdb347050931856ff8f56d83383cf29a01e505240a180e4aa0df5e1a7d7"
+    },
+    {
+      "path": "src/pages/events/EventsHome.tsx",
+      "sha256": "ba4b13f1310b1b09347e5a5e9251b25caff2a5c4c26cb1eb68d13d9af2e6e1dd"
+    },
+    {
+      "path": "src/pages/events/NoirSections.tsx",
+      "sha256": "c7445daeb1980d911c1b32d1bb13455ecc2c5b6ad2d4ec064ba9c5a3c67aa446"
+    },
+    {
+      "path": "src/types.ts",
+      "sha256": "7ff6ed304b60d129878acf5c2b0c9c7d169848ffa06d97f5fc3dda013fe81804"
+    }
+  ],
+  "backend": [
+    {
+      "path": "lib/accountStore.js",
+      "edits": [
+        [
+          "  experience: { level: '', years: null, litigation: '', deals: '', projects: '', languages: [], foreignClients: false },\n  expectations: { workFormat: [], city: '', relocation: '', salaryFrom: null, salaryTo: null, overtime: '' },\n  privacy: { hidden: false, hideFrom: [] },\n}\n\n/** Чистка частей профиля. Возвращают нормализованную часть или бросают { code } при явной ошибке. */\nconst CLEAN = {\n  practices(d) {\n    const codes = Object.keys(PRACTICES)\n    const main = oneOf(d?.main, codes)\n",
+          "  experience: { level: '', years: null, litigation: '', deals: '', projects: '', languages: [], foreignClients: false },\n  expectations: { workFormat: [], city: '', relocation: '', salaryFrom: null, salaryTo: null, overtime: '' },\n  privacy: { hidden: false, hideFrom: [] },\n  networking: { intro: '', contacts: [], version: 0 },\n}\n\n/** Чистка частей профиля. Возвращают нормализованную часть или бросают { code } при явной ошибке. */\nconst CLEAN = {\n  networking(d) {\n    if (!Array.isArray(d.contacts) || d.contacts.length > 250) throw { code: 'bad_contacts' }\n    const seen = new Set()\n    const contacts = d.contacts.map(c => {\n      if (!c || typeof c !== 'object' || !/^[a-zA-Z0-9_-]{8,64}$/.test(c.id) || seen.has(c.id) || !text(c.name, 120)) throw { code: 'bad_contacts' }\n      seen.add(c.id)\n      return { id: c.id, name: text(c.name, 120), company: text(c.company, 160), role: text(c.role, 120), email: text(c.email, 120), phone: text(c.phone, 40), telegram: text(c.telegram, 80), metWhere: text(c.metWhere, 160), notes: text(c.notes, 2000) }\n    })\n    return { intro: text(d.intro, 1500), contacts, version: Number(d.version) + 1 }\n  },\n  practices(d) {\n    const codes = Object.keys(PRACTICES)\n    const main = oneOf(d?.main, codes)\n"
+        ],
+        [
+          "  const data = readJson(PROFILE_FILE, {})\n  const saved = data[login] ?? {}\n  if (!saved.consentAt && !consentGiven) return { error: 'consent_required' }\n  const cleaned = {}\n  try {\n    for (const p of parts) cleaned[p] = CLEAN[p](body[p])\n",
+          "  const data = readJson(PROFILE_FILE, {})\n  const saved = data[login] ?? {}\n  if (!saved.consentAt && !consentGiven) return { error: 'consent_required' }\n  if (parts.includes('networking') && body.networking.version !== (saved.networking?.version ?? 0)) return { error: 'profile_conflict' }\n  const cleaned = {}\n  try {\n    for (const p of parts) cleaned[p] = CLEAN[p](body[p])\n"
+        ]
+      ]
+    },
+    {
+      "path": "lib/accountUsers.js",
+      "edits": [
+        [
+          "  return { account }\n}\n\n/** Удаление аккаунта (по запросу на удаление данных). */\nexport function deleteAccount(id) {\n  const data = load()\n",
+          "  return { account }\n}\n\n/** Подтверждённый адрес для связи; логин и история оплат остаются привязаны к аккаунту. */\nexport function requestContactEmail(id, email, password, now = Date.now()) {\n  const data = load(), account = data[id]\n  if (!isActive(account) || !verifyPassword(String(password ?? ''), account.passwordHash)) return { error: 'bad_password' }\n  if (!validEmail(email)) return { error: 'bad_email' }\n  if (account.contactEmailPending?.sentAt > now - MAIL_GAP_MS) return { error: 'too_many_attempts' }\n  const code = String(crypto.randomInt(0, 100_000_000)).padStart(8, '0')\n  account.contactEmailPending = { email: normEmail(email), hash: sha(code), expiresAt: now + 10 * 60_000, sentAt: now, attempts: 0 }\n  save(data)\n  return { email: normEmail(email), code }\n}\n\nexport function confirmContactEmail(id, code, now = Date.now()) {\n  const data = load(), account = data[id], pending = account?.contactEmailPending\n  if (!pending || pending.expiresAt <= now || pending.attempts >= 5) return { error: 'bad_code' }\n  pending.attempts++\n  if (!/^[0-9]{8}$/.test(String(code)) || sha(String(code)) !== pending.hash) { save(data); return { error: 'bad_code' } }\n  account.contactEmail = pending.email\n  delete account.contactEmailPending\n  save(data)\n  return { email: account.contactEmail }\n}\n\n/** Удаление аккаунта (по запросу на удаление данных). */\nexport function deleteAccount(id) {\n  const data = load()\n"
+        ],
+        [
+          "    tgLinkedAt: account.tgLinkedAt ?? null,\n    name: account.name || account.email,\n    email: account.email,\n    phone: '', // телефон не подтверждён, по нему чужие записи не подтягиваем\n    contactName: account.name ?? '',\n    contactPhone: account.phone ?? '', // телефон для связи, который человек указал сам: на показ и выгрузку, не на поиск записей\n",
+          "    tgLinkedAt: account.tgLinkedAt ?? null,\n    name: account.name || account.email,\n    email: account.email,\n    contactEmail: account.contactEmail,\n    phone: '', // телефон не подтверждён, по нему чужие записи не подтягиваем\n    contactName: account.name ?? '',\n    contactPhone: account.phone ?? '', // телефон для связи, который человек указал сам: на показ и выгрузку, не на поиск записей\n"
+        ]
+      ]
+    },
+    {
+      "path": "lib/accountProfile.js",
+      "edits": [
+        [
+          "import { listJoins } from './store.js'\nimport { getBotUser } from './botUsers.js'\nimport { TARIFFS } from './prodamus.js'\nimport { getProfile } from './accountStore.js'\nimport { communityInviteUrl } from './communityInvite.js'\nimport { hasAccess, paidUntil, accessUntil, inGrace } from './subscriptionAccess.js'\n",
+          "import { listJoins } from './store.js'\nimport { getBotUser } from './botUsers.js'\nimport { TARIFFS } from './prodamus.js'\nimport { listAmbassadors } from './ambassadors.js'\nimport { getProfile } from './accountStore.js'\nimport { communityInviteUrl } from './communityInvite.js'\nimport { hasAccess, paidUntil, accessUntil, inGrace } from './subscriptionAccess.js'\n"
+        ],
+        [
+          "    login: cfg.login,\n    name: cfg.name || botName || cfg.login,\n    role: 'client',\n    telegramLinked: Boolean(bot),\n    // Привязка Telegram к кабинету (код из бота): у аккаунта резидента её можно сделать и снять, у администратора Telegram задан в настройках сервера.\n    telegram: {\n",
+          "    login: cfg.login,\n    name: cfg.name || botName || cfg.login,\n    role: 'client',\n    communityRole: cfg.tgId && listAmbassadors().some(a => String(a.tgUserId || '') === String(cfg.tgId) || (bot?.username && String(a.telegram || '').trim().replace(/^https?:\\/\\/t\\.me\\//i, '').replace(/^@/, '').toLowerCase() === bot.username.toLowerCase())) ? 'ambassador' : 'resident',\n    telegramLinked: Boolean(bot),\n    // Привязка Telegram к кабинету (код из бота): у аккаунта резидента её можно сделать и снять, у администратора Telegram задан в настройках сервера.\n    telegram: {\n"
+        ],
+        [
+          "    },\n    email: cfg.email || undefined,\n    // Личные данные и контакты для раздела «Профиль и контакты» и обзора: почта подтверждена (в кабинет без этого не войти).\n    contact: { name: cfg.contactName ?? cfg.name ?? '', email: cfg.email || '', phone: cfg.contactPhone ?? cfg.phone ?? '' },\n    memberSince: cfg.createdAt ?? null,\n    resident: residentStatus(cfg.tgId, now, cfg.email),\n    privacy: { hidden: getProfile(cfg.login).privacy.hidden },\n",
+          "    },\n    email: cfg.email || undefined,\n    // Личные данные и контакты для раздела «Профиль и контакты» и обзора: почта подтверждена (в кабинет без этого не войти).\n    contact: { name: cfg.contactName ?? cfg.name ?? '', email: cfg.contactEmail || cfg.email || '', phone: cfg.contactPhone ?? cfg.phone ?? '' },\n    memberSince: cfg.createdAt ?? null,\n    resident: residentStatus(cfg.tgId, now, cfg.email),\n    privacy: { hidden: getProfile(cfg.login).privacy.hidden },\n"
+        ]
+      ]
+    },
+    {
+      "path": "lib/residentDemo.js",
+      "edits": [
+        [
+          "    if (req.path === '/api/account/login') return next()\n    const session = sessionFor(bearer(req)), account = session?.login?.startsWith('u:') ? getAccount(session.login.slice(2)) : null\n    if (!account || account.email !== meta.email) return res.status(401).json({ ok: false, error: 'unauthorized' })\n    if (['/api/account/password', '/api/account/telegram/link', '/api/account/telegram', '/api/account/contact'].includes(req.path) && req.method !== 'GET') return res.status(403).json({ ok: false, error: 'demo_shared_account' })\n    if (req.path.startsWith('/api/account/materials')) return res.status(403).json({ ok: false, error: 'admin_only' })\n    const join = residentJoin('', account.email)\n    if (req.path === '/api/account/subscription/cancel' && req.method === 'POST') {\n",
+          "    if (req.path === '/api/account/login') return next()\n    const session = sessionFor(bearer(req)), account = session?.login?.startsWith('u:') ? getAccount(session.login.slice(2)) : null\n    if (!account || account.email !== meta.email) return res.status(401).json({ ok: false, error: 'unauthorized' })\n    if (['/api/account/contact-email/request', '/api/account/contact-email/confirm', '/api/account/password', '/api/account/telegram/link', '/api/account/telegram', '/api/account/contact'].includes(req.path) && req.method !== 'GET') return res.status(403).json({ ok: false, error: 'demo_shared_account' })\n    if (req.path.startsWith('/api/account/materials')) return res.status(403).json({ ok: false, error: 'admin_only' })\n    const join = residentJoin('', account.email)\n    if (req.path === '/api/account/subscription/cancel' && req.method === 'POST') {\n"
+        ]
+      ]
+    },
+    {
+      "path": "lib/accountEmail.js",
+      "sha256": "4ab24a974b7dce45ffc0b9a8fe8aa37da8659d920d84999666fd7eaba9aae4aa"
+    },
+    {
+      "path": "index.js",
+      "edits": [
+        [
+          "import { startRegistration, startReset",
+          "import { registerContactEmail } from './lib/accountEmail.js'\nimport { startRegistration, startReset"
+        ],
+        [
+          "// Журнал действий в кабинете (вход, смена пароля, привязка Telegram, профиль, документы…): последние 100.",
+          "registerContactEmail(app, { requireAccount, mailConfigured, sendMail })\n\n// Журнал действий в кабинете (вход, смена пароля, привязка Telegram, профиль, документы…): последние 100."
+        ],
+        [
+          "email: r.account.email, phone: r.account.phone",
+          "email: r.account.contactEmail || r.account.email, phone: r.account.phone"
+        ],
+        [
+          "app.use(express.json())",
+          "app.use('/api/account/profile', express.json({ limit: '4mb' }))\napp.use(express.json())"
+        ]
+      ]
+    }
+  ]
+}

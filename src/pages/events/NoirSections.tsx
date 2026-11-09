@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from 'react'
 import type { EventItem } from '../../types'
 import type { EventSpeaker, EventStory, ProgramAct, ProgramSlot } from '../../data/eventStories'
+import { eventPriceText } from '../../lib/eventFormat'
 import { eventTimeRange } from '../../lib/eventTime'
 import { prefersReducedMotion } from '../../lib/motion'
 import Reveal from '../../components/noir/Reveal'
@@ -363,7 +364,7 @@ export function NoirNewspaper({ story, event }: { story: EventStory; event: Even
     time: eventTimeRange(event),
     city: event.city ?? '',
     venue: story.venue,
-    price: `${event.price.toLocaleString('ru-RU')} ₽`,
+    price: eventPriceText(event),
     question: story.question,
     photo: story.heroImage,
   }

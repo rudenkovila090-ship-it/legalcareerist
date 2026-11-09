@@ -1,12 +1,14 @@
 export interface PodcastEpisode {
   season: number
   episode: number
-  date: string
+  date?: string
   title: string
   url: string
 }
 
 export const podcastEpisodes: PodcastEpisode[] = [
+  { season: 2, episode: 0, date: '1 ноября 2026', title: 'Intro', url: 'https://legalcareerist.mave.digital/ep-19' },
+  { season: 2, episode: 1, title: 'Как попасть в ВТБ: история трудоустройства молодого юриста', url: 'https://legalcareerist.mave.digital/ep-22' },
   { season: 1, episode: 1, date: '30 окт. 2025', title: 'Работа vs учеба: как не умереть на 3 курсе? Разбираемся с Ильей Руденковым', url: 'https://legalcareerist.mave.digital/ep-1' },
   { season: 1, episode: 2, date: '24 нояб. 2025', title: 'Резиденты сообщества. Георгий Акимов: от младшего юриста до совладельца юридического консалтинга', url: 'https://legalcareerist.mave.digital/ep-2' },
   { season: 1, episode: 3, date: '15 февр. 2026', title: 'Цифровое право: от теории к практике и будущему профессии', url: 'https://legalcareerist.mave.digital/ep-4' },

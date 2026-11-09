@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { renewLockedSubscription, cancelSubscription, claimRetentionOffer, retentionCheckout, fetchEvents, fetchSubscription, linkTelegram, requestCardChange, unlinkTelegram, type CabinetEvent, type CabinetUser, type SubscriptionInfo } from '../../lib/cabinet'
 import { events as catalogEvents } from '../../data/events'
 import { eventStories } from '../../data/eventStories'
-import { eventTimeRange } from '../../lib/eventTime'
+import { eventDateRange, eventEndTimestamp, eventTimeRange } from '../../lib/eventTime'
 import { pluralRu } from '../../lib/plural'
 import { TELEGRAM_BOT_USERNAME } from '../../lib/telegram'
 import { Card, Chip } from './ui'
@@ -17,56 +17,24 @@ const focusRing = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-
 function upcomingEvents() {
   const now = Date.now()
   return catalogEvents
-    .filter((e) => e.status === 'open' && Date.parse(e.endDateTime ?? e.dateTime) >= now)
+    .filter((e) => e.status === 'open' && eventEndTimestamp(e) >= now)
     .sort((a, b) => Date.parse(a.dateTime) - Date.parse(b.dateTime))
 }
 
 function PosterCard({ event }: { event: (typeof catalogEvents)[number] }) {
   const image = eventStories[event.slug]?.cardImage
   const [ru] = event.title.split(' / ')
-  const start = new Date(event.dateTime)
   const place = [event.city, event.venue || event.location].filter(Boolean).join(', ')
-  if (event.cover) {
-    // афиша организатора целиком сверху, под ней дата, название и кнопка
-    return (
-      <Link to={`/events/${event.slug}`} className={`group block overflow-hidden rounded-2xl bg-ink text-white ${focusRing}`}>
-        <div className="h-44 bg-ink sm:h-48" style={event.coverColor ? { backgroundColor: event.coverColor } : undefined}>
-          <img src={event.cover} alt={`Афиша: ${event.title}`} loading="lazy" className="h-full w-full object-contain" />
-        </div>
-        <div className="flex flex-col gap-2 p-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-ink">{start.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', timeZone: 'Europe/Moscow' })}</span>
-            <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-semibold">{eventTimeRange(event)}</span>
-            {event.partner && <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-semibold">Партнер</span>}
-          </div>
-          <div className="text-base font-semibold leading-snug">{ru}</div>
-          {place && <div className="text-xs text-white/70">{place}</div>}
-          <div className="flex flex-wrap items-center gap-3 pt-0.5">
-            <span className="rounded-full bg-gold-light px-5 py-2 text-sm font-semibold text-ink">{event.externalRegistration ? 'Подробнее и регистрация' : 'Подробнее и билеты'}</span>
-            {event.price === 0 && <span className="text-sm text-white/70">бесплатно</span>}
-          </div>
-        </div>
-      </Link>
-    )
-  }
-  return (
-    <Link to={`/events/${event.slug}`} className={`group relative block overflow-hidden rounded-2xl bg-ink text-white ${focusRing}`}>
-      {image && <img src={image} alt="" aria-hidden="true" loading="lazy" className="absolute inset-0 h-full w-full object-cover object-[50%_30%] opacity-60 transition-transform duration-700 group-hover:scale-[1.03]" />}
-      <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/60 to-ink/10" aria-hidden="true" />
-      <div className="relative flex min-h-[15rem] flex-col justify-end gap-3 p-5 sm:min-h-[17rem] sm:p-6">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-ink">{start.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', timeZone: 'Europe/Moscow' })}</span>
-          <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-semibold backdrop-blur">{eventTimeRange(event)}</span>
-        </div>
-        <div className="text-xl font-semibold leading-snug sm:text-2xl">{ru}</div>
-        {place && <div className="text-sm text-white/70">{place}</div>}
-        <div className="flex flex-wrap items-center gap-3 pt-1">
-          <span className="rounded-full bg-gold-light px-5 py-2 text-sm font-semibold text-ink">Подробнее и билеты</span>
-          {event.price > 0 && <span className="text-sm text-white/70">от {event.price.toLocaleString('ru-RU')} ₽</span>}
-        </div>
-      </div>
-    </Link>
-  )
+  const picture = event.cover || image
+  return <Link to={`/events/${event.slug}`} className={`group flex h-full flex-col overflow-hidden rounded-2xl border border-ink/10 bg-white ${focusRing}`}>
+    <div className="h-24 shrink-0 overflow-hidden bg-gradient-to-br from-ink to-indigo-800" style={event.coverColor ? { backgroundColor: event.coverColor } : undefined}>{picture && <img src={picture} alt="" loading="lazy" className={`h-full w-full ${event.cover ? 'object-contain' : 'object-cover'}`} />}</div>
+    <div className="flex flex-1 flex-col gap-2 p-3.5">
+      <div className="text-[11px] text-ink/55">{eventDateRange(event)}{eventTimeRange(event) && ` · ${eventTimeRange(event)}`}</div>
+      <h3 className="text-sm font-semibold leading-snug">{ru}</h3>
+      {place && <p className="text-xs text-ink/55">{place}</p>}
+      <div className="mt-auto flex flex-wrap items-center gap-2 pt-2"><span className="rounded-full bg-ink px-3 py-1 text-xs font-semibold text-white">{event.price === 0 ? 'Бесплатно' : event.price == null ? 'Цена не указана' : `${event.price.toLocaleString('ru-RU')} ₽`}</span><span className="text-[11px] text-ink/50">{event.externalRegistration ? 'Регистрация у организатора' : 'Подробнее и билеты'}</span></div>
+    </div>
+  </Link>
 }
 
 export function EventsSection() {

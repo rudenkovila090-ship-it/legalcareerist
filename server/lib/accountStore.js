@@ -43,10 +43,21 @@ const DEFAULTS = {
   experience: { level: '', years: null, litigation: '', deals: '', projects: '', languages: [], foreignClients: false },
   expectations: { workFormat: [], city: '', relocation: '', salaryFrom: null, salaryTo: null, overtime: '' },
   privacy: { hidden: false, hideFrom: [] },
+  networking: { intro: '', contacts: [], version: 0 },
 }
 
 /** Чистка частей профиля. Возвращают нормализованную часть или бросают { code } при явной ошибке. */
 const CLEAN = {
+  networking(d) {
+    if (!Array.isArray(d.contacts) || d.contacts.length > 250) throw { code: 'bad_contacts' }
+    const seen = new Set()
+    const contacts = d.contacts.map(c => {
+      if (!c || typeof c !== 'object' || !/^[a-zA-Z0-9_-]{8,64}$/.test(c.id) || seen.has(c.id) || !text(c.name, 120)) throw { code: 'bad_contacts' }
+      seen.add(c.id)
+      return { id: c.id, name: text(c.name, 120), company: text(c.company, 160), role: text(c.role, 120), email: text(c.email, 120), phone: text(c.phone, 40), telegram: text(c.telegram, 80), metWhere: text(c.metWhere, 160), notes: text(c.notes, 2000) }
+    })
+    return { intro: text(d.intro, 1500), contacts, version: Number(d.version) + 1 }
+  },
   practices(d) {
     const codes = Object.keys(PRACTICES)
     const main = oneOf(d?.main, codes)
@@ -115,6 +126,7 @@ export function saveProfile(login, body, consentGiven, now = Date.now()) {
   const data = readJson(PROFILE_FILE, {})
   const saved = data[login] ?? {}
   if (!saved.consentAt && !consentGiven) return { error: 'consent_required' }
+  if (parts.includes('networking') && body.networking.version !== (saved.networking?.version ?? 0)) return { error: 'profile_conflict' }
   const cleaned = {}
   try {
     for (const p of parts) cleaned[p] = CLEAN[p](body[p])

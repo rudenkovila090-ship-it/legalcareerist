@@ -34,7 +34,7 @@ function Tile({ to, tone, ic, title, children, foot, className = '' }: { to: str
 }
 
 export default function OverviewTab({ state }: { state: CareerState }) {
-  const { plan, interview, achievements, capital, recommendations, templates, podcast } = state
+  const { plan, interview, achievements, capital, recommendations, templates } = state
   const done = plan?.steps.filter((s) => s.done).length ?? 0
   const total = plan?.steps.length ?? 0
   const next = plan?.steps.find((s) => !s.done)
@@ -117,15 +117,7 @@ export default function OverviewTab({ state }: { state: CareerState }) {
       </div>
 
       {/* Уровень 3 */}
-      <div className="flex flex-wrap items-center gap-2 px-1 pt-1 text-xs">
-        <Link to="/cabinet/podcast" className={`inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 font-semibold text-ink/80 transition-colors hover:text-ink ${focusRing}`}>
-          <span className="text-ink/55 [&>svg]:h-3.5 [&>svg]:w-3.5">{icon.headphones}</span>
-          Подкаст: {podcast ? 'заявка отправлена' : 'стать гостем'}
-        </Link>
-        {['Оценка рынка', 'Фото для CV'].map((t) => (
-          <span key={t} className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-ink/20 px-3 py-1.5 font-medium text-ink/45">{t} · скоро</span>
-        ))}
-      </div>
+
     </div>
   )
 }

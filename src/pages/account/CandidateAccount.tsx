@@ -1,3 +1,4 @@
+import { eventScheduleText } from '../../lib/eventTime'
 import { useRef, useState, type FormEvent } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import PageHero from '../../components/PageHero'
@@ -869,7 +870,7 @@ export default function CandidateAccount() {
                           </div>
                           {event && (
                             <div className="mt-0.5 text-xs text-ink/50">
-                              {new Date(event.dateTime).toLocaleString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}
+                              {eventScheduleText(event)}
                               {diffMs !== undefined && diffMs > 0 && ` · через ${Math.ceil(diffMs / 86400000)} дн.`}
                               {diffMs !== undefined && diffMs <= 0 && ' · уже прошло'}
                             </div>
@@ -895,8 +896,8 @@ export default function CandidateAccount() {
                       <div>
                         <Link to={`/events/${e.slug}`} className="font-medium hover:underline">{e.title}</Link>
                         <div className="mt-0.5 text-xs text-ink/50">
-                          {new Date(e.dateTime).toLocaleString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}
-                          {' · '}{e.format === 'online' ? 'Онлайн' : e.city}
+                          {eventScheduleText(e)}
+                          {' · '}{e.format === 'online' ? 'Онлайн' : e.format === 'hybrid' ? `${e.city || 'Очно'} + онлайн` : e.city}
                         </div>
                       </div>
                       <button type="button" onClick={() => handleToggleFavoriteEvent(e.id)} className="text-red-500 hover:text-ink/40">

@@ -28,12 +28,10 @@ export const groups: { id: GroupId; title: string }[] = [
   { id: 'knowledge', title: 'База знаний' },
   { id: 'networking', title: 'Нетворкинг' },
   { id: 'partner', title: 'Партнёрская программа' },
-  { id: 'lawyer', title: 'Для юристов' },
-  { id: 'account', title: 'Аккаунт' },
 ]
 
 /** Все группы, включая скрытую из меню: для перечня «Все разделы» на главной. */
-export const allGroups: { id: GroupId; title: string }[] = [...groups, { id: 'settings', title: 'Настройки: доверие и данные' }]
+export const allGroups: { id: GroupId; title: string }[] = [...groups, { id: 'account', title: 'Профиль и аккаунт' }, { id: 'settings', title: 'Настройки: доверие и данные' }]
 
 const svg = (children: ReactNode) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 shrink-0" aria-hidden="true">
@@ -87,6 +85,9 @@ export const icon = {
 }
 
 export const sections: CabinetSection[] = [
+  { id: 'career-profile', group: 'career', title: 'Профессиональный профиль', icon: icon.user, ready: true, lead: 'Практики, опыт и карьерные ожидания — общие для вакансий и карьеры.', todo: [] },
+  { id: 'job-profile', group: 'vacancies', title: 'Профессиональный профиль', icon: icon.user, ready: true, lead: 'Те же данные, что в построении карьеры.', todo: [] },
+  { id: 'contacts', group: 'networking', title: 'Моя записная книжка', icon: icon.users, ready: true, lead: 'Информация о себе и личная база профессиональных контактов.', todo: [] },
   // ---- Аккаунт ----
   {
     id: 'profile', group: 'account', title: 'Личные данные и контакты', icon: icon.user, ready: true,
@@ -120,27 +121,27 @@ export const sections: CabinetSection[] = [
   },
   // ---- Для юристов ----
   {
-    id: 'privacy', group: 'lawyer', title: 'Конфиденциальность', icon: icon.lock, ready: true,
+    id: 'privacy', group: 'career', title: 'Конфиденциальность', icon: icon.lock, ready: true,
     lead: 'Скрытый поиск: резюме не видно работодателям, пока вы сами не откликнулись. Можно скрыть его от конкретных компаний, например от текущего работодателя.',
     todo: ['Применить режим к показу резюме работодателям, когда появится их сторона (сейчас резюме не видит никто)', 'Подсказки по компаниям из списка вакансий'],
   },
   {
-    id: 'practices', group: 'lawyer', title: 'Практики и опыт', icon: icon.scales, ready: true,
+    id: 'practices', group: 'career', title: 'Практики и опыт', icon: icon.scales, ready: true,
     lead: 'Основная практика и смежные, уровень, опыт в формате юриста: судебная практика, сделки, проекты, языки, работа с иностранными клиентами.',
     todo: ['Связать практики с фильтрами вакансий и мероприятий на сайте', 'Загрузка резюме с автозаполнением полей'],
   },
   {
-    id: 'expectations', group: 'lawyer', title: 'Ожидания по роли', icon: icon.target, ready: true,
+    id: 'expectations', group: 'career', title: 'Ожидания по роли', icon: icon.target, ready: true,
     lead: 'Формат работы, город, релокация, зарплатная вилка и готовность к переработкам — чтобы вакансии подбирались по вашим условиям.',
     todo: ['Подбор вакансий по этим условиям (раздел «Вакансии»)', 'Сравнение вашей вилки с рынком (раздел «Рынок труда»)'],
   },
   {
-    id: 'documents', group: 'lawyer', title: 'Сопроводительные и тестовые', icon: icon.folder, ready: true,
+    id: 'documents', group: 'career', title: 'Сопроводительные и тестовые', icon: icon.folder, ready: true,
     lead: 'Версии сопроводительных писем и выполненные тестовые задания — под каждую вакансию.',
     todo: ['Привязка письма и тестового к конкретному отклику (появится вместе с разделом «Мои отклики»)', 'Шаблоны писем из библиотеки', 'Автоудаление файлов при долгой неактивности (сейчас файлы живут, пока вы их не удалите)'],
   },
   {
-    id: 'expert', group: 'lawyer', title: 'Проверка резюме экспертом', icon: icon.check,
+    id: 'expert', group: 'career', title: 'Проверка резюме экспертом', icon: icon.check,
     lead: 'Разбор резюме опытным юристом: платный или бесплатный для участников сообщества.',
     todo: ['Кто эксперты, как устроена очередь и срок ответа', 'Цена и условия для участников сообщества', 'Оплата через Prodamus и выдача разбора в кабинете'],
   },
@@ -182,7 +183,7 @@ export const sections: CabinetSection[] = [
     todo: ['Напоминание за месяц до конца срока хранения', 'Связь с профилем юриста: подстановка практик и ожиданий'],
   },
   {
-    id: 'referrals', group: 'partner', title: 'Партнёрская и реферальная программа', icon: icon.gift,
+    id: 'referrals', group: 'partner', title: 'Партнёрская программа', icon: icon.gift,
     lead: 'Пригласите коллегу или партнёра в сообщество и получите бонус или скидку.',
     todo: ['Условия: что получает пригласивший и приглашённый, отдельно для резидентов и для партнёров', 'Личная ссылка или промокод и учёт переходов', 'Начисление бонуса или скидки'],
   },
@@ -325,7 +326,7 @@ const GROUP_LEADS: Record<string, string> = {
 }
 const STACKED_GROUPS: GroupId[] = ['vacancies', 'career', 'events', 'networking', 'partner', 'lawyer']
 /** Адреса прежнего меню: что открывать вместо них. */
-const OLD_ADDRESSES: Record<string, string> = { community: 'resident', jobs: 'vacancies', interviews: 'vacancies' }
+const OLD_ADDRESSES: Record<string, string> = { community: 'resident', jobs: 'vacancies', interviews: 'vacancies', lawyer: 'career-profile', account: 'profile' }
 
 /** Страница по адресу /cabinet/<param>: null — главная или неизвестный адрес. */
 export function resolvePage(rawParam?: string): CabinetPage | null {

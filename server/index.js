@@ -97,6 +97,7 @@ import { scanRetention, applyRetention, retentionReportText, retentionDoneText }
 import { findPerson, describeFound, erasePerson, erasedText } from './lib/erasure.js'
 import { planImport, applyImport, planSummary, doneSummary } from './lib/botHelpImport.js'
 import { accountConfig, login as accountLogin, sessionFor, logout as accountLogout, bearer, startSession, revokeFor, sameText } from './lib/accountAuth.js'
+import { registerContactEmail } from './lib/accountEmail.js'
 import { startRegistration, startReset, peekToken, consumeToken, verifyLogin, changePassword as changeAccountPassword, setMarketing as setAccountMarketing, getAccount, contextOf, validEmail, linkTelegram, unlinkTelegram, findByTelegram, updateContact, ACTIVATE_TTL_MS, RESET_TTL_MS } from './lib/accountUsers.js'
 import { issueCode, consumeCode, CODE_TTL_MS } from './lib/telegramLink.js'
 import { logActivity, listActivity } from './lib/accountActivity.js'
@@ -130,6 +131,7 @@ import { dealCard, activeDealsScreen, funnelScreen, stageScreen, closedScreen, m
 const app = express()
 app.use(cors())
 app.set('trust proxy', 'loopback')
+app.use('/api/account/profile', express.json({ limit: '4mb' }))
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
@@ -1287,8 +1289,10 @@ app.put('/api/account/contact', (req, res) => {
   const r = updateContact(String(cfg.login).slice(2), { name: req.body?.name, phone: req.body?.phone })
   if (r.error) return res.status(400).json({ ok: false, error: r.error })
   logActivity(cfg.login, 'contact_updated')
-  res.json({ ok: true, contact: { name: r.account.name ?? '', email: r.account.email, phone: r.account.phone ?? '' } })
+  res.json({ ok: true, contact: { name: r.account.name ?? '', email: r.account.contactEmail || r.account.email, phone: r.account.phone ?? '' } })
 })
+
+registerContactEmail(app, { requireAccount, mailConfigured, sendMail })
 
 // Журнал действий в кабинете (вход, смена пароля, привязка Telegram, профиль, документы…): последние 100.
 app.get('/api/account/activity', (req, res) => {

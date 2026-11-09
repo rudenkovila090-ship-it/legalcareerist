@@ -16,7 +16,8 @@ import { registerForEvent } from '../../lib/eventRegistrations'
 import { isFavoriteEvent, toggleFavoriteEvent } from '../../lib/eventFavorites'
 import { useEventViews } from '../../lib/useEventViews'
 import { getUtm } from '../../lib/utm'
-import { eventTimeRange } from '../../lib/eventTime'
+import { eventDateRange, eventTimeRange } from '../../lib/eventTime'
+import { eventFormatText } from '../../lib/eventFormat'
 import HowHeardField from '../../components/HowHeardField'
 import { pluralRu } from '../../lib/plural'
 import { eventStories } from '../../data/eventStories'
@@ -35,7 +36,7 @@ import { consentOf } from '../../lib/consent'
 const specLabel = new Map(SPECIALIZATIONS.map((s) => [s.id, s.label]))
 const industryLabel = new Map(INDUSTRIES.map((i) => [i.id, i.label]))
 
-const eventTypeLabel = { conference: 'Ключевое мероприятие', webinar: 'Вебинар', breakfast: 'Бизнес-завтрак', intensive: 'Интенсив', tour: 'Экскурсия', internship: 'Стажировка', championship: 'Кейс-чемпионат' }
+const eventTypeLabel = { conference: 'Ключевое мероприятие', webinar: 'Вебинар', breakfast: 'Бизнес-завтрак', intensive: 'Интенсив', tour: 'Экскурсия', internship: 'Стажировка', championship: 'Кейс-чемпионат', meeting: 'Бизнес-встреча', course: 'Курс' }
 
 // Крупный фон-афиша вверху детальной страницы — тот же принцип цветового
 // кодирования по типу, что и на карточке в афише (posterTone в
@@ -49,6 +50,8 @@ const posterTone: Record<string, string> = {
   tour: 'from-gold-light to-ink',
   internship: 'from-gold-light via-gold to-ink',
   championship: 'from-ink via-gold to-ink',
+  meeting: 'from-[#5b20b8] via-[#5017a6] to-[#30105e]',
+  course: 'from-ink via-gold to-[#344b70]',
 }
 
 function initials(name: string) {
@@ -376,6 +379,7 @@ export default function EventDetail() {
           <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-sm font-medium uppercase tracking-wide text-white/70">{eventTypeLabel[event.type]}</span>
+            {event.ageLimit && <span className="rounded-full border border-white/30 px-2.5 py-1 text-xs font-semibold">{event.ageLimit}+</span>}
             {event.partner && (
               <span className="rounded-full bg-white/15 px-2.5 py-1 text-xs font-medium">Партнер: {event.partner}</span>
             )}
@@ -390,11 +394,13 @@ export default function EventDetail() {
               ярче обычного текста (не text-white/80, а сплошной белый,
               жирным), разделитель — вертикальная линия, не точка. */}
           <div className="mt-5 flex flex-wrap items-center gap-3 text-xl font-bold text-white sm:text-2xl">
-            <span>{new Date(event.dateTime).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+            <span>{eventDateRange(event)}</span>
+            {eventTimeRange(event) && <>
+              <span className="h-6 w-px shrink-0 bg-white/40" aria-hidden="true" />
+              <span>{eventTimeRange(event)} по Москве</span>
+            </>}
             <span className="h-6 w-px shrink-0 bg-white/40" aria-hidden="true" />
-            <span>{eventTimeRange(event)} по Москве</span>
-            <span className="h-6 w-px shrink-0 bg-white/40" aria-hidden="true" />
-            <span>{event.format === 'online' ? 'Онлайн' : event.city}</span>
+            <span>{eventFormatText(event)}</span>
           </div>
           {/* Без max-w — заголовок и описание растянуты на всю ширину афиши,
               иначе строка обрывается посреди слова («…Карьера в M&A» уходило
@@ -510,6 +516,25 @@ export default function EventDetail() {
             </div>
           )}
 
+          {event.participationOptions && event.participationOptions.length > 0 && (
+            <section className="mb-8" aria-labelledby="participation-title">
+              <h2 id="participation-title" className="text-xl font-semibold">Выберите формат участия</h2>
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                {event.participationOptions.map((option) => (
+                  <div key={option.title} className="rounded-2xl border border-ink/10 bg-white p-5">
+                    <h3 className="text-lg font-semibold">{option.title}</h3>
+                    <p className="mt-1 text-sm font-medium text-gold">{option.schedule}</p>
+                    <p className="mt-2 text-sm text-ink/70">{option.audience}</p>
+                    <ul className="mt-3 space-y-2 text-sm text-ink/70">
+                      {option.includes.map((item) => <li key={item} className="flex gap-2"><span aria-hidden="true" className="font-semibold text-gold">✓</span>{item}</li>)}
+                    </ul>
+                    {option.note && <p className="mt-4 rounded-xl bg-ink/[0.04] p-3 text-sm text-ink/70">{option.note}</p>}
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
           {event.program.length > 0 && (
             <div>
               <h2 className="text-xl font-semibold">Программа</h2>
@@ -615,8 +640,9 @@ export default function EventDetail() {
               <div className="mt-4 flex flex-wrap gap-6">
                 {event.speakers.map((s) => (
                   <div key={s.name} className="w-40">
-                    <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-ink to-gold text-lg font-semibold text-white/70">
+                    <div className="relative flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-ink to-gold text-lg font-semibold text-white/70">
                       {initials(s.name)}
+                      {s.photo && <img src={s.photo} alt={s.name} loading="lazy" className="absolute inset-0 h-full w-full object-cover" onError={(ev) => { ev.currentTarget.style.display = 'none' }} />}
                     </div>
                     <div className="mt-3 text-left text-sm font-semibold text-ink">{s.name}</div>
                     <div className="text-left text-xs text-ink/60">{s.title}</div>
@@ -723,7 +749,7 @@ export default function EventDetail() {
                 <div className="text-sm font-semibold uppercase tracking-wide text-gold">Регистрация</div>
                 <h3 className="mt-1 text-lg font-semibold">{event.price === 0 ? 'Участие бесплатное' : 'Регистрация у организатора'}</h3>
                 <p className="mt-2 text-sm text-ink/70">
-                  Регистрация и приём работ проходят на сайте организатора.
+                  {event.registrationNote || (event.type === 'championship' ? 'Регистрация и приём работ проходят на сайте организатора.' : 'Регистрация проходит на сайте организатора.')}
                   {event.keyDates?.[0] && <> Срок: <span className="font-semibold text-ink">{event.keyDates[0].when}</span>.</>}
                 </p>
                 {event.registrationLink && (
@@ -891,7 +917,7 @@ export default function EventDetail() {
             )}
           </div>
 
-          {event.format === 'offline' && event.location && (
+          {event.format !== 'online' && event.location && (
             <div className="glass mt-4 overflow-hidden rounded-2xl">
               <div className="p-6 pb-3">
                 <div className="text-xs font-semibold uppercase tracking-wide text-ink/40">Место проведения</div>

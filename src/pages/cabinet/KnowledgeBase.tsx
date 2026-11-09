@@ -18,7 +18,6 @@ import { icon as cabinetIcon } from './sections'
 // Тексты и порядок — на сервере (server/content/knowledge, docs/knowledge-base.md).
 
 const focusRing = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink/40'
-const OPEN_KEY = 'ky_kb_open'
 const START_ID = 'nachalo-raboty'
 
 type PageState = { id: string; state: 'ok'; data: KbPage } | { id: string; state: 'missing' | 'error' }
@@ -29,23 +28,6 @@ const dateRu = (iso: string | null) => {
 }
 const pagesWord = (n: number) => `${n} ${pluralRu(n, ['страница', 'страницы', 'страниц'])}`
 const minWord = (n: number) => `≈ ${n} ${pluralRu(n, ['минута', 'минуты', 'минут'])}`
-
-function loadOpen(): Set<string> {
-  try {
-    const v = JSON.parse(localStorage.getItem(OPEN_KEY) ?? '[]')
-    return new Set(Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [])
-  } catch {
-    return new Set()
-  }
-}
-
-function saveOpen(ids: Set<string>) {
-  try {
-    localStorage.setItem(OPEN_KEY, JSON.stringify([...ids]))
-  } catch {
-    // без сохранения — просто не запомним
-  }
-}
 
 function Locked({ status }: { status?: string }) {
   const ended = status === 'ended'
@@ -86,7 +68,7 @@ export default function KnowledgeBase({ user }: { user: CabinetUser }) {
 
   const requested = params.get('p')
   const ready = index.state === 'ready' ? index.data : null
-  const pageId = requested ?? ready?.firstId ?? null
+  const pageId = requested
   const [page, setPage] = useState<PageState | null>(null)
   const { visit } = marks
 
@@ -147,29 +129,21 @@ function Workspace({ data, pageId, current, marks }: { data: KbIndex; pageId: st
     return out
   }, [byParent])
 
-  // Раскрытые разделы: что человек оставил открытым + путь к текущей странице.
-  const [opened, setOpened] = useState<Set<string>>(loadOpen)
-  const trail = useMemo(() => {
-    const ids: string[] = []
-    for (let n = pageId ? byId.get(pageId) : undefined; n; n = n.parent ? byId.get(n.parent) : undefined) ids.push(n.id)
-    return new Set(ids)
-  }, [pageId, byId])
-  const isOpen = (id: string) => opened.has(id) || trail.has(id)
-  const toggle = (id: string) => {
-    setOpened((prev) => {
-      const next = new Set(prev)
-      if (isOpen(id)) next.delete(id)
-      else next.add(id)
-      saveOpen(next)
-      return next
-    })
+  const [query, setQuery] = useState('')
+  const [category, setCategory] = useState('')
+  const [view, setView] = useState('all')
+  const [sort, setSort] = useState('default')
+  const folders = tree.filter((n) => n.folder)
+  const contains = (node: KbNode): boolean => {
+    const visited = new Set<string>()
+    for (let n: KbNode | undefined = node; n && !visited.has(n.id); n = n.parent ? byId.get(n.parent) : undefined) {
+      if (n.id === category) return true
+      visited.add(n.id)
+    }
+    return false
   }
-  const collapseAll = () => {
-    const none = new Set<string>()
-    saveOpen(none)
-    setOpened(none)
-  }
-
+  const results = tree.filter((n) => !n.folder && (!category || contains(n)) && (!query.trim() || n.title.toLocaleLowerCase('ru').includes(query.trim().toLocaleLowerCase('ru'))) && (view === 'all' || view === 'favorites' && marks.favorites.includes(n.id) || view === 'read' && marks.read.has(n.id) || view === 'unread' && !marks.read.has(n.id)))
+  if (sort === 'title') results.sort((a, b) => a.title.localeCompare(b.title, 'ru'))
   // Быстрый поиск: ⌘K / Ctrl+K или «/» вне полей ввода.
   const [paletteOpen, setPaletteOpen] = useState(false)
   useEffect(() => {
@@ -187,9 +161,7 @@ function Workspace({ data, pageId, current, marks }: { data: KbIndex; pageId: st
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [])
-  const mac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.userAgent)
 
-  const [panelOpen, setPanelOpen] = useState(false)
   const currentPage = current?.state === 'ok' ? current.data : null
   const empty = tree.length === 0
   const headings = useMemo(() => (currentPage ? kbHeadings(currentPage.body) : []), [currentPage])
@@ -201,103 +173,32 @@ function Workspace({ data, pageId, current, marks }: { data: KbIndex; pageId: st
     return id ? byId.get(id) ?? null : null
   }, [pageId, marks.recent, byId])
 
-  const favNodes = marks.favorites.map((id) => byId.get(id)).filter((n): n is KbNode => !!n)
 
   return (
-    <div className="ym-hide-content container-wide py-4 lg:py-5">
-      <nav aria-label="Навигация" className="mb-3 flex items-center gap-2 text-sm text-ink/50">
-        <Link to="/cabinet" className={`rounded hover:text-ink ${focusRing}`}>Личный кабинет</Link>
-        <span aria-hidden="true">/</span>
-        <span className="text-ink/80">База знаний</span>
-      </nav>
-
-      <div className={`grid gap-6 lg:gap-6 lg:grid-cols-[16.5rem_minmax(0,1fr)] ${outline ? 'xl:grid-cols-[16.5rem_minmax(0,1fr)_12.5rem]' : ''}`}>
-        {/* Панель разделов */}
-        <aside className="min-w-0 lg:sticky lg:top-20 lg:self-start">
-          <div className="flex gap-2 lg:hidden">
-            <button
-              type="button"
-              aria-expanded={panelOpen}
-              aria-controls="kb-panel"
-              onClick={() => setPanelOpen((v) => !v)}
-              className={`flex min-w-0 flex-1 items-center gap-3 rounded-2xl bg-ink/[0.045] px-4 py-3 text-left text-sm font-semibold ${focusRing}`}
-            >
-              <KbIcon name="menu" />
-              <span className="min-w-0 flex-1 truncate">{currentPage?.title || 'Разделы'}</span>
-              <span className="text-xs font-medium text-ink/50">{panelOpen ? 'Скрыть' : 'Разделы'}</span>
-            </button>
-            <button type="button" aria-label="Поиск по базе знаний" onClick={() => setPaletteOpen(true)} className={`flex w-12 shrink-0 items-center justify-center rounded-2xl bg-ink/[0.045] ${focusRing}`}>
-              <KbIcon name="search" className="h-5 w-5" />
-            </button>
-          </div>
-
-          <div id="kb-panel" className={`${panelOpen ? 'mt-3 block' : 'hidden'} rounded-2xl bg-ink/[0.045] p-2.5 lg:block lg:max-h-[calc(100vh-6.5rem)] lg:overflow-y-auto`}>
-            <div className="flex items-center gap-2.5 px-1.5 pb-2.5 pt-0.5">
-              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-white text-ink shadow-[0_1px_2px_rgba(40,57,83,0.08)]"><KbIcon name="book" /></span>
-              <div className="min-w-0">
-                <div className="text-sm font-semibold leading-tight">База знаний</div>
-                <div className="text-xs text-ink/50">{pagesWord(data.stats.pages)}</div>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => { setPanelOpen(false); setPaletteOpen(true) }}
-              className={`flex w-full items-center gap-2.5 rounded-lg bg-white px-3 py-2 text-left text-[13px] text-ink/45 shadow-[0_1px_2px_rgba(40,57,83,0.06)] transition-shadow hover:shadow-[0_2px_8px_-2px_rgba(40,57,83,0.18)] ${focusRing}`}
-            >
-              <KbIcon name="search" className="h-4 w-4 text-ink/40" />
-              <span className="flex-1">Поиск</span>
-              <kbd className="rounded-md bg-ink/[0.06] px-1.5 py-0.5 font-sans text-[11px] font-medium text-ink/45">{mac ? '⌘ K' : 'Ctrl K'}</kbd>
-            </button>
-
-            {favNodes.length > 0 && (
-              <>
-                <div className="px-2 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-wider text-ink/40">Избранное</div>
-                <ul className="space-y-0.5">
-                  {favNodes.map((n) => (
-                    <li key={n.id}>
-                      <Link
-                        to={kbHref(n.id)}
-                        aria-current={n.id === pageId ? 'page' : undefined}
-                        onClick={() => setPanelOpen(false)}
-                        className={`flex min-w-0 items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] transition-colors ${focusRing} ${n.id === pageId ? 'bg-white font-semibold text-ink shadow-[0_1px_2px_rgba(40,57,83,0.08)]' : 'text-ink/75 hover:bg-white/70 hover:text-ink'}`}
-                      >
-                        <KbIcon name="star" className="h-3.5 w-3.5 fill-gold-light/60 text-gold" />
-                        <span className="min-w-0 flex-1 truncate">{n.title}</span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </>
-            )}
-
-            <div className="flex items-center justify-between px-2 pb-1 pt-3">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-ink/40">Разделы</span>
-              {opened.size > 0 && (
-                <button type="button" onClick={collapseAll} className={`flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium text-ink/45 hover:bg-white/70 hover:text-ink ${focusRing}`}>
-                  <KbIcon name="collapse" className="h-3 w-3" strokeWidth={2} />
-                  Свернуть все
-                </button>
-              )}
-            </div>
-            {empty ? (
-              <p className="px-2 py-2 text-sm text-ink/50">Пока пусто.</p>
-            ) : (
-              <Branch nodes={byParent.get(null) ?? []} byParent={byParent} depth={0} pageId={pageId} marks={marks} isOpen={isOpen} toggle={toggle} onNavigate={() => setPanelOpen(false)} />
-            )}
-
-            {admin && <p className="mt-4 rounded-xl bg-white/70 px-3 py-2 text-xs leading-relaxed text-ink/60">Режим администратора: черновики и пустые разделы видны только вам.</p>}
-          </div>
-        </aside>
-
+    <div className="ym-hide-content space-y-4">
+      <section aria-label="Фильтры базы знаний" className="rounded-2xl bg-ink/[0.045] p-3 sm:p-4">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <label className="text-xs font-medium text-ink/60">Поиск по названию<input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Название материала" className="mt-1 w-full rounded-xl border border-ink/10 bg-white px-3 py-2.5 text-sm" /></label>
+          <label className="text-xs font-medium text-ink/60">Раздел<select value={category} onChange={(e) => setCategory(e.target.value)} className="mt-1 w-full rounded-xl border border-ink/10 bg-white px-3 py-2.5 text-sm"><option value="">Все разделы</option>{folders.map((n) => <option key={n.id} value={n.id}>{n.title}</option>)}</select></label>
+          <label className="text-xs font-medium text-ink/60">Мои отметки<select value={view} onChange={(e) => setView(e.target.value)} className="mt-1 w-full rounded-xl border border-ink/10 bg-white px-3 py-2.5 text-sm"><option value="all">Все материалы</option><option value="favorites">Избранное</option><option value="unread">Не прочитано</option><option value="read">Прочитано</option></select></label>
+          <label className="text-xs font-medium text-ink/60">Порядок<select value={sort} onChange={(e) => setSort(e.target.value)} className="mt-1 w-full rounded-xl border border-ink/10 bg-white px-3 py-2.5 text-sm"><option value="default">Порядок разделов</option><option value="title">По названию</option></select></label>
+        </div>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-ink/55"><span>Найдено: {results.length}</span><div className="flex gap-4"><button type="button" onClick={() => { setQuery(''); setCategory(''); setView('all'); setSort('default') }} className="underline underline-offset-2">Сбросить фильтры</button><button type="button" onClick={() => setPaletteOpen(true)} className="font-semibold text-ink">Поиск по тексту · Ctrl K</button></div></div>
+        <div className="mt-3 grid max-h-52 gap-2 overflow-y-auto sm:grid-cols-2" aria-label="Материалы базы знаний">
+          {results.map((n) => <Link key={n.id} to={kbHref(n.id)} aria-current={n.id === pageId ? 'page' : undefined} className={`flex min-w-0 items-center justify-between gap-2 rounded-xl border p-3 text-sm ${n.id === pageId ? 'border-ink bg-ink text-white' : 'border-ink/10 bg-white hover:border-ink/30'}`}><span>{n.title}</span>{marks.read.has(n.id) && <span aria-label="Прочитано">✓</span>}</Link>)}
+          {!empty && !results.length && <p className="p-3 text-sm text-ink/60">Материалов по этим фильтрам нет.</p>}
+        </div>
+        {admin && <p className="mt-3 text-xs text-ink/50">Черновики видны только администраторам.</p>}
+      </section>
+      <div className={`grid gap-5 ${outline ? '2xl:grid-cols-[minmax(0,1fr)_12rem]' : ''}`}>
         {/* Страница */}
         <article className="min-w-0">
-          {empty ? <EmptyBase admin={admin} /> : !pageId || !current ? <PageSkeleton /> : currentPage ? (
+          {empty ? <EmptyBase admin={admin} /> : !pageId ? <p className="px-1 text-sm text-ink/55">Выберите материал в списке выше, чтобы открыть его здесь.</p> : !current ? <PageSkeleton /> : currentPage ? (
             <PageBody page={currentPage} byId={byId} pagesUnder={pagesUnder} tree={tree} marks={marks} resume={resume} outlineShown={outline} />
           ) : (
             <div className="py-16 text-center">
               <h1 className="text-xl font-semibold">{current.state === 'missing' ? 'Страница не найдена' : 'Не получилось открыть страницу'}</h1>
-              <p className="mt-2 text-sm text-ink/60">{current.state === 'missing' ? 'Возможно, её переименовали или убрали. Выберите страницу слева или найдите её поиском.' : 'Попробуйте обновить страницу через минуту.'}</p>
+              <p className="mt-2 text-sm text-ink/60">{current.state === 'missing' ? 'Возможно, её переименовали или убрали. Выберите материал через фильтры или поиск.' : 'Попробуйте обновить страницу через минуту.'}</p>
               {current.state === 'missing' && <button type="button" onClick={() => setPaletteOpen(true)} className={`mt-4 rounded-full border border-ink/15 px-5 py-2 text-sm font-semibold text-ink/70 hover:text-ink ${focusRing}`}>Открыть поиск</button>}
             </div>
           )}
@@ -305,7 +206,7 @@ function Workspace({ data, pageId, current, marks }: { data: KbIndex; pageId: st
 
         {/* На странице */}
         {outline && (
-          <div className="hidden xl:block">
+          <div className="hidden 2xl:block">
             <div className="sticky top-20"><KbOutline key={currentPage?.id} headings={headings} /></div>
           </div>
         )}
@@ -341,57 +242,6 @@ function EmptyBase({ admin }: { admin: boolean }) {
   )
 }
 
-function Branch({ nodes, byParent, depth, pageId, marks, isOpen, toggle, onNavigate }: {
-  nodes: KbNode[]
-  byParent: Map<string | null, KbNode[]>
-  depth: number
-  pageId: string | null
-  marks: KbMarks
-  isOpen: (id: string) => boolean
-  toggle: (id: string) => void
-  onNavigate: () => void
-}) {
-  return (
-    <ul className={depth ? 'ml-[0.8rem] mt-0.5 space-y-px border-l border-ink/10 pl-1' : 'space-y-px'}>
-      {nodes.map((n) => {
-        const kids = byParent.get(n.id) ?? []
-        const open = n.folder && kids.length > 0 && isOpen(n.id)
-        const selected = n.id === pageId
-        const done = !n.folder && marks.read.has(n.id)
-        return (
-          <li key={n.id}>
-            <div className="flex items-center">
-              {n.folder && kids.length > 0 ? (
-                <button type="button" aria-label={`${open ? 'Свернуть' : 'Развернуть'}: ${n.title}`} aria-expanded={open} onClick={() => toggle(n.id)} className={`mr-0 flex h-7 w-5 shrink-0 items-center justify-center rounded-lg text-ink/40 hover:bg-white/70 hover:text-ink ${focusRing}`}>
-                  <KbIcon name="chevron" strokeWidth={2} className={`h-3.5 w-3.5 transition-transform ${open ? 'rotate-90' : ''}`} />
-                </button>
-              ) : (
-                <span className="h-7 w-5 shrink-0" aria-hidden="true" />
-              )}
-              <Link
-                to={kbHref(n.id)}
-                aria-current={selected ? 'page' : undefined}
-                onClick={() => { if (n.folder && kids.length > 0 && !isOpen(n.id)) toggle(n.id); onNavigate() }}
-                className={`flex min-w-0 flex-1 items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[13px] transition-colors ${focusRing} ${
-                  selected ? 'bg-white font-semibold text-ink shadow-[0_1px_2px_rgba(40,57,83,0.08),0_6px_14px_-8px_rgba(40,57,83,0.25)]' : 'text-ink/75 hover:bg-white/70 hover:text-ink'
-                }`}
-              >
-                <span className={selected ? 'text-ink' : 'text-ink/55'}><KbIcon name={n.icon} fallback={n.folder ? 'folder' : 'doc'} className="h-4 w-4" /></span>
-                <span className="line-clamp-2 min-w-0 flex-1 hyphens-auto leading-snug">{n.title}</span>
-                {n.draft && <span className="shrink-0 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800">черновик</span>}
-                {done && <span className="shrink-0 text-gold" title="Прочитано"><KbIcon name="check" strokeWidth={2.2} className="h-3.5 w-3.5" /><span className="sr-only">прочитано</span></span>}
-                {n.folder && <span className="shrink-0 text-xs tabular-nums text-ink/35">{n.pages ?? 0}</span>}
-              </Link>
-            </div>
-            {open && <Branch nodes={kids} byParent={byParent} depth={depth + 1} pageId={pageId} marks={marks} isOpen={isOpen} toggle={toggle} onNavigate={onNavigate} />}
-          </li>
-        )
-      })}
-    </ul>
-  )
-}
-
-/** Карточки разделов (директива «::: sections» на странице «Начало работы»). */
 function SectionGrid({ tree, pagesUnder, marks, skipId }: { tree: KbNode[]; pagesUnder: Map<string, string[]>; marks: KbMarks; skipId: string }) {
   const top = tree.filter((n) => !n.parent && n.folder && n.id !== skipId)
   if (!top.length) return null

@@ -5,6 +5,7 @@ import { voluntaryAccessEnd } from './subscriptionCancellation.js'
 import { listJoins } from './store.js'
 import { getBotUser } from './botUsers.js'
 import { TARIFFS } from './prodamus.js'
+import { listAmbassadors } from './ambassadors.js'
 import { getProfile } from './accountStore.js'
 import { communityInviteUrl } from './communityInvite.js'
 import { hasAccess, paidUntil, accessUntil, inGrace } from './subscriptionAccess.js'
@@ -97,6 +98,7 @@ export function accountProfile(cfg, now = Date.now()) {
     login: cfg.login,
     name: cfg.name || botName || cfg.login,
     role: 'client',
+    communityRole: cfg.tgId && listAmbassadors().some(a => String(a.tgUserId || '') === String(cfg.tgId) || (bot?.username && String(a.telegram || '').trim().replace(/^https?:\/\/t\.me\//i, '').replace(/^@/, '').toLowerCase() === bot.username.toLowerCase())) ? 'ambassador' : 'resident',
     telegramLinked: Boolean(bot),
     // Привязка Telegram к кабинету (код из бота): у аккаунта резидента её можно сделать и снять, у администратора Telegram задан в настройках сервера.
     telegram: {
@@ -107,7 +109,7 @@ export function accountProfile(cfg, now = Date.now()) {
     },
     email: cfg.email || undefined,
     // Личные данные и контакты для раздела «Профиль и контакты» и обзора: почта подтверждена (в кабинет без этого не войти).
-    contact: { name: cfg.contactName ?? cfg.name ?? '', email: cfg.email || '', phone: cfg.contactPhone ?? cfg.phone ?? '' },
+    contact: { name: cfg.contactName ?? cfg.name ?? '', email: cfg.contactEmail || cfg.email || '', phone: cfg.contactPhone ?? cfg.phone ?? '' },
     memberSince: cfg.createdAt ?? null,
     resident: residentStatus(cfg.tgId, now, cfg.email),
     privacy: { hidden: getProfile(cfg.login).privacy.hidden },

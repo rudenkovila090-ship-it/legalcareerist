@@ -1,3 +1,4 @@
+import { eventDateRange } from '../../lib/eventTime'
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { events } from '../../data/events'
@@ -38,7 +39,7 @@ export default function EventPhotos() {
     )
   }
 
-  const date = new Date(event.dateTime).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Moscow' })
+  const date = eventDateRange(event)
   const photos = report.photos.map((p) => ({ src: photoSrc(report, p), alt: p.alt, caption: p.caption }))
 
   return (
@@ -48,7 +49,7 @@ export default function EventPhotos() {
         <div className="mt-4 text-sm font-medium uppercase tracking-wide text-gold">Фотоотчёт</div>
         <h1 className="mt-1 text-3xl font-semibold sm:text-4xl">{event.title}</h1>
         <div className="mt-2 text-sm text-ink/60">
-          {date} · {event.format === 'online' ? 'Онлайн' : event.city} · {report.photos.length} {pluralRu(report.photos.length, ['фотография', 'фотографии', 'фотографий'])}
+          {date} · {event.format === 'online' ? 'Онлайн' : event.format === 'hybrid' ? `${event.city || 'Очно'} + онлайн` : event.city} · {report.photos.length} {pluralRu(report.photos.length, ['фотография', 'фотографии', 'фотографий'])}
         </div>
         {report.description && <p className="mt-4 max-w-2xl leading-relaxed text-ink/70">{report.description}</p>}
         {report.photographer && <p className="mt-2 text-sm text-ink/50">Фотограф: {report.photographer}</p>}

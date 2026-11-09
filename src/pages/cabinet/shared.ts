@@ -11,6 +11,8 @@ export const longDate = (ts?: number | null) => (ts ? new Date(ts).toLocaleDateS
 /** Сообщения об ошибках сервера в кабинете. */
 export const errorText = (code: string): string =>
   ({
+    profile_conflict: 'Записная книжка изменена в другой вкладке. Обновите страницу перед сохранением.',
+    bad_contacts: 'Проверьте имя контакта. В книжке можно сохранить до 250 контактов.',
     consent_required: 'Отметьте обязательные галочки внизу формы.',
     bad_salary: 'Зарплата «от» не может быть больше «до».',
     bad_years: 'Стаж — число от 0 до 60.',
@@ -71,6 +73,7 @@ export function initials(name: string, email = ''): string {
 
 /** Роль для подписи рядом с именем: администратор, резидент сообщества или обычный клиент сервиса. */
 export function roleOf(user: CabinetUser): { label: string; tone: 'ink' | 'gold' | 'soft' } {
+  if (user.communityRole === 'ambassador') return { label: 'Амбассадор сообщества', tone: 'gold' }
   if (!isResidentAccount(user)) return { label: 'Администратор', tone: 'ink' }
   if (user.resident.status === 'active' || user.resident.status === 'lifetime') return { label: 'Резидент сообщества', tone: 'gold' }
   return { label: 'Клиент сервиса', tone: 'soft' }

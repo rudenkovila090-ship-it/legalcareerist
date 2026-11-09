@@ -4,6 +4,8 @@ import { fetchActivity, updateContact, isResidentAccount, type ActivityEntry, ty
 import { icon } from './sections'
 import { Avatar, Card, Chip, IconBubble } from './ui'
 import { dayTitle, fieldClass, labelClass, longDate, roleOf, timeOfDay } from './shared'
+import ContactEmail from './ContactEmail'
+import { TelegramSection } from './CommunitySections'
 import { activityIcon, activityLabel } from './activityInfo'
 
 const focusRing = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink/40'
@@ -65,14 +67,6 @@ export function ProfileInfoSection({ user, onSaved }: { user: CabinetUser; onSav
             <input id="pi-phone" value={phone} onChange={(e) => setPhone(e.target.value)} type="tel" inputMode="tel" maxLength={25} autoComplete="tel" placeholder="+7 900 000-00-00" className={fieldClass} />
             <p className="mt-1.5 text-xs text-ink/50">Необязательно. Нужен только для связи с вами; по телефону подписка и билеты не ищутся.</p>
           </div>
-          <div>
-            <label htmlFor="pi-email" className={labelClass}>Почта (она же логин)</label>
-            <div className="relative">
-              <input id="pi-email" value={user.contact.email} readOnly className={`${fieldClass} bg-ink/[0.04] pr-28 text-ink/70`} />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2"><Chip tone="good">Подтверждена</Chip></span>
-            </div>
-            <p className="mt-1.5 text-xs text-ink/50">Чтобы сменить почту, напишите в <Link to="/cabinet/support" className="underline hover:text-ink">чат поддержки</Link>: мы проверим новый адрес письмом.</p>
-          </div>
           {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
           <div className="flex flex-wrap items-center gap-4">
             <button type="submit" disabled={busy} className={primaryButton}>{busy ? 'Сохраняем…' : 'Сохранить'}</button>
@@ -91,14 +85,8 @@ export function ProfileInfoSection({ user, onSaved }: { user: CabinetUser; onSav
         </Card>
       )}
 
-      <Card>
-        <h2 className="text-lg font-semibold">Контактная информация</h2>
-        <ul className="mt-4 space-y-3">
-          <ContactRow icon={icon.mail} label="Почта" value={user.contact.email || '—'} note="сюда приходят билеты, чеки и ответы поддержки" />
-          <ContactRow icon={icon.phone} label="Телефон" value={user.contact.phone || 'Не указан'} />
-          <ContactRow icon={icon.telegram} label="Telegram" value={user.telegram.linked ? user.telegram.name || 'Привязан' : 'Не привязан'} to="/cabinet/telegram" linkText={user.telegram.linked ? 'Управлять' : user.telegram.canLink ? 'Привязать' : undefined} />
-        </ul>
-      </Card>
+      {resident && <ContactEmail user={user} onSaved={onSaved} />}
+      <TelegramSection user={user} onRefresh={onSaved} />
     </div>
   )
 }
@@ -112,19 +100,6 @@ function ReadRow({ label, value }: { label: string; value: string }) {
   )
 }
 
-function ContactRow({ icon: ic, label, value, note, to, linkText }: { icon: React.ReactNode; label: string; value: string; note?: string; to?: string; linkText?: string }) {
-  return (
-    <li className="flex items-center gap-3">
-      <IconBubble tone="soft">{ic}</IconBubble>
-      <div className="min-w-0 flex-1">
-        <div className="text-xs text-ink/50">{label}</div>
-        <div className="truncate text-sm font-medium">{value}</div>
-        {note && <div className="text-xs text-ink/50">{note}</div>}
-      </div>
-      {to && linkText && <Link to={to} className={`shrink-0 rounded text-sm font-medium text-gold hover:text-ink ${focusRing}`}>{linkText}</Link>}
-    </li>
-  )
-}
 
 // ---- История действий ----
 export function ActivitySection() {

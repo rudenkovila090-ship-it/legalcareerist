@@ -394,6 +394,7 @@ export interface Article extends Tagged {
   id: string
   slug: string
   title: string
+  image?: string
   audience: Audience[]
   kind: ArticleKind
   excerpt: string
@@ -430,8 +431,8 @@ export interface NewsItem {
   images?: string[]
 }
 
-export type EventType = 'conference' | 'webinar' | 'breakfast' | 'intensive' | 'tour' | 'internship' | 'championship'
-export type EventFormat = 'online' | 'offline'
+export type EventType = 'conference' | 'webinar' | 'breakfast' | 'intensive' | 'tour' | 'internship' | 'championship' | 'meeting' | 'course'
+export type EventFormat = 'online' | 'offline' | 'hybrid'
 export type EventStatus = 'open' | 'completed'
 
 /** Для кого мероприятие — используется для подборки «Для студентов» и
@@ -500,12 +501,15 @@ export interface EventItem extends Tagged {
   type: EventType
   format: EventFormat
   dateTime: string
+  /** Известны только календарные даты: не показывать вымышленное время начала и окончания. */
+  dateOnly?: boolean
   /** Окончание (ISO): если задано, время показывается диапазоном «18:00–22:00». */
   endDateTime?: string
   /** Страница с публичной офертой мероприятия: ссылка стоит под кнопкой покупки билета. */
   offerPath?: string
   city?: string
-  price: number
+  /** null — организатор не указал стоимость; это не бесплатное участие. */
+  price: number | null
   promoCode?: string
   status: EventStatus
   speakers: EventSpeaker[]
@@ -551,6 +555,11 @@ export interface EventItem extends Tagged {
   /** Регистрация только у организатора (партнёрское мероприятие со своей формой): на странице нет тарифов, нашей формы билета
    *  и заявки «стать партнёром», вместо них — кнопка на сайт организатора и условия участия. */
   externalRegistration?: boolean
+  /** Условия регистрации внешнего организатора: подтверждение места, трансляция и т. п. */
+  registrationNote?: string
+  ageLimit?: number
+  /** Форматы одной встречи с разной программой и условиями участия. */
+  participationOptions?: { title: string; audience: string; schedule: string; includes: string[]; note?: string }[]
   /** Важные даты (сроки регистрации, приёма работ, публикации кейсов). */
   keyDates?: EventKeyDate[]
   /** Направления и компании-кураторы (для кейс-чемпионатов). */

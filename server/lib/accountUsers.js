@@ -245,6 +245,29 @@ export function updateContact(id, { name, phone }) {
   return { account }
 }
 
+/** Подтверждённый адрес для связи; логин и история оплат остаются привязаны к аккаунту. */
+export function requestContactEmail(id, email, password, now = Date.now()) {
+  const data = load(), account = data[id]
+  if (!isActive(account) || !verifyPassword(String(password ?? ''), account.passwordHash)) return { error: 'bad_password' }
+  if (!validEmail(email)) return { error: 'bad_email' }
+  if (account.contactEmailPending?.sentAt > now - MAIL_GAP_MS) return { error: 'too_many_attempts' }
+  const code = String(crypto.randomInt(0, 100_000_000)).padStart(8, '0')
+  account.contactEmailPending = { email: normEmail(email), hash: sha(code), expiresAt: now + 10 * 60_000, sentAt: now, attempts: 0 }
+  save(data)
+  return { email: normEmail(email), code }
+}
+
+export function confirmContactEmail(id, code, now = Date.now()) {
+  const data = load(), account = data[id], pending = account?.contactEmailPending
+  if (!pending || pending.expiresAt <= now || pending.attempts >= 5) return { error: 'bad_code' }
+  pending.attempts++
+  if (!/^[0-9]{8}$/.test(String(code)) || sha(String(code)) !== pending.hash) { save(data); return { error: 'bad_code' } }
+  account.contactEmail = pending.email
+  delete account.contactEmailPending
+  save(data)
+  return { email: account.contactEmail }
+}
+
 /** Удаление аккаунта (по запросу на удаление данных). */
 export function deleteAccount(id) {
   const data = load()
@@ -262,6 +285,7 @@ export function contextOf(account) {
     tgLinkedAt: account.tgLinkedAt ?? null,
     name: account.name || account.email,
     email: account.email,
+    contactEmail: account.contactEmail,
     phone: '', // телефон не подтверждён, по нему чужие записи не подтягиваем
     contactName: account.name ?? '',
     contactPhone: account.phone ?? '', // телефон для связи, который человек указал сам: на показ и выгрузку, не на поиск записей

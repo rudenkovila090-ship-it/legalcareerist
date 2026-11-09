@@ -16,7 +16,9 @@ export interface OrganizerEventData {
   format: EventFormat
   city: string
   dateTime: string
-  price: number
+  endDateTime?: string
+  dateOnly?: boolean
+  price: number | null
   description: string
   registrationLink: string
   socialLinks: string
@@ -62,6 +64,8 @@ function seed(): OrganizerEvent[] {
       format: e.format,
       city: e.city ?? '',
       dateTime: e.dateTime,
+      endDateTime: e.endDateTime,
+      dateOnly: e.dateOnly,
       price: e.price,
       description: e.description,
       registrationLink: '',
