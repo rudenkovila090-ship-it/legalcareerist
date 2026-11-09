@@ -13,6 +13,7 @@ import Newspaper from '../../components/noir/Newspaper'
 import { CharacterGlyph } from '../../components/noir/CharacterGlyph'
 import { ShotFx } from '../../components/noir/ShotFx'
 import { NoirDust, NoirMarquee } from '../../components/noir/NoirAmbient'
+import { pingEventRegistrationClick } from '../../lib/leadFormCompatibility'
 import './noir.css'
 
 // Блоки страницы мероприятия в тёмной «нуарной» теме (см. .theme-noir в index.css, анимации — в noir.css).
@@ -173,13 +174,17 @@ export function NoirHero({ event, story, onBuy, share, views }: NoirHeroProps) {
 
             <Rise delay={2.95} className="mt-8">
               <div className="flex flex-wrap items-center gap-3">
-                <button
+                {event.registrationLink ? <a
+                  href={event.registrationLink}
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={() => pingEventRegistrationClick(event.slug)}
+                  className="noir-cta rounded-full bg-[var(--noir-crimson)] px-8 py-3 text-sm font-semibold text-white transition-colors hover:bg-[var(--noir-crimson-bright)]"
+                >Приобрести билет — {eventPriceText(event)}</a> : <button
                   type="button"
                   onClick={onBuy}
                   className="noir-cta rounded-full bg-[var(--noir-crimson)] px-8 py-3 text-sm font-semibold text-white transition-colors hover:bg-[var(--noir-crimson-bright)]"
-                >
-                  Приобрести билет
-                </button>
+                >Приобрести билет</button>}
                 {share}
                 {views && <span className="text-sm text-ink/50">{views}</span>}
               </div>

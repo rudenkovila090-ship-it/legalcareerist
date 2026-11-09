@@ -63,7 +63,7 @@
     },
     {
       "path": "src/data/events.ts",
-      "sha256": "87dfabf1f0115192738f36eec2712a9d3713f4a0d100e9f1f6aa49d49626cc66"
+      "sha256": "b3ecb933e78726d89fbf2695a33befca702d9f5f451f523defe2d07ded1b39c4"
     },
     {
       "path": "src/data/materials.ts",
@@ -191,7 +191,7 @@
     },
     {
       "path": "src/pages/events/EventDetail.tsx",
-      "sha256": "6f4e47fe6dedce70d8fa9866321a68419bc58f7adb7805ac2991713be14f2672"
+      "sha256": "9965bd1a9eab12f466617699aa53450bf239f2dcf6073e013cba8509ec6b8748"
     },
     {
       "path": "src/pages/events/EventPhotos.tsx",
@@ -207,7 +207,7 @@
     },
     {
       "path": "src/pages/events/NoirSections.tsx",
-      "sha256": "c7445daeb1980d911c1b32d1bb13455ecc2c5b6ad2d4ec064ba9c5a3c67aa446"
+      "sha256": "10c673e4a8192be76dad9e0306800158a6c6cfea77fb3ba557cec8e241bd82d6"
     },
     {
       "path": "src/pages/kadry/Candidates.tsx",
@@ -290,6 +290,13 @@
           "app.use('/api/account/profile', express.json({ limit: '4mb' }))\napp.use(express.json())"
         ]
       ]
+    }
+  ],
+  "catalogUpdates": [
+    {
+      "slug": "dzhazovyy-vecher-dlya-yuristov-2",
+      "price": 3990,
+      "registrationLink": "https://payform.ru/obcMOZJ/"
     }
   ]
 }

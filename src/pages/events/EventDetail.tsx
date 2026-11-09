@@ -1,3 +1,4 @@
+import { eventPriceText } from '../../lib/eventFormat'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { events } from '../../data/events'
@@ -747,7 +748,7 @@ export default function EventDetail() {
             ) : event.externalRegistration ? (
               <>
                 <div className="text-sm font-semibold uppercase tracking-wide text-gold">Регистрация</div>
-                <h3 className="mt-1 text-lg font-semibold">{event.price === 0 ? 'Участие бесплатное' : 'Регистрация у организатора'}</h3>
+                <h3 className="mt-1 text-lg font-semibold">{event.price === 0 ? 'Участие бесплатное' : event.price !== null ? `Билет — ${eventPriceText(event)}` : 'Регистрация у организатора'}</h3>
                 <p className="mt-2 text-sm text-ink/70">
                   {event.registrationNote || (event.type === 'championship' ? 'Регистрация и приём работ проходят на сайте организатора.' : 'Регистрация проходит на сайте организатора.')}
                   {event.keyDates?.[0] && <> Срок: <span className="font-semibold text-ink">{event.keyDates[0].when}</span>.</>}
@@ -760,7 +761,7 @@ export default function EventDetail() {
                     onClick={() => pingEventRegistrationClick(event.slug)}
                     className="mt-4 block rounded-lg bg-ink py-2.5 text-center text-sm font-semibold text-white hover:bg-ink/90"
                   >
-                    Зарегистрироваться на сайте организатора
+                    {event.price !== null && event.price > 0 ? `Приобрести билет — ${eventPriceText(event)}` : 'Зарегистрироваться на сайте организатора'}
                   </a>
                 )}
                 {event.documents?.filter((d) => d.kind === 'file').map((d) => (

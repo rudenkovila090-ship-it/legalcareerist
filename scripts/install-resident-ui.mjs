@@ -58,7 +58,9 @@ function protect(root){
  return Object.fromEntries(files.map(n=>[n,sha(fs.readFileSync(path.join(root,n)))]))
 }
 function checkProtected(app){for(const [file,hash]of Object.entries(app.protected))if(sha(fs.readFileSync(path.join(app.root,file)))!==hash)throw Error('Изменился модуль вне обновления: '+file)}
-let stage,release,configs=[],apps=[],backendWritten=false,nginxWritten=false
+function readCatalog(file){if(!fs.existsSync(file))return [];const value=JSON.parse(fs.readFileSync(file,'utf8'));if(!Array.isArray(value))throw Error('Не удалось прочитать каталог мероприятий.');return value}
+function replaceCatalogEntry(rows,slug,value){const index=rows.findIndex(e=>e.slug===slug);if(value===null)return rows.filter(e=>e.slug!==slug);if(index<0)return [...rows,value];return rows.map((e,i)=>i===index?value:e)}
+let stage,release,configs=[],apps=[],catalogPlans=[],backendWritten=false,nginxWritten=false
 try{
  if(manifest.kind!=='resident-ui-20261109-v1')throw Error('Неизвестный пакет обновления.')
  for(const f of manifest.frontend){if(!/^(src\/|scripts\/|public\/materials\/covers\/)[A-Za-z0-9_./-]+$/.test(f.path)||f.path.split('/').includes('..'))throw Error('Неверный путь в пакете.');if(sha(fs.readFileSync(path.join(pkg,'payload',f.path)))!==f.sha256)throw Error('Проверка пакета не пройдена: '+f.path)}
@@ -94,6 +96,14 @@ try{
  if(!entry)throw Error('В сборке не найден входной файл.')
  const bundles=fs.readdirSync(path.join(dist,'assets')).filter(n=>n.endsWith('.js')).map(n=>fs.readFileSync(path.join(dist,'assets',n),'utf8')).join('\n')
  if(!['https://legalcareerist.mave.digital/ep-19','https://legalcareerist.mave.digital/ep-22','/api/account/contact-email/request','Моя записная книжка'].every(s=>bundles.includes(s)))throw Error('Сборка не содержит обязательные изменения.')
+ if(manifest.catalogUpdates?.length){
+  const built=JSON.parse(fs.readFileSync(path.join(frontend,'server/data/event-catalog.json'),'utf8'))
+  for(const [i,data]of [...new Set(apps.map(p=>p.data))].entries()){
+   const file=path.join(data,'event-catalog.json'),before=readCatalog(file),entries=[]
+   for(const update of manifest.catalogUpdates){const row=built.find(e=>e.slug===update.slug);if(!row||row.price!==update.price||row.registrationLink!==update.registrationLink||row.tariffs?.length!==1||row.tariffs[0].price!==update.price)throw Error('Проверка новой цены мероприятия не пройдена.');const old=before.find(e=>e.slug===update.slug)??null;entries.push({slug:update.slug,before:old,after:{...(old||row),price:update.price,registrationLink:update.registrationLink,tariffs:row.tariffs}})}
+   write(path.join(stage,'catalog-'+i+'.before.json'),JSON.stringify(before,null,2));catalogPlans.push({file,entries,written:false})
+  }
+ }
  fs.mkdirSync(publicRoot,{recursive:true,mode:0o755});fs.chmodSync(publicRoot,0o755);release=fs.mkdtempSync(path.join(publicRoot,'resident-ui-20261109-'));const nextDist=path.join(release,'dist');fs.cpSync(dist,nextDist,{recursive:true})
  for(const c of configs)for(const root of c.roots)retainAssets(root,nextDist)
  permissions(release)
@@ -106,6 +116,7 @@ try{
  for(const app of [...apps].reverse())run('pm2',['restart',app.name])
  console.log('API обновлены. Проверяю доступность и прежние настройки подписок…')
  for(const app of apps){let good=false;for(let i=0;i<25;i++){try{if(JSON.stringify(await deploymentHealth(app))===JSON.stringify(app.health)){good=true;break}}catch{}await pause(500)}if(!good)throw Error('API не подтвердил запуск: '+app.name);checkProtected(app)}
+ for(const plan of catalogPlans){let current=readCatalog(plan.file);for(const entry of plan.entries){if(JSON.stringify(current.find(e=>e.slug===entry.slug)??null)!==JSON.stringify(entry.before))throw Error('Изменился каталог мероприятия во время подготовки.');current=replaceCatalogEntry(current,entry.slug,entry.after)}write(plan.file,JSON.stringify(current,null,2));plan.written=true}
  for(const item of configs){if(fs.readFileSync(item.file,'utf8')!==item.before)throw Error('Конфигурация Nginx изменилась.');item.after=item.before.replace(/(^[ \t]*root[ \t]+)("[^"\r\n]+"|'[^'\r\n]+'|[^;\s]+)([ \t]*;)/gm,(all,prefix,raw,suffix)=>item.roots.includes(raw.replace(/^(["'])(.*)\1$/,'$2'))?prefix+nextDist+suffix:all)}
  nginxWritten=true;for(const item of configs)write(item.file,item.after,item.mode);run('nginx',['-t']);run('nginx',['-s','reload'])
  const cover=manifest.frontend.find(f=>f.path.startsWith('public/materials/covers/'))
@@ -113,14 +124,16 @@ try{
  for(let i=0;i<12;i++){try{const page=await fetch(publicUrl+'/blog?ui='+path.basename(release),{signal:AbortSignal.timeout(5000),headers:{'Cache-Control':'no-cache'}}),html=await page.text();if(!page.ok||!html.includes(entry))throw Error();const asset=await fetch(publicUrl+entry,{signal:AbortSignal.timeout(5000)});if(!asset.ok||sha(Buffer.from(await asset.arrayBuffer()))!==sha(fs.readFileSync(path.join(dist,entry.replace(/^\//,'')))))throw Error();if(cover){const photo=await fetch(publicUrl+'/'+cover.path.slice(7),{signal:AbortSignal.timeout(10000)});if(!photo.ok||sha(Buffer.from(await photo.arrayBuffer()))!==cover.sha256)throw Error()}verified=true;break}catch{}await pause(1000)}
  if(!verified)throw Error('Сайт не подтвердил новую сборку. Восстанавливаю прежнюю версию.')
  for(const app of apps){checkProtected(app);if(JSON.stringify(await deploymentHealth(app))!==JSON.stringify(app.health))throw Error('Настройки API изменились.')}
- write(path.join(stage,'deployment.json'),JSON.stringify({release,source:found.source,configs:configs.map(({file,before,after,mode})=>({file,before,after,mode})),backend:apps.map(({name,script,data})=>({name,script,data})),installedAt:Date.now(),manifestSha:sha(fs.readFileSync(path.join(pkg,'manifest.json')))}))
+ for(const plan of catalogPlans){const current=readCatalog(plan.file);for(const entry of plan.entries)if(JSON.stringify(current.find(e=>e.slug===entry.slug)??null)!==JSON.stringify(entry.after))throw Error('Каталог не подтвердил новую цену мероприятия.')}
+ write(path.join(stage,'deployment.json'),JSON.stringify({release,source:found.source,configs:configs.map(({file,before,after,mode})=>({file,before,after,mode})),backend:apps.map(({name,script,data})=>({name,script,data})),catalogs:catalogPlans.map(({file,entries})=>({file,entries})),installedAt:Date.now(),manifestSha:sha(fs.readFileSync(path.join(pkg,'manifest.json')))}))
  // Compatibility with subsequent publishers that look for source folders next to deployment.json.
  for(const name of ['src','public','scripts','dist','node_modules'])fs.symlinkSync(path.join(frontend,name),path.join(stage,name))
  for(const name of fs.readdirSync(frontend).filter(f=>/^(package(?:-lock)?\.json|tsconfig.*\.json|vite\.config\.[cm]?[jt]s|index\.html)$/.test(f)))fs.copyFileSync(path.join(frontend,name),path.join(stage,name))
- console.log('ОБНОВЛЕНИЕ_ГОТОВО '+JSON.stringify({cabinet:publicUrl+'/cabinet',podcast:publicUrl+'/blog?category='+encodeURIComponent('Подкаст'),blog:publicUrl+'/blog',api:apps.map(p=>p.name),materialCovers:8,billingModulesUnchanged:true,subscriptionSettingsPreserved:true,backup:stage,release}))
+ console.log('ОБНОВЛЕНИЕ_ГОТОВО '+JSON.stringify({cabinet:publicUrl+'/cabinet',podcast:publicUrl+'/blog?category='+encodeURIComponent('Подкаст'),blog:publicUrl+'/blog',api:apps.map(p=>p.name),materialCovers:8,eventPrices:manifest.catalogUpdates||[],billingModulesUnchanged:true,subscriptionSettingsPreserved:true,backup:stage,release}))
 }catch(error){
  let rolled=true
  if(nginxWritten)try{for(const c of configs){const value=fs.readFileSync(c.file,'utf8');if(c.after&&value===c.after)write(c.file,c.before,c.mode);else if(value!==c.before)throw Error('Concurrent Nginx change')}run('nginx',['-t']);run('nginx',['-s','reload'])}catch{rolled=false}
+ for(const plan of catalogPlans.filter(p=>p.written))try{let current=readCatalog(plan.file);for(const entry of plan.entries){if(JSON.stringify(current.find(e=>e.slug===entry.slug)??null)!==JSON.stringify(entry.after))throw Error('Concurrent event catalog change');current=replaceCatalogEntry(current,entry.slug,entry.before)}write(plan.file,JSON.stringify(current,null,2))}catch{rolled=false}
  if(backendWritten)try{for(const app of apps){for(const f of app.files){const value=fs.existsSync(f.file)?fs.readFileSync(f.file,'utf8'):null;if(value===f.after){if(f.before===null)fs.rmSync(f.file);else write(f.file,f.before)}else if(value!==f.before)throw Error('Concurrent API change')}run('pm2',['restart',app.name])}for(const app of apps){let ready=false;for(let i=0;i<20;i++){try{if(JSON.stringify(await deploymentHealth(app))===JSON.stringify(app.health)){ready=true;break}}catch{}await pause(500)}if(!ready)rolled=false}}catch{rolled=false}
  console.error(error?.message&&/^(Не |Нуж|Проверк|Измен|Исход|Сборк|API|Конфиг|Сайт|В сборке|Новая библиотека)/.test(error.message)?error.message:'Обновление остановлено. Секреты не выводятся.')
  if(backendWritten||nginxWritten)console.error(rolled?'Прежние код и сайт восстановлены.':'Автоматическое восстановление завершилось не полностью. Резервная папка: '+stage)
