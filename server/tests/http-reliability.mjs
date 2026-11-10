@@ -47,6 +47,8 @@ globalThis.fetch = async (url, init = {}) => {
   if (!String(url).startsWith('https://api.telegram.org/')) throw Error('TEST outbound disabled');
   const success = fs.existsSync(new URL('./telegram-ok', import.meta.url));
   const body=JSON.parse(init.body||'{}');
+  const followupFailures=new URL('./followup-read-failures.json',import.meta.url);
+  if(String(url).endsWith('/getChatMember')&&fs.existsSync(followupFailures)){const failures=JSON.parse(fs.readFileSync(followupFailures,'utf8'));if(failures[String(body.user_id)]>0){failures[String(body.user_id)]--;fs.writeFileSync(followupFailures,JSON.stringify(failures));throw Error('TEST transient followup read')}}
   if(String(url).endsWith('/getMe'))return Response.json({ok:true,result:{id:900999001,username:'synthetic_bot'}});
   if(String(url).endsWith('/getChatMember')&&body.user_id===900999001)return Response.json({ok:true,result:{status:'administrator',can_invite_users:true,can_restrict_members:true}});
   if(String(url).endsWith('/sendMessage')&&String(body.chat_id)===process.env.TELEGRAM_ADMIN_CHAT_ID&&fs.existsSync(new URL('./admin-offline',import.meta.url)))return Response.json({ok:false,description:'TEST admin offline'},{status:503});

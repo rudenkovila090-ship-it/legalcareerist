@@ -15,7 +15,7 @@ try{
  if(!Number.isInteger(port)||port<1024||port>65535)throw Error('Не удалось определить порт API.')
  const url='http://127.0.0.1:'+port,health=async()=>{const r=await fetch(url+'/api/health',{signal:AbortSignal.timeout(4000)});return r.ok?await r.json():{}}
  const previous=await health()
- if(previous.subscriptionAutomation!==1||!previous.autoExclude||previous.automaticAccessRemovalPaused||previous.graceDays!==4)throw Error('Не подтверждена включённая автоматика. Её настройки не изменены.')
+ if(previous.communityFollowup!==1||previous.subscriptionAutomation!==1||!previous.autoExclude||previous.automaticAccessRemovalPaused||previous.graceDays!==4)throw Error('Не подтверждена включённая автоматика. Её настройки не изменены.')
  const secret=config.value('PRODAMUS_SECRET_KEY');if(!secret)throw Error('Не найден ключ подписанной операции.')
  const base=process.env.BOT_FINISH_BACKUP_ROOT||'/root/legalcareerist-bot-backups';fs.mkdirSync(base,{recursive:true,mode:0o700});backup=fs.mkdtempSync(path.join(base,'followup-20261110-'))
  const packet=path.join(import.meta.dirname,'../updates/community-completion'),manifest=JSON.parse(fs.readFileSync(path.join(packet,'manifest.json')))
@@ -37,7 +37,7 @@ try{
  let ready=false;for(let i=0;i<30;i++){try{const h=await health();if(h.ok&&h.communityFollowup===1&&h.autoExclude&&!h.automaticAccessRemovalPaused&&h.graceDays===4){ready=true;break}}catch{}await new Promise(r=>setTimeout(r,500))}
  if(!ready)throw Error('API не подтвердил обновление с сохранением автоматики.')
  installed=true
- console.log('Обновление установлено. Автоматика подписки продолжает работать. Проверяю доставку и завершаю сообщения…')
+ console.log('Адресный обработчик обновлён. Автоматика работает. Повторяю только незавершённые действия…')
  let response,result
  for(let i=0;i<10;i++){
   const body={purpose:'community-subscription-recovery',issuedAt:Date.now(),nonce:crypto.randomBytes(12).toString('hex'),operation:'finish_community_followup_20261110',send:true,input:{}}
@@ -46,11 +46,12 @@ try{
   await new Promise(r=>setTimeout(r,2000))
  }
  write(path.join(backup,'completion.json'),JSON.stringify(result,null,2))
- if(!response.ok||!result.ok)throw Error('Не все действия подтверждены: '+String(result.error||result.cases?.filter(c=>!c.ok).map(c=>c.name+': '+c.reason).join(', ')||response.status)+'. Отчёт: '+backup)
+ if(!response.ok||!result.ok||result.followupVersion!==2)throw Error('Не все действия подтверждены: '+String(result.error||result.cases?.filter(c=>!c.ok).map(c=>c.name+': '+c.reason+(c.stage?' ['+c.stage+', '+(c.errorCode||c.errorClass||'')+(c.property?', поле '+c.property:'')+(c.line?', строка '+c.line:'')+']':'')).join(', ')||response.status)+'. Отчёт: '+backup)
  const history=[...new Map((result.historical||[]).map(c=>[c.telegramId,c])).values()]
  console.log('Активных карточек с неподтверждённой историей: '+result.unverifiedCards+'.')
  if(history.length)console.log('Уже отсутствующие участники: '+history.map(c=>c.name+' (ID '+c.telegramId+')').join('; ')+'. В активные проблемы они не входят.')
  for(const c of result.cases){console.log(c.name+': '+(c.joined?'уже в сообществе':c.inviteAcceptedByTelegram?'Telegram подтвердил доставку приглашения; ожидается переход участника':'доставка приглашения пока не подтверждена, повтор остаётся в очереди')+'.')
+  if(c.bankEvidenceError)console.log('Сверка платежа: '+c.name+' — '+c.bankEvidenceError.stage+', '+(c.bankEvidenceError.errorCode||c.bankEvidenceError.errorClass)+'. Подробности сохранены в отчёте.')
   if(c.username==='civillaw_civile')console.log('Оплата Бреховой: '+(c.currentPaymentVerified?'подтверждена исходным уведомлением Prodamus'+(c.latestVerifiedPayment?' — '+c.latestVerifiedPayment.amount+' ₽':''):'банковского подтверждения текущего периода в журнале нет; доступ сохранён по вашему подтверждению, запись о деньгах не выдумана')+'.')
   if(c.username==='mulanka_7')console.log('Напоминание Диане на 350 ₽: '+(c.reminder350==='sent'?'Telegram подтвердил отправку':c.reminder350==='already_paid'?'не отправлялось — текущий период уже оплачен':'в очереди повторной доставки')+'.')
  }

@@ -4,25 +4,28 @@ manifest=json.loads((repo/'updates/community-completion/manifest.json').read_tex
 for mode in ['success','unknown-module','restart-failure','health-failure','delivery-pending']:
  with tempfile.TemporaryDirectory(prefix='completion-install-') as temp:
   root=pathlib.Path(temp);runtime=root/'server';(runtime/'lib').mkdir(parents=True);(runtime/'data').mkdir();(root/'bin').mkdir()
+  (runtime/'index.js').write_bytes(subprocess.check_output(['git','show',manifest['base']+':server/index.js'],cwd=repo))
   (runtime/'package.json').write_text('{"type":"module"}');originals={}
   for entry in manifest['files']:
    if entry['new']:continue
    f=runtime/entry['path'];f.write_bytes(subprocess.check_output(['git','show',manifest['base']+':server/'+entry['path']],cwd=repo));originals[entry['path']]=f.read_bytes()
   data=runtime/'data/pending-joins.json';data.write_text('{"real":{"paid":true,"payments":[{"amount":350,"orderKey":"KEEP"}]}}');financial=data.read_bytes()
   policy=runtime/'data/community-subscription-automation.json';policy.write_text('{"policy":{"version":1,"enabled":true,"graceDays":4}}');settings=policy.read_bytes()
-  if mode=='unknown-module':(runtime/'lib/communityCompletion.js').write_text('// unknown operator source')
+  if mode=='unknown-module':
+   (runtime/'lib/communityCompletion.js').write_text('// unknown operator source')
+   originals['lib/communityCompletion.js']=(runtime/'lib/communityCompletion.js').read_bytes()
   class Handler(http.server.BaseHTTPRequestHandler):
    def log_message(self,*args):pass
    def reply(self,status,body):
     self.send_response(status);self.send_header('Content-Type','application/json');self.end_headers();self.wfile.write(json.dumps(body).encode())
    def do_GET(self):
-    updated='communityFollowup: 1,' in (runtime/'index.js').read_text()
-    self.reply(200,{'ok':not(mode=='health-failure' and updated),'communityFollowup':1 if updated else 0,'subscriptionAutomation':1,'autoExclude':True,'graceDays':4,'automaticAccessRemovalPaused':False})
+    updated=(runtime/'lib/communityCompletion.js').exists() and 'followupVersion:2' in (runtime/'lib/communityCompletion.js').read_text()
+    self.reply(200,{'ok':not(mode=='health-failure' and updated),'communityFollowup':1,'subscriptionAutomation':1,'autoExclude':True,'graceDays':4,'automaticAccessRemovalPaused':False})
    def do_POST(self):
     b=json.loads(self.rfile.read(int(self.headers.get('Content-Length','0'))));assert b['operation']=='finish_community_followup_20261110';assert self.headers.get('X-Recovery-Signature')
     cases=[{'ok':True,'name':'Анастасия','username':'ognevushaa','joined':False,'inviteAcceptedByTelegram':True},{'ok':True,'name':'Диана','username':'mulanka_7','joined':True,'reminder350':'sent'},{'ok':True,'name':'Кристина','username':'civillaw_civile','joined':False,'inviteAcceptedByTelegram':True,'currentPaymentVerified':False}]
     if mode=='delivery-pending':cases[0]['inviteAcceptedByTelegram']=False
-    self.reply(200,{'ok':True,'cases':cases,'unverifiedCards':0,'historical':[{'name':n,'telegramId':str(i)} for i,n in enumerate(['Артём','Олеся','Панкрат','Егор'])],'pendingDeliveries':1 if mode=='delivery-pending' else 0,'pendingReminders':0,'bankEvidenceMissing':['civillaw_civile'],'confirmedRenewalsSinceActivation':0})
+    self.reply(200,{'ok':True,'followupVersion':2,'cases':cases,'unverifiedCards':0,'historical':[{'name':n,'telegramId':str(i)} for i,n in enumerate(['Артём','Олеся','Панкрат','Егор'])],'pendingDeliveries':1 if mode=='delivery-pending' else 0,'pendingReminders':0,'bankEvidenceMissing':['civillaw_civile'],'confirmedRenewalsSinceActivation':0})
   server=http.server.ThreadingHTTPServer(('127.0.0.1',0),Handler);threading.Thread(target=server.serve_forever,daemon=True).start()
   (root/'live.env').write_text('PRODAMUS_SECRET_KEY=PRIVATE_TEST_KEY\nPORT='+str(server.server_port))
   state={'name':'legalcareerist-api','pm2_env':{'status':'online','pm_exec_path':str(runtime/'index.js'),'pm_cwd':str(root),'node_args':['--env-file=live.env']}}
