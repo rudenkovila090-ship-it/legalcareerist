@@ -5,17 +5,17 @@ const name = v => String(v || '').toLowerCase().replace(/ё/g,'е')
 // Owner-authorized courtesy access, resolved only to one verified Telegram identity.
 export async function repairCommunityCards({ list, users, member, bind, patch, createLifetime, updateUser, syncMetadata, now = Date.now }) {
   const result = { complimentary: 'not_found', linkedPaidCards: 0, absentReviewsClosed: 0, financialHistoryReplaced: false }
-  const named = u => { const text=name([u.name,u.firstName,u.lastName].filter(Boolean).join(' '));return /шеманаев/.test(text)&&/анастас/.test(text) }
-  const candidates=[...new Set([...list().filter(named).map(c=>c.tgUserId),...users().filter(named).map(u=>u.id)].filter(Boolean).map(String))]
+  const named = u => { const text=name([u.name,u.firstName,u.lastName].filter(Boolean).join(' '));return /шем[ао]наев/.test(text)&&/анастас/.test(text) }
+  const candidates=[...new Set([...list().filter(named).map(c=>c.tgUserId),...users().filter(named).map(u=>u.id)].filter(Boolean).map(String))].filter(id=>id==='376201355')
   if(candidates.length>1) result.complimentary='ambiguous_identity'
   else if(candidates.length===1){
     const id=candidates[0], m=await member(id)
     if(list().some(c=>String(c.tgUserId)===id&&c.complimentary?.untilDeparture&&c.complimentary.revokedAt)) result.complimentary='grant_ended_on_departure'
-    else if(m?.status==='member'){
+    else if(['member','left','kicked'].includes(m?.status)){
       let join=list().find(c=>String(c.tgUserId)===id&&c.lifetime)
-      if(!join){const token=createLifetime({tgUserId:id,name:[m.user?.first_name,m.user?.last_name].filter(Boolean).join(' ')||'Анастасия Шеманаева',telegram:m.user?.username?'@'+m.user.username:''});join=list().find(c=>c.token===token)}
+      if(!join){const token=createLifetime({tgUserId:id,name:list().find(c=>String(c.tgUserId)===id&&named(c))?.name||[m.user?.first_name,m.user?.last_name].filter(Boolean).join(' ')||'Анастасия Шемонаева',telegram:m.user?.username?'@'+m.user.username:''});join=list().find(c=>c.token===token)}
       if(!join)throw Error('courtesy_card_not_created')
-      patch(join.token,{complimentary:{...join.complimentary,nominalAmount:350,currency:'RUB',untilDeparture:true,source:'owner_instruction_20261110',grantedAt:join.complimentary?.grantedAt||now()},inChat:true})
+      patch(join.token,{complimentary:{...join.complimentary,nominalAmount:350,currency:'RUB',untilDeparture:true,source:'owner_instruction_20261110',grantedAt:join.complimentary?.grantedAt||now()},inChat:m.status==='member',...(!join.complimentary&&!join.inviteDelivery&&m.status!=='member'?{inviteDelivery:{key:'owner-complimentary-376201355',pending:true,mailPending:false,createdAt:now()}}:{})})
       syncMetadata?.(list().find(c=>c.token===join.token),id)
       const old=users().find(u=>String(u.id)===id)
       if(old)updateUser(id,{tags:[...new Set([...(old.tags||[]).filter(t=>!t.startsWith('тариф_')&&!t.startsWith('цена_')&&!['проверка_подписки','контроль_списания','бывший_резидент','доступ_закрыт'].includes(t)),'резидент_сообщества','тариф_1m','цена_350','бессрочный_доступ'])],subscriptionLockedAmount:350,subscriptionTariffId:'1m',communityAccessStatus:'active'})

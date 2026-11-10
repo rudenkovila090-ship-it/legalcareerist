@@ -899,7 +899,7 @@ async function sendInviteLink(chatId, join) {
   await unbanForReturn(join)
   const delivered = await sendTelegramMessage(
     chatId,
-    'Отлично! Оплата получена ✅\n\nНажми кнопку «Вступить в сообщество» и подай заявку, я сразу её приму.\n\nЖду тебя внутри!',
+    join.complimentary ? 'Для вас восстановлен бесплатный бессрочный доступ к сообществу.\n\nНажмите «Вступить в сообщество» и подайте заявку — бот её одобрит. Списаний за этот доступ нет.' : 'Отлично! Оплата получена ✅\n\nНажми кнопку «Вступить в сообщество» и подай заявку, я сразу её приму.\n\nЖду тебя внутри!',
     url ? [[{ text: 'Вступить в сообщество', url }], [{ text: 'Личный кабинет', callback_data: 'r:menu' }]] : undefined,
   )
   if (!url) await sendTelegramMessage(ADMIN_CHAT_ID, `⚠️ Оплата получена, но COMMUNITY_INVITE_LINK не задана: пришлите человеку (chat id ${chatId}) ссылку на сообщество вручную.`)

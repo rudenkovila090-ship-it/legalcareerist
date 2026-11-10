@@ -2,30 +2,30 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import crypto from 'node:crypto'
-import { parseEnv } from 'node:util'
+import { runtimeSettings, telegramRead } from './lib/bot-runtime-settings.mjs'
 import { pathToFileURL } from 'node:url'
 import { execFileSync } from 'node:child_process'
 const apps=JSON.parse(execFileSync('pm2',['jlist'],{encoding:'utf8',stdio:['ignore','pipe','ignore'],timeout:10000})).filter(a=>a.name==='legalcareerist-api')
 if(apps.length!==1)throw Error('Expected one legalcareerist-api process')
 const state=apps[0].pm2_env,root=path.dirname(state.pm_exec_path),data=fs.realpathSync(path.join(root,'data'))
-let fileEnv={};try{fileEnv=parseEnv(fs.readFileSync(path.join(root,'.env'),'utf8'))}catch{}
-const value=k=>state[k]??state.env?.[k]??fileEnv[k]??process.env[k]
+const effective=runtimeSettings(state,{})
+const value=effective.value
 process.env.SUBSCRIPTION_GRACE_DAYS=String(value('SUBSCRIPTION_GRACE_DAYS')||4)
 const {accessUntil,hasAccess}=await import(pathToFileURL(path.join(root,'lib/subscriptionAccess.js')))
 const source=fs.readFileSync(state.pm_exec_path,'utf8')
-const token=value('TELEGRAM_BOT_TOKEN'),chat=value('COMMUNITY_CHAT_ID')||source.match(/const COMMUNITY_CHAT_ID\s*=\s*process\.env\.COMMUNITY_CHAT_ID\s*\|\|\s*['"]([^'"]+)/)?.[1]
+const token=value('TELEGRAM_BOT_TOKEN'),chat=effective.chat
 const report={readOnly:true,secretsPrinted:false,at:new Date().toISOString(),runtime:root,process:{status:state.status,restarts:state.restart_time},configuration:{botToken:Boolean(token),paymentKey:Boolean(value('PRODAMUS_SECRET_KEY')),inviteLink:Boolean(value('COMMUNITY_INVITE_LINK')),autoExclude:value('AUTO_EXCLUDE')==='1',graceDays:Number(value('SUBSCRIPTION_GRACE_DAYS')||4)}}
 const read=(name,fallback)=>{try{return JSON.parse(fs.readFileSync(path.join(data,name),'utf8'))}catch(e){if(e.code!=='ENOENT')report.storageErrors=(report.storageErrors||[]).concat(name);return fallback}}
 const cards=Object.entries(read('pending-joins.json',{})).map(([key,v])=>({...v,_key:key,ref:crypto.createHash('sha256').update(key).digest('hex').slice(0,12)}))
 const users=Object.values(read('bot-users.json',{}))
 const norm=s=>String(s||'').toLowerCase().replace(/ё/g,'е').replace(/[^а-яa-z0-9]+/g,' ').trim()
 const phone=s=>String(s||'').replace(/\D/g,'').replace(/^8(?=\d{10}$)/,'7')
-const cases=[['Диана Плиева',v=>/диан/.test(norm(v))&&/пл[ие]+в/.test(norm(v))],['Светик_DI',v=>/svetik[_ ]?d[il1]/i.test(String(v))],['Панкрат',v=>/панкрат/.test(norm(v))],['Артём',v=>/(^| )артем( |$)/.test(norm(v))],['Шеманаева Анастасия',v=>/шеманаев/.test(norm(v))&&/анастас/.test(norm(v))],['Олеся',v=>/(^| )олеся( |$)/.test(norm(v))],['Ксения',v=>phone(v)==='79107532067']]
+const cases=[['Диана Плиева',v=>/диан/.test(norm(v))&&/пл[ие]+в/.test(norm(v))],['Светик_DI',v=>/svetik[_ ]?d[il1]/i.test(String(v))],['Панкрат',v=>/панкрат/.test(norm(v))],['Артём',v=>/(^| )артем( |$)/.test(norm(v))],['Шемонаева Анастасия',v=>/шем[ао]наев/.test(norm(v))&&/анастас/.test(norm(v))],['Олеся',v=>/(^| )олеся( |$)/.test(norm(v))],['Ксения',v=>phone(v)==='79107532067']]
 const label=v=>[v.name,v.firstName,v.lastName,v.telegram,v.username,v.phone].filter(Boolean).join(' ')
-async function tg(method,body={}){if(!token)return{ok:false,error:'not_configured'};try{const r=await fetch('https://api.telegram.org/bot'+token+'/'+method,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(8000)});const b=await r.json();return {ok:r.ok&&b.ok===true,result:b.result,error:b.error_code||null}}catch{return{ok:false,error:'unavailable'}}}
+async function tg(method,body={}){return token?telegramRead(token,method,body):{ok:false,error:'not_configured'}}
 const [me,hook]=await Promise.all([tg('getMe'),tg('getWebhookInfo')])
 report.telegram={pollingEnabled:value('TELEGRAM_POLLING')!=='0',webhookSecretPresent:Boolean(value('TELEGRAM_WEBHOOK_SECRET')),ok:me.ok,username:me.result?.username||null,webhookConfigured:Boolean(hook.result?.url),pendingUpdates:hook.result?.pending_update_count??null,webhookDeliveryError:Boolean(hook.result?.last_error_message)}
-if(chat&&me.result?.id){const b=await tg('getChatMember',{chat_id:chat,user_id:me.result.id});report.telegram.botRights={checked:b.ok,role:b.result?.status,invite:b.result?.status==='creator'||b.result?.can_invite_users===true,restrict:b.result?.status==='creator'||b.result?.can_restrict_members===true}}
+if(chat&&me.result?.id){const b=await tg('getChatMember',{chat_id:chat,user_id:me.result.id});report.telegram.botRights={checked:b.ok,errorCode:b.errorCode||null,description:b.description||null,role:b.result?.status,invite:b.result?.status==='creator'||b.result?.can_invite_users===true,restrict:b.result?.status==='creator'||b.result?.can_restrict_members===true}}
 try{report.telegram.webhookHost=hook.result?.url?new URL(hook.result.url).hostname:null}catch{report.telegram.webhookHost='invalid'}
 const membership=new Map()
 report.cases=[]
