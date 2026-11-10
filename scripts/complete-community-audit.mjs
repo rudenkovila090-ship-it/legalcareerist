@@ -54,7 +54,7 @@ try{
  if(!response.ok||!repair.ok)throw Error('Проверка не завершена: '+(errors[repair.error]||String(repair.error||response.status))+'. Отчёт: '+backup)
  if(result.storageErrors?.length||result.payments.malformedLines)throw Error('Проверка не завершена: обнаружена ошибка чтения базы или журнала платежей. Отчёт: '+backup)
  if(!result.configuration.autoExclude)throw Error('Проверка не завершена: автоматический контроль доступа выключен. Отчёт: '+backup)
- if(result.api.health.http!==200||result.api.health.subscriptionExpiry!==3||result.api.webhookRejectsUnsigned.http!==403||result.api.publicSubscriptionRejectsMissingConsent.http!==400)throw Error('Проверка не завершена: защита или доступность платёжного API не подтверждена. Отчёт: '+backup)
+ if(result.api.health.http!==200||result.api.health.subscriptionExpiry!==3||result.api.webhookRejectsUnsigned.http!==400||result.api.publicSubscriptionRejectsMissingConsent.http!==400)throw Error('Проверка не завершена: защита или доступность платёжного API не подтверждена. Отчёт: '+backup)
  for(const c of result.cases)if((c.telegramIds||[]).some(m=>m.membership==='unknown'))throw Error('Проверка не завершена: Telegram не подтвердил участие '+c.name+'. Отчёт: '+backup)
  const confirmedGrant=result.cases.flatMap(c=>c.cards||[]).find(c=>String(c.tgUserId)==='376201355'&&c.lifetime&&c.complimentary?.nominalAmount===350)
  if(!confirmedGrant)throw Error('Адресная сверка не подтвердила бессрочный доступ Анастасии. Отчёт: '+backup)

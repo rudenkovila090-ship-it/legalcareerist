@@ -18,6 +18,8 @@ export async function runPaymentCompletion({root,request,hook,read,check,wait,pa
  let r=await request('/api/prodamus/webhook',payment,{sign:HmacHelper.create(payment,'test-no-real-provider')});await wait(150)
  assert.equal(r.status,200)
  const invoke=async(signed=true)=>{const b={purpose:'community-subscription-recovery',issuedAt:now,nonce:'a'.repeat(24),operation:'complete_billing_audit_20261110',send:false,input:{}};return request('/api/internal/subscription-policy',b,signed?{'X-Recovery-Signature':recoveryRequestSignature(b,'test-no-real-provider')}:undefined)}
+ r=await request('/api/prodamus/webhook',{})
+ check('the live audit expects HTTP 400 for unsigned Prodamus notifications',()=>assert.equal(r.status,400))
  r=await invoke(false)
  check('the complete audit requires an owner signature before any live checkout or ledger action',()=>assert.equal(r.status,403))
  r=await invoke()

@@ -21,7 +21,7 @@ for mode in ['success','unknown-source','restart-fail','unconfirmed-payment']:
     if self.path=='/api/internal/subscription-policy':
      if mode=='unconfirmed-payment':self.reply(503,{'ok':False,'error':'svetik_verified_payment_not_found'});return
      self.reply(200,{'ok':True,'svetik':{'ok':True,'verifiedPaymentAt':1794168780000,'amount':690,'paidUntil':4070908800000},'website':{'ok':True,'unpaidProbeRemoved':True,'realChargePerformed':False}});return
-    self.reply(403 if self.path=='/api/prodamus/webhook' else 400,{'ok':False,'error':'consent_required'})
+    self.reply(400,{'ok':False,'error':'consent_required'})
   server=http.server.ThreadingHTTPServer(('127.0.0.1',0),Handler);threading.Thread(target=server.serve_forever,daemon=True).start();port=server.server_port
   (root/'live.env').write_text('PRODAMUS_SECRET_KEY=PRIVATE_KEY\nTELEGRAM_BOT_TOKEN=PRIVATE_BOT\nCOMMUNITY_CHAT_ID=-100123\nAUTO_EXCLUDE=1\nPORT='+str(port)+'\nSITE_URL=http://127.0.0.1:'+str(port))
   state={'name':'legalcareerist-api','pm2_env':{'status':'online','pm_exec_path':str(runtime/'index.js'),'pm_cwd':str(root),'node_args':['--env-file=live.env']}}
