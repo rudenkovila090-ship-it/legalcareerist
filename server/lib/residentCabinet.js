@@ -43,6 +43,7 @@ export function subscriptionScreen(join, tariffs, now = Date.now(), payUrl = '')
     ]
     return { text: lines.join('\n'), keyboard: [BACK_ROW] }
   }
+  if(join.ownerAccess?.active)return {text:'📋 Доступ к сообществу\n\nСтатус: 🟢 открыт\nДоступ подтверждён командой сообщества.'+(join.ownerAccess.paymentVerificationPending?'\nДанные об оплате уточняются.':''),keyboard:[BACK_ROW]}
   const paid = (join.payments ?? []).filter((p) => !p.estimated)
   const last = paid.at(-1) ?? (join.payments ?? []).at(-1)
   const amount = lockedAmount(join, Number(last?.amount) || tariffs[join.tariffId]?.price || null)
@@ -128,7 +129,7 @@ export function linkScreen(join, url, now = Date.now()) {
 /** «Настройки»: рассылка и отключение подписки (внизу, чтобы до него доходили только намеренно). */
 export function settingsScreen(join, user, now = Date.now()) {
   const mailing = user?.mailingConsent === true
-  const canCancel = join.status === 'active' && !join.complimentary // у основателя кнопка тоже есть — чтобы видеть путь клиента (по факту ничего не отключается)
+  const canCancel = join.status === 'active' && !join.complimentary && !join.ownerAccess // у основателя кнопка тоже есть — чтобы видеть путь клиента (по факту ничего не отключается)
   const keyboard = [[{ text: mailing ? '🔔 Рассылка: включена (нажми, чтобы выключить)' : '🔕 Рассылка: выключена (нажми, чтобы включить)', callback_data: 'r:mail' }]]
   if (canCancel) keyboard.push([{ text: 'Отменить подписку', callback_data: 'r:cancel' }])
   keyboard.push(BACK_ROW)

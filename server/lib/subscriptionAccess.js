@@ -1,3 +1,4 @@
+import { ownerAccessAllowed } from './communityAccessPolicy.js'
 // Paid time and complimentary retry access are separate; money history is never extended.
 const DAY = 86400000
 export function graceDays() {
@@ -12,7 +13,7 @@ export function paidUntil(join) {
 
 export function hasAccess(join, now = Date.now()) {
   if (!join) return false
-  if (join.lifetime) return true
+  if (join.lifetime || ownerAccessAllowed(join)) return true
   return Boolean(join.paid && ['active', 'cancelled'].includes(join.status) && accessUntil(join) > now)
 }
 
@@ -27,11 +28,11 @@ export function accessUntil(join) {
 }
 
 export function inGrace(join, now = Date.now()) {
-  return Boolean(!join?.lifetime && hasAccess(join, now) && paidUntil(join) <= now)
+  return Boolean(!join?.lifetime && !ownerAccessAllowed(join) && hasAccess(join, now) && paidUntil(join) <= now)
 }
 
 export function accessPeriodEnded(join, now = Date.now()) {
-  return Boolean(join?.paid && !join.lifetime && accessUntil(join) !== null && accessUntil(join) <= now)
+  return Boolean(join?.paid && !join.lifetime && !ownerAccessAllowed(join) && accessUntil(join) !== null && accessUntil(join) <= now)
 }
 
 export function paidPeriodEnded(join, now = Date.now()) {

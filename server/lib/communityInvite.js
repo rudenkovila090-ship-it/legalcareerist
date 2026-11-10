@@ -22,7 +22,7 @@ export function decideJoinRequest({ from, residentByTelegramId, joins, hasAccess
   if (username) {
     // Ник с сайта сверяем только с карточками, у которых Telegram ещё не привязан: чужой привязанный аккаунт так не перехватить.
     const byNick = joins
-      .filter((j) => j.paid && !j.lifetime && !j.tgUserId && nick(j.telegram) === username && hasAccess(j))
+      .filter((j) => (j.paid || j.ownerAccess?.active) && !j.lifetime && !j.tgUserId && nick(j.telegram) === username && hasAccess(j))
       .sort((a, b) => (b.lastPaidAt ?? b.createdAt ?? 0) - (a.lastPaidAt ?? a.createdAt ?? 0))[0]
     if (byNick) return { action: 'approve', join: byNick, bind: true }
   }

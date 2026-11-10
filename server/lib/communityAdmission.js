@@ -2,7 +2,7 @@ import { hasAccess } from './subscriptionAccess.js'
 import { decideJoinRequest } from './communityInvite.js'
 
 // Durable requests are reconsidered after payment, independently of administrator notices.
-export function createCommunityAdmission({ requests, saveRequest, deleteRequest, list, find, bind, membership, approve, joined, patch, sendInvite, sendMail, now = Date.now }) {
+export function createCommunityAdmission({ requests, saveRequest, deleteRequest, list, find, bind, membership, approve, joined, patch, sendInvite, sendMail, identify, now = Date.now }) {
   let running = false
   function remember(request) {
     if (!/^\d{5,16}$/.test(String(request.from?.id || ''))) return
@@ -12,6 +12,10 @@ export function createCommunityAdmission({ requests, saveRequest, deleteRequest,
     if (running) return
     running = true
     try {
+      // A site payer who already started the bot needs an invitation even without a join request yet.
+      if(identify)for(const card of list().filter(j=>j.paid&&!j.tgUserId&&j.inviteDelivery?.pending&&!(j.inviteDelivery.retryAt>now())&&hasAccess(j,now())).slice(0,10)) {
+        try {const id=await identify(card);if(id)bind(card.token,String(id))}catch{}
+      }
       for (const [key, request] of Object.entries(requests())) {
         if (request.retryAt > now()) continue
         const verdict = decideJoinRequest({ from: request.from, residentByTelegramId: find, joins: list(), hasAccess: j => hasAccess(j, now()) })
@@ -30,7 +34,7 @@ export function createCommunityAdmission({ requests, saveRequest, deleteRequest,
       }
       for (const join of list()) {
         const notice = join.inviteDelivery
-        if ((!notice?.pending && !notice?.mailPending) || notice.retryAt > now() || !join.paid || !hasAccess(join, now())) continue
+        if ((!notice?.pending && !notice?.mailPending) || notice.retryAt > now() || (!join.paid && !join.ownerAccess?.active) || !hasAccess(join, now())) continue
         if (notice.mailPending && sendMail) {
           let delivered = !join.email
           try { if (join.email) delivered = (await sendMail(join, notice))?.ok === true } catch { /* retry later */ }

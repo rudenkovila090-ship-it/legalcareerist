@@ -1,3 +1,4 @@
+import { rescueCommunityAccess, createPaymentAdminDelivery, voluntaryDeparture, bindOwnerAccess } from './lib/communityAccessRescue.js'
 import { completeSvetikPayment, completeWebsiteCheckout } from './lib/communityPaymentCompletion.js'
 import { repairCommunityCards } from './lib/communityMaintenance.js'
 import { createCommunityAdmission } from './lib/communityAdmission.js'
@@ -80,7 +81,7 @@ import { issueMaterialLink, resolveMaterialLink, looksLikeLinkToken } from './li
 import { composeMaterialMail, formatMoscowDateTime as formatMskDateTime, LINK_DAYS } from './lib/materialMail.js'
 import { saveReview, getReviewByPurchase, ratingsSummary, publicReviews, listReviews, getReview, setReviewHidden, reviewText, reviewSignature } from './lib/materialReviews.js'
 import { touchBotUser, ensureBotUser, addTag, giveConsent, setMailingConsent, getBotUser, listBotUsers, countConversation, updateBotUser, setGender } from './lib/botUsers.js'
-import { communityInviteUrl, decideJoinRequest } from './lib/communityInvite.js'
+import { communityInviteUrl, decideJoinRequest, normalizeCommunityUsername } from './lib/communityInvite.js'
 import { composeSubscriptionMail, composeChargeReminderMail, composeChargeDoneMail, composeChargeFailedMail } from './lib/subscriptionMail.js'
 import { CABINET_KEYBOARD, CHARGE_FAILED_KEYBOARD, chargeDoneText, chargeFailedText } from './lib/residentNotices.js'
 import { isStartKeyword, welcomeScreen, noConsentScreen, mailingScreen, mainMenuScreen, supportPrompt, genderScreen, reviewThanks, legalScreen, aboutScreen, CONTACT_PROMPTS, contactCancelKeyboard, unsubscribedScreen, communityScreen, communityResidentScreen, aboutClubScreen, achievementsScreen, siteLink } from './lib/botFlow.js'
@@ -214,7 +215,7 @@ async function sendTelegram(chatId, text, replyMarkup, opts = {}) {
     return { ok: false, messageId: null }
   }
   const body = await res.json().catch(() => null)
-  return { ok: true, messageId: body?.result?.message_id ?? null }
+  return { ok: body?.ok === true, messageId: body?.result?.message_id ?? null }
 }
 
 async function sendTelegramMessage(chatId, text, replyMarkup, opts = {}) {
@@ -675,24 +676,9 @@ async function handleSubscriptionPayment(body, phone, receivedAt = Date.now()) {
   // Renewals restore resident tags too (including a payment received after expiry).
   if (rec.tgUserId) syncResidentMetadata(rec, rec.tgUserId)
 
-  await sendTelegramMessage(
-    ADMIN_CHAT_ID,
-    buildPaymentNotification({
-      kind: result.kind,
-      number: result.number,
-      tariff,
-      subscriptionName,
-      amount,
-      paidAt,
-      nextPaymentAt,
-      name: rec.name,
-      phone: rec.phone || phone,
-      email: rec.email || email,
-      telegram: rec.telegram,
-      orphan,
-      extra: adminLines,
-    }),
-  )
+  const saved=getJoin(rec.token)
+  patchJoin(rec.token,{adminPaymentNotices:(saved.adminPaymentNotices||[]).map(n=>n.id===orderKey?{...n,extra:adminLines,orphan}:n)})
+  await deliverPaymentAdminNotices()
 
   if (result.kind === 'renewal') {
     await deliverRenewalNotices()
@@ -882,8 +868,11 @@ const REMINDER_KEYBOARD = [[{ text: 'Главное меню', callback_data: 'u
 
 /** Если человека раньше исключали из чата, снимаем блокировку: иначе его заявка не пройдёт. */
 async function unbanForReturn(join) {
-  if (!join?.tgUserId) return
-  await telegramFetch('unbanChatMember', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: COMMUNITY_CHAT_ID, user_id: Number(join.tgUserId), only_if_banned: true }) }).catch(() => null)
+  if (!join?.tgUserId) return false
+  try {
+    const r=await telegramFetch('unbanChatMember', { method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:COMMUNITY_CHAT_ID,user_id:Number(join.tgUserId),only_if_banned:true}) })
+    return r.ok && (await r.json()).ok===true
+  } catch {return false}
 }
 
 /**
@@ -897,10 +886,10 @@ async function sendInviteLink(chatId, join) {
     return await sendTelegramMessage(chatId, 'Подписка привязана ✅ Ты уже в закрытом чате сообщества.', [[{ text: 'Личный кабинет', callback_data: 'r:menu' }]])
     return
   }
-  await unbanForReturn(join)
+  if (!await unbanForReturn(join)) return false
   const delivered = await sendTelegramMessage(
     chatId,
-    join.complimentary ? 'Для вас восстановлен бесплатный бессрочный доступ к сообществу.\n\nНажмите «Вступить в сообщество» и подайте заявку — бот её одобрит. Списаний за этот доступ нет.' : 'Отлично! Оплата получена ✅\n\nНажми кнопку «Вступить в сообщество» и подай заявку, я сразу её приму.\n\nЖду тебя внутри!',
+    join.ownerAccess ? 'Владелец подтвердил ваш доступ к сообществу. Нажмите «Вступить в сообщество» — бот одобрит заявку.' : join.complimentary ? 'Для вас восстановлен бесплатный бессрочный доступ к сообществу.\n\nНажмите «Вступить в сообщество» и подайте заявку — бот её одобрит. Списаний за этот доступ нет.' : 'Отлично! Оплата получена ✅\n\nНажми кнопку «Вступить в сообщество» и подай заявку, я сразу её приму.\n\nЖду тебя внутри!',
     url ? [[{ text: 'Вступить в сообщество', url }], [{ text: 'Личный кабинет', callback_data: 'r:menu' }]] : undefined,
   )
   if (!url) await sendTelegramMessage(ADMIN_CHAT_ID, `⚠️ Оплата получена, но COMMUNITY_INVITE_LINK не задана: пришлите человеку (chat id ${chatId}) ссылку на сообщество вручную.`)
@@ -909,7 +898,7 @@ async function sendInviteLink(chatId, join) {
 
 function syncResidentMetadata(join, tgUserId) {
   ensureBotUser({ id: tgUserId })
-  for (const tag of join.complimentary ? ['резидент_сообщества'] : ['оплатил_подписку', 'резидент_сообщества']) addTag(tgUserId, tag)
+  for (const tag of (join.complimentary || join.ownerAccess) ? ['резидент_сообщества'] : ['оплатил_подписку', 'резидент_сообщества']) addTag(tgUserId, tag)
   const user = getBotUser(tgUserId)
   const displayedTariff = join.complimentary ? '1m' : join.tariffId
   const displayedAmount = join.complimentary?.nominalAmount || priceEntitlement(join)?.amount || null
@@ -927,7 +916,7 @@ function markJoined(from, join, at) {
   if (!from?.id) return
   ensureBotUser(from)
   syncResidentMetadata(join, from.id)
-  for (const tag of join.complimentary ? ['резидент_сообщества', 'вступил_в_сообщество'] : ['оплатил_подписку', 'резидент_сообщества', 'вступил_в_сообщество']) addTag(from.id, tag)
+  for (const tag of (join.complimentary || join.ownerAccess) ? ['резидент_сообщества', 'вступил_в_сообщество'] : ['оплатил_подписку', 'резидент_сообщества', 'вступил_в_сообщество']) addTag(from.id, tag)
   updateBotUser(from.id, { communityJoinedAt: join.joinedAt ?? at })
 }
 
@@ -944,6 +933,15 @@ const communityAdmission = createCommunityAdmission({
   list: () => listJoins().map(j => ({ ...j, accessUntil: accessUntil(j) })), find: residentByTelegramId,
   bind: setTgUserId, membership: chatMembership, patch: patchJoin,
   approve: async id => { const r = await telegramFetch('approveChatJoinRequest', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: COMMUNITY_CHAT_ID, user_id: Number(id) }) }); return r.ok && (await r.json()).ok === true },
+  identify: async join => {
+    const username=normalizeCommunityUsername(join.telegram)
+    if(!username)return null
+    const found=listBotUsers().filter(u=>normalizeCommunityUsername(u.username)===username)
+    if(found.length!==1)return null
+    const r=await telegramFetch('getChatMember',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:COMMUNITY_CHAT_ID,user_id:Number(found[0].id)})})
+    const b=await r.json()
+    return r.ok&&b.ok&&normalizeCommunityUsername(b.result?.user?.username)===username?String(found[0].id):null
+  },
   joined: markJoined, sendInvite: sendInviteLink,
   sendMail: (join, notice) => sendSubscriptionMail(join, communityInviteUrl() ? { url: communityInviteUrl() } : null, { amount: notice.amount, paidAt: notice.paidAt }),
 })
@@ -1008,8 +1006,9 @@ async function handleChatMember(event) {
     markJoined(user, resident, Date.now())
     await sendTelegramMessage(ADMIN_CHAT_ID, `✅ Вступил(а) в сообщество (не по заявке бота): ${[user.first_name, user.last_name].filter(Boolean).join(' ')}${user.username ? ` (@${user.username})` : ''}`, undefined, quiet()).catch(() => false)
   } else if (inChat(was) && (now === 'left' || now === 'kicked')) {
-    patchJoin(resident.token, { leftAt: Date.now(), ...(resident.complimentary?.untilDeparture ? { lifetime: false, complimentary: { ...resident.complimentary, revokedAt: Date.now() } } : {}) })
-    if (resident.complimentary?.untilDeparture) {
+    const voluntary = voluntaryDeparture(event)
+    patchJoin(resident.token, { leftAt: Date.now(), ...(resident.complimentary?.untilDeparture && voluntary ? { lifetime: false, complimentary: { ...resident.complimentary, revokedAt: Date.now() } } : {}) })
+    if (resident.complimentary?.untilDeparture && voluntary) {
       const old = getBotUser(user.id)
       if (old) updateBotUser(user.id, { tags: [...new Set((old.tags || []).filter(t => !['резидент_сообщества', 'бессрочный_доступ', 'проверка_подписки'].includes(t)).concat('бывший_резидент', 'доступ_закрыт'))], communityAccessStatus: 'closed' })
     }
@@ -3912,6 +3911,8 @@ async function handleTelegramUpdate(update) {
     return
   }
   const message = update?.message
+  const ownerGrant=bindOwnerAccess(message?.from,{list:listJoins,bind:setTgUserId,patch:patchJoin})
+  if(ownerGrant){syncResidentMetadata(ownerGrant,message.from.id);await communityAdmission.process()}
   const text = message?.text
   const chatId = message?.chat?.id
   const isAdmin = chatId && String(chatId) === String(ADMIN_CHAT_ID)
@@ -4318,7 +4319,7 @@ ensureTodo('Личный кабинет покупателя материало�
 console.log(`[prodamus] платёжные страницы — ${payformSummary()}`)
 console.log(`[mail] почта для писем клиентам: ${mailConfigured() ? 'настроена' : 'не настроена (SMTP_HOST/SMTP_USER/SMTP_PASS в server/.env)'}`)
 
-app.get('/api/health', (_req, res) => res.json({ ok: true, subscriptionRecovery: 1, subscriptionOffboarding: 1, subscriptionExpiry: 3, subscriptionAdmission: 1, billingAuditVersion: 1, automaticProviderCancellation: false, autoExclude: process.env.AUTO_EXCLUDE === '1', graceDays: graceDays() }))
+app.get('/api/health', (_req, res) => res.json({ ok: true, subscriptionRecovery: 1, subscriptionOffboarding: 1, subscriptionExpiry: 3, subscriptionAdmission: 1, billingAuditVersion: 1, accessRescueVersion: 1, automaticAccessRemovalPaused: fs.existsSync(path.join(import.meta.dirname,'data/community-removals-paused.json')), automaticProviderCancellation: false, autoExclude: process.env.AUTO_EXCLUDE === '1', graceDays: graceDays() }))
 
 const subscriptionOperations = {
   telegram: async (method, body) => {
@@ -4371,6 +4372,7 @@ app.post('/api/internal/subscription-recovery', async (req, res) => {
   if (!validRecoveryRequest(req.body, req.headers['x-recovery-signature'], process.env.PRODAMUS_SECRET_KEY)) return res.sendStatus(403)
   if (!BOT_TOKEN || !PRODAMUS_SECRET_KEYS.length) return res.sendStatus(503)
   if (req.body.operation && !['recover', 'offboard'].includes(req.body.operation)) return res.sendStatus(400)
+  if(req.body.operation==='offboard'&&fs.existsSync(path.join(import.meta.dirname,'data/community-removals-paused.json')))return res.status(409).json({ok:false,error:'access_removals_paused'})
   try { res.json(await (req.body.operation === 'offboard' ? offboardSubscriptions : recoverSubscriptions)(req.body.input, req.body.send === true)) }
   catch { res.status(400).json({ ok: false, error: 'invalid_recovery_campaign' }) }
 })
@@ -4460,8 +4462,10 @@ async function runDailyOnce(key, minHour, work) {
 
 /** Исключение из чата сообщества: сообщение подписчику, «кик» (блокировка и сразу разблокировка) и отметка в учёте. */
 async function kickAndNotify(join) {
+  if (fs.existsSync(path.join(import.meta.dirname,'data/community-removals-paused.json'))) return false
   if (communityMaintenanceRunning) return false
   const current = getJoin(join.token)
+  if (current?.ownerAccess?.active) return false
   if (!current?.tgUserId || !accessPeriodEnded(current) || protectedByOtherCard(current, listJoins(), Date.now())) return false
   const call = async (method, extra = {}) => {
     const response = await telegramFetch(method, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: COMMUNITY_CHAT_ID, user_id: Number(current.tgUserId), ...extra }) })
@@ -4548,6 +4552,26 @@ function markAccessClosed(token, fields) {
 
 app.post('/api/internal/subscription-policy', async (req, res) => {
   if (!validRecoveryRequest(req.body, req.headers['x-recovery-signature'], process.env.PRODAMUS_SECRET_KEY)) return res.sendStatus(403)
+  if (req.body.operation === 'rescue_access_20261110') {
+    if (communityMaintenanceRunning || processingProdamus > 0) return res.status(409).json({ok:false,error:'maintenance_running'})
+    communityMaintenanceRunning=true
+    try {
+      fs.writeFileSync(path.join(import.meta.dirname,'data/community-removals-paused.json'),JSON.stringify({paused:true,reason:'owner_reported_wrong_removals',at:Date.now()}),{mode:0o600})
+      const telegram=async(method,id)=>{const r=await telegramFetch(method,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:COMMUNITY_CHAT_ID,user_id:Number(id),...(method==='unbanChatMember'?{only_if_banned:true}:{})})});const b=await r.json();return r.ok&&b.ok===true?b.result:null}
+      const file=path.join(import.meta.dirname,'data/prodamus-webhooks.jsonl')
+      let paymentJournalErrors=0
+      const records=fs.existsSync(file)?fs.readFileSync(file,'utf8').split('\n').filter(Boolean).flatMap(line=>{try{return [JSON.parse(line)]}catch{paymentJournalErrors++;return []}}):[]
+      const cases=await rescueCommunityAccess({list:listJoins,users:listBotUsers,requests:()=>communityRequestStore.load(),events:()=>records,create:createPendingJoin,createLifetime:createLifetimeJoin,bind:setTgUserId,patch:patchJoin,sync:syncResidentMetadata,
+        member:id=>telegram('getChatMember',id),unban:async id=>Boolean(await telegram('unbanChatMember',id)),approve:id=>telegram('approveChatJoinRequest',id),trustedFrom:Number(process.env.PRODAMUS_LOG_TRUST_FROM)||0,
+        apply:async record=>{processingProdamus++;try{await handleSubscriptionPayment(record.body,record.body.customer_phone||record.body.phone,record.receivedAt)}finally{processingProdamus--}},
+      })
+      await communityAdmission.process()
+      await deliverPaymentAdminNotices()
+      const complete=cases.every(c=>c.ok&&c.accessGranted)
+      return res.status(complete?200:503).json({ok:complete,cases,paymentJournalErrors,automaticAccessRemovalPaused:true,financialHistoryReplaced:false,inviteUrl:communityInviteUrl(),pendingAdminNotices:listJoins().reduce((n,j)=>n+(j.adminPaymentNotices||[]).filter(x=>!x.done).length,0)})
+    } catch {return res.status(503).json({ok:false,error:'access_rescue_unavailable',automaticAccessRemovalPaused:true})}
+    finally {communityMaintenanceRunning=false}
+  }
   if (req.body.operation === 'complete_billing_audit_20261110') {
     if (communityMaintenanceRunning || processingProdamus > 0) return res.status(409).json({ ok: false, error: 'maintenance_running' })
     communityMaintenanceRunning = true
@@ -4829,6 +4853,13 @@ if (BOT_TOKEN && process.env.TELEGRAM_POLLING !== '0') {
 setInterval(() => afterResponse('resident-reminders-24h', sendAutoResidentReminders), 60000).unref()
 setInterval(() => afterResponse('access-ending-reminders', sendAccessEndingReminders), 60000).unref()
 
+const deliverPaymentAdminNotices=createPaymentAdminDelivery({list:listJoins,patch:patchJoin,send:async(join,n)=>sendTelegramMessage(ADMIN_CHAT_ID,n.type==='access_rescue'
+  ? `Восстановление доступа: ${n.name} (@${n.username}). Вход разрешён владельцем; автоматические исключения приостановлены.${n.realPaymentFound?' Исходное подтверждение оплаты найдено.':' Новая оплата в журнале не подтверждена; история денег не изменялась.'}`
+  : buildPaymentNotification({kind:n.kind,number:n.number,tariff:TARIFFS[n.tariffId],subscriptionName:join.subscriptionName,amount:n.amount,paidAt:n.paidAt,nextPaymentAt:n.nextPaymentAt,name:join.name,phone:join.phone,email:join.email,telegram:join.telegram,orphan:n.orphan,extra:n.extra||[]})
+)})
+setInterval(()=>afterResponse('payment-admin-notices',deliverPaymentAdminNotices),30000).unref()
+setInterval(()=>afterResponse('accepted-payment-replay',replayProdamus),30000).unref()
+
 // Access checks are independent of optional daily reports; AUTO_EXCLUDE remains the explicit switch.
 setInterval(() => afterResponse('community-admission', () => communityAdmission.process()), 30000).unref()
 setInterval(() => afterResponse('renewal-notices', deliverRenewalNotices), 60000).unref()
@@ -4868,7 +4899,7 @@ process.on('unhandledRejection', (err) => console.error('[unhandledRejection]', 
 process.on('uncaughtException', (err) => console.error('[uncaughtException]', err))
 
 // Для автотестов: доступ к фоновым задачам без ожидания расписания.
-if (process.env.TEST_HOOKS === '1') globalThis.__hooks = { runRetentionJob, sendEventReminders, processExpiry, processAccessExpiry, processAutomaticExpiry, processCommunityAdmission: () => communityAdmission.process(), deliverRenewalNotices, sendAccessEndingReminders, processReviewFlow, sendAutoResidentReminders, sendMorningDigest, sendEveningClose, refreshChatMembership, processCampaigns, sendPendingNoticesIfDue }
+if (process.env.TEST_HOOKS === '1') globalThis.__hooks = { deliverPaymentAdminNotices, runRetentionJob, sendEventReminders, processExpiry, processAccessExpiry, processAutomaticExpiry, processCommunityAdmission: () => communityAdmission.process(), deliverRenewalNotices, sendAccessEndingReminders, processReviewFlow, sendAutoResidentReminders, sendMorningDigest, sendEveningClose, refreshChatMembership, processCampaigns, sendPendingNoticesIfDue }
 
 const PORT = process.env.PORT || 3001
 ensureBuiltInPromos()

@@ -13,6 +13,7 @@ const retentionMode = process.argv.includes('--retention')
 const recoveryMode = process.argv.includes('--recovery')
 const offboardingMode = process.argv.includes('--offboard')
 const expirySyncMode = process.argv.includes('--expiry-sync')
+const rescueMode = process.argv.includes('--access-rescue')
 const completionMode = process.argv.includes('--payment-completion')
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'legalcareerist-http-'))
 fs.cpSync(path.join(source, 'lib'), path.join(root, 'lib'), { recursive: true })
@@ -43,12 +44,14 @@ globalThis.fetch = async (url, init = {}) => {
   if (!String(url).startsWith('https://api.telegram.org/')) throw Error('TEST outbound disabled');
   const success = fs.existsSync(new URL('./telegram-ok', import.meta.url));
   const body=JSON.parse(init.body||'{}');
+  if(String(url).endsWith('/sendMessage')&&String(body.chat_id)===process.env.TELEGRAM_ADMIN_CHAT_ID&&fs.existsSync(new URL('./admin-offline',import.meta.url)))return Response.json({ok:false,description:'TEST admin offline'},{status:503});
   const membersFile=new URL('./telegram-members.json', import.meta.url);
   if(success && fs.existsSync(membersFile)) {
     const members=JSON.parse(fs.readFileSync(membersFile,'utf8')), member=members[String(body.user_id)];
     if(String(url).endsWith('/getChatMember')&&member)return Response.json({ok:true,result:member});
+    if(member&&String(url).endsWith('/approveChatJoinRequest')){if(member.requestPending===false)return Response.json({ok:false,description:'HIDE_REQUESTER_MISSING'},{status:400});member.status='member';member.requestPending=false;fs.writeFileSync(membersFile,JSON.stringify(members));return Response.json({ok:true,result:true})}
     if(member&&(String(url).endsWith('/banChatMember')||String(url).endsWith('/unbanChatMember'))) {
-      member.status=String(url).endsWith('/banChatMember')?'kicked':'left';fs.writeFileSync(membersFile,JSON.stringify(members));return Response.json({ok:true,result:true});
+      if(!(String(url).endsWith('/unbanChatMember')&&body.only_if_banned&&member.status!=='kicked'))member.status=String(url).endsWith('/banChatMember')?'kicked':'left';fs.writeFileSync(membersFile,JSON.stringify(members));return Response.json({ok:true,result:true});
     }
   }
   return Response.json({ok:success,result:success?(String(url).endsWith('/getChatMember')?{status:'member'}:String(url).endsWith('/getChat')?{id:Number(body.chat_id),type:'private',first_name:'Synthetic',username:'synthetic_member'}:{message_id:1}):undefined,description:success?undefined:'TEST offline'},{status:success?200:503});
@@ -91,6 +94,10 @@ try {
     const r = await request('/api/prodamus/webhook', { payment_status: 'success', subscription: { id: '2854597' }, sum: '690' }, { sign: 'synthetic-signature' })
     check('missing verification keys reject payment before storage or accepted-event logging', () => { assert.equal(r.status, 503); assert.equal(fs.existsSync(path.join(root, 'data/pending-joins.json')), false); assert.equal(fs.existsSync(path.join(root, 'data/prodamus-webhooks.jsonl')), false) })
     console.log(`${count} missing-key check passed; no outbound provider calls`)
+  } else if (rescueMode) {
+    const { runAccessRescue } = await import('./community-access-rescue-http.mjs')
+    await runAccessRescue({root,request,hook,read,check,wait,pathToFileURL})
+    console.log(`${count} access rescue checks passed; all external calls synthetic`)
   } else if (completionMode) {
     const { runPaymentCompletion } = await import('./community-payment-completion-http.mjs')
     await runPaymentCompletion({root,request,hook,read,check,wait,pathToFileURL})

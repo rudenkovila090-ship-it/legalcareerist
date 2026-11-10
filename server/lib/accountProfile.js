@@ -21,7 +21,7 @@ const DAY = 24 * 3600 * 1000
 /** Карточки подписки человека: по Telegram id (карточка привязана к боту) и по подтверждённой почте аккаунта. */
 function myJoins(tgId, email) {
   const mail = String(email ?? '').trim().toLowerCase()
-  return listJoins().filter((j) => j.paid && ((tgId && String(j.tgUserId ?? '') === String(tgId)) || (mail && String(j.email ?? '').trim().toLowerCase() === mail)))
+  return listJoins().filter((j) => (j.paid || j.ownerAccess?.active) && ((tgId && String(j.tgUserId ?? '') === String(tgId)) || (mail && String(j.email ?? '').trim().toLowerCase() === mail)))
 }
 const endOf = (j) => paidUntil(j) || 0
 
@@ -29,7 +29,7 @@ const endOf = (j) => paidUntil(j) || 0
 export function residentJoin(tgId, email = '') {
   const mine = myJoins(tgId, email)
   if (!mine.length) return null
-  return mine.find((j) => j.lifetime) ?? [...mine].sort((a, b) => endOf(b) - endOf(a))[0]
+  return mine.find((j) => j.lifetime) ?? [...mine].filter(j=>hasAccess(j)).sort((a,b)=>endOf(b)-endOf(a))[0] ?? [...mine].sort((a, b) => endOf(b) - endOf(a))[0]
 }
 
 export function residentStatus(tgId, now = Date.now(), email = '') {
@@ -38,6 +38,7 @@ export function residentStatus(tgId, now = Date.now(), email = '') {
   if (best.lifetime) {
     return { status: 'lifetime', tariff: best.complimentary ? `Резидент — бессрочно (тариф ${best.complimentary.nominalAmount} ₽)` : 'Основатель — бессрочно', until: best.endsAt ?? null, since: best.startAt ?? best.firstPaidAt ?? best.createdAt, autoRenew: false, cancelled: false, daysLeft: null }
   }
+  if(best.ownerAccess?.active)return {status:'active',tariff:'Доступ подтверждён владельцем',until:null,since:best.ownerAccess.grantedAt,autoRenew:false,cancelled:false,daysLeft:null,accessSource:'owner'}
   const until = endOf(best) || null
   const active = hasAccess(best, now)
   const cancelled = best.status === 'cancelled'

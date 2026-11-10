@@ -9,6 +9,7 @@ for mode in ['success','unknown-source','restart-fail','unconfirmed-payment']:
   
   if mode=='unknown-source':(runtime/'lib/communityPaymentCompletion.js').write_text('// unknown operator library')
   (runtime/'lib/subscriptionAccess.js').write_bytes((repo/'server/lib/subscriptionAccess.js').read_bytes())
+  (runtime/'lib/communityAccessPolicy.js').write_bytes((repo/'server/lib/communityAccessPolicy.js').read_bytes())
   old={'old':{'name':'Шемонаева Анастасия','tgUserId':'376201355','paid':True,'status':'active','lifetime':True,'complimentary':{'nominalAmount':350},'payments':[]},'svetik':{'name':'Светлана','tgUserId':'1287078598','paid':True,'status':'active','nextPaymentAt':4070908800000,'payments':[{'at':1794168780000,'amount':690,'subscriptionId':'2854597'}]}}
   (runtime/'data/pending-joins.json').write_text(json.dumps(old));(runtime/'data/bot-users.json').write_text(json.dumps({'1287078598':{'id':'1287078598','username':'@svetik_di','tags':[]}}))
   class Handler(http.server.BaseHTTPRequestHandler):

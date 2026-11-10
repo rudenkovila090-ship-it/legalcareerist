@@ -5,6 +5,7 @@ with tempfile.TemporaryDirectory(prefix='bot-audit-identity-') as temp:
  (runtime/'index.js').write_text("const COMMUNITY_CHAT_ID = process.env.COMMUNITY_CHAT_ID || '-100123';")
  (runtime/'package.json').write_text('{"type":"module"}')
  (runtime/'lib/subscriptionAccess.js').write_bytes((repo/'server/lib/subscriptionAccess.js').read_bytes())
+ (runtime/'lib/communityAccessPolicy.js').write_bytes((repo/'server/lib/communityAccessPolicy.js').read_bytes())
  users={'1287078598':{'id':'1287078598','username':'@svetik_di','firstName':'Svetlana','tags':[]}}
  cards={'private-token':{'name':'Светлана','tgUserId':1287078598,'paid':True,'status':'active','nextPaymentAt':1800000000000,'payments':[{'at':1794168780000,'amount':690,'subscriptionId':'2854597'}]}}
  (runtime/'data/bot-users.json').write_text(json.dumps(users));datafile=runtime/'data/pending-joins.json';datafile.write_text(json.dumps(cards));before=datafile.read_bytes()
