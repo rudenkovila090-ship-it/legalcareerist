@@ -1,7 +1,9 @@
+import { automationState } from './subscriptionAutomationPolicy.js'
 import { ownerAccessAllowed } from './communityAccessPolicy.js'
 // Paid time and complimentary retry access are separate; money history is never extended.
 const DAY = 86400000
 export function graceDays() {
+  if(automationState().enabled)return 4
   const value = Number(process.env.SUBSCRIPTION_GRACE_DAYS?.trim() || 4)
   return Number.isFinite(value) && value >= 0 && value <= 30 ? value : 4
 }

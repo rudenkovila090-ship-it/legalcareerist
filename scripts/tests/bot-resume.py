@@ -9,6 +9,7 @@ for mode in ['success','unknown-source','restart-fail','unconfirmed-grant']:
   (runtime/'lib/communityMaintenance.js').write_bytes(old_module if mode!='unknown-source' else old_module+b'\n// operator change\n')
   (runtime/'lib/subscriptionAccess.js').write_bytes((repo/'server/lib/subscriptionAccess.js').read_bytes())
   (runtime/'lib/communityAccessPolicy.js').write_bytes((repo/'server/lib/communityAccessPolicy.js').read_bytes())
+  (runtime/'lib/subscriptionAutomationPolicy.js').write_bytes((repo/'server/lib/subscriptionAutomationPolicy.js').read_bytes())
   old={'old':{'name':'Шемонаева Анастасия','tgUserId':'376201355','paid':True,'status':'active','nextPaymentAt':1,'payments':[{'at':1,'amount':350,'subscriptionId':'legacy'}]}}
   (runtime/'data/pending-joins.json').write_text(json.dumps(old));(runtime/'data/bot-users.json').write_text('{}')
   class Handler(http.server.BaseHTTPRequestHandler):

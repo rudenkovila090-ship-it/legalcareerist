@@ -13,6 +13,7 @@ const retentionMode = process.argv.includes('--retention')
 const recoveryMode = process.argv.includes('--recovery')
 const offboardingMode = process.argv.includes('--offboard')
 const expirySyncMode = process.argv.includes('--expiry-sync')
+const automationMode = process.argv.includes('--automation')
 const rescueMode = process.argv.includes('--access-rescue')
 const completionMode = process.argv.includes('--payment-completion')
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'legalcareerist-http-'))
@@ -21,6 +22,7 @@ for (const file of ['index.js', 'package.json']) fs.copyFileSync(path.join(sourc
 fs.symlinkSync(path.join(source, 'node_modules'), path.join(root, 'node_modules'))
 for (const dir of ['assets', 'content']) if (fs.existsSync(path.join(source, dir))) fs.symlinkSync(path.join(source, dir), path.join(root, dir))
 fs.mkdirSync(path.join(root, 'data'))
+if(!automationMode&&!rescueMode)fs.writeFileSync(path.join(root,'data/community-subscription-automation.json'),JSON.stringify({policy:{version:1,enabled:true,graceDays:4}}))
 const { hashPassword } = await import('../lib/password.js')
 const env = { ...process.env, PORT: process.env.RELIABILITY_TEST_PORT || '3036', TELEGRAM_BOT_TOKEN: 'TEST_FAKE', TELEGRAM_ADMIN_CHAT_ID: '900000099', TELEGRAM_POLLING: '0', TELEGRAM_WEBHOOK_SECRET: 'test-hook-secret', DISABLE_DAILY_REPORT: '1', DISABLE_BACKUP: '1', AUTO_EXCLUDE: '0', TEST_HOOKS: '1', SMTP_HOST: '', SMTP_USER: '', SMTP_PASS: '', ACCOUNT_LOGIN: 'test-owner', ACCOUNT_PASSWORD_HASH: hashPassword('Test-Owner-2026!'), PRODAMUS_SECRET_KEY: 'test-no-real-provider', SUBSCRIPTION_GRACE_DAYS: '4', COMMUNITY_CHAT_ID: '-100900000001', SITE_URL: 'https://example.invalid' }
 env.PRODAMUS_DOMAIN = 'legalcareerist.payform.ru'
@@ -44,6 +46,8 @@ globalThis.fetch = async (url, init = {}) => {
   if (!String(url).startsWith('https://api.telegram.org/')) throw Error('TEST outbound disabled');
   const success = fs.existsSync(new URL('./telegram-ok', import.meta.url));
   const body=JSON.parse(init.body||'{}');
+  if(String(url).endsWith('/getMe'))return Response.json({ok:true,result:{id:900999001,username:'synthetic_bot'}});
+  if(String(url).endsWith('/getChatMember')&&body.user_id===900999001)return Response.json({ok:true,result:{status:'administrator',can_invite_users:true,can_restrict_members:true}});
   if(String(url).endsWith('/sendMessage')&&String(body.chat_id)===process.env.TELEGRAM_ADMIN_CHAT_ID&&fs.existsSync(new URL('./admin-offline',import.meta.url)))return Response.json({ok:false,description:'TEST admin offline'},{status:503});
   const membersFile=new URL('./telegram-members.json', import.meta.url);
   if(success && fs.existsSync(membersFile)) {
@@ -51,7 +55,8 @@ globalThis.fetch = async (url, init = {}) => {
     if(String(url).endsWith('/getChatMember')&&member)return Response.json({ok:true,result:member});
     if(member&&String(url).endsWith('/approveChatJoinRequest')){if(member.requestPending===false)return Response.json({ok:false,description:'HIDE_REQUESTER_MISSING'},{status:400});member.status='member';member.requestPending=false;fs.writeFileSync(membersFile,JSON.stringify(members));return Response.json({ok:true,result:true})}
     if(member&&(String(url).endsWith('/banChatMember')||String(url).endsWith('/unbanChatMember'))) {
-      if(!(String(url).endsWith('/unbanChatMember')&&body.only_if_banned&&member.status!=='kicked'))member.status=String(url).endsWith('/banChatMember')?'kicked':'left';fs.writeFileSync(membersFile,JSON.stringify(members));return Response.json({ok:true,result:true});
+      if(String(url).endsWith('/banChatMember')&&fs.existsSync(new URL('./during-ban-payment.json',import.meta.url))){const b=JSON.parse(fs.readFileSync(new URL('./during-ban-payment.json',import.meta.url)));fs.rmSync(new URL('./during-ban-payment.json',import.meta.url));const {HmacHelper}=await import('./lib/hmac.js');await nativeFetch('http://127.0.0.1:'+process.env.PORT+'/api/prodamus/webhook',{method:'POST',headers:{'Content-Type':'application/json',sign:HmacHelper.create(b,process.env.PRODAMUS_SECRET_KEY)},body:JSON.stringify(b)});await new Promise(r=>setTimeout(r,100))}
+      if(!(String(url).endsWith('/unbanChatMember')&&body.only_if_banned&&member.status!=='kicked'))member.status=String(url).endsWith('/banChatMember')?'kicked':'left';fs.writeFileSync(membersFile,JSON.stringify(members));if(String(url).endsWith('/banChatMember')&&fs.existsSync(new URL('./ambiguous-ban',import.meta.url))){fs.rmSync(new URL('./ambiguous-ban',import.meta.url));throw Error('TEST ambiguous ban after Telegram accepted it')}return Response.json({ok:true,result:true});
     }
   }
   return Response.json({ok:success,result:success?(String(url).endsWith('/getChatMember')?{status:'member'}:String(url).endsWith('/getChat')?{id:Number(body.chat_id),type:'private',first_name:'Synthetic',username:'synthetic_member'}:{message_id:1}):undefined,description:success?undefined:'TEST offline'},{status:success?200:503});
@@ -94,6 +99,10 @@ try {
     const r = await request('/api/prodamus/webhook', { payment_status: 'success', subscription: { id: '2854597' }, sum: '690' }, { sign: 'synthetic-signature' })
     check('missing verification keys reject payment before storage or accepted-event logging', () => { assert.equal(r.status, 503); assert.equal(fs.existsSync(path.join(root, 'data/pending-joins.json')), false); assert.equal(fs.existsSync(path.join(root, 'data/prodamus-webhooks.jsonl')), false) })
     console.log(`${count} missing-key check passed; no outbound provider calls`)
+  } else if (automationMode) {
+    const {runSubscriptionAutomation}=await import('./subscription-automation-http.mjs')
+    await runSubscriptionAutomation({root,request,hook,read,check,wait,pathToFileURL})
+    console.log(`${count} subscription automation checks passed; all external services synthetic`)
   } else if (rescueMode) {
     const { runAccessRescue } = await import('./community-access-rescue-http.mjs')
     await runAccessRescue({root,request,hook,read,check,wait,pathToFileURL})

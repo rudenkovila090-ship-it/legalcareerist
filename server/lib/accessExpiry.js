@@ -16,7 +16,7 @@ export function protectedByOtherCard(join, joins, now) {
 
 /** Dependency injection keeps actual Telegram calls out of the tests. */
 export function createAccessExpiryWorker({ list, membership, remove, releaseBan, patch, reconcile, restoreAccess, now = Date.now }) {
-  let running = false
+  let running = false, cursor = 0
   return async function process() {
     if (running) return []
     running = true
@@ -27,9 +27,12 @@ export function createAccessExpiryWorker({ list, membership, remove, releaseBan,
       if (releaseBan) for (const join of list().filter(j => j.accessUnbanPending && !(j.offboardingHoldUntil > now()))) {
         if (await releaseBan(join)) patch(join.token, { accessUnbanPending: undefined })
       }
-      const candidates = list().filter(j => ['active', 'cancelled'].includes(j.status) &&
+      const eligible = list().filter(j => ['active', 'cancelled'].includes(j.status) &&
         !(j.offboardingHoldUntil > now()) &&
-        accessPeriodEnded(j, now()) && j.accessClosedFor !== paidUntil(j)).slice(0, 100)
+        accessPeriodEnded(j, now()) && j.accessClosedFor !== paidUntil(j))
+      const start=eligible.length?cursor%eligible.length:0
+      const candidates=[...eligible.slice(start),...eligible.slice(0,start)].slice(0,100)
+      cursor=eligible.length?(start+candidates.length)%eligible.length:0
       for (const candidate of candidates) {
         const mem = candidate.tgUserId ? await membership(candidate.tgUserId) : 'none'
         // Payment may arrive while getChatMember is in flight: re-read before removal.

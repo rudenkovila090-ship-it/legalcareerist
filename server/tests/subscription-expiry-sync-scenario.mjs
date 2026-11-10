@@ -15,6 +15,7 @@ export async function runExpirySync({root,request,hook,read,check,wait,pathToFil
     const token=joins.createPendingJoin({name:'Synthetic '+id,phone,telegram:'@synthetic_'+id,tariffId:'1m'})
     joins.setTgUserId(token,id)
     joins.recordPayment(token,{amount:690,paidAt:due-30*DAY,nextPaymentAt:end,subscriptionId:'2854597',profileId:'profile-'+id,orderKey:'paid-'+id})
+    if(!imported)fs.appendFileSync(path.join(root,'data/prodamus-webhooks.jsonl'),JSON.stringify({verified:true,receivedAt:due-30*DAY,body:{payment_status:'success',date:new Date(due-30*DAY).toISOString(),sum:'690',order_id:'paid-'+id,tg_user_id:id,subscription:{id:'2854597',profile_id:'profile-'+id,payment_num:'1',date_next_payment:new Date(end).toISOString()}}})+'\n')
     joins.patchJoin(token,{status,inChat:true,...(imported?{importedFromBotHelp:true,payments:[{amount:690,at:due-30*DAY,estimated:true}]}:{})})
     bot.touchBotUser({id,username:'synthetic_'+id})
     for(const tag of ['резидент_сообщества','тариф_1m','цена_690','оплатил_подписку'])bot.addTag(id,tag)
@@ -84,14 +85,14 @@ export async function runExpirySync({root,request,hook,read,check,wait,pathToFil
   const d=member('900000044','+79000000404',{imported:true})
   fs.writeFileSync(path.join(root,'telegram-members.json'),JSON.stringify({...JSON.parse(fs.readFileSync(path.join(root,'telegram-members.json'))),['900000044']:members['900000044']}))
   await hook('processAccessExpiry')
-  check('an imported price label never becomes a provider cancellation; known expired access can still close',()=>{assert.equal(joins.getJoin(d).cancellation,undefined);assert.equal(bans('900000044').length,1)})
+  check('an imported price label never authorizes provider cancellation or automatic removal',()=>{assert.equal(joins.getJoin(d).cancellation,undefined);assert.equal(bans('900000044').length,0)})
 
   const audit={purpose:'community-subscription-recovery',issuedAt:clock,nonce:'e'.repeat(24),operation:'audit_expiry',send:false,input:{}}
   r=await request('/api/internal/subscription-policy',audit)
   check('the subscription policy audit requires a signed administrator request',()=>assert.equal(r.status,403))
   const before=stops().length
   r=await request('/api/internal/subscription-policy',audit,{'X-Recovery-Signature':recoveryRequestSignature(audit,'test-no-real-provider')})
-  check('the read-only audit reports the actual scheduler flag, grace and exceptions without banking actions',()=>{assert.equal(r.status,200);assert.equal(r.body.version,3);assert.equal(r.body.autoExclude,false);assert.equal(r.body.graceDays,4);assert.equal(r.body.intervalSeconds,30);assert.equal(stops().length,before);assert.ok(r.body.rows.some(row=>row.telegramId==='900000044'))})
+  check('the read-only audit reports the actual scheduler flag, grace and exceptions without banking actions',()=>{assert.equal(r.status,200);assert.equal(r.body.version,3);assert.equal(r.body.autoExclude,true);assert.equal(r.body.graceDays,4);assert.equal(r.body.intervalSeconds,30);assert.equal(stops().length,before);assert.ok(r.body.rows.some(row=>row.telegramId==='900000044'))})
   const f=joins.createPendingJoin({name:'Synthetic Historical',phone:'+79000000405',telegram:'@synthetic_historical',tariffId:'1m'})
   joins.setTgUserId(f,'900000045')
   await at(Date.parse('2027-02-28T22:30:00Z')) // March 1 in Moscow
