@@ -1,5 +1,5 @@
 import { normalizeCommunityUsername as nick } from './communityInvite.js'
-import { hasAccess } from './subscriptionAccess.js'
+import { hasAccess, paidUntil } from './subscriptionAccess.js'
 
 export const rescueTargets = [
   { id:'376201355', username:'ognevushaa', name:'Анастасия Шемонаева', kind:'lifetime' },
@@ -78,12 +78,13 @@ export async function rescueCommunityAccess({list,users,requests,events,create,c
         if(!owners.length){try{await apply(r);paymentReplayed++}catch{paymentError='payment_replay_unconfirmed'}}
       }
       if(id)for(const j of mine().filter(j=>!j.tgUserId))if(accepted.some(r=>order(r.body)&&(j.payments||[]).some(p=>p.orderKey===order(r.body))))bind(j.token,id)
+      const realPaymentFound=mine().some(j=>j.paid&&!j.lifetime&&!j.ownerAccess&&paidUntil(j)>now()&&(j.payments||[]).some(p=>!p.estimated&&Number(p.at)===Number(j.lastPaidAt)&&accepted.some(r=>order(r.body)&&order(r.body)===p.orderKey)))
       let grant=mine().find(j=>target.kind==='lifetime'?j.lifetime||j.complimentary:ownerAccessAllowed(j))
       if(!grant){const token=target.kind==='lifetime'?createLifetime({tgUserId:id,name:target.name,telegram:'@'+target.username}):create({tariffId:null,name:target.name,phone:'',email:'',telegram:'@'+target.username});grant=list().find(j=>j.token===token)}
       if(!grant)throw Error('access_grant_not_saved')
       if(id&&!grant.tgUserId)bind(grant.token,id)
       if(target.kind==='lifetime')patch(grant.token,{lifetime:true,status:'active',complimentary:{...grant.complimentary,nominalAmount:350,currency:'RUB',untilDeparture:true,revokedAt:undefined,source:'owner_access_rescue_20261110',grantedAt:grant.complimentary?.grantedAt || now()}})
-      else patch(grant.token,{ownerAccess:{...grant.ownerAccess,active:true,source:'owner_access_rescue_20261110',reason:target.kind,grantedAt:grant.ownerAccess?.grantedAt || now(),paymentVerificationPending:target.kind==='owner_confirmed_payment'&&!accepted.length},status:'active'})
+      else patch(grant.token,{ownerAccess:{...grant.ownerAccess,active:true,source:'owner_access_rescue_20261110',reason:target.kind,grantedAt:grant.ownerAccess?.grantedAt || now(),paymentVerificationPending:target.kind==='owner_confirmed_payment'&&!realPaymentFound},status:'active'})
       let unblocked=id?false:null,joined=inside(currentMember)
       if(id){
         unblocked=await unban(id)===true
@@ -94,13 +95,13 @@ export async function rescueCommunityAccess({list,users,requests,events,create,c
       }
       // Catch up the latest accepted real payment notice without rewriting money.
       const recent=accepted.at(-1),key=recent&&order(recent.body)
-      if(key){const charged=list().find(j=>(j.payments || []).some(p=>p.orderKey===key));if(charged&&!(charged.adminPaymentNotices || []).some(n=>n.id===key)){
+      if(realPaymentFound&&key){const charged=list().find(j=>(j.payments || []).some(p=>p.orderKey===key));if(charged&&!(charged.adminPaymentNotices || []).some(n=>n.id===key)){
         const p=charged.payments.find(p=>p.orderKey===key)
         patch(charged.token,{adminPaymentNotices:[...(charged.adminPaymentNotices || []),{id:key,kind:p.kind || 'renewal',number:p.paymentNum || charged.payments.length,amount:p.amount,paidAt:p.at,nextPaymentAt:charged.nextPaymentAt,subscriptionId:p.subscriptionId,tariffId:p.tariffId,done:false,recovered:true}]})
       }}
       const latest=list().find(j=>j.token===grant.token),noticeId='owner-rescue-20261110-'+target.username
-      if(!(latest.adminPaymentNotices || []).some(n=>n.id===noticeId))patch(grant.token,{adminPaymentNotices:[...(latest.adminPaymentNotices || []),{id:noticeId,type:'access_rescue',name:target.name,username:target.username,realPaymentFound:Boolean(accepted.length),done:false}]})
-      result.push({ok:true,name:target.name,username:target.username,telegramId:id,unblocked,joined,awaitingIdentity:!id,accessGranted:hasAccess(list().find(j=>j.token===grant.token),now()),lifetime:target.kind==='lifetime',realPaymentFound:Boolean(accepted.length),paymentReplayed,paymentError})
+      if(!(latest.adminPaymentNotices || []).some(n=>n.id===noticeId))patch(grant.token,{adminPaymentNotices:[...(latest.adminPaymentNotices || []),{id:noticeId,type:'access_rescue',name:target.name,username:target.username,realPaymentFound,done:false}]})
+      result.push({ok:true,name:target.name,username:target.username,telegramId:id,unblocked,joined,awaitingIdentity:!id,accessGranted:hasAccess(list().find(j=>j.token===grant.token),now()),lifetime:target.kind==='lifetime',realPaymentFound,paymentReplayed,paymentError})
     } catch(error) {result.push({ok:false,name:target.name,username:target.username,error:/^[a-z_]+$/.test(error.message)?error.message:'rescue_unavailable'})}
   }
   return result
