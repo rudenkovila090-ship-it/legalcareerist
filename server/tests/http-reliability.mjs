@@ -13,6 +13,7 @@ const retentionMode = process.argv.includes('--retention')
 const recoveryMode = process.argv.includes('--recovery')
 const offboardingMode = process.argv.includes('--offboard')
 const expirySyncMode = process.argv.includes('--expiry-sync')
+const completionFollowupMode = process.argv.includes('--completion-followup')
 const automationMode = process.argv.includes('--automation')
 const rescueMode = process.argv.includes('--access-rescue')
 const completionMode = process.argv.includes('--payment-completion')
@@ -99,6 +100,10 @@ try {
     const r = await request('/api/prodamus/webhook', { payment_status: 'success', subscription: { id: '2854597' }, sum: '690' }, { sign: 'synthetic-signature' })
     check('missing verification keys reject payment before storage or accepted-event logging', () => { assert.equal(r.status, 503); assert.equal(fs.existsSync(path.join(root, 'data/pending-joins.json')), false); assert.equal(fs.existsSync(path.join(root, 'data/prodamus-webhooks.jsonl')), false) })
     console.log(`${count} missing-key check passed; no outbound provider calls`)
+  } else if (completionFollowupMode) {
+    const {runCommunityFollowup}=await import('./community-completion-http.mjs')
+    await runCommunityFollowup({root,request,hook,read,check,wait,pathToFileURL})
+    console.log(`${count} community follow-up checks passed; all external services synthetic`)
   } else if (automationMode) {
     const {runSubscriptionAutomation}=await import('./subscription-automation-http.mjs')
     await runSubscriptionAutomation({root,request,hook,read,check,wait,pathToFileURL})

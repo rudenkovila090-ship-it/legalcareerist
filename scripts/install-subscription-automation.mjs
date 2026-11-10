@@ -64,10 +64,11 @@ try{
  if(applied.status!==200||!applied.body.ok||!applied.body.enabled||!applied.body.cycle?.ok||!applied.body.website?.ok||applied.body.website.realChargePerformed!==false)throw Error('Не удалось включить автоматику: '+String(applied.body.error||applied.body.cycle?.reason||applied.status)+'. Отчёт: '+backup)
  const rr=await fetch(url+'/api/health',{signal:AbortSignal.timeout(5000)}),h=await rr.json()
  if(!rr.ok||!h.autoExclude||h.automaticAccessRemovalPaused||h.graceDays!==4||!h.automationLastCycle?.ok)throw Error('Не подтверждён действующий цикл автоматики. Отчёт: '+backup)
- const holds=(applied.body.plan||[]).filter(c=>!['eligible_after_membership_check','owner_protected','active_access','grace_not_finished'].includes(c.reason))
+ const holds=(applied.body.plan||[]).filter(c=>!['eligible_after_membership_check','owner_protected','active_access','grace_not_finished','chat_administrator'].includes(c.reason))
  console.log('Автоматика включена: оплаченный срок → 4 суток → сверка оплат и исключений → удаление при отсутствии доступа.')
  console.log('Анастасия и Диана защищены. Платежи, метки, приглашения и уведомления обрабатываются автоматически. Действующие договоры Prodamus не отключались.')
  console.log('Форма оплаты сайта проверена: ссылка создана, тестовая заявка удалена, списаний не было.')
+ if(applied.body.historical?.length)console.log('Исторических карточек уже отсутствующих участников: '+applied.body.historical.length+'. В активные проблемы они не входят.')
  if(holds.length)console.log('Карточек с неподтверждённой историей, требующих сверки: '+holds.length+'. Они не исключаются по предположению; служебная проверка сохраняется без повторного спама.')
  console.log('SUBSCRIPTION_AUTOMATION_READY '+JSON.stringify({enabled:true,graceDays:4,intervalSeconds:30,permanentExceptionsConfirmed:true,websiteCheckoutVerified:true,lastCycleOk:true,reconciliation:applied.body.reconciliation,unverifiedCards:holds.length,financialHistoryReplaced:false,report:backup}))
 

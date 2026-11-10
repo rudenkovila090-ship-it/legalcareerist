@@ -1,3 +1,4 @@
+import { inspectAutomationPlan, recoverTargetedSignedEvents, completeResidentFollowup, createOwnerPaymentReminderDelivery } from './lib/communityCompletion.js'
 import { automationState, PERMANENT_MEMBER_IDS } from './lib/subscriptionAutomationPolicy.js'
 import { acceptedPayments, removalProblem, createAutomationReconciliation, createClosureDelivery, createFailureDelivery } from './lib/subscriptionAutomation.js'
 import { rescueCommunityAccess, createPaymentAdminDelivery, voluntaryDeparture, bindOwnerAccess } from './lib/communityAccessRescue.js'
@@ -4314,7 +4315,7 @@ ensureTodo('Личный кабинет покупателя материало�
 console.log(`[prodamus] платёжные страницы — ${payformSummary()}`)
 console.log(`[mail] почта для писем клиентам: ${mailConfigured() ? 'настроена' : 'не настроена (SMTP_HOST/SMTP_USER/SMTP_PASS в server/.env)'}`)
 
-app.get('/api/health', (_req, res) => res.json({ ok: true, subscriptionRecovery: 1, subscriptionOffboarding: 1, subscriptionExpiry: 3, subscriptionAdmission: 1, billingAuditVersion: 1, accessRescueVersion: 1, automaticAccessRemovalPaused: automationState().paused, subscriptionAutomation: 1, automationLastCycle:lastAutomationCycle, automaticProviderCancellation: false, autoExclude: automationState().enabled, graceDays: graceDays() }))
+app.get('/api/health', (_req, res) => res.json({ ok: true, subscriptionRecovery: 1, subscriptionOffboarding: 1, subscriptionExpiry: 3, subscriptionAdmission: 1, billingAuditVersion: 1, accessRescueVersion: 1, automaticAccessRemovalPaused: automationState().paused, subscriptionAutomation: 1, communityFollowup: 1, automationLastCycle:lastAutomationCycle, automaticProviderCancellation: false, autoExclude: automationState().enabled, graceDays: graceDays() }))
 
 const subscriptionOperations = {
   telegram: async (method, body) => {
@@ -4591,6 +4592,24 @@ function markAccessClosed(token, fields) {
 
 app.post('/api/internal/subscription-policy', async (req, res) => {
   if (!validRecoveryRequest(req.body, req.headers['x-recovery-signature'], process.env.PRODAMUS_SECRET_KEY)) return res.sendStatus(403)
+  if(req.body.operation==='finish_community_followup_20261110'){
+    if(communityMaintenanceRunning||processingProdamus>0)return res.status(409).json({ok:false,error:'maintenance_running'})
+    if(!automationState().enabled)return res.status(503).json({ok:false,error:'automation_not_running'})
+    communityMaintenanceRunning=true
+    try{
+      const file=path.join(import.meta.dirname,'data/prodamus-webhooks.jsonl'),raw=fs.existsSync(file)?fs.readFileSync(file,'utf8').split('\n').filter(l=>l.trim()).map(l=>JSON.parse(l)):[]
+      const recoveredSignedEvents=recoverTargetedSignedEvents({raw,list:listJoins,users:listBotUsers,keys:PRODAMUS_SECRET_KEYS,expectedEnd:automationExpectedEnd,append:rec=>fs.appendFileSync(file,JSON.stringify(rec)+'\n',{mode:0o600})})
+      const reconciliation=await synchronizeSubscriptionPayments()
+      if(!reconciliation.ok)return res.status(503).json({ok:false,error:reconciliation.reason})
+      const member=async id=>{const r=await telegramFetch('getChatMember',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:COMMUNITY_CHAT_ID,user_id:Number(id)})});const b=await r.json();return r.ok&&b.ok?b.result:null}
+      const records=automationPayments(),followup=await completeResidentFollowup({list:listJoins,users:listBotUsers,records,member,patch:patchJoin,processAdmission:()=>communityAdmission.process(),sendReminder:deliverOwnerPaymentReminders,unban:unbanForReturn})
+      const inspected=await inspectAutomationPlan({list:listJoins,records,membership:chatMembership})
+      const policy=createJsonStore('community-subscription-automation.json').get('policy')
+      const renewals=records.filter(r=>r.receivedAt>Number(policy?.activatedAt||Date.now())&&Number(r.body.subscription?.payment_num)>1&&!String(r.body.order_id||'').startsWith('TEST-'))
+      return res.json({ok:followup.cases.every(c=>c.ok),...followup,...inspected,recoveredSignedEvents,reconciliation,confirmedRenewalsSinceActivation:renewals.length,automaticExclusionEnabled:automationState().enabled,inviteUrl:communityInviteUrl(),financialHistoryReplaced:false})
+    }catch{return res.status(503).json({ok:false,error:'followup_unavailable'})}
+    finally{communityMaintenanceRunning=false}
+  }
   if(req.body.operation==='activate_subscription_automation_v1'){
     if(communityMaintenanceRunning||processingProdamus>0)return res.status(409).json({ok:false,error:'maintenance_running'})
     communityMaintenanceRunning=true
@@ -4604,9 +4623,8 @@ app.post('/api/internal/subscription-policy', async (req, res) => {
       if(!free||!diana)return res.status(503).json({ok:false,error:'permanent_exceptions_unconfirmed'})
       const reconciliation=await synchronizeSubscriptionPayments()
       if(!reconciliation.ok)return res.status(503).json({ok:false,error:reconciliation.reason})
-      const records=automationPayments(),plan=[]
-      for(const j of listJoins().filter(j=>j.paid&&j.tgUserId&&!j.lifetime&&paidUntil(j)&&paidUntil(j)<=Date.now()))plan.push({telegramId:String(j.tgUserId),name:j.name,paidUntil:paidUntil(j),accessUntil:accessUntil(j),reason:removalProblem(j,listJoins(),records)||'eligible_after_membership_check'})
-      report={ok:true,version:1,graceDays:4,permanentExceptionsConfirmed:true,reconciliation,plan}
+      const inspected=await inspectAutomationPlan({list:listJoins,records:automationPayments(),membership:chatMembership})
+      report={ok:true,version:1,graceDays:4,permanentExceptionsConfirmed:true,reconciliation,...inspected}
       if(req.body.send===true){
         const website=await completeWebsiteCheckout({list:listJoins,remove:removeJoin,cancel:cancelPending,siteUrl:SITE_URL,post:async(url,body)=>{const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(45000)});return{ok:r.ok,body:await r.json()}}})
         if(!website.ok)return res.status(503).json({ok:false,error:'website_checkout_unconfirmed'})
@@ -4807,6 +4825,11 @@ const sendAccessEndingReminders = createAccessEndingReminders({
  * Не получившим (ни бота, ни почты) пишет админ вручную: они видны в «Сообщество → Напоминания». Отключить: AUTO_RESIDENT_REMINDERS=0.
  * Заодно оповещает тех, у кого списание не прошло (sendChargeFailedNotices).
  */
+const deliverOwnerPaymentReminders=createOwnerPaymentReminderDelivery({list:listJoins,patch:patchJoin,send:async(join,n)=>sendTelegramMessage(join.tgUserId,
+ `Диана, напоминаем об оплате подписки на сообщество — ${n.amount} ₽. Если вы уже оплатили, напишите в поддержку, чтобы мы сверили платёж. Доступ к сообществу за вами сохранён.`,
+ [[{text:'Личный кабинет',url:SITE_URL+'/cabinet/resident'}],[{text:'Поддержка',url:'https://t.me/'+SUPPORT_HANDLE.replace(/^@/,'')}]]
+)})
+setInterval(()=>afterResponse('owner-payment-reminders',deliverOwnerPaymentReminders),30000).unref()
 const deliverChargeFailureNotices=createFailureDelivery({list:listJoins,patch:patchJoin,send:async(join,n,c)=>{
  const result={}
  if(process.env.AUTO_RESIDENT_REMINDERS==='0'||process.env.CHARGE_FAILED_NOTICES==='0'){result.bot=true;result.mail=true}
@@ -4978,7 +5001,7 @@ process.on('unhandledRejection', (err) => console.error('[unhandledRejection]', 
 process.on('uncaughtException', (err) => console.error('[uncaughtException]', err))
 
 // Для автотестов: доступ к фоновым задачам без ожидания расписания.
-if (process.env.TEST_HOOKS === '1') globalThis.__hooks = { deliverChargeFailureNotices, synchronizeSubscriptionPayments, deliverAccessClosureNotices, deliverPaymentAdminNotices, runRetentionJob, sendEventReminders, processExpiry, processAccessExpiry, processAutomaticExpiry, processCommunityAdmission: () => communityAdmission.process(), deliverRenewalNotices, sendAccessEndingReminders, processReviewFlow, sendAutoResidentReminders, sendMorningDigest, sendEveningClose, refreshChatMembership, processCampaigns, sendPendingNoticesIfDue }
+if (process.env.TEST_HOOKS === '1') globalThis.__hooks = { deliverOwnerPaymentReminders, deliverChargeFailureNotices, synchronizeSubscriptionPayments, deliverAccessClosureNotices, deliverPaymentAdminNotices, runRetentionJob, sendEventReminders, processExpiry, processAccessExpiry, processAutomaticExpiry, processCommunityAdmission: () => communityAdmission.process(), deliverRenewalNotices, sendAccessEndingReminders, processReviewFlow, sendAutoResidentReminders, sendMorningDigest, sendEveningClose, refreshChatMembership, processCampaigns, sendPendingNoticesIfDue }
 
 const PORT = process.env.PORT || 3001
 ensureBuiltInPromos()
