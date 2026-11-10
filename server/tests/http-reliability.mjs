@@ -13,6 +13,7 @@ const retentionMode = process.argv.includes('--retention')
 const recoveryMode = process.argv.includes('--recovery')
 const offboardingMode = process.argv.includes('--offboard')
 const expirySyncMode = process.argv.includes('--expiry-sync')
+const completionMode = process.argv.includes('--payment-completion')
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'legalcareerist-http-'))
 fs.cpSync(path.join(source, 'lib'), path.join(root, 'lib'), { recursive: true })
 for (const file of ['index.js', 'package.json']) fs.copyFileSync(path.join(source, file), path.join(root, file))
@@ -31,8 +32,10 @@ if (noPaymentKeys) env.PRODAMUS_SECRET_KEY = ''
 fs.writeFileSync(path.join(root, 'bootstrap.mjs'), `
 import fs from 'node:fs';
 let clock = null; const realNow = Date.now; Date.now = () => clock ?? realNow();
+const nativeFetch=globalThis.fetch;
 globalThis.fetch = async (url, init = {}) => {
   const u = new URL(String(url));
+  if(u.hostname==='example.invalid'&&u.pathname==='/api/community/subscribe')return nativeFetch('http://127.0.0.1:'+process.env.PORT+u.pathname,init);
   if (u.hostname === 'legalcareerist.payform.ru' && u.searchParams.has('subscription')) { fs.writeFileSync(new URL('./checkout-plan', import.meta.url), u.searchParams.get('subscription')); fs.appendFileSync(new URL('./checkout-requests.jsonl', import.meta.url), JSON.stringify(Object.fromEntries(u.searchParams))+String.fromCharCode(10)); }
   if (u.hostname === 'api.telegram.org') { let body = {}; try { body = JSON.parse(init.body || '{}') } catch {} fs.appendFileSync(new URL('./telegram-calls.jsonl', import.meta.url), JSON.stringify({method:u.pathname.split('/').at(-1),body})+'\\n'); }
   if (String(url).includes('/rest/setActivity/')) { const params=new URLSearchParams(init.body);fs.appendFileSync(new URL('./prodamus-stop-requests.jsonl',import.meta.url),JSON.stringify({plan:params.get('subscription'),telegramId:params.get('tg_user_id'),active:params.get('active_user')})+String.fromCharCode(10));const fail=new URL('./prodamus-cancel-fail-id', import.meta.url); return Response.json({success:fs.existsSync(new URL('./prodamus-cancel-ok', import.meta.url))&&(!fs.existsSync(fail)||params.get('subscription')!==fs.readFileSync(fail,'utf8'))}); }
@@ -88,6 +91,10 @@ try {
     const r = await request('/api/prodamus/webhook', { payment_status: 'success', subscription: { id: '2854597' }, sum: '690' }, { sign: 'synthetic-signature' })
     check('missing verification keys reject payment before storage or accepted-event logging', () => { assert.equal(r.status, 503); assert.equal(fs.existsSync(path.join(root, 'data/pending-joins.json')), false); assert.equal(fs.existsSync(path.join(root, 'data/prodamus-webhooks.jsonl')), false) })
     console.log(`${count} missing-key check passed; no outbound provider calls`)
+  } else if (completionMode) {
+    const { runPaymentCompletion } = await import('./community-payment-completion-http.mjs')
+    await runPaymentCompletion({root,request,hook,read,check,wait,pathToFileURL})
+    console.log(`${count} payment completion checks passed; all provider and Telegram calls synthetic`)
   } else if (expirySyncMode) {
     const { runExpirySync } = await import('./subscription-expiry-sync-scenario.mjs')
     await runExpirySync({root,request,hook,read,check,wait,pathToFileURL})

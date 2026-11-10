@@ -3,9 +3,10 @@ import os from 'node:os'
 import path from 'node:path'
 import http from 'node:http'
 import assert from 'node:assert/strict'
-import { spawn } from 'node:child_process'
+import { spawn, execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 const repo=fileURLToPath(new URL('../..',import.meta.url)),tmp=fs.mkdtempSync(path.join(os.tmpdir(),'community-bot-install-'))
+// Verify the original v3 installer against its immutable source, independent of later optional patches.
 const manifest=JSON.parse(fs.readFileSync(path.join(repo,'updates/community-bot/manifest.json')))
 const write=(f,b)=>{fs.mkdirSync(path.dirname(f),{recursive:true});fs.writeFileSync(f,b)}
 let checks=0
@@ -14,7 +15,7 @@ async function scenario(kind){
  for(const [i,name]of ['legalcareerist-api','legalcareerist-resident-demo'].entries()){
   const server=path.join(root,name,'server');write(path.join(server,'package.json'),'{"type":"module"}');write(path.join(server,'data/pending-joins.json'),'{}');write(path.join(server,'data/bot-users.json'),'{}');write(path.join(server,'data/payments.json'),'SYNTHETIC MONEY HISTORY');write(path.join(server,'lib/protected.js'),'export const untouched=true\n')
   for(const f of manifest.backend){
-   if(f.edits){let s=fs.readFileSync(path.join(repo,'server',f.path),'utf8');for(const [a,b]of [...f.edits].reverse()){assert.equal(s.split(b).length,2,'Reverse patch '+b.slice(0,60));s=s.replace(b,a)}if(kind==='unknown-source')s=s.replace('async function sendInviteLink(chatId, join) {','async function sendInviteLink(chatId, changed) {');write(path.join(server,f.path),s)}
+   if(f.edits){let s=execFileSync('git',['show','c5d91c399aa9285981f88da8e9d4d42ad144946d:server/'+f.path],{cwd:repo,encoding:'utf8'});for(const [a,b]of [...f.edits].reverse()){assert.equal(s.split(b).length,2,'Reverse patch '+b.slice(0,60));s=s.replace(b,a)}if(kind==='unknown-source')s=s.replace('async function sendInviteLink(chatId, join) {','async function sendInviteLink(chatId, changed) {');write(path.join(server,f.path),s)}
    else if(f.beforeSha256[0]!==null)write(path.join(server,f.path),fs.readFileSync(path.join(repo,'scripts/tests/fixtures/community-bot-before',path.basename(f.path))))
    const file=path.join(server,f.path);original.push({file,before:fs.existsSync(file)?fs.readFileSync(file):null})
   }

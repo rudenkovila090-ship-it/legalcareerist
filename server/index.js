@@ -1,3 +1,4 @@
+import { completeSvetikPayment, completeWebsiteCheckout } from './lib/communityPaymentCompletion.js'
 import { repairCommunityCards } from './lib/communityMaintenance.js'
 import { createCommunityAdmission } from './lib/communityAdmission.js'
 import { accessPeriodEnded, accessUntil, graceDays, preciseMoscowTime } from './lib/subscriptionAccess.js'
@@ -53,7 +54,7 @@ import cors from 'cors'
 import multer from 'multer'
 import { createPaymentLink, TARIFFS, tariffIdBySubscriptionId, createProductPaymentLink, MATERIALS, setSubscriptionActivity, createEventPaymentLink, allSecretKeys, payformSummary } from './lib/prodamus.js'
 import { HmacHelper } from './lib/hmac.js'
-import { createPendingJoin, createOrphanJoin, listJoins, setTgUserId, findJoinForPayment, findPaidJoin, recordPayment, setSubscriptionActive, markReminded, getJoin, setCancelReason, setJoinField, patchJoin, extendSubscription, createLifetimeJoin } from './lib/store.js'
+import { createPendingJoin, createOrphanJoin, listJoins, setTgUserId, removeJoin, findJoinForPayment, findPaidJoin, recordPayment, setSubscriptionActive, markReminded, getJoin, setCancelReason, setJoinField, patchJoin, extendSubscription, createLifetimeJoin } from './lib/store.js'
 import { normalizePhone, createJsonStore } from './lib/jsonStore.js'
 import { createPendingPurchase, getPurchase, markPurchasePaidByPhone, recordPurchasePayment, listPurchases, grantFreeMaterial, hasMaterialAccess } from './lib/materialsStore.js'
 import { materialInfo } from './lib/materialCatalog.js'
@@ -4317,7 +4318,7 @@ ensureTodo('Личный кабинет покупателя материало�
 console.log(`[prodamus] платёжные страницы — ${payformSummary()}`)
 console.log(`[mail] почта для писем клиентам: ${mailConfigured() ? 'настроена' : 'не настроена (SMTP_HOST/SMTP_USER/SMTP_PASS в server/.env)'}`)
 
-app.get('/api/health', (_req, res) => res.json({ ok: true, subscriptionRecovery: 1, subscriptionOffboarding: 1, subscriptionExpiry: 3, subscriptionAdmission: 1, automaticProviderCancellation: false, autoExclude: process.env.AUTO_EXCLUDE === '1', graceDays: graceDays() }))
+app.get('/api/health', (_req, res) => res.json({ ok: true, subscriptionRecovery: 1, subscriptionOffboarding: 1, subscriptionExpiry: 3, subscriptionAdmission: 1, billingAuditVersion: 1, automaticProviderCancellation: false, autoExclude: process.env.AUTO_EXCLUDE === '1', graceDays: graceDays() }))
 
 const subscriptionOperations = {
   telegram: async (method, body) => {
@@ -4547,6 +4548,28 @@ function markAccessClosed(token, fields) {
 
 app.post('/api/internal/subscription-policy', async (req, res) => {
   if (!validRecoveryRequest(req.body, req.headers['x-recovery-signature'], process.env.PRODAMUS_SECRET_KEY)) return res.sendStatus(403)
+  if (req.body.operation === 'complete_billing_audit_20261110') {
+    if (communityMaintenanceRunning || processingProdamus > 0) return res.status(409).json({ ok: false, error: 'maintenance_running' })
+    communityMaintenanceRunning = true
+    try {
+      const member = async id => { const r = await telegramFetch('getChatMember', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({chat_id:COMMUNITY_CHAT_ID,user_id:Number(id)}) }); const b=await r.json(); return r.ok && b.ok ? b.result : {status:'unknown'} }
+      const events = () => { const file=path.join(import.meta.dirname,'data/prodamus-webhooks.jsonl');return fs.existsSync(file)?fs.readFileSync(file,'utf8').split('\n').filter(Boolean).map(line=>JSON.parse(line)):[] }
+      let svetik, website
+      const safeCode=error=>/^(svetik_|website_)[a-z_]+$/.test(error.message)?error.message:'billing_audit_unavailable'
+      try { svetik = await completeSvetikPayment({list:listJoins,events,member,bind:setTgUserId,patch:patchJoin,sync:syncResidentMetadata,trustedFrom:Number(process.env.PRODAMUS_LOG_TRUST_FROM)||0,
+        apply:async record=>{processingProdamus++;try{await handleSubscriptionPayment(record.body,record.body.customer_phone||record.body.phone,record.receivedAt)}finally{processingProdamus--}},
+        expectedEnd:(b,at)=>pickNextPaymentDate(b.subscription,at)||((HISTORICAL_PLANS[String(b.subscription.id)]?.months||TARIFFS[tariffIdBySubscriptionId(b.subscription.id)]?.months)?addMonths(at,HISTORICAL_PLANS[String(b.subscription.id)]?.months||TARIFFS[tariffIdBySubscriptionId(b.subscription.id)]?.months):null),
+      })
+      } catch(error) { svetik={ok:false,error:safeCode(error)} }
+      try { website = await completeWebsiteCheckout({list:listJoins,remove:removeJoin,cancel:cancelPending,siteUrl:SITE_URL,
+        post:async(url,body)=>{const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(45000)});return{ok:r.ok,body:await r.json()}},
+      })
+      } catch(error) { website={ok:false,error:safeCode(error)} }
+      const complete=svetik.ok&&website.ok
+      return res.status(complete?200:503).json({ok:complete,error:complete?undefined:svetik.error||website.error,svetik,website,automaticProviderCancellation:false})
+    } catch(error) { const code=/^(svetik_|website_)[a-z_]+$/.test(error.message)?error.message:'billing_audit_unavailable';return res.status(503).json({ok:false,error:code}) }
+    finally {communityMaintenanceRunning=false}
+  }
   if (req.body.operation === 'repair_community_20261110') {
     if (communityMaintenanceRunning) return res.status(409).json({ ok: false, error: 'maintenance_running' })
     communityMaintenanceRunning = true
