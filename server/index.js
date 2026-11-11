@@ -72,7 +72,7 @@ import { createEventLead, listEventLeads, getEventLead, setEventLeadStatus, mark
 import { sendMail, mailConfigured } from './lib/mailer.js'
 import { listPromos, addPromo, removePromo, findPromo, applyPromo, markPromoUsed, parsePromoInput, promoLabel, ensureBuiltInPromos } from './lib/promoCodes.js'
 import { cleanHowHeard, howHeardLine, howHeardScreen, logLeadSource } from './lib/howHeard.js'
-import { normalizeCommunityPromo, communityPromoFromExtra } from './lib/communityPromo.js'
+import { normalizeCommunityPromo, communityPromoFromExtra, communityCheckoutQuote } from './lib/communityPromo.js'
 import { getAdminSettings, toggleAdminSetting } from './lib/adminSettings.js'
 import { queuePending, cancelPending, takeDuePending, acknowledgePending, PENDING_MINUTES } from './lib/pendingNotices.js'
 import { paidUntil, paidPeriodEnded } from './lib/subscriptionAccess.js'
@@ -1952,6 +1952,15 @@ app.get('/api/account/lead-inbox', (req, res) => {
 
 // Выбор тарифа на сайте → ссылка на оплату Prodamus. После оплаты Prodamus
 // вернёт человека на urlSuccess (страница сайта), где предлагаем перейти в бота.
+app.post('/api/community/promo', (req,res) => {
+  res.set('Cache-Control','no-store')
+  if(promoRateLimited(req.ip))return res.status(429).json({ok:false,error:'too_many_attempts'})
+  const tariffId=req.body?.tariffId
+  if(typeof tariffId!=='string'||!Object.hasOwn(TARIFFS,tariffId))return res.status(400).json({ok:false,error:'tariff_not_available'})
+  try {res.json({ok:true,...communityCheckoutQuote({tariffId,promoCode:req.body.promoCode,basePlan:TARIFFS[tariffId]})})}
+  catch(e){res.status(e.message==='promo_configuration_unavailable'?503:400).json({ok:false,error:e.message==='promo_configuration_unavailable'?'promo_configuration_unavailable':e.message==='promo_not_available'?'promo_not_available':'invalid_promo_code'})}
+})
+
 app.post('/api/community/subscribe', async (req, res) => {
   const { tariffId } = req.body ?? {}
   if (typeof tariffId !== 'string' || !Object.hasOwn(TARIFFS, tariffId)) return res.status(400).json({ ok: false, error: 'tariff_not_available' })
@@ -1970,16 +1979,17 @@ app.post('/api/community/subscribe', async (req, res) => {
   if (!EMAIL_RE.test(email)) return res.status(400).json({ ok: false, error: 'email_required' })
   if (!telegram) return res.status(400).json({ ok: false, error: 'telegram_required' })
 
-  let promoCode
-  try { promoCode = normalizeCommunityPromo(req.body.promoCode) }
-  catch { return res.status(400).json({ ok: false, error: 'invalid_promo_code' }) }
+  let promoCode, checkoutQuote
+  try { promoCode = normalizeCommunityPromo(req.body.promoCode);checkoutQuote=communityCheckoutQuote({tariffId,promoCode,basePlan:TARIFFS[tariffId]}) }
+  catch(e) { return res.status(e.message==='promo_configuration_unavailable'?503:400).json({ok:false,error:e.message==='promo_not_available'?'promo_not_available':e.message==='promo_configuration_unavailable'?'promo_configuration_unavailable':'invalid_promo_code'}) }
 
   try {
     const token = createPendingJoin({ tariffId, name, phone, email, telegram, promoCode, howHeard: cleanHowHeard(req.body.howHeard), consentAt: Date.now(), marketingAt: consentChoice(req.body).marketing ? Date.now() : null })
+    patchJoin(token,{checkoutQuote:{...checkoutQuote,quotedAt:Date.now()}})
     recordConsent({ form: 'community_join', version: consentVersion(req.body), given: true, ...marketingFields(req.body), name, phone, email, telegram })
     const urlSuccess = `${SITE_URL}/community/success?token=${token}`
     const url = await createPaymentLink({ tariffId, phone, email, urlSuccess, name, telegram, promoCode })
-    res.json({ ok: true, url, ...(promoCode ? { promoCode } : {}) })
+    res.json({ ok: true, url, amount:checkoutQuote.amount,months:checkoutQuote.months,...(promoCode ? { promoCode } : {}) })
   } catch (err) {
     console.error('[subscribe] ошибка генерации ссылки на оплату:', err)
     res.status(500).json({ ok: false, error: 'link_generation_failed' })

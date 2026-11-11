@@ -3,6 +3,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import crypto from 'node:crypto'
 import {execFileSync} from 'node:child_process'
+import {pathToFileURL} from 'node:url'
 import {runtimeSettings} from './lib/bot-runtime-settings.mjs'
 process.umask(0o077)
 const argv=process.argv.slice(2),option=k=>{const i=argv.indexOf(k);return i<0?null:argv[i+1]}
@@ -27,8 +28,17 @@ try {
   if(!['index.js','lib/prodamus.js','lib/communityPromo.js'].includes(item.path))throw Error('Неизвестный путь пакета')
   const file=path.join(root,item.path),before=fs.existsSync(file)?fs.readFileSync(file,'utf8'):null
   let after=before
-  if(item.new){after=fs.readFileSync(path.join(source,'updates/community-promo/server',item.path),'utf8');if(hash(after)!==item.sha256||before!==null&&before!==after)throw Error('Неизвестная версия '+item.path)}
-  else {if(before===null)throw Error('Не найден '+item.path);for(const [old,next] of item.edits){if(after.split(next).length===2)continue;if(after.split(old).length!==2)throw Error('Не удалось безопасно совместить '+item.path);after=after.replace(old,next)}}
+  if(item.new){after=fs.readFileSync(path.join(source,'updates/community-promo/server',item.path),'utf8');if(hash(after)!==item.sha256||before!==null&&before!==after&&!(item.acceptedBefore||[]).includes(hash(before)))throw Error('Неизвестная версия '+item.path)}
+  else {
+   if(before===null)throw Error('Не найден '+item.path)
+   let matched=false
+   for(const edits of [item.edits,...item.alternateEdits||[]]){
+    let candidate=before,ok=true
+    for(const [old,next]of edits){if(candidate.split(next).length===2)continue;if(candidate.split(old).length!==2){ok=false;break}candidate=candidate.replace(old,next)}
+    if(ok){after=candidate;matched=true;break}
+   }
+   if(!matched)throw Error('Не удалось безопасно совместить '+item.path)
+  }
   const check=path.join(backup,'syntax-'+files.length+'.mjs');write(check,after);run(process.execPath,['--check',check]);files.push({file,before,after})
  }
  // The owner registry is installed before restarting with the new checkout code.
@@ -40,10 +50,22 @@ try {
  for(const f of files)if((fs.existsSync(f.file)?fs.readFileSync(f.file,'utf8'):null)!==f.before)throw Error('Код изменился во время подготовки')
  run('pm2',['stop',app.name]);stopped=true
  for(const [i,f]of files.entries()){if(f.before!==null)write(path.join(backup,i+'.before'),f.before);if(f.before!==f.after){touched=true;write(f.file,f.after)}}
+ if(option('--promo-code'))execFileSync(process.execPath,[path.join(source,'scripts/configure-community-promo.mjs'),'--runtime',root,'--code',option('--promo-code'),'--amount',option('--promo-amount')||'350','--backup-root',backup],{stdio:'inherit',timeout:30000})
  fs.renameSync(dist,oldDist);oldMoved=true;fs.renameSync(newDist,dist);swapped=true
  run('pm2',['restart',app.name]);stopped=false
  let ready=false;for(let i=0;i<30;i++){try{if((await health()).ok){ready=true;break}}catch{}await new Promise(r=>setTimeout(r,500))}
  if(!ready)throw Error('API не подтвердил здоровье после установки')
+ if(option('--promo-code')){
+  const response=await fetch('http://127.0.0.1:'+port+'/api/community/promo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tariffId:'1m',promoCode:option('--promo-code')}),signal:AbortSignal.timeout(5000)})
+  const quote=await response.json();if(!response.ok||!quote.applied||quote.amount!==Number(option('--promo-amount')||350)||quote.months!==1)throw Error('API не подтвердил цену промокода')
+  // Verify the actual runtime link builder without contacting the provider,
+  // creating an invoice, writing a payment or exposing the signed URL/secret.
+  const secret=settings.value('PRODAMUS_SECRET_KEY');if(!secret)throw Error('Не найден ключ для локальной проверки платёжной ссылки')
+  const probe=`import {buildSubscriptionLink} from ${JSON.stringify(pathToFileURL(path.join(root,'lib/prodamus.js')).href)};const u=new URL(buildSubscriptionLink({tariffId:'1m',promoCode:process.env.COMMUNITY_PROMO_PROBE_CODE,email:'local-probe@example.invalid'}));console.log(JSON.stringify({subscriptionId:u.searchParams.get('subscription')}));`
+  const built=JSON.parse(execFileSync(process.execPath,['--input-type=module','-e',probe],{encoding:'utf8',stdio:['ignore','pipe','pipe'],timeout:10000,env:{...process.env,PRODAMUS_SECRET_KEY:secret,PRODAMUS_DOMAIN:settings.value('PRODAMUS_DOMAIN')||'legalcareerist.payform.ru',COMMUNITY_PROMO_PROBE_CODE:option('--promo-code')}}))
+  if(built.subscriptionId!==quote.subscriptionId)throw Error('Платёжная ссылка не совпадает с подтверждённой ценой')
+  console.log('PROMO_PRICE_CONFIRMED: '+quote.amount+' ₽ каждый месяц; платёжная ссылка использует план '+built.subscriptionId+'.')
+ }
  fs.cpSync(oldDist,path.join(backup,'dist-before'),{recursive:true,errorOnExist:true,force:false});fs.rmSync(oldDist,{recursive:true});oldMoved=false
  installed=true
  execFileSync(process.execPath,[path.join(source,'scripts/repair-community-promo-static.mjs'),'--site-root',site],{stdio:'inherit',timeout:180000})

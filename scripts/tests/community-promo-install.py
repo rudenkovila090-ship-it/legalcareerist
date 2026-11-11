@@ -1,14 +1,18 @@
 import pathlib,tempfile,json,subprocess,shutil,os,stat
 repo=pathlib.Path(__file__).resolve().parents[2]
 with tempfile.TemporaryDirectory(prefix='community-promo-install-') as tmp:
- p=pathlib.Path(tmp);site=p/'site';server=site/'server';(server/'lib').mkdir(parents=True);(site/'dist').mkdir();(p/'bin').mkdir()
+ p=pathlib.Path(tmp);site=p/'site';server=site/'server';(server/'lib').mkdir(parents=True);(site/'dist').mkdir();(server/'data').mkdir();(p/'bin').mkdir()
  for name in ['index.js','lib/prodamus.js']:(server/name).write_bytes(subprocess.check_output(['git','show','accf296:server/'+name],cwd=repo))
  (site/'dist/index.html').write_text('OLD_SITE');(server/'package.json').write_text('{"type":"module"}')
  package=p/'package';(package/'scripts/lib').mkdir(parents=True);(package/'dist/assets').mkdir(parents=True)
- for name in ['install-community-promo.mjs','repair-community-promo-static.mjs','lib/bot-runtime-settings.mjs']:shutil.copyfile(repo/'scripts'/name,package/'scripts'/name)
+ for name in ['install-community-promo.mjs','configure-community-promo.mjs','repair-community-promo-static.mjs','lib/bot-runtime-settings.mjs']:shutil.copyfile(repo/'scripts'/name,package/'scripts'/name)
+ (package/'server/lib').mkdir(parents=True);(package/'package.json').write_text('{"type":"module"}')
+ for name in ['communityPromo.js','subscriptionPricing.js']:shutil.copyfile(repo/'server/lib'/name,package/'server/lib'/name)
+ shutil.copyfile(repo/'server/lib/subscriptionPricing.js',server/'lib/subscriptionPricing.js')
+ shutil.copyfile(repo/'server/lib/hmac.js',server/'lib/hmac.js')
  shutil.copytree(repo/'updates/community-promo',package/'updates/community-promo');(package/'dist/index.html').write_text('NEW_SITE<script src="/assets/app.js"></script>');(package/'dist/assets/app.js').write_text('const test="promoCode";')
  for name,body in [('CommunityHome-fixture.js','FORM_A'),('TariffJoinBlock-fixture.js','FORM_B'),('field.js','Промокод (необязательно)')]:(package/'dist/assets'/name).write_text(body)
- state=[{'name':'legalcareerist-api','pm2_env':{'status':'online','pm_exec_path':str(server/'index.js'),'pm_cwd':str(server),'PORT':'3456'}}]
+ state=[{'name':'legalcareerist-api','pm2_env':{'status':'online','pm_exec_path':str(server/'index.js'),'pm_cwd':str(server),'PORT':'3456','PRODAMUS_SECRET_KEY':'SYNTHETIC_BANK_SECRET'}}]
  (p/'state.json').write_text(json.dumps(state));actions=p/'actions';actions.write_text('')
  shim=p/'bin/pm2';shim.write_text(f'''#!/usr/bin/env python3
 import sys,pathlib
@@ -32,7 +36,15 @@ else:
  with (server/'index.js').open('a') as f:f.write('\n// preserved local extension\n')
  run=subprocess.run(cmd,env=env,text=True,capture_output=True);assert run.returncode==0,(run.stdout,run.stderr);assert (server/'index.js').read_text().endswith('// preserved local extension\n')
  assert 'COMMUNITY_PROMO_INSTALLED' in run.stdout
- # Upgrade the version already installed on the user's server: promo enabled, monthly-only guard.
- current=(server/'index.js').read_text();monthly=current.replace("if (typeof tariffId !== 'string' || !Object.hasOwn(TARIFFS, tariffId))","if (tariffId !== '1m')");assert current!=monthly;(server/'index.js').write_text(monthly)
- run=subprocess.run(cmd,env=env,text=True,capture_output=True);assert run.returncode==0,(run.stdout,run.stderr);assert "Object.hasOwn(TARIFFS, tariffId)" in (server/'index.js').read_text()
+ # Upgrade both actual released versions, including the helper already installed on the server.
+ for ref in ['fd9b561','1e9be13']:
+  for name in ['index.js','lib/prodamus.js','lib/communityPromo.js']:(server/name).write_bytes(subprocess.check_output(['git','show',ref+':server/'+name],cwd=repo))
+  run=subprocess.run(cmd,env=env,text=True,capture_output=True);assert run.returncode==0,(ref,run.stdout,run.stderr);assert "Object.hasOwn(TARIFFS, tariffId)" in (server/'index.js').read_text();assert "app.post('/api/community/promo'" in (server/'index.js').read_text()
+ quote_stub=p/'quote-stub.mjs'
+ quote_stub.write_text("import fs from 'node:fs';import path from 'node:path';const dist="+json.dumps(str(site/'dist'))+";const module="+json.dumps((server/'lib/communityPromo.js').as_uri())+";globalThis.fetch=async(url,init={})=>{const u=new URL(url);if(u.hostname==='legalcareerist.ru')return new Response(fs.readFileSync(path.join(dist,u.pathname.startsWith('/assets/')?u.pathname:'index.html')));if(u.pathname==='/api/community/promo'){const {communityCheckoutQuote}=await import(module);return Response.json({ok:true,...communityCheckoutQuote({...JSON.parse(init.body),basePlan:{subscription:2854597,price:690,months:1}})})}return Response.json({ok:true})};")
+ configured_env={**env,'NODE_OPTIONS':'--import '+str(quote_stub)}
+ run=subprocess.run(cmd+['--promo-code','SYNTHETIC350','--promo-amount','350'],env=configured_env,text=True,capture_output=True);assert run.returncode==0,(run.stdout,run.stderr)
+ assert 'PROMO_RULE_CONFIGURED' in run.stdout and 'COMMUNITY_PROMO_INSTALLED' in run.stdout and 'PROMO_PRICE_CONFIRMED: 350' in run.stdout
+ assert 'SYNTHETIC_BANK_SECRET' not in run.stdout+run.stderr
+ assert (server/'data/community-promo-rules.json').exists()
  print('PASS: exact-context patch, unknown-version preflight, atomic website install, nginx-readable permissions, private backup, repeat apply and preservation of local additions')

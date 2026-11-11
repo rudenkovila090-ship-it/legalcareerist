@@ -25,6 +25,7 @@ export default function TariffJoinBlock() {
   const [telegram, setTelegram] = useState('')
   const [howHeard, setHowHeard] = useState('')
   const [promoCode, setPromoCode] = useState('')
+  const [promoPrice, setPromoPrice] = useState<number | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState(false)
   const [formError, setFormError] = useState('')
@@ -45,6 +46,7 @@ export default function TariffJoinBlock() {
   const tariff = tariffs.find((t) => t.id === tariffId)!
 
   function openModal(id: TariffId) {
+    setPromoPrice(null)
     setTariffId(id)
     setOpen(true)
   }
@@ -57,6 +59,7 @@ export default function TariffJoinBlock() {
     setTelegram('')
     setHowHeard('')
     setPromoCode('')
+    setPromoPrice(null)
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -92,9 +95,9 @@ export default function TariffJoinBlock() {
         body: JSON.stringify({ tariffId, name, phone, email, telegram, howHeard, promoCode, consent }),
       })
       const data = await res.json()
-      if (data.error === 'invalid_promo_code') {
+      if (data.error === 'invalid_promo_code' || data.error === 'promo_not_available') {
         setSubmitting(false)
-        setFormError('Промокод: используйте 3–32 буквы, цифры, дефис или подчёркивание.')
+        setFormError(data.error === 'promo_not_available' ? 'Промокод не найден, выключен или не подходит выбранному тарифу.' : 'Промокод: используйте 3–32 буквы, цифры, дефис или подчёркивание.')
         return
       }
       if (!res.ok || !data.url) throw new Error('subscribe_failed')
@@ -157,14 +160,14 @@ export default function TariffJoinBlock() {
         >
           <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-white p-6 text-ink sm:rounded-2xl sm:p-8">
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-lg font-semibold">Тариф «{tariff.period}» — {tariff.priceLabel}</h3>
+              <h3 className="text-lg font-semibold">Тариф «{tariff.period}» — {promoPrice === null ? tariff.priceLabel : `${promoPrice.toLocaleString('ru-RU')} ₽`}</h3>
               <button type="button" onClick={closeModal} className="text-ink/40 hover:text-ink" aria-label="Закрыть">
                 ✕
               </button>
             </div>
             <div className="mb-5 flex items-center justify-between rounded-lg bg-ink/[0.04] px-4 py-3 text-sm">
               <span className="text-ink/60">{tariff.period}</span>
-              <span className="text-base font-semibold text-ink">{tariff.priceLabel}</span>
+              <span className="text-base font-semibold text-ink">{promoPrice === null ? tariff.priceLabel : `${promoPrice.toLocaleString('ru-RU')} ₽`}</span>
             </div>
             <form onSubmit={withLeadSubmission(handleSubmit)} className="grid gap-3">
               <input aria-label="ФИО"
@@ -197,7 +200,7 @@ export default function TariffJoinBlock() {
                 required
                 className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
               />
-              <CommunityPromoField value={promoCode} onChange={setPromoCode} />
+              <CommunityPromoField value={promoCode} onChange={setPromoCode} tariffId={tariffId} onPriceChange={setPromoPrice} />
               <HowHeardField value={howHeard} onChange={setHowHeard} className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none" />
               {formError && <p className="text-sm text-red-600">{formError}</p>}
               {submitError && (
