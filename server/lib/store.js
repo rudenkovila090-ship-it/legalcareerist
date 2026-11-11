@@ -14,8 +14,8 @@ function normalizeTelegramKey(value) {
   return String(value ?? '').trim().replace(/^@/, '').toLowerCase()
 }
 
-export function createPendingJoin({ tariffId, name, phone, email, telegram, howHeard, consentAt, marketingAt }) {
-  return store.create({ tariffId, name, phone, email, telegram, howHeard: howHeard || '', tgUserId: null, status: 'pending', ...(consentAt ? { consentAt } : {}), ...(marketingAt ? { marketingAt } : {}) })
+export function createPendingJoin({ tariffId, name, phone, email, telegram, howHeard, consentAt, marketingAt, promoCode }) {
+  return store.create({ tariffId, name, phone, email, telegram, howHeard: howHeard || '', ...(promoCode ? { promoCode } : {}), tgUserId: null, status: 'pending', ...(consentAt ? { consentAt } : {}), ...(marketingAt ? { marketingAt } : {}) })
 }
 
 /**
@@ -52,9 +52,13 @@ export function listJoins() {
  */
 export function findJoinForPayment({ phone, email, telegram, tgUserId, profileId, tariffId, orderKey, paidAt }) {
   const all = store.all().filter(j => !j.complimentary && !j.ownerAccess)
+  const compatible = j => !tgUserId || !j.tgUserId || String(j.tgUserId) === String(tgUserId)
   if (orderKey) {
     const duplicate = all.find(j => (j.payments || []).some(p => p.orderKey === orderKey))
-    if (duplicate) return { join: duplicate, isFirst: false }
+    if (duplicate) {
+      if (!compatible(duplicate)) throw Error('payment_identity_conflict')
+      return { join: duplicate, isFirst: false }
+    }
   }
   // profile_id — постоянный номер подписчика в Prodamus, одинаков во всех его
   // платежах: самый надёжный ключ для продлений.
@@ -62,7 +66,10 @@ export function findJoinForPayment({ phone, email, telegram, tgUserId, profileId
     const byProfile = all.filter(j => String(j.prodamusProfileId ?? '') === String(profileId) &&
       (!paidAt || !j.recovery?.paidAt || j.recovery.paidAt <= paidAt))
       .sort((a, b) => (b.recovery?.paidAt || b.lastPaidAt || b.createdAt) - (a.recovery?.paidAt || a.lastPaidAt || a.createdAt))[0]
-    if (byProfile) return { join: byProfile, isFirst: !byProfile.paid }
+    if (byProfile) {
+      if (!compatible(byProfile)) throw Error('payment_identity_conflict')
+      return { join: byProfile, isFirst: !byProfile.paid }
+    }
   }
 
   const phoneKey = normalizePhone(phone)
@@ -76,9 +83,19 @@ export function findJoinForPayment({ phone, email, telegram, tgUserId, profileId
   const byTelegram = (j) => telegramKey && normalizeTelegramKey(j.telegram) === telegramKey
   const byTgUser = (j) => tgUserId && String(j.tgUserId ?? '') === String(tgUserId)
 
+  // A direct Telegram ID beats an unpaid namesake or a shared phone number.
+  if (tgUserId) {
+    for (const paid of [false, true]) {
+      const direct = joins.find(j => Boolean(j.paid) === paid && sameTariff(j) && byTgUser(j))
+      if (direct) return { join: direct, isFirst: !paid }
+    }
+  }
+
   for (const paid of [false, true]) {
     for (const matches of [byPhone, byEmail, byTelegram, byTgUser]) {
-      const join = joins.find((j) => Boolean(j.paid) === paid && sameTariff(j) && matches(j))
+      const pool = joins.filter(j => sameTariff(j) && compatible(j) && matches(j))
+      if (new Set(pool.map(j=>j.tgUserId).filter(Boolean).map(String)).size > 1) throw Error('payment_contact_ambiguous')
+      const join = pool.find(j => Boolean(j.paid) === paid)
       if (join) return { join, isFirst: !paid }
     }
   }
@@ -100,7 +117,13 @@ export function findPaidJoin({ profileId, tgUserId, phone, email }) {
     (j) => emailKey && String(j.email ?? '').trim().toLowerCase() === emailKey,
   ]
   for (const match of by) {
-    const join = paid.find(match)
+    const candidates = paid.filter(match)
+    if (candidates.some(j=>tgUserId&&j.tgUserId&&String(j.tgUserId)!==String(tgUserId))) {
+      if (match === by[0]) throw Error('payment_identity_conflict')
+    }
+    const compatible = candidates.filter(j=>!tgUserId||!j.tgUserId||String(j.tgUserId)===String(tgUserId))
+    if (new Set(compatible.map(j=>j.tgUserId).filter(Boolean).map(String)).size>1) throw Error('payment_contact_ambiguous')
+    const join = compatible[0]
     if (join) return join
   }
   return null
@@ -115,6 +138,7 @@ export function findPaidJoin({ profileId, tgUserId, phone, email }) {
 export function recordPayment(token, { tariffId, amount, paidAt, orderKey, nextPaymentAt, profileId, tgUserId, paymentNum, subscriptionId, subscriptionName, oneTime, enqueueConfirmation = false }) {
   let result = null
   store.update(token, (join) => {
+    if (tgUserId && join.tgUserId && String(tgUserId) !== String(join.tgUserId)) throw Error('payment_identity_conflict')
     const payments = Array.isArray(join.payments) ? [...join.payments] : []
     // Карточки, оплаченные до появления учёта платежей, не хранят историю —
     // считаем, что первая оплата была в момент создания заявки.

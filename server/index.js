@@ -72,6 +72,7 @@ import { createEventLead, listEventLeads, getEventLead, setEventLeadStatus, mark
 import { sendMail, mailConfigured } from './lib/mailer.js'
 import { listPromos, addPromo, removePromo, findPromo, applyPromo, markPromoUsed, parsePromoInput, promoLabel, ensureBuiltInPromos } from './lib/promoCodes.js'
 import { cleanHowHeard, howHeardLine, howHeardScreen, logLeadSource } from './lib/howHeard.js'
+import { normalizeCommunityPromo, communityPromoFromExtra } from './lib/communityPromo.js'
 import { getAdminSettings, toggleAdminSetting } from './lib/adminSettings.js'
 import { queuePending, cancelPending, takeDuePending, acknowledgePending, PENDING_MINUTES } from './lib/pendingNotices.js'
 import { paidUntil, paidPeriodEnded } from './lib/subscriptionAccess.js'
@@ -630,6 +631,8 @@ async function handleSubscriptionPayment(body, phone, receivedAt = Date.now()) {
   }
 
   const rec = result.record
+  const paidPromo = communityPromoFromExtra(body.customer_extra)
+  if (paidPromo && !rec.promoCode) patchJoin(rec.token, { promoCode: paidPromo, promoSource: 'signed_payment_metadata' })
   const freshRecovery = recovery && !prior?.paid
   const expectedRecoveryEnd = freshRecovery ? addMonths(paidAt, rec.recovery.months) : null
   const recoveryPeriodReview = Boolean(freshRecovery && nextPaymentAt && Math.abs(nextPaymentAt - expectedRecoveryEnd) > 86400000)
@@ -1967,12 +1970,16 @@ app.post('/api/community/subscribe', async (req, res) => {
   if (!EMAIL_RE.test(email)) return res.status(400).json({ ok: false, error: 'email_required' })
   if (!telegram) return res.status(400).json({ ok: false, error: 'telegram_required' })
 
+  let promoCode
+  try { promoCode = normalizeCommunityPromo(req.body.promoCode) }
+  catch { return res.status(400).json({ ok: false, error: 'invalid_promo_code' }) }
+
   try {
-    const token = createPendingJoin({ tariffId, name, phone, email, telegram, howHeard: cleanHowHeard(req.body.howHeard), consentAt: Date.now(), marketingAt: consentChoice(req.body).marketing ? Date.now() : null })
+    const token = createPendingJoin({ tariffId, name, phone, email, telegram, promoCode, howHeard: cleanHowHeard(req.body.howHeard), consentAt: Date.now(), marketingAt: consentChoice(req.body).marketing ? Date.now() : null })
     recordConsent({ form: 'community_join', version: consentVersion(req.body), given: true, ...marketingFields(req.body), name, phone, email, telegram })
     const urlSuccess = `${SITE_URL}/community/success?token=${token}`
-    const url = await createPaymentLink({ tariffId, phone, email, urlSuccess, name, telegram })
-    res.json({ ok: true, url })
+    const url = await createPaymentLink({ tariffId, phone, email, urlSuccess, name, telegram, promoCode })
+    res.json({ ok: true, url, ...(promoCode ? { promoCode } : {}) })
   } catch (err) {
     console.error('[subscribe] ошибка генерации ссылки на оплату:', err)
     res.status(500).json({ ok: false, error: 'link_generation_failed' })

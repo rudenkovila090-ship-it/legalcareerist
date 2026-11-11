@@ -15,7 +15,7 @@ export function paidUntil(join) {
 
 export function hasAccess(join, now = Date.now()) {
   if (!join) return false
-  if (join.lifetime || ownerAccessAllowed(join)) return true
+  if (join.lifetime || ownerAccessAllowed(join, now)) return true
   return Boolean(join.paid && ['active', 'cancelled'].includes(join.status) && accessUntil(join) > now)
 }
 
@@ -30,11 +30,11 @@ export function accessUntil(join) {
 }
 
 export function inGrace(join, now = Date.now()) {
-  return Boolean(!join?.lifetime && !ownerAccessAllowed(join) && hasAccess(join, now) && paidUntil(join) <= now)
+  return Boolean(!join?.lifetime && !ownerAccessAllowed(join, now) && hasAccess(join, now) && paidUntil(join) <= now)
 }
 
 export function accessPeriodEnded(join, now = Date.now()) {
-  return Boolean(join?.paid && !join.lifetime && !ownerAccessAllowed(join) && accessUntil(join) !== null && accessUntil(join) <= now)
+  return Boolean(join?.paid && !join.lifetime && !ownerAccessAllowed(join, now) && accessUntil(join) !== null && accessUntil(join) <= now)
 }
 
 export function paidPeriodEnded(join, now = Date.now()) {

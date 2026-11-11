@@ -2,6 +2,8 @@ import { paidUntil, accessPeriodEnded, hasAccess } from './subscriptionAccess.js
 import { normalizePhone } from './jsonStore.js'
 
 export function sameSubscriber(a, b) {
+  // Shared contact information cannot override two distinct Telegram identities.
+  if (a.tgUserId && b.tgUserId) return String(a.tgUserId) === String(b.tgUserId)
   const mail = v => String(v ?? '').trim().toLowerCase()
   return Boolean((a.tgUserId && String(a.tgUserId) === String(b.tgUserId)) ||
     (normalizePhone(a.phone) && normalizePhone(a.phone) === normalizePhone(b.phone)) ||

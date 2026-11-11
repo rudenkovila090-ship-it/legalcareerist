@@ -8,6 +8,7 @@ import { pathToFileURL, fileURLToPath } from 'node:url'
 
 const source = fileURLToPath(new URL('..', import.meta.url))
 const noPaymentKeys = process.argv.includes('--no-payment-keys')
+const communityPromoMode = process.argv.includes('--community-promo')
 const lifecycleMode = process.argv.includes('--lifecycle')
 const retentionMode = process.argv.includes('--retention')
 const recoveryMode = process.argv.includes('--recovery')
@@ -134,6 +135,10 @@ try {
     const { runRetention } = await import('./subscription-retention-scenario.mjs')
     await runRetention({ root, request, hook, read, check, wait, pathToFileURL })
     console.log(`${count} retention checks passed; provider and Telegram responses synthetic`)
+  } else if (communityPromoMode) {
+    const {runCommunityPromo}=await import('./community-promo-http.mjs')
+    await runCommunityPromo({root,request,read,check,wait})
+    console.log(`${count} community promo checks passed; provider and Telegram responses synthetic`)
   } else if (lifecycleMode) {
     const { runLifecycle } = await import('./subscription-lifecycle-scenario.mjs')
     await runLifecycle({ root, request, hook, read, check, wait, pathToFileURL })

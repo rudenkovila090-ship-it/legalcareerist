@@ -21,7 +21,8 @@ const DAY = 24 * 3600 * 1000
 /** Карточки подписки человека: по Telegram id (карточка привязана к боту) и по подтверждённой почте аккаунта. */
 function myJoins(tgId, email) {
   const mail = String(email ?? '').trim().toLowerCase()
-  return listJoins().filter((j) => (j.paid || j.ownerAccess?.active) && ((tgId && String(j.tgUserId ?? '') === String(tgId)) || (mail && String(j.email ?? '').trim().toLowerCase() === mail)))
+  return listJoins().filter((j) => (j.paid || j.ownerAccess?.active) &&
+    (tgId && j.tgUserId ? String(j.tgUserId) === String(tgId) : Boolean(mail && String(j.email ?? '').trim().toLowerCase() === mail)))
 }
 const endOf = (j) => paidUntil(j) || 0
 
@@ -38,7 +39,7 @@ export function residentStatus(tgId, now = Date.now(), email = '') {
   if (best.lifetime) {
     return { status: 'lifetime', tariff: best.complimentary ? `Резидент — бессрочно (тариф ${best.complimentary.nominalAmount} ₽)` : 'Основатель — бессрочно', until: best.endsAt ?? null, since: best.startAt ?? best.firstPaidAt ?? best.createdAt, autoRenew: false, cancelled: false, daysLeft: null }
   }
-  if(best.ownerAccess?.active)return {status:'active',tariff:'Доступ подтверждён владельцем',until:null,since:best.ownerAccess.grantedAt,autoRenew:false,cancelled:false,daysLeft:null,accessSource:'owner'}
+  if(best.ownerAccess?.active&&hasAccess(best,now))return {status:'active',tariff:best.ownerAccess.source==='owner_roster_20261111'&&['free','ambassador'].includes(best.ownerAccess.kind)?'Бесплатный доступ':'Доступ подтверждён владельцем',until:best.ownerAccess.until??null,since:best.ownerAccess.grantedAt,autoRenew:false,cancelled:false,daysLeft:null,accessSource:'owner',providerSchedule:best.providerSnapshot?.contracts||[]}
   const until = endOf(best) || null
   const active = hasAccess(best, now)
   const cancelled = best.status === 'cancelled'

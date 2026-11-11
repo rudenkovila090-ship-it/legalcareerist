@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "baseCommit": "accf2966c2bdec1e0d4a9e89e3f641d03f4e9034",
+  "files": [
+    {
+      "path": "lib/communityAccessPolicy.js",
+      "before": "bb42d5a80212f057ee7a73c65e02b225c81672e67fe17436a15d43fb90f15f01",
+      "after": "0327e70853d7df82d1a2c6e9ba21fde207a1d406557f292cb51e8e073e3ea427"
+    },
+    {
+      "path": "lib/subscriptionAccess.js",
+      "before": "2a02c32ba64db180d13816075a5234a4a508a7c1a81e46a0b4169ed163abe1a2",
+      "after": "578388b3cb9b1890d4bab1c497a47ca665054997f9cd1d5b9f72fd1defd186de"
+    },
+    {
+      "path": "lib/accessExpiry.js",
+      "before": "84e771ce940de3b8b9f3256ac37845486ad6f1520db8f8783030038df7303ca5",
+      "after": "a8e8d3a3f9de2136be879703f0c4ab7503101e9a9f33a1bbdae692b5fa1d766a"
+    },
+    {
+      "path": "lib/store.js",
+      "before": "dd388158140094925b0faa08ca26d2c7a54a7f19beac1be87286771ebd62fb87",
+      "after": "02bef21f6afe4c503855952acb336b98c8cb9c42920cab19906072c7bac39da9"
+    },
+    {
+      "path": "lib/accountProfile.js",
+      "before": "b9447029187d154e6cf826ab8c73883fc153eda80370cafa8265365c113324d0",
+      "after": "cc9bd9dfc2962be9fb71b24123677e01b43231ddaed2ed7f93aed70401d8e741"
+    },
+    {
+      "path": "lib/residentCabinet.js",
+      "before": "7a648af1d8337645e7c95f7a6ed2f4822d98094f57148543f75aa533e58693b6",
+      "after": "e77d00016dd2c251ab5c92879eb696de69c5c5e515d2dc78383d933501b78199"
+    },
+    {
+      "path": "lib/subscriptionAutomation.js",
+      "after": "e285269207be537ca3e7d3496b18b42502a5009f4b12f0cfe61458ebbe6ed8b4",
+      "before": "acfd6e1f3508d919a93c5d00b86051802f26c98eb640fcd3562cebcc93a38411"
+    }
+  ]
+}

@@ -1,3 +1,4 @@
+import CommunityPromoField from './CommunityPromoField'
 import { useEffect, useState, type FormEvent } from 'react'
 import { tariffs, type TariffId } from '../data/tariffs'
 import { submitLead, leadSubmissionId, withLeadSubmission } from '../lib/leads'
@@ -23,6 +24,7 @@ export default function TariffJoinBlock() {
   const [email, setEmail] = useState('')
   const [telegram, setTelegram] = useState('')
   const [howHeard, setHowHeard] = useState('')
+  const [promoCode, setPromoCode] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState(false)
   const [formError, setFormError] = useState('')
@@ -54,6 +56,7 @@ export default function TariffJoinBlock() {
     setEmail('')
     setTelegram('')
     setHowHeard('')
+    setPromoCode('')
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -73,7 +76,7 @@ export default function TariffJoinBlock() {
       email: email || undefined,
       telegram: telegram ? (telegram.startsWith('@') ? telegram : `@${telegram}`) : undefined,
       howHeard,
-      interest: [tariff.period],
+      interest: [tariff.period, ...(promoCode ? [`Промокод: ${promoCode}`] : [])],
       consent,
     })
 
@@ -86,9 +89,14 @@ export default function TariffJoinBlock() {
       const res = await fetch('/api/community/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tariffId, name, phone, email, telegram, howHeard, consent }),
+        body: JSON.stringify({ tariffId, name, phone, email, telegram, howHeard, promoCode, consent }),
       })
       const data = await res.json()
+      if (data.error === 'invalid_promo_code') {
+        setSubmitting(false)
+        setFormError('Промокод: используйте 3–32 буквы, цифры, дефис или подчёркивание.')
+        return
+      }
       if (!res.ok || !data.url) throw new Error('subscribe_failed')
       // Цель «заявка в сообщество» — после ответа сервера; переход на оплату ждёт, пока Метрика примет цель.
       goal('lead_community', undefined, () => window.location.assign(data.url))
@@ -189,6 +197,7 @@ export default function TariffJoinBlock() {
                 required
                 className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
               />
+              <CommunityPromoField value={promoCode} onChange={setPromoCode} />
               <HowHeardField value={howHeard} onChange={setHowHeard} className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none" />
               {formError && <p className="text-sm text-red-600">{formError}</p>}
               {submitError && (

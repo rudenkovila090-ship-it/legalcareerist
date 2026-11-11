@@ -4,6 +4,7 @@
 // hmac.js (проверено на реальных ссылках клубной системы, все совпали).
 import { HmacHelper, flattenForm } from './hmac.js'
 import { HISTORICAL_PLANS } from './subscriptionPricing.js'
+import { normalizeCommunityPromo } from './communityPromo.js'
 
 // У каждой платёжной страницы Prodamus свой домен и свой секретный ключ. Основная страница — подписки сообщества;
 // для материалов и мероприятий можно подключить отдельные страницы (другая ветка доходов): PRODAMUS_MATERIALS_DOMAIN /
@@ -74,7 +75,7 @@ const TARIFFS = {
  * можно опознать плательщика, даже если на странице оплаты он изменил
  * телефон или почту.
  */
-export function buildSubscriptionLink({ tariffId, tgUserId, phone, email, urlSuccess, name, telegram, lockedPlan, recoveryToken }) {
+export function buildSubscriptionLink({ tariffId, tgUserId, phone, email, urlSuccess, name, telegram, lockedPlan, recoveryToken, promoCode }) {
   // lockedPlan is selected from an authenticated resident's history, never from request prices.
   const tariff = lockedPlan ? { ...TARIFFS[tariffId], subscription: lockedPlan.subscriptionId, label: 'Продление по закреплённой цене', price: lockedPlan.amount } : TARIFFS[tariffId]
   if (!tariff) throw new Error(`unknown tariff: ${tariffId}`)
@@ -92,6 +93,8 @@ export function buildSubscriptionLink({ tariffId, tgUserId, phone, email, urlSuc
     if (!/^[a-f0-9]{24}$/.test(recoveryToken)) throw Error('invalid_recovery_token')
     data.customer_extra += ` | KY_RESTART:${recoveryToken}`
   }
+  const code = normalizeCommunityPromo(promoCode)
+  if (code) data.customer_extra += ` | KY_PROMO:${code}`
   if (tgUserId) data.tg_user_id = tgUserId
   if (phone) data.customer_phone = phone
   if (email) data.customer_email = email

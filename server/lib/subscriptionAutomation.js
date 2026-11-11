@@ -58,7 +58,9 @@ export function createAutomationReconciliation({list,records,apply,patch,expecte
     const join=owners[0];if(!join)continue
     if(join.tgUserId&&r.body.tg_user_id&&String(join.tgUserId)!==String(r.body.tg_user_id))return{ok:false,reason:'payment_identity_conflict'}
     // An owner-confirmed payer's temporary admission must not become a permanent free membership.
-    const grants=list().filter(g=>g.ownerAccess?.active&&g.ownerAccess.reason==='owner_confirmed_payment'&&((g.tgUserId&&String(g.tgUserId)===String(join.tgUserId||''))||(!join.tgUserId&&nick(g.telegram)&&nick(g.telegram)===nick(join.telegram))))
+    const grants=list().filter(g=>g.ownerAccess?.active&&
+      (g.ownerAccess.reason==='owner_confirmed_payment'||(g.ownerAccess.source==='owner_roster_20261111'&&!['free','ambassador'].includes(g.ownerAccess.kind)&&!PERMANENT_MEMBER_IDS.includes(String(g.tgUserId))))&&
+      ((g.tgUserId&&String(g.tgUserId)===String(join.tgUserId||''))||(!join.tgUserId&&nick(g.telegram)&&nick(g.telegram)===nick(join.telegram))))
     if(!join.tgUserId){const ids=[...new Set(grants.map(g=>g.tgUserId).filter(Boolean).map(String))];if(ids.length>1)return{ok:false,reason:'payment_identity_conflict'};if(ids.length===1){bind(join.token,ids[0]);join.tgUserId=ids[0]}}
     if(time(r.body.date)===Number(join.lastPaidAt)){
      const end=expectedEnd(r.body,time(r.body.date))

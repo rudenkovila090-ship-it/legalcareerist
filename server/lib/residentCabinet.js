@@ -43,7 +43,11 @@ export function subscriptionScreen(join, tariffs, now = Date.now(), payUrl = '')
     ]
     return { text: lines.join('\n'), keyboard: [BACK_ROW] }
   }
-  if(join.ownerAccess?.active)return {text:'📋 Доступ к сообществу\n\nСтатус: 🟢 открыт\nДоступ подтверждён командой сообщества.'+(join.ownerAccess.paymentVerificationPending?'\nДанные об оплате уточняются.':''),keyboard:[BACK_ROW]}
+  if(join.ownerAccess?.active&&hasAccess(join,now)){
+    const free=join.ownerAccess.source==='owner_roster_20261111'&&['free','ambassador'].includes(join.ownerAccess.kind)
+    const schedule=(join.providerSnapshot?.contracts||[]).filter(c=>c.userActive==='активна'&&c.managerActive==='активна')
+    return {text:'📋 Доступ к сообществу\n\nСтатус: 🟢 открыт\n'+(free?'Бесплатный доступ по списку команды сообщества.':'Доступ подтверждён командой сообщества.')+(join.ownerAccess.paymentVerificationPending?'\nДанные об оплате уточняются.':'')+schedule.map(c=>'\nПо выгрузке: '+c.cost+' ₽'+(c.nextChargeAt?', следующее списание '+preciseMoscowTime(c.nextChargeAt):'')).join(''),keyboard:[BACK_ROW]}
+  }
   const paid = (join.payments ?? []).filter((p) => !p.estimated)
   const last = paid.at(-1) ?? (join.payments ?? []).at(-1)
   const amount = lockedAmount(join, Number(last?.amount) || tariffs[join.tariffId]?.price || null)
