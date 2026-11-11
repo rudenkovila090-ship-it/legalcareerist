@@ -37,3 +37,7 @@ bot2/node_modules
 # scripts/generate-sitemap.mjs) — не коммитим, чтобы не плодить diff-шум
 # на каждый PR, когда меняется список вакансий/мероприятий/статей.
 public/sitemap.xml
+
+# Python browser-check caches
+__pycache__/
+*.py[cod]
