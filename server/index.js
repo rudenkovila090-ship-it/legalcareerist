@@ -1954,7 +1954,7 @@ app.get('/api/account/lead-inbox', (req, res) => {
 // вернёт человека на urlSuccess (страница сайта), где предлагаем перейти в бота.
 app.post('/api/community/subscribe', async (req, res) => {
   const { tariffId } = req.body ?? {}
-  if (tariffId !== '1m') return res.status(400).json({ ok: false, error: 'tariff_not_available' })
+  if (typeof tariffId !== 'string' || !Object.hasOwn(TARIFFS, tariffId)) return res.status(400).json({ ok: false, error: 'tariff_not_available' })
   // Без согласия на обработку персональных данных ссылку на оплату не выдаём.
   if (!consentGiven(req.body)) return res.status(400).json({ ok: false, error: 'consent_required' })
 

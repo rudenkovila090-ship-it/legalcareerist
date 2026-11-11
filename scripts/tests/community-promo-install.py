@@ -32,4 +32,7 @@ else:
  with (server/'index.js').open('a') as f:f.write('\n// preserved local extension\n')
  run=subprocess.run(cmd,env=env,text=True,capture_output=True);assert run.returncode==0,(run.stdout,run.stderr);assert (server/'index.js').read_text().endswith('// preserved local extension\n')
  assert 'COMMUNITY_PROMO_INSTALLED' in run.stdout
+ # Upgrade the version already installed on the user's server: promo enabled, monthly-only guard.
+ current=(server/'index.js').read_text();monthly=current.replace("if (typeof tariffId !== 'string' || !Object.hasOwn(TARIFFS, tariffId))","if (tariffId !== '1m')");assert current!=monthly;(server/'index.js').write_text(monthly)
+ run=subprocess.run(cmd,env=env,text=True,capture_output=True);assert run.returncode==0,(run.stdout,run.stderr);assert "Object.hasOwn(TARIFFS, tariffId)" in (server/'index.js').read_text()
  print('PASS: exact-context patch, unknown-version preflight, atomic website install, nginx-readable permissions, private backup, repeat apply and preservation of local additions')

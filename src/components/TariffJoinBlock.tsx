@@ -114,7 +114,7 @@ export default function TariffJoinBlock() {
         Доступ к закрытому сообществу открывается автоматически в Telegram-боте сразу после оплаты.
       </p>
 
-      <div className="mx-auto mt-6 grid max-w-sm gap-3">
+      <div className="mx-auto mt-6 grid max-w-3xl gap-3 sm:grid-cols-3">
         {tariffs.map((t) => {
           return (
             <div

@@ -25,4 +25,10 @@ export async function runCommunityPromo({root,request,read,check,wait}) {
   check('a signed paid event preserves the code on a recovered orphan card',()=>{assert.equal(response.status,200);assert.equal(card.promoCode,'REF_CODE');assert.equal(card.payments.length,1)})
   await request('/api/prodamus/webhook',body,{sign:HmacHelper.create(body,'test-no-real-provider')});await wait(100)
   check('duplicate paid events do not duplicate money',()=>assert.equal(Object.values(read('pending-joins.json')).find(j=>(j.payments||[]).some(p=>p.orderKey===body.order_id)).payments.length,1))
+  for(const [tariffId,plan] of [['1m','2854597'],['3m','3005286'],['6m','3005289']]) {
+    response=await request('/api/community/subscribe',{...form,tariffId,promoCode:'REF_CODE',price:1,subscription:'fake'})
+    check('public '+tariffId+' checkout preserves its server-selected provider plan and promo',()=>{assert.equal(response.status,200);assert.equal(entries().at(-1).subscription,plan);assert.ok(entries().at(-1).customer_extra.endsWith(' | KY_PROMO:REF_CODE'))})
+  }
+  response=await request('/api/community/subscribe',{...form,tariffId:'toString'})
+  check('unknown and inherited-object tariff keys remain unavailable',()=>assert.equal(response.status,400))
 }

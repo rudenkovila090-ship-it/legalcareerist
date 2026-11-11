@@ -629,7 +629,7 @@ export default function CommunityHome() {
         <div className="container-page text-center">
           <div className="mb-8 text-sm font-bold uppercase tracking-wide text-gold-light">Присоединиться</div>
 
-          <div className="mx-auto grid max-w-sm gap-4">
+          <div className="mx-auto grid max-w-4xl gap-4 md:grid-cols-3">
                 {tariffs.map((t) => {
                   const selected = tariffId === t.id
                   return (

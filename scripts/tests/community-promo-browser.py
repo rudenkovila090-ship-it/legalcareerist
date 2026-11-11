@@ -7,29 +7,30 @@ with sync_playwright() as p:
  browser=p.chromium.launch(executable_path='/usr/bin/chromium',headless=True,args=['--no-sandbox'])
  for width in [390,1440]:
   for route in ['/community','/knowledge/mif-o-soobschestvah-dlya-studentov-yuristov']:
-   ctx=browser.new_context(viewport={'width':width,'height':1000});page=ctx.new_page();captured=[];errors=[]
-   page.on('pageerror',lambda e:errors.append(str(e)))
-   def intercept(r):
-    if '/api/community/subscribe' in r.request.url:
-     captured.append(r.request.post_data_json);r.fulfill(json={'ok':True,'url':preview+'/community/success?token=0123456789abcdef'})
-    elif '/api/' in r.request.url:r.fulfill(json={'ok':True,'received':True,'receiptId':'synthetic-browser-receipt','items':[]})
-    elif r.request.url.startswith(preview):r.continue_()
-    else:r.abort()
-   page.route('**/*',intercept);page.goto(preview+route)
-   page.get_by_role('button',name='Оплатить',exact=True).last.click()
-   promo=page.get_by_role('textbox',name='Промокод (необязательно)');promo.wait_for();promo.fill(' ref2026 ')
-   assert promo.input_value()=='REF2026'
-   form=promo.locator('xpath=ancestor::form')
-   form.get_by_label('ФИО',exact=True).fill('Тестовый пользователь')
-   form.locator('input[type=tel]').fill('+79000000880')
-   form.get_by_label('Почта',exact=True).fill('synthetic@example.invalid')
-   form.get_by_label('Ник в Telegram, например @ivanov',exact=True).fill('@synthetic_promo')
-   form.locator('input[name=policy]').check();form.locator('input[name=processing]').check()
-   page.screenshot(path=str(out/f'promo-{width}-{route.strip("/").replace("/","-")}.png'))
-   form.get_by_role('button',name='Перейти к оплате',exact=True).click()
-   page.wait_for_timeout(700)
-   assert captured and captured[0]['promoCode']=='REF2026',(route,width,captured)
-   assert not errors,errors
-   print('PASS promo field and posted code:',route,width)
-   ctx.close()
+   for choice in range(3):
+    ctx=browser.new_context(viewport={'width':width,'height':1000});page=ctx.new_page();captured=[];errors=[]
+    page.on('pageerror',lambda e:errors.append(str(e)))
+    def intercept(r):
+     if '/api/community/subscribe' in r.request.url:
+      captured.append(r.request.post_data_json);r.fulfill(json={'ok':True,'url':preview+'/community/success?token=0123456789abcdef'})
+     elif '/api/' in r.request.url:r.fulfill(json={'ok':True,'received':True,'receiptId':'synthetic-browser-receipt','items':[]})
+     elif r.request.url.startswith(preview):r.continue_()
+     else:r.abort()
+    page.route('**/*',intercept);page.goto(preview+route)
+    page.get_by_role('button',name='Оплатить',exact=True).nth(choice).click()
+    promo=page.get_by_role('textbox',name='Промокод (необязательно)');promo.wait_for();promo.fill(' ref2026 ')
+    assert promo.input_value()=='REF2026'
+    form=promo.locator('xpath=ancestor::form')
+    form.get_by_label('ФИО',exact=True).fill('Тестовый пользователь')
+    form.locator('input[type=tel]').fill('+79000000880')
+    form.get_by_label('Почта',exact=True).fill('synthetic@example.invalid')
+    form.get_by_label('Ник в Telegram, например @ivanov',exact=True).fill('@synthetic_promo')
+    form.locator('input[name=policy]').check();form.locator('input[name=processing]').check()
+    page.screenshot(path=str(out/f'promo-{width}-{choice}-{route.strip("/").replace("/","-")}.png'))
+    form.get_by_role('button',name='Перейти к оплате',exact=True).click()
+    page.wait_for_timeout(700)
+    assert captured and captured[0]['promoCode']=='REF2026' and captured[0]['tariffId']==['1m','3m','6m'][choice],(route,width,captured)
+    assert not errors,errors
+    print('PASS tariff and promo:',route,width,['1m','3m','6m'][choice])
+    ctx.close()
  browser.close()
