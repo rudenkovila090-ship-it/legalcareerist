@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "files": [
+    {
+      "path": "index.js",
+      "edits": [
+        [
+          "import { sendMail, mailConfigured } from './lib/mailer.js'\nimport { listPromos, addPromo, removePromo, findPromo, applyPromo, markPromoUsed, parsePromoInput, promoLabel, ensureBuiltInPromos } from './lib/promoCodes.js'\nimport { cleanHowHeard, howHeardLine, howHeardScreen, logLeadSource } from './lib/howHeard.js'\nimport { getAdminSettings, toggleAdminSetting } from './lib/adminSettings.js'\nimport { queuePending, cancelPending, takeDuePending, acknowledgePending, PENDING_MINUTES } from './lib/pendingNotices.js'\nimport { paidUntil, paidPeriodEnded } from './lib/subscriptionAccess.js'\n",
+          "import { sendMail, mailConfigured } from './lib/mailer.js'\nimport { listPromos, addPromo, removePromo, findPromo, applyPromo, markPromoUsed, parsePromoInput, promoLabel, ensureBuiltInPromos } from './lib/promoCodes.js'\nimport { cleanHowHeard, howHeardLine, howHeardScreen, logLeadSource } from './lib/howHeard.js'\nimport { normalizeCommunityPromo, communityPromoFromExtra } from './lib/communityPromo.js'\nimport { getAdminSettings, toggleAdminSetting } from './lib/adminSettings.js'\nimport { queuePending, cancelPending, takeDuePending, acknowledgePending, PENDING_MINUTES } from './lib/pendingNotices.js'\nimport { paidUntil, paidPeriodEnded } from './lib/subscriptionAccess.js'\n"
+        ],
+        [
+          "  }\n\n  const rec = result.record\n  const freshRecovery = recovery && !prior?.paid\n  const expectedRecoveryEnd = freshRecovery ? addMonths(paidAt, rec.recovery.months) : null\n  const recoveryPeriodReview = Boolean(freshRecovery && nextPaymentAt && Math.abs(nextPaymentAt - expectedRecoveryEnd) > 86400000)\n",
+          "  }\n\n  const rec = result.record\n  const paidPromo = communityPromoFromExtra(body.customer_extra)\n  if (paidPromo && !rec.promoCode) patchJoin(rec.token, { promoCode: paidPromo, promoSource: 'signed_payment_metadata' })\n  const freshRecovery = recovery && !prior?.paid\n  const expectedRecoveryEnd = freshRecovery ? addMonths(paidAt, rec.recovery.months) : null\n  const recoveryPeriodReview = Boolean(freshRecovery && nextPaymentAt && Math.abs(nextPaymentAt - expectedRecoveryEnd) > 86400000)\n"
+        ],
+        [
+          "  if (!EMAIL_RE.test(email)) return res.status(400).json({ ok: false, error: 'email_required' })\n  if (!telegram) return res.status(400).json({ ok: false, error: 'telegram_required' })\n\n  try {\n    const token = createPendingJoin({ tariffId, name, phone, email, telegram, howHeard: cleanHowHeard(req.body.howHeard), consentAt: Date.now(), marketingAt: consentChoice(req.body).marketing ? Date.now() : null })\n    recordConsent({ form: 'community_join', version: consentVersion(req.body), given: true, ...marketingFields(req.body), name, phone, email, telegram })\n    const urlSuccess = `${SITE_URL}/community/success?token=${token}`\n    const url = await createPaymentLink({ tariffId, phone, email, urlSuccess, name, telegram })\n    res.json({ ok: true, url })\n  } catch (err) {\n    console.error('[subscribe] ошибка генерации ссылки на оплату:', err)\n    res.status(500).json({ ok: false, error: 'link_generation_failed' })\n",
+          "  if (!EMAIL_RE.test(email)) return res.status(400).json({ ok: false, error: 'email_required' })\n  if (!telegram) return res.status(400).json({ ok: false, error: 'telegram_required' })\n\n  let promoCode\n  try { promoCode = normalizeCommunityPromo(req.body.promoCode) }\n  catch { return res.status(400).json({ ok: false, error: 'invalid_promo_code' }) }\n\n  try {\n    const token = createPendingJoin({ tariffId, name, phone, email, telegram, promoCode, howHeard: cleanHowHeard(req.body.howHeard), consentAt: Date.now(), marketingAt: consentChoice(req.body).marketing ? Date.now() : null })\n    recordConsent({ form: 'community_join', version: consentVersion(req.body), given: true, ...marketingFields(req.body), name, phone, email, telegram })\n    const urlSuccess = `${SITE_URL}/community/success?token=${token}`\n    const url = await createPaymentLink({ tariffId, phone, email, urlSuccess, name, telegram, promoCode })\n    res.json({ ok: true, url, ...(promoCode ? { promoCode } : {}) })\n  } catch (err) {\n    console.error('[subscribe] ошибка генерации ссылки на оплату:', err)\n    res.status(500).json({ ok: false, error: 'link_generation_failed' })\n"
+        ]
+      ]
+    },
+    {
+      "path": "lib/prodamus.js",
+      "edits": [
+        [
+          "// hmac.js (проверено на реальных ссылках клубной системы, все совпали).\nimport { HmacHelper, flattenForm } from './hmac.js'\nimport { HISTORICAL_PLANS } from './subscriptionPricing.js'\n\n// У каждой платёжной страницы Prodamus свой домен и свой секретный ключ. Основная страница — подписки сообщества;\n// для материалов и мероприятий можно подключить отдельные страницы (другая ветка доходов): PRODAMUS_MATERIALS_DOMAIN /\n",
+          "// hmac.js (проверено на реальных ссылках клубной системы, все совпали).\nimport { HmacHelper, flattenForm } from './hmac.js'\nimport { HISTORICAL_PLANS } from './subscriptionPricing.js'\nimport { normalizeCommunityPromo } from './communityPromo.js'\n\n// У каждой платёжной страницы Prodamus свой домен и свой секретный ключ. Основная страница — подписки сообщества;\n// для материалов и мероприятий можно подключить отдельные страницы (другая ветка доходов): PRODAMUS_MATERIALS_DOMAIN /\n"
+        ],
+        [
+          " * можно опознать плательщика, даже если на странице оплаты он изменил\n * телефон или почту.\n */\nexport function buildSubscriptionLink({ tariffId, tgUserId, phone, email, urlSuccess, name, telegram, lockedPlan, recoveryToken }) {\n  // lockedPlan is selected from an authenticated resident's history, never from request prices.\n  const tariff = lockedPlan ? { ...TARIFFS[tariffId], subscription: lockedPlan.subscriptionId, label: 'Продление по закреплённой цене', price: lockedPlan.amount } : TARIFFS[tariffId]\n  if (!tariff) throw new Error(`unknown tariff: ${tariffId}`)\n",
+          " * можно опознать плательщика, даже если на странице оплаты он изменил\n * телефон или почту.\n */\nexport function buildSubscriptionLink({ tariffId, tgUserId, phone, email, urlSuccess, name, telegram, lockedPlan, recoveryToken, promoCode }) {\n  // lockedPlan is selected from an authenticated resident's history, never from request prices.\n  const tariff = lockedPlan ? { ...TARIFFS[tariffId], subscription: lockedPlan.subscriptionId, label: 'Продление по закреплённой цене', price: lockedPlan.amount } : TARIFFS[tariffId]\n  if (!tariff) throw new Error(`unknown tariff: ${tariffId}`)\n"
+        ],
+        [
+          "    if (!/^[a-f0-9]{24}$/.test(recoveryToken)) throw Error('invalid_recovery_token')\n    data.customer_extra += ` | KY_RESTART:${recoveryToken}`\n  }\n  if (tgUserId) data.tg_user_id = tgUserId\n  if (phone) data.customer_phone = phone\n  if (email) data.customer_email = email\n",
+          "    if (!/^[a-f0-9]{24}$/.test(recoveryToken)) throw Error('invalid_recovery_token')\n    data.customer_extra += ` | KY_RESTART:${recoveryToken}`\n  }\n  const code = normalizeCommunityPromo(promoCode)\n  if (code) data.customer_extra += ` | KY_PROMO:${code}`\n  if (tgUserId) data.tg_user_id = tgUserId\n  if (phone) data.customer_phone = phone\n  if (email) data.customer_email = email\n"
+        ]
+      ]
+    },
+    {
+      "path": "lib/communityPromo.js",
+      "new": true,
+      "sha256": "0469e600a95b371fd5e47f60189dfa68e1cf7500359db6b71065c6da8a526501"
+    }
+  ]
+}
