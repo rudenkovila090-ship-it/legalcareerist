@@ -10,7 +10,7 @@ const source=path.resolve(import.meta.dirname,'..'),input=option('--resident-inp
 const run=(command,args)=>execFileSync(command,args,{encoding:'utf8',stdio:['ignore','pipe','pipe'],timeout:30000,maxBuffer:32*1024*1024})
 const hash=b=>crypto.createHash('sha256').update(b).digest('hex')
 const write=(file,body)=>{const temp=file+'.promo-'+crypto.randomBytes(5).toString('hex');try{fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(temp,body,{mode:0o600,flag:'wx'});fs.renameSync(temp,file)}finally{fs.rmSync(temp,{force:true})}}
-let app,backup,stopped=false,touched=false,dist,oldDist,newDist,swapped=false,oldMoved=false,files=[]
+let app,backup,stopped=false,touched=false,installed=false,dist,oldDist,newDist,swapped=false,oldMoved=false,files=[]
 try {
  const apps=JSON.parse(run('pm2',['jlist'])).filter(a=>a.name==='legalcareerist-api')
  if(apps.length!==1||apps[0].pm2_env.status!=='online')throw Error('Не найден единственный работающий основной API')
@@ -45,10 +45,12 @@ try {
  let ready=false;for(let i=0;i<30;i++){try{if((await health()).ok){ready=true;break}}catch{}await new Promise(r=>setTimeout(r,500))}
  if(!ready)throw Error('API не подтвердил здоровье после установки')
  fs.cpSync(oldDist,path.join(backup,'dist-before'),{recursive:true,errorOnExist:true,force:false});fs.rmSync(oldDist,{recursive:true});oldMoved=false
+ installed=true
+ execFileSync(process.execPath,[path.join(source,'scripts/repair-community-promo-static.mjs'),'--site-root',site],{stdio:'inherit',timeout:180000})
  write(path.join(backup,'installed.json'),JSON.stringify({at:Date.now(),promoCodeCaptured:true,bankSettingsChanged:false,directMessagesSent:false,sourceCommit:option('--commit')||null},null,2))
  console.log('COMMUNITY_PROMO_INSTALLED: поле опубликовано в обеих формах; код сохраняется и передаётся в подписанных данных оплаты. Условия банковских тарифов сохранены. Резервная копия: '+backup)
 } catch(error) {
- if(app&&(touched||swapped||stopped||oldMoved))try{if(!stopped)run('pm2',['stop',app.name]);for(const f of files){if(f.before===null)fs.rmSync(f.file,{force:true});else write(f.file,f.before)}if(swapped){fs.renameSync(dist,newDist);swapped=false}if(oldMoved){fs.renameSync(oldDist,dist);oldMoved=false}run('pm2',['restart',app.name]);stopped=false}catch{console.error('Не подтверждён откат; резервная копия: '+backup)}
+ if(!installed&&app&&(touched||swapped||stopped||oldMoved))try{if(!stopped)run('pm2',['stop',app.name]);for(const f of files){if(f.before===null)fs.rmSync(f.file,{force:true});else write(f.file,f.before)}if(swapped){fs.renameSync(dist,newDist);swapped=false}if(oldMoved){fs.renameSync(oldDist,dist);oldMoved=false}run('pm2',['restart',app.name]);stopped=false}catch{console.error('Не подтверждён откат; резервная копия: '+backup)}
  console.error('УСТАНОВКА НЕ ЗАВЕРШЕНА: '+String(error.message).replace(/https?:\/\/\S+/g,'[URL]')+'. Данные оплат не откатывались. Отчёт: '+(backup||'подготовка'))
  process.exitCode=1
 } finally {if(newDist&&fs.existsSync(newDist))fs.rmSync(newDist,{recursive:true,force:true})}
