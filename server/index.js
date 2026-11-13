@@ -5,6 +5,7 @@ import { rescueCommunityAccess, createPaymentAdminDelivery, voluntaryDeparture, 
 import { completeSvetikPayment, completeWebsiteCheckout } from './lib/communityPaymentCompletion.js'
 import { repairCommunityCards } from './lib/communityMaintenance.js'
 import { createCommunityAdmission } from './lib/communityAdmission.js'
+import { createCommunityOnboarding, NEWCOMER_DELAY_MS } from './lib/communityOnboarding.js'
 import { accessPeriodEnded, accessUntil, graceDays, preciseMoscowTime } from './lib/subscriptionAccess.js'
 import { createSubscriptionReminders } from './lib/subscriptionReminders.js'
 import { priceEntitlement, HISTORICAL_PLANS } from './lib/subscriptionPricing.js'
@@ -78,7 +79,7 @@ import { queuePending, cancelPending, takeDuePending, acknowledgePending, PENDIN
 import { paidUntil, paidPeriodEnded } from './lib/subscriptionAccess.js'
 import { createAccessExpiryWorker, protectedByOtherCard } from './lib/accessExpiry.js'
 import { createRenewalDelivery } from './lib/residentDelivery.js'
-import { getMaterialFile, setMaterialFile } from './lib/materialFiles.js'
+import { setMaterialFile } from './lib/materialFiles.js'
 import { getMaterialPdf } from './lib/materialPdfs.js'
 import { registerAdminMaterials } from './lib/adminMaterials.js'
 import { issueMaterialLink, resolveMaterialLink, looksLikeLinkToken } from './lib/materialLinks.js'
@@ -241,17 +242,6 @@ async function sendTelegramDocument(chatId, buffer, filename, caption, opts = {}
   if (!res.ok) { console.error('[telegram] sendDocument HTTP:', res.status); return false }
   const result = await res.json().catch(() => null)
   return res.ok && result?.ok === true
-}
-
-// Отправка уже загруженного в Telegram файла по file_id (материалы маркетплейса).
-async function sendTelegramDocumentById(chatId, fileId, caption) {
-  const res = await telegramFetch('sendDocument', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: chatId, document: fileId, ...(caption ? { caption } : {}) }),
-  })
-  if (!res.ok) console.error('[telegram] sendDocument по file_id ошибка:', await res.text())
-  return res.ok
 }
 
 // Скачивает файл, который админ загрузил боту (по Telegram file_id), — чтобы приложить его к письму или отдать на сайте.
@@ -911,6 +901,10 @@ function syncResidentMetadata(join, tgUserId) {
 
 /** Метки и дата вступления: в карточке подписки и в карточке человека в боте (её заводим, если человек ещё не нажимал Start). */
 function markJoined(from, join, at) {
+  if(from?.id&&!from.is_bot){
+    const historical=Boolean(getBotUser(from.id)?.communityJoinedAt)||listJoins().some(j=>String(j.tgUserId||'')===String(from.id)&&j.joinedAt)
+    communityOnboarding.joined(from.id,at,historical)
+  }
   patchJoin(join.token, { joinedAt: join.joinedAt ?? at, lastJoinedAt: at, leftAt: undefined, inChat: true, accessClosedFor: undefined, accessClosedAt: undefined })
   if (!from?.id) return
   ensureBotUser(from)
@@ -924,6 +918,22 @@ function markJoined(from, join, at) {
  * запускал, по нику с сайта (decideJoinRequest): привязываем Telegram к оплаченной подписке, одобряем заявку, ставим метки и дату вступления.
  * Оплаты не нашли: заявку не трогаем, админу сообщение (одобрит вручную, если всё в порядке).
  */
+const newcomerQuestPath=path.join(import.meta.dirname,'data/community-assets/newcomer-quest.pdf')
+const newcomerStore=createJsonStore('community-onboarding.json')
+async function sendNewcomerQuest(id,caption) {
+  let pdf
+  try{pdf=fs.readFileSync(newcomerQuestPath);if(!pdf.subarray(0,5).equals(Buffer.from('%PDF-')))return{retryable:true,errorCode:'pdf_invalid'}}
+  catch{return{retryable:true,errorCode:'pdf_missing'}}
+  const form=new FormData();form.append('chat_id',String(id));form.append('caption',caption);form.append('document',new Blob([pdf],{type:'application/pdf'}),'Квест новичка.pdf')
+  try{
+    const response=await telegramFetch('sendDocument',{method:'POST',body:form}),body=await response.json().catch(()=>null)
+    if(response.ok&&body?.ok===true&&body.result?.message_id)return{ok:true,messageId:body.result.message_id}
+    if(body?.ok===false)return{retryable:true,errorCode:body.error_code===403?'dm_unavailable':'send_rejected',retryAfterMs:body.error_code===403?900000:(Number(body.parameters?.retry_after)||60)*1000}
+    return{uncertain:true,errorCode:'delivery_unknown'}
+  }catch(error){return SAFE_RETRY_CODES.has(error?.cause?.code)?{retryable:true,errorCode:'connection_unavailable'}:{uncertain:true,errorCode:'delivery_unknown'}}
+}
+const communityOnboarding=createCommunityOnboarding({load:()=>newcomerStore.load(),save:data=>newcomerStore.save(data),membership:chatMembership,send:sendNewcomerQuest})
+
 const communityRequestStore = createJsonStore('community-join-requests.json')
 const communityAdmission = createCommunityAdmission({
   requests: () => communityRequestStore.load(),
@@ -976,15 +986,7 @@ async function handleJoinRequest(request) {
   { const pending = communityRequestStore.load(); delete pending[String(userId)]; communityRequestStore.save(pending) }
   await sendTelegramMessage(ADMIN_CHAT_ID, `✅ Вступил(а) в сообщество: ${who}${verdict.bind ? `\nTelegram привязан к подписке по нику с сайта (${resident.telegram})` : ''}`, undefined, quiet()).catch(() => false)
 
-  const days = resident.nextPaymentAt ? Math.max(1, Math.round((resident.nextPaymentAt - now) / 86400000)) : (TARIFFS[resident.tariffId]?.months ?? 1) * 30
-  setTimeout(async () => {
-    await sendTelegramMessage(dmChat, `Поздравляю! 🎉\nТеперь ты — полноценная часть нашего сообщества! 💗\n\nУ тебя есть ${days} дней вместе с нами. Наслаждайся общением, пользой и крутыми ребятами ✨\n\nЕсли будут вопросы — всегда пиши мне.`, [[{ text: 'Поддержка', url: `https://t.me/${SUPPORT_HANDLE.replace(/^@/, '')}` }, { text: 'Главное меню', callback_data: 'u:menu' }]]).catch(() => false)
-    setTimeout(async () => {
-      await sendTelegramMessage(dmChat, 'Хотим, чтобы твое включение в сообщество прошло легко и с пользой с самого старта. Прикладываем чек-лист — пройдись по нему в удобное время, это займет пару минут', REMINDER_KEYBOARD).catch(() => false)
-      const file = getMaterialFile(CHECKLIST_SLUG)
-      if (file) await sendTelegramDocumentById(dmChat, file.fileId).catch(() => false)
-    }, 10000)
-  }, 10000)
+
 }
 
 /** События чата: вступление и выход тех, кто попал в чат не через нашу заявку (вручную, по общей ссылке), и любой выход резидента. */
@@ -992,19 +994,21 @@ async function handleChatMember(event) {
   if (String(event.chat?.id) !== String(COMMUNITY_CHAT_ID)) return
   const user = event.new_chat_member?.user
   if (!user || user.is_bot) return
-  const inChat = (s) => s === 'member' || s === 'administrator' || s === 'creator'
-  const was = event.old_chat_member?.status
-  const now = event.new_chat_member?.status
+  const inChat = m => ['member','administrator','creator'].includes(m?.status)||(m?.status==='restricted'&&m.is_member===true)
+  const wasIn=inChat(event.old_chat_member),isIn=inChat(event.new_chat_member)
+  const eventAt=Number(event.date)>0?Math.min(Date.now(),Number(event.date)*1000):Date.now()
   const cards = listJoins().filter((c) => String(c.tgUserId ?? '') === String(user.id))
-  if (!inChat(was) && inChat(now)) for (const c of cards) patchJoin(c.token, { inChat: true })
-  else if (inChat(was) && (now === 'left' || now === 'kicked')) for (const c of cards) patchJoin(c.token, { inChat: false })
+  if (!wasIn && isIn) for (const c of cards) patchJoin(c.token, { inChat: true })
+  else if (wasIn && !isIn) for (const c of cards) patchJoin(c.token, { inChat: false })
   membershipCache.delete(String(user.id))
+  if(!wasIn&&isIn)communityOnboarding.joined(user.id,eventAt,Boolean(getBotUser(user.id)?.communityJoinedAt)||cards.some(c=>c.joinedAt))
+  else if(wasIn&&!isIn)communityOnboarding.left(user.id,eventAt)
   const resident = residentByTelegramId(user.id)
   if (!resident) return
-  if (!inChat(was) && inChat(now) && !resident.joinedAt && !event.via_join_request) { // вступившие по заявке уже учтены в handleJoinRequest
+  if (!wasIn && isIn && !resident.joinedAt) { // повторное подтверждение после handleJoinRequest не создаёт новую задачу
     markJoined(user, resident, Date.now())
-    await sendTelegramMessage(ADMIN_CHAT_ID, `✅ Вступил(а) в сообщество (не по заявке бота): ${[user.first_name, user.last_name].filter(Boolean).join(' ')}${user.username ? ` (@${user.username})` : ''}`, undefined, quiet()).catch(() => false)
-  } else if (inChat(was) && (now === 'left' || now === 'kicked')) {
+    await sendTelegramMessage(ADMIN_CHAT_ID, `✅ Вступил(а) в сообщество (подтверждено Telegram): ${[user.first_name, user.last_name].filter(Boolean).join(' ')}${user.username ? ` (@${user.username})` : ''}`, undefined, quiet()).catch(() => false)
+  } else if (wasIn && !isIn) {
     const voluntary = voluntaryDeparture(event)
     patchJoin(resident.token, { leftAt: Date.now(), ...(resident.complimentary?.untilDeparture && voluntary ? { lifetime: false, complimentary: { ...resident.complimentary, revokedAt: Date.now() } } : {}) })
     if (resident.complimentary?.untilDeparture && voluntary) {
@@ -3928,6 +3932,7 @@ async function handleTelegramUpdate(update) {
   if(ownerGrant){syncResidentMetadata(ownerGrant,message.from.id);await communityAdmission.process()}
   const text = message?.text
   const chatId = message?.chat?.id
+  if(message?.chat?.type==='private'&&String(message.from?.id)===String(chatId)){communityOnboarding.contact(chatId);afterResponse('newcomer-contact',()=>communityOnboarding.process())}
   const isAdmin = chatId && String(chatId) === String(ADMIN_CHAT_ID)
   const isViewer = chatId && VIEWER_IDS.has(String(chatId))
   // Диагностика: показывает номер чата и то, считает ли бот его админским.
@@ -3974,6 +3979,13 @@ async function handleTelegramUpdate(update) {
       await sendTelegramMessage(chatId, `Через бота загружается только чек-лист новичка сообщества: /material ${CHECKLIST_SLUG}.\nPDF материалов маркетплейса загружают на сайт: bash scripts/upload-material.sh <адрес материала> <файл.pdf>.`)
       return
     }
+    try{
+      const pdf=await downloadTelegramFile(message.document.file_id)
+      if(!pdf.subarray(0,5).equals(Buffer.from('%PDF-')))throw Error('not_pdf')
+      fs.mkdirSync(path.dirname(newcomerQuestPath),{recursive:true,mode:0o700})
+      const temp=newcomerQuestPath+'.upload-'+crypto.randomBytes(5).toString('hex')
+      try{fs.writeFileSync(temp,pdf,{mode:0o600,flag:'wx'});fs.renameSync(temp,newcomerQuestPath)}finally{fs.rmSync(temp,{force:true})}
+    }catch{await sendTelegramMessage(chatId,'Не удалось сохранить PDF чек-листа. Прежний файл сохранён. Пришлите PDF повторно с той же подписью.');return}
     setMaterialFile(slug, message.document.file_id, message.document.file_name)
     logAction(chatId, `input:material-file:${slug}`)
     await sendTelegramMessage(chatId, `✅ Файл «${message.document.file_name}» сохранён для чек-листа новичка сообщества — теперь бот будет отправлять его новым резидентам.`)
@@ -4332,7 +4344,7 @@ ensureTodo('Личный кабинет покупателя материало�
 console.log(`[prodamus] платёжные страницы — ${payformSummary()}`)
 console.log(`[mail] почта для писем клиентам: ${mailConfigured() ? 'настроена' : 'не настроена (SMTP_HOST/SMTP_USER/SMTP_PASS в server/.env)'}`)
 
-app.get('/api/health', (_req, res) => res.json({ ok: true, subscriptionRecovery: 1, subscriptionOffboarding: 1, subscriptionExpiry: 3, subscriptionAdmission: 1, billingAuditVersion: 1, accessRescueVersion: 1, automaticAccessRemovalPaused: automationState().paused, subscriptionAutomation: 1, communityFollowup: 1, automationLastCycle:lastAutomationCycle, automaticProviderCancellation: false, autoExclude: automationState().enabled, graceDays: graceDays() }))
+app.get('/api/health', (_req, res) => res.json({ ok: true, communityOnboarding:1,newcomerQuestDelayMs:NEWCOMER_DELAY_MS,newcomerQuestReady:fs.existsSync(newcomerQuestPath), subscriptionRecovery: 1, subscriptionOffboarding: 1, subscriptionExpiry: 3, subscriptionAdmission: 1, billingAuditVersion: 1, accessRescueVersion: 1, automaticAccessRemovalPaused: automationState().paused, subscriptionAutomation: 1, communityFollowup: 1, automationLastCycle:lastAutomationCycle, automaticProviderCancellation: false, autoExclude: automationState().enabled, graceDays: graceDays() }))
 
 const subscriptionOperations = {
   telegram: async (method, body) => {
@@ -4979,6 +4991,8 @@ setInterval(()=>afterResponse('payment-admin-notices',deliverPaymentAdminNotices
 setInterval(()=>afterResponse('accepted-payment-replay',async()=>{if(await replayProdamus()&&automationState().enabled)await synchronizeSubscriptionPayments()}),30000).unref()
 setInterval(()=>afterResponse('access-closure-notices',deliverAccessClosureNotices),30000).unref()
 
+setInterval(()=>afterResponse('community-onboarding',()=>communityOnboarding.process()),10000).unref()
+
 // Access checks are independent of optional daily reports; AUTO_EXCLUDE remains the explicit switch.
 setInterval(() => afterResponse('community-admission', () => communityAdmission.process()), 30000).unref()
 setInterval(() => afterResponse('renewal-notices', deliverRenewalNotices), 60000).unref()
@@ -5018,7 +5032,7 @@ process.on('unhandledRejection', (err) => console.error('[unhandledRejection]', 
 process.on('uncaughtException', (err) => console.error('[uncaughtException]', err))
 
 // Для автотестов: доступ к фоновым задачам без ожидания расписания.
-if (process.env.TEST_HOOKS === '1') globalThis.__hooks = { deliverOwnerPaymentReminders, deliverChargeFailureNotices, synchronizeSubscriptionPayments, deliverAccessClosureNotices, deliverPaymentAdminNotices, runRetentionJob, sendEventReminders, processExpiry, processAccessExpiry, processAutomaticExpiry, processCommunityAdmission: () => communityAdmission.process(), deliverRenewalNotices, sendAccessEndingReminders, processReviewFlow, sendAutoResidentReminders, sendMorningDigest, sendEveningClose, refreshChatMembership, processCampaigns, sendPendingNoticesIfDue }
+if (process.env.TEST_HOOKS === '1') globalThis.__hooks = { processCommunityOnboarding:()=>communityOnboarding.process(), deliverOwnerPaymentReminders, deliverChargeFailureNotices, synchronizeSubscriptionPayments, deliverAccessClosureNotices, deliverPaymentAdminNotices, runRetentionJob, sendEventReminders, processExpiry, processAccessExpiry, processAutomaticExpiry, processCommunityAdmission: () => communityAdmission.process(), deliverRenewalNotices, sendAccessEndingReminders, processReviewFlow, sendAutoResidentReminders, sendMorningDigest, sendEveningClose, refreshChatMembership, processCampaigns, sendPendingNoticesIfDue }
 
 const PORT = process.env.PORT || 3001
 ensureBuiltInPromos()

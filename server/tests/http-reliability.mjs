@@ -8,6 +8,7 @@ import { pathToFileURL, fileURLToPath } from 'node:url'
 
 const source = fileURLToPath(new URL('..', import.meta.url))
 const noPaymentKeys = process.argv.includes('--no-payment-keys')
+const onboardingMode = process.argv.includes('--onboarding')
 const communityPromoMode = process.argv.includes('--community-promo')
 const lifecycleMode = process.argv.includes('--lifecycle')
 const retentionMode = process.argv.includes('--retention')
@@ -36,20 +37,23 @@ env.COMMUNITY_INVITE_LINK = 'https://t.me/+SYNTHETIC_INVITE'
 if (noPaymentKeys) env.PRODAMUS_SECRET_KEY = ''
 fs.writeFileSync(path.join(root, 'bootstrap.mjs'), `
 import fs from 'node:fs';
+import crypto from 'node:crypto';
+async function telegramPayload(init){if(init.body instanceof FormData){const out={};for(const [key,value]of init.body.entries())out[key]=typeof value==='string'?value:{filename:value.name,size:value.size,sha256:crypto.createHash('sha256').update(Buffer.from(await value.arrayBuffer())).digest('hex')};return out}try{return JSON.parse(init.body||'{}')}catch{return {}}}
 let clock = null; const realNow = Date.now; Date.now = () => clock ?? realNow();
 const nativeFetch=globalThis.fetch;
 globalThis.fetch = async (url, init = {}) => {
   const u = new URL(String(url));
   if(u.hostname==='example.invalid'&&u.pathname==='/api/community/subscribe')return nativeFetch('http://127.0.0.1:'+process.env.PORT+u.pathname,init);
   if (u.hostname === 'legalcareerist.payform.ru' && u.searchParams.has('subscription')) { fs.writeFileSync(new URL('./checkout-plan', import.meta.url), u.searchParams.get('subscription')); fs.appendFileSync(new URL('./checkout-requests.jsonl', import.meta.url), JSON.stringify(Object.fromEntries(u.searchParams))+String.fromCharCode(10)); }
-  if (u.hostname === 'api.telegram.org') { let body = {}; try { body = JSON.parse(init.body || '{}') } catch {} fs.appendFileSync(new URL('./telegram-calls.jsonl', import.meta.url), JSON.stringify({method:u.pathname.split('/').at(-1),body})+'\\n'); }
+  if (u.hostname === 'api.telegram.org') { const body = await telegramPayload(init); fs.appendFileSync(new URL('./telegram-calls.jsonl', import.meta.url), JSON.stringify({method:u.pathname.split('/').at(-1),body})+'\\n'); }
   if (String(url).includes('/rest/setActivity/')) { const params=new URLSearchParams(init.body);fs.appendFileSync(new URL('./prodamus-stop-requests.jsonl',import.meta.url),JSON.stringify({plan:params.get('subscription'),telegramId:params.get('tg_user_id'),active:params.get('active_user')})+String.fromCharCode(10));const fail=new URL('./prodamus-cancel-fail-id', import.meta.url); return Response.json({success:fs.existsSync(new URL('./prodamus-cancel-ok', import.meta.url))&&(!fs.existsSync(fail)||params.get('subscription')!==fs.readFileSync(fail,'utf8'))}); }
   if (String(url).startsWith('https://legalcareerist.payform.ru/')) return new Response('https://legalcareerist.payform.ru/SYNTHETIC_CHECKOUT/');
   if (!String(url).startsWith('https://api.telegram.org/')) throw Error('TEST outbound disabled');
   const success = fs.existsSync(new URL('./telegram-ok', import.meta.url));
-  const body=JSON.parse(init.body||'{}');
+  const body=await telegramPayload(init);
   const followupFailures=new URL('./followup-read-failures.json',import.meta.url);
   if(String(url).endsWith('/getChatMember')&&fs.existsSync(followupFailures)){const failures=JSON.parse(fs.readFileSync(followupFailures,'utf8'));if(failures[String(body.user_id)]>0){failures[String(body.user_id)]--;fs.writeFileSync(followupFailures,JSON.stringify(failures));throw Error('TEST transient followup read')}}
+  if(String(url).endsWith('/sendDocument')&&fs.existsSync(new URL('./document-blocked',import.meta.url)))return Response.json({ok:false,error_code:403,description:'TEST blocked'},{status:403});
   if(String(url).endsWith('/getMe'))return Response.json({ok:true,result:{id:900999001,username:'synthetic_bot'}});
   if(String(url).endsWith('/getChatMember')&&body.user_id===900999001)return Response.json({ok:true,result:{status:'administrator',can_invite_users:true,can_restrict_members:true}});
   if(String(url).endsWith('/sendMessage')&&String(body.chat_id)===process.env.TELEGRAM_ADMIN_CHAT_ID&&fs.existsSync(new URL('./admin-offline',import.meta.url)))return Response.json({ok:false,description:'TEST admin offline'},{status:503});
@@ -107,6 +111,10 @@ try {
     const {runCommunityFollowup}=await import('./community-completion-http.mjs')
     await runCommunityFollowup({root,request,hook,read,check,wait,pathToFileURL})
     console.log(`${count} community follow-up checks passed; all external services synthetic`)
+  } else if (onboardingMode) {
+    const {runCommunityOnboarding}=await import('./community-onboarding-http.mjs')
+    await runCommunityOnboarding({root,request,hook,read,check,wait,pathToFileURL})
+    console.log(`${count} newcomer quest checks passed; all Telegram responses synthetic`)
   } else if (automationMode) {
     const {runSubscriptionAutomation}=await import('./subscription-automation-http.mjs')
     await runSubscriptionAutomation({root,request,hook,read,check,wait,pathToFileURL})

@@ -122,6 +122,13 @@ export const SOURCES = [
     },
   },
   {
+    id: 'communityOnboarding', title: 'Выдача чек-листа новым резидентам',
+    store: createJsonStore('community-onboarding.json'),
+    keysOf: r => personKeys({ tgId: r.telegramId }), personal: ['telegramId'],
+    hasMoney: () => false,
+    due: (r, ctx) => ctx.now > lastOf(r.sentAt, r.joinedAt, ctx.joinBaselineByTg.get(String(r.telegramId))) + TERMS.botInactive ? { action: 'delete', reason: 'срок хранения состояния выдачи чек-листа истёк' } : null,
+  },
+  {
     id: 'joins',
     title: 'Подписчики сообщества',
     store: createJsonStore('pending-joins.json'),
