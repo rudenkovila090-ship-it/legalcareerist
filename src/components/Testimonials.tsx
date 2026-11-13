@@ -1,4 +1,5 @@
 import { Stars } from './MaterialRating'
+import TestimonialCarousel from './TestimonialCarousel'
 
 export interface Testimonial {
   text: string
@@ -53,12 +54,17 @@ export default function Testimonials({
   items,
   compact,
   dark,
+  carousel,
 }: {
   items?: Testimonial[]
   compact?: boolean
   /** Темный вариант — для страниц с фирменной синей заливкой на всю страницу. */
   dark?: boolean
+  /** Лента с ручной прокруткой и полным текстом отзыва в отдельном окне. */
+  carousel?: boolean
 }) {
+  if (carousel && items?.length) return <TestimonialCarousel items={items} dark={dark} />
+
   return (
     <section className={dark ? 'border-y border-white/10 bg-ink py-14' : 'border-y border-ink/10 bg-white py-14'}>
       <div className="container-page">

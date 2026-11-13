@@ -1,6 +1,5 @@
 import CommunityPromoField from '../../components/CommunityPromoField'
 import { useEffect, useState, type FormEvent } from 'react'
-import PageHero from '../../components/PageHero'
 import Testimonials from '../../components/Testimonials'
 import { communityTestimonials } from '../../data/testimonials'
 import FAQSection from '../../components/FAQSection'
@@ -20,14 +19,15 @@ import { consentOf } from '../../lib/consent'
 import { goal } from '../../lib/metrika'
 
 const railItems = [
-  { id: 'hero', label: 'Обзор' },
-  { id: 'main', label: 'Главное' },
+  { id: 'hero', label: 'Сообщество' },
+  { id: 'main', label: 'О сообществе' },
   { id: 'mvc', label: 'Миссия и цель' },
   { id: 'benefits', label: 'Резидентам' },
   { id: 'founder', label: 'Основатель' },
-  ...(SHOW_AMBASSADORS ? [{ id: 'ambassadors', label: 'Амбассадоры' }] : []),
-  { id: 'map', label: 'Представители' },
+  { id: 'map', label: 'Города' },
+  { id: 'ambassadors', label: 'Амбассадоры' },
   { id: 'join', label: 'Присоединиться' },
+  { id: 'achievements', label: 'Наши достижения' },
   { id: 'reviews', label: 'Отзывы' },
   { id: 'faq', label: 'FAQ' },
 ]
@@ -135,20 +135,19 @@ const residentBenefits = [
   { icon: IconUsersMeet, title: 'Встречи', text: 'Встречаемся с приглашенными экспертами, обсуждаем темы месяца, а также проводим встречи резидентов.' },
 ]
 
-function initials(name: string) {
-  return name.split(' ').map((part) => part[0]).join('').toUpperCase()
-}
-
-// Технический пример — реальных фото и биографий амбассадоров пока нет,
-// на карточке плейсхолдер вместо фото (инициалы на градиенте) и один
-// общий текст-заглушка для наведения, чтобы показать сам механизм карточки.
-const ambassadors = [
-  'Анна Соколова', 'Максим Волков', 'Дарья Новикова', 'Иван Кузнецов',
-  'Полина Морозова', 'Артем Соловьев', 'Мария Егорова', 'Никита Орлов',
-].map((name) => ({
-  name,
-  status: 'Great-амбассадор',
-  bio: 'Технический пример карточки — здесь будет фото резидента и короткий рассказ: вуз, город, чем помогает сообществу.',
+// Пять мест для анкет. Фотографии и подтверждённые данные заполняются
+// здесь, когда владелец выберет амбассадоров для публичной страницы.
+const ambassadors: {
+  id: number
+  lastName: string
+  firstName: string
+  university: string
+  photo?: string
+}[] = Array.from({ length: 5 }, (_, index) => ({
+  id: index + 1,
+  lastName: 'Фамилия',
+  firstName: 'Имя',
+  university: 'Университет',
 }))
 
 // Мозаичная (пиксельная) карта РФ — сетка квадратов-«блоков», как на
@@ -209,11 +208,21 @@ const cities = [
 
 function buildFaqItems() {
   return [
-    { q: 'Что такое сообщество и чем оно отличается от юридических клубов, СНО?', a: 'Сообщество «Карьерного юриста» объединяет студентов и начинающих юристов из разных вузов и городов вокруг одной цели — карьеры в праве, а не привязано к конкретному учебному заведению, как студенческие клубы или СНО. Здесь закрытые вакансии, база знаний, менторская поддержка и живое общение с теми, кто уже прошел этот путь.' },
-    { q: 'Что я получу сразу после оплаты?', a: 'После оплаты вы вернетесь на сайт — там будет кнопка «Перейти в бота». Нажмите Start в чате с ботом @legalcareerist_bot, и он сразу пришлет ссылку на вступление в закрытое сообщество.' },
-    { q: 'Что если я передумаю?', a: 'Подписка автоматически продлевается по окончании выбранного срока — отключить автопродление можно в любой момент в боте @legalcareerist_bot.' },
-    { q: 'Нужна ли специализация или опыт?', a: 'Нет — сообщество открыто студентам и начинающим юристам из любого города, вуза и колледжа, независимо от специализации.' },
-  ]
+    'Как понять, подхожу ли я?',
+    'С какого момента открывается моё резидентство в сообществе?',
+    'Можно ли сделать возврат?',
+    'Входят ли мероприятия в стоимость подписки?',
+    'Есть ли заморозка?',
+    'Я не из Петербурга или Москвы — стоит ли мне стать резидентом?',
+    'Какие есть возможности в сообществе?',
+    'Для чего вступать в сообщество?',
+    'Как стать резидентом?',
+    'Какая аудитория в сообществе?',
+    'Я не нашёл ответ на свой вопрос. Как мне с вами связаться?',
+  ].map((question) => ({
+    q: question,
+    a: <mark className="box-decoration-clone rounded-sm bg-yellow-200 px-1.5 py-0.5 text-ink">Здесь будет ответ на этот вопрос.</mark>,
+  }))
 }
 
 // Лендинг «Вступить»: выбор тарифа → форма (имя, телефон, telegram) →
@@ -340,25 +349,32 @@ export default function CommunityHome() {
     <div>
       <SectionRail items={railItems} />
 
-      <div id="hero">
-        <PageHero
-          eyebrow="Карьерный Юрист"
-          title="Карьера в праве строится легче — вместе с единомышленниками"
-          description="Объединяем студентов и начинающих юристов из разных городов и университетов."
-        />
-      </div>
+      <section id="hero" className="overflow-hidden bg-ink py-16 text-white sm:py-20">
+        <div className="container-page">
+          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/20 px-4 py-2 text-sm text-white/80">
+            <IconLock />
+            Закрытое сообщество
+          </div>
+          <h1 className="max-w-5xl text-3xl font-semibold leading-tight tracking-tight sm:text-4xl sm:leading-tight lg:text-5xl lg:leading-tight">
+            Сообщество «Карьерный юрист» объединяет студентов, начинающих юристов и{' '}
+            <mark className="rounded-md bg-yellow-200 px-2 text-ink">…</mark>
+          </h1>
+          <div className="mt-8 max-w-3xl rounded-2xl border border-white/15 bg-white/[0.04] p-5 sm:mt-10 sm:p-6">
+            <p className="text-base leading-relaxed text-white/80 sm:text-lg">
+              Закрытое сообщество студентов и начинающих юристов: делимся опытом, строим связи и вместе строим карьеру.
+            </p>
+          </div>
+        </div>
+      </section>
 
-      {/* Главное */}
+      {/* Вступление */}
       <section id="main" className="container-page py-14">
         <div className="glass rounded-2xl p-8 text-center sm:p-12">
-          <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Главное</div>
-          <h2 className="mx-auto max-w-2xl text-2xl font-semibold sm:text-3xl">
-            Станьте резидентом — и карьера в праве перестанет быть путем в одиночку
+          <h2 className="mx-auto max-w-2xl text-2xl font-semibold leading-relaxed sm:text-3xl sm:leading-relaxed">
+            <mark className="box-decoration-clone rounded-sm bg-yellow-200 px-1.5 text-ink">
+              Станьте резидентом — и карьера в праве перестанет быть путем в одиночку
+            </mark>
           </h2>
-          <p className="mx-auto mt-3 max-w-xl text-ink/60">
-            Закрытые вакансии, база знаний, менторская поддержка и живое сообщество тех, кто уже
-            прошел этот путь и готов поделиться опытом.
-          </p>
           <button
             type="button"
             onClick={scrollToJoin}
@@ -446,36 +462,8 @@ export default function CommunityHome() {
         </div>
       </section>
 
-      {/* Амбассадоры сообщества — карточка с фото, имя внизу; при наведении
-          панель с основной информацией об амбассадоре выезжает снизу вверх,
-          закрывая собой фото (см. комментарий у ambassadors выше про то,
-          что фото/био пока технический пример). Скрыто до запуска —
-          см. lib/featureFlags.ts. */}
+      {/* Форма заявки открывается отдельно от витрины амбассадоров. */}
       {SHOW_AMBASSADORS && (
-      <>
-      <section id="ambassadors" className="container-page py-12">
-        <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Амбассадоры сообщества</div>
-        <h2 className="mb-8 text-2xl font-semibold">Резиденты, которые представляют сообщество</h2>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          {ambassadors.map((a) => (
-            <div key={a.name} className="group relative aspect-[3/4] overflow-hidden rounded-xl">
-              <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-ink to-gold text-3xl font-semibold text-white/60">
-                {initials(a.name)}
-              </div>
-              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink/90 via-ink/30 to-transparent p-3 pt-10">
-                <div className="text-sm font-semibold text-white">{a.name}</div>
-                <div className="text-xs text-white/60">{a.status}</div>
-              </div>
-              <div className="absolute inset-0 flex translate-y-full flex-col justify-end bg-ink/95 p-4 text-left transition-transform duration-300 group-hover:translate-y-0">
-                <div className="text-sm font-semibold text-white">{a.name}</div>
-                <p className="mt-2 text-xs leading-relaxed text-white/70">{a.bio}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Стать амбассадором */}
       <section id="ambassador-form" className="scroll-mt-16 border-y border-ink/10 bg-white py-12 text-center">
         <div className="container-page">
           <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Стать амбассадором</div>
@@ -536,37 +524,19 @@ export default function CommunityHome() {
           )}
         </div>
       </section>
-      </>
       )}
 
-      {/* Представители по городам — мозаичная (пиксельная) карта РФ: каждая
-          ячейка суши нарисована отдельным скругленным квадратом с легкой
-          тенью (настоящая мозаика из блоков, как на референсе заказчика —
-          не тонкий паттерн-заливка контура). Точки городов — цвет ink с
-          белым неоновым свечением. Геогрфически сопоставимо с реальной
-          картой: СПб на северо-западе, Москва южнее и восточнее,
-          Екатеринбург за Уралом. Список вузов — во всплывающей подсказке
-          при наведении на точку. */}
+      {/* Координаты маркеров считаются от самого SVG, без внешних отступов.
+          Названия и университеты вынесены в выровненный список под картой. */}
       <section id="map" className="border-y border-ink/10 bg-white py-12">
         <div className="container-page">
-          <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Представители</div>
-          <h2 className="mb-8 text-2xl font-semibold">Резиденты есть в этих городах</h2>
-          <div className="relative mx-auto max-w-xl rounded-2xl bg-ink/[0.02] p-6">
+          <h2 className="mb-8 text-2xl font-semibold sm:text-3xl">Резиденты есть в этих городах</h2>
+          <div className="mx-auto max-w-3xl rounded-2xl bg-ink/[0.02] p-4 sm:p-6">
+            <div className="relative">
             <svg viewBox={`0 0 ${RU_MAP_W} ${RU_MAP_H}`} className="w-full" aria-hidden="true">
               <defs>
                 <filter id="ru-map-tile-shadow" x="-60%" y="-60%" width="220%" height="220%">
                   <feDropShadow dx="0" dy="1.2" stdDeviation="0.9" floodColor="#283953" floodOpacity="0.3" />
-                </filter>
-                {/* Белое неоновое свечение вокруг ink-квадрата — размытая
-                    перекрашенная в белый копия формы под оригиналом. */}
-                <filter id="ru-map-marker-glow" x="-150%" y="-150%" width="400%" height="400%">
-                  <feGaussianBlur stdDeviation="2.2" result="blur" />
-                  <feColorMatrix in="blur" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1 0" result="glow" />
-                  <feMerge>
-                    <feMergeNode in="glow" />
-                    <feMergeNode in="glow" />
-                    <feMergeNode in="SourceGraphic" />
-                  </feMerge>
                 </filter>
               </defs>
               {ruMapRows.map((row, ri) =>
@@ -587,49 +557,73 @@ export default function CommunityHome() {
                   ) : null,
                 ),
               )}
-              {/* Точки городов — квадраты той же геометрии, что и клетки
-                  суши выше (не круги), поэтому идеально попадают в сетку. */}
-              {cities.map((c) => (
-                <rect
-                  key={c.id}
-                  x={c.col * RU_MAP_CELL + 1.5}
-                  y={c.row * RU_MAP_CELL + 1.5}
-                  width={RU_MAP_CELL - 3}
-                  height={RU_MAP_CELL - 3}
-                  rx={3.5}
-                  fill="#283953"
-                  filter="url(#ru-map-marker-glow)"
-                />
-              ))}
             </svg>
-            {cities.map((c) => (
-              <div
+            {cities.map((c, index) => (
+              <a
                 key={c.id}
-                className="group absolute cursor-pointer"
+                href={`#city-${c.id}`}
+                aria-label={`${c.name}: университеты резидентов`}
+                title={c.name}
+                className="absolute flex h-6 w-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-md border-2 border-white bg-ink text-[11px] font-semibold text-white shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink sm:h-7 sm:w-7 sm:text-xs"
                 style={{
-                  left: `${(c.col * RU_MAP_CELL / RU_MAP_W) * 100}%`,
-                  top: `${(c.row * RU_MAP_CELL / RU_MAP_H) * 100}%`,
-                  width: `${(RU_MAP_CELL / RU_MAP_W) * 100}%`,
-                  height: `${(RU_MAP_CELL / RU_MAP_H) * 100}%`,
+                  left: `${((c.col + 0.5) * RU_MAP_CELL / RU_MAP_W) * 100}%`,
+                  top: `${((c.row + 0.5) * RU_MAP_CELL / RU_MAP_H) * 100}%`,
                 }}
               >
-                <div className="absolute left-1/2 top-full mt-1.5 -translate-x-1/2 whitespace-nowrap text-center text-xs font-medium text-ink/60">{c.name}</div>
-                <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 w-52 -translate-x-1/2 rounded-lg bg-ink p-3 text-left text-xs text-white opacity-0 shadow-xl transition-opacity group-hover:opacity-100">
-                  <div className="mb-1 font-semibold">{c.name}</div>
-                  <ul className="space-y-0.5 text-white/70">
-                    {c.schools.map((s) => <li key={s}>· {s}</li>)}
-                  </ul>
-                </div>
-              </div>
+                {index + 1}
+              </a>
             ))}
+            </div>
+            <ol className="mt-6 grid gap-6 border-t border-ink/10 pt-6 sm:grid-cols-3">
+              {cities.map((c, index) => (
+                <li key={c.id} id={`city-${c.id}`} className="min-w-0 scroll-mt-24">
+                  <span aria-hidden="true" className="mb-2 inline-flex h-6 w-6 items-center justify-center rounded-md bg-ink text-xs font-semibold text-white">{index + 1}</span>
+                  <h3 className="text-base font-semibold leading-6">{c.name}</h3>
+                  <ul className="mt-2 space-y-1 text-sm leading-5 text-ink/60">
+                    {c.schools.map((school) => <li key={school}>{school}</li>)}
+                  </ul>
+                </li>
+              ))}
+            </ol>
           </div>
+        </div>
+      </section>
+
+      <section id="ambassadors" className="container-page scroll-mt-24 py-12">
+        <h2 className="mb-8 text-2xl font-semibold sm:text-3xl">Амбассадоры</h2>
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-5">
+          {ambassadors.map((ambassador) => (
+            <article key={ambassador.id} aria-label={`Карточка амбассадора ${ambassador.id}`} className="min-w-0 overflow-hidden rounded-2xl border border-ink/10 bg-white">
+              <div className="aspect-[3/4] overflow-hidden bg-ink/[0.04]">
+                {ambassador.photo ? (
+                  <img src={ambassador.photo} alt={`${ambassador.lastName} ${ambassador.firstName}`} className="h-full w-full object-cover" loading="lazy" />
+                ) : (
+                  <div role="img" aria-label="Место для фотографии амбассадора" className="flex h-full flex-col items-center justify-center gap-3 text-ink/30">
+                    <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-14 w-14" aria-hidden="true">
+                      <circle cx="32" cy="22" r="10" />
+                      <path d="M13 56c0-12 8-20 19-20s19 8 19 20" />
+                    </svg>
+                    <span className="text-xs">Фото</span>
+                  </div>
+                )}
+              </div>
+              <div className="p-4 sm:p-5">
+                <h3 className="text-base font-semibold leading-snug sm:text-lg">
+                  <span className="block">{ambassador.lastName}</span>
+                  <span className="block">{ambassador.firstName}</span>
+                </h3>
+                <p className="mt-3 break-words text-sm leading-5 text-ink/60">{ambassador.university}</p>
+              </div>
+            </article>
+          ))}
         </div>
       </section>
 
       {/* Присоединиться: лид-заявка + тарифы */}
       <section id="join" className="scroll-mt-16 bg-ink py-14 text-white">
         <div className="container-page text-center">
-          <div className="mb-8 text-sm font-bold uppercase tracking-wide text-gold-light">Присоединиться</div>
+          <h2 className="text-2xl font-semibold sm:text-3xl">Присоединиться</h2>
+          <p className="mb-8 mt-3 text-sm text-white/60 sm:text-base">Выберите удобный период подписки</p>
 
           <div className="mx-auto grid max-w-4xl gap-4 md:grid-cols-3">
                 {tariffs.map((t) => {
@@ -638,11 +632,18 @@ export default function CommunityHome() {
                     <div
                       key={t.id}
                       role="button"
+                      aria-pressed={selected}
+                      aria-label={`Выбрать подписку на ${t.period}`}
                       tabIndex={0}
                       onClick={() => setTariffId(t.id)}
-                      onKeyDown={(e) => e.key === 'Enter' && setTariffId(t.id)}
-                      className={`glass-dark relative flex min-h-64 cursor-pointer flex-col items-center rounded-2xl p-6 pt-8 text-center ${
-                        selected ? 'border-gold-light' : ''
+                      onKeyDown={(e) => {
+                        if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
+                          e.preventDefault()
+                          setTariffId(t.id)
+                        }
+                      }}
+                      className={`relative flex min-h-72 cursor-pointer flex-col items-center rounded-2xl border p-5 pt-8 text-center outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-4 focus-visible:ring-offset-ink md:p-4 md:pt-8 lg:p-6 lg:pt-8 ${
+                        selected ? 'border-gold-light bg-[#344e75] ring-1 ring-gold-light' : 'border-white/15 bg-[#2d415f]'
                       }`}
                     >
                       <span
@@ -657,12 +658,8 @@ export default function CommunityHome() {
                       {t.id === '1m' ? (
                         <p className="text-xs leading-relaxed text-white/50">{t.note}</p>
                       ) : (
-                        <span className="rounded-full bg-emerald-400/15 px-3 py-1.5 text-xs font-semibold leading-snug text-emerald-300">
-                          {t.note.split(' · ').map((line, i) => (
-                            <span key={i} className="block">
-                              {line}
-                            </span>
-                          ))}
+                        <span className="inline-flex max-w-full items-center justify-center whitespace-nowrap rounded-full bg-emerald-400/15 px-2 py-1.5 text-[11px] font-semibold leading-5 text-emerald-300 lg:text-xs">
+                          {t.note}
                         </span>
                       )}
                       <button
@@ -753,14 +750,27 @@ export default function CommunityHome() {
         )}
       </section>
 
+      <section id="achievements" className="container-page scroll-mt-24 py-14">
+        <h2 className="mb-8 text-2xl font-semibold sm:text-3xl">Наши достижения</h2>
+        <div className="grid gap-4 sm:grid-cols-3">
+          {['Сообщество', 'Встречи и события', 'Карьерные истории'].map((achievement) => (
+            <article key={achievement} className="rounded-2xl border border-ink/10 bg-ink/[0.02] p-6">
+              <h3 className="text-sm font-medium text-ink/60">{achievement}</h3>
+              <p className="my-4 text-4xl font-semibold"><mark className="rounded-md bg-yellow-200 px-2 text-ink">…</mark></p>
+              <p className="text-sm leading-relaxed"><mark className="box-decoration-clone rounded-sm bg-yellow-200 px-1 text-ink">Здесь будет достижение сообщества.</mark></p>
+            </article>
+          ))}
+        </div>
+      </section>
+
       {/* Отзывы */}
       <div id="reviews">
-        <Testimonials items={communityTestimonials} />
+        <Testimonials items={communityTestimonials} carousel />
       </div>
 
       {/* FAQ */}
       <div id="faq">
-        <FAQSection items={buildFaqItems()} />
+        <FAQSection items={buildFaqItems()} title="Частые вопросы" />
       </div>
 
       <CommunityFooter />
