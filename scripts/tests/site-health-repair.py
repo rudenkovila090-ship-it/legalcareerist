@@ -17,10 +17,12 @@ with tempfile.TemporaryDirectory(prefix='site-403-') as tmp:
     live.chmod(0o755)
     binary.mkdir()
     (live/'server/data/community-assets').mkdir(parents=True)
-    html = '<html><div id="root"></div><script type="module" src="/assets/index-fixture.js"></script></html>'
+    html = '<html><div id="root"></div><script type="module" src="/assets/index-fixture.js"></script><link href="/assets/index.css"></html>'
     (public/'index.html').write_text(html)
-    for name, body in [('index-fixture.js','ENTRY'),('CommunityHome-test.js','COMMUNITY'),('TariffJoinBlock-test.js','TARIFFS'),('promo.js','Промокод (необязательно)'),('index.css','BODY')]:
+    for name, body in [('index-fixture.js','const deps=["assets/CommunityHome-test.js","assets/TariffJoinBlock-test.js","assets/promo.js"];'),('CommunityHome-test.js','COMMUNITY'),('TariffJoinBlock-test.js','TARIFFS'),('promo.js','Промокод (необязательно)'),('index.css','BODY'),('CommunityHome-obsolete.js','OLD'),('TariffJoinBlock-obsolete.js','OLD')]:
         (public/'assets'/name).write_text(body)
+    (public/'events').mkdir();(public/'events').chmod(0o755)
+    (public/'events/kutafin-legal-cup-xvi.jpg').write_bytes(b'SYNTHETIC IMAGE')
     pdf = os.environ.get('SITE_TEST_QUEST_PDF')
     if pdf:
         shutil.copyfile(pdf, live/'server/data/community-assets/newcomer-quest.pdf')
@@ -33,17 +35,29 @@ with tempfile.TemporaryDirectory(prefix='site-403-') as tmp:
     (live/'server/data/payments.json').chmod(0o600)
     (live/'server/data/community-onboarding.json').write_text('{}')
     (live/'server/data').chmod(0o700)
-    config = 'user www-data;\nhttp { server { listen 443 ssl; server_name legalcareerist.ru www.legalcareerist.ru; root "'+str(public)+'"; location /api/ { proxy_pass http://127.0.0.1:3001; } location / { try_files $uri $uri/ /index.html; } } }'
+    config = 'user www-data;\nerror_log '+str(fixture/'nginx-error.log')+';\nhttp { server { listen 443 ssl; server_name legalcareerist.ru www.legalcareerist.ru; root "'+str(public)+'"; location /api/ { proxy_pass http://127.0.0.1:3001; } location / { try_files $uri $uri/ /index.html; } } }'
     (fixture/'config').write_text(config)
-    (binary/'nginx').write_text('#!/usr/bin/env python3\nimport os,pathlib,sys\np=pathlib.Path(os.environ["SITE_HEALTH_FIXTURE"])\nif sys.argv[1]=="-T": print((p/"config").read_text())\n')
+    (binary/'nginx').write_text('''#!/usr/bin/env python3
+import os,pathlib,sys
+p=pathlib.Path(os.environ['SITE_HEALTH_FIXTURE'])
+text=(p/'config').read_text()
+if sys.argv[1]=='-T':print('# configuration file '+str(p/'config')+':\\n'+text)
+if sys.argv[1]=='-t' and (p/'reject-config').exists() and '$uri/' not in text:sys.exit(1)
+if sys.argv[1:]==['-s','reload']:
+ with (p/'reloads').open('a') as f:f.write('reload\\n')
+''')
     state = [{'name':'legalcareerist-api','pm2_env':{'status':'online','pm_exec_path':str(live/'server/index.js'),'TELEGRAM_BOT_TOKEN':'fake-test-token','COMMUNITY_CHAT_ID':'-100123456','PORT':'3001'}}]
     (fixture/'pm2.json').write_text(json.dumps(state))
     (binary/'pm2').write_text('#!/usr/bin/env python3\nimport os,pathlib,sys\np=pathlib.Path(os.environ["SITE_HEALTH_FIXTURE"])\nassert sys.argv[1:]==["jlist"],"PM2 mutation forbidden"\nprint((p/"pm2.json").read_text())\n')
     (binary/'curl').write_text('''#!/usr/bin/env python3
-import os,pathlib,subprocess
+import os,pathlib,subprocess,sys,urllib.parse,datetime
 p=pathlib.Path(os.environ['SITE_HEALTH_FIXTURE']);f=p/'site/dist/index.html'
 ok=subprocess.run(['runuser','-u','www-data','--','test','-r',str(f)]).returncode==0
-print('200' if ok and not (p/'deny').exists() else '403',end='')
+route=urllib.parse.urlparse(sys.argv[-1]).path
+collision=route in ['/events','/events/'] and '$uri/' in (p/'config').read_text()
+if collision and route=='/events/' and not (p/'no-log').exists():
+ with (p/'nginx-error.log').open('a') as log:log.write(datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S')+' [error] directory index of "'+str(p/'site/dist/events')+'/" is forbidden, server: legalcareerist.ru, request: "GET /events/ HTTP/1.1"\\n')
+print('200' if ok and not collision and not (p/'deny').exists() else '403',end='')
 ''')
     for f in binary.iterdir(): f.chmod(0o755)
     if simulate_worker:
@@ -78,8 +92,8 @@ globalThis.fetch=async(input,options={})=>{
   return Response.json({ok:true,applied:!!promoCode,amount,months,subscriptionId});
  }
  if(options.method&&options.method!=='GET')throw Error('unexpected mutation');
- if(fs.existsSync(path.join(root,'deny')))return new Response('Forbidden',{status:403});
- const file=route.startsWith('/assets/')?path.join(live,route):path.join(live,'index.html');
+ if(fs.existsSync(path.join(root,'deny'))||['/events','/events/'].includes(route)&&fs.readFileSync(path.join(root,'config'),'utf8').includes('$uri/'))return new Response('Forbidden',{status:403});
+ const file=route.startsWith('/assets/')||route.endsWith('.jpg')?path.join(live,route):path.join(live,'index.html');
  if(!fs.existsSync(file)||fs.existsSync(path.join(root,'missing-js'))&&file.endsWith('CommunityHome-test.js'))return new Response('missing',{status:404});
  return new Response(fs.readFileSync(file),{headers:{'Content-Type':route.startsWith('/assets/')?'application/javascript':'text/html'}});
 };
@@ -100,11 +114,16 @@ globalThis.fetch=async(input,options={})=>{
     assert '[ДО] Локальный nginx: HTTP 403' in result.stdout
     assert 'после проверки: HTTP 200' in result.stdout
     assert 'Права публичной сборки исправлены' in result.stdout
+    assert 'Маршрут /events исправлен' in result.stdout
+    fixed_config=(fixture/'config').read_text()
+    assert fixed_config==config.replace('try_files $uri $uri/ /index.html','try_files $uri /index.html')
+    assert 'JS/CSS текущей опубликованной сборки: проверено 5' in result.stdout
     for p,body in before.items(): assert p.read_bytes()==body
     assert (live/'server/.env').stat().st_mode&0o777==0o600
     assert (live/'server/data').stat().st_mode&0o777==0o700
     assert (live/'server/data/payments.json').stat().st_mode&0o777==0o600
     print('PASS: '+('simulated' if simulate_worker else 'actual')+' worker loses access at 0700/0600; repair restores HTTP 200; code, payments, PDF and private modes preserved')
+    print('PASS: events directory-index evidence triggers one guarded nginx change; active entry ignores retained old form chunks')
     repeat=run()
     assert 'исправление не требуется' in repeat.stdout
     reports=[json.loads(p.read_text()) for p in (fixture/'reports').glob('*/report.json')]
@@ -113,12 +132,22 @@ globalThis.fetch=async(input,options={})=>{
     (fixture/'deny').touch()
     denied=subprocess.run(cmd,env=env,capture_output=True,text=True,timeout=60)
     assert denied.returncode==1 and 'SITE_CHECK_INCOMPLETE' in denied.stdout and 'после проверки: HTTP 403' in denied.stdout
-    assert (fixture/'config').read_text()==config
+    assert (fixture/'config').read_text()==fixed_config
     print('PASS: rule-based 403 never claims success and never rewrites nginx configuration')
     (fixture/'deny').unlink();(fixture/'missing-js').touch()
     missing=subprocess.run(cmd,env=env,capture_output=True,text=True,timeout=60)
     assert missing.returncode==1 and 'CommunityHome-test.js HTTP 404' in missing.stdout
     print('PASS: missing lazy JS chunk is detected even when HTML routes return 200')
+    (fixture/'missing-js').unlink();(fixture/'config').write_text(config);(fixture/'reject-config').touch()
+    rollback=subprocess.run(cmd,env=env,capture_output=True,text=True,timeout=60)
+    assert rollback.returncode==1 and 'Прежняя конфигурация восстановлена' in rollback.stdout
+    assert (fixture/'config').read_text()==config
+    print('PASS: rejected nginx configuration is restored without changing the API or customer data')
+    (fixture/'reject-config').unlink();(fixture/'nginx-error.log').write_text('');(fixture/'no-log').touch()
+    unproven=subprocess.run(cmd,env=env,capture_output=True,text=True,timeout=60)
+    assert unproven.returncode==1 and 'нет свежего подтверждения' in unproven.stdout
+    assert (fixture/'config').read_text()==config
+    print('PASS: missing fresh server-log evidence forbids speculative nginx edits')
     (fixture/'config').write_text(config.replace('legalcareerist.ru www.legalcareerist.ru','unrelated.test'))
     wrong=subprocess.run(cmd,env=env,capture_output=True,text=True,timeout=60)
     assert wrong.returncode==1 and 'не определены' in wrong.stdout

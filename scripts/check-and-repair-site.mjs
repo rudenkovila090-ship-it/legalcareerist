@@ -1,4 +1,5 @@
-// Run on the actual website server as root. No payment/access/configuration writes.
+// Run on the website server as root. Only public modes and a proven SPA fallback
+// collision may be repaired. No bot, payment or membership changes.
 import fs from 'node:fs'
 import path from 'node:path'
 import crypto from 'node:crypto'
@@ -6,6 +7,8 @@ import {spawnSync} from 'node:child_process'
 import {nginxRoots} from './repair-community-promo-static.mjs'
 import {staticAccessPlan, applyStaticAccess, ancestorDirectories, nginxWorkerUser, traversalAcl} from './lib/site-static-access.mjs'
 import {runtimeSettings, telegramRead} from './lib/bot-runtime-settings.mjs'
+import {currentBundle} from './lib/site-bundle.mjs'
+import {nginxRoutingChanges,applyRoutingChanges,directoryIndexEvidence} from './lib/nginx-spa-routing.mjs'
 
 process.umask(0o077)
 if (typeof process.getuid !== 'function' || process.getuid() !== 0) {
@@ -17,18 +20,23 @@ const origin = new URL('https://legalcareerist.ru'), results = [], operations = 
 const sha = b => crypto.createHash('sha256').update(b).digest('hex')
 const command = (name, argv, timeout=15000) => spawnSync(name, argv, {encoding:'utf8', timeout, maxBuffer:32*1024*1024})
 let backup, plan, runtime, app, nginxConfig, worker
-function nginxErrorHints() {
-  if(!nginxConfig)return []
-  const errors=new Set(),logs=[...nginxConfig.matchAll(/\berror_log\s+(\/[^\s;]+)[^;]*;/g)].map(m=>m[1])
+function nginxLogTail() {
+  if(!nginxConfig)return ''
+  const lines=[],logs=[...nginxConfig.matchAll(/\berror_log\s+(\/[^\s;]+)[^;]*;/g)].map(m=>m[1])
   for(const logfile of [...new Set([...logs,'/var/log/nginx/error.log'])])try{
     const fd=fs.openSync(logfile,'r');let tail
     try{const size=fs.fstatSync(fd).size,length=Math.min(size,65536),buffer=Buffer.alloc(length);fs.readSync(fd,buffer,0,length,size-length);tail=buffer.toString()}finally{fs.closeSync(fd)}
-    for(const line of tail.split('\n').filter(l=>l.includes(origin.hostname))){
+    lines.push(tail)
+  }catch{}
+  return lines.join('\n')
+}
+function nginxErrorHints() {
+  const errors=new Set()
+  for(const line of nginxLogTail().split('\n').filter(l=>l.includes(origin.hostname))){
       if(line.includes('Permission denied'))errors.add('Permission denied: права/ACL/политика безопасности')
       if(line.includes('directory index')&&line.includes('is forbidden'))errors.add('directory index is forbidden: нет подходящего index или неверен root/index')
       if(line.includes('access forbidden by rule'))errors.add('access forbidden by rule: запрет в конфигурации nginx')
-    }
-  }catch{}
+  }
   return [...errors]
 }
 const report = (name, ok, detail='') => {
@@ -42,7 +50,7 @@ const ensureBackup = () => {
   if (!backup) {
     const base = option('--backup-root') || '/root/legalcareerist-bot-backups'
     fs.mkdirSync(base, {recursive:true, mode:0o700})
-    backup = fs.mkdtempSync(path.join(base, 'site-health-20261113-'))
+    backup = fs.mkdtempSync(path.join(base, 'site-health-20261114-'))
     fs.chmodSync(backup, 0o700)
   }
   return backup
@@ -55,7 +63,7 @@ const get = async (url, options={}) => {
 const localNginx = route => {
   // An on-server loopback probe with the real Host, SNI and certificate verification.
   // Only used after nginx -T has confirmed this is the origin server.
-  const result = command('curl', ['--silent', '--show-error', '--max-time', '15', '--resolve', origin.hostname+':443:127.0.0.1', '--noproxy', origin.hostname, '--output', '/dev/null', '--write-out', '%{http_code}', origin.href.replace(/\/$/,'')+route])
+  const result = command('curl', ['--silent', '--show-error', '--location', '--max-redirs', '3', '--max-time', '15', '--resolve', origin.hostname+':443:127.0.0.1', '--noproxy', origin.hostname, '--output', '/dev/null', '--write-out', '%{http_code}', origin.href.replace(/\/$/,'')+route])
   return result.status === 0 ? Number(result.stdout) : null
 }
 const can = (permission, file) => command('runuser', ['-u', worker, '--', 'test', permission, file]).status === 0
@@ -110,6 +118,24 @@ try {
   if (after === 403) {
     report('Записи 403 в хвосте журнала nginx', false, nginxErrorHints().join('; ') || 'нет подходящих записей; требуется журнал виртуального хоста')
   }
+  const probeAt=Date.now(),events=localNginx('/events/')
+  const directory=path.join(plan.root,'events'),aliases=roots.filter(root=>{try{return fs.realpathSync(root)===plan.root}catch{return false}})
+  if(after===200&&events===403&&fs.existsSync(directory)&&fs.statSync(directory).isDirectory()&&!['index.html','index.htm'].some(name=>fs.existsSync(path.join(directory,name)))){
+    if(!directoryIndexEvidence(nginxLogTail(),[plan.root,...aliases],origin.hostname,probeAt)){
+      report('Причина отказа /events/',false,'нет свежего подтверждения directory index is forbidden для каталога events; nginx не изменялся')
+    }else{
+      console.log('[ФАКТ] /events/: nginx выбрал каталог изображений вместо маршрута приложения; подтверждено свежей записью журнала')
+      const changes=nginxRoutingChanges(nginxConfig,origin.hostname,plan.root)
+      const count=await applyRoutingChanges(changes,{run:command,backup:ensureBackup(),record,verify:async()=>{
+        for(let attempt=0;attempt<20;attempt++){
+          if(localNginx('/events/')===200&&localNginx('/events')===200&&localNginx('/')===200&&localNginx(plan.entry)===200&&localNginx('/api/health')===200&&(!fs.existsSync(path.join(directory,'kutafin-legal-cup-xvi.jpg'))||localNginx('/events/kutafin-legal-cup-xvi.jpg')===200))return true
+          await new Promise(resolve=>setTimeout(resolve,150))
+        }
+        return false
+      }})
+      report('Маршрут /events исправлен',true,'убран выбор каталогов $uri/ в '+count+' правилах SPA; nginx -t и проверка после reload прошли')
+    }
+  }
 } catch (e) { report('Проверка/исправление статики', false, e.message) }
 
 // Do the remaining independent checks even if static repair could not be completed.
@@ -138,22 +164,26 @@ try {
   for(const key of ['PRODAMUS_SECRET_KEY','TELEGRAM_BOT_TOKEN'])report('Настроен '+key,Boolean(runtime.value(key)))
 } catch (e) { report('Проверка API на сервере',false,'не подтверждена: '+(e instanceof SyntaxError ? 'некорректный JSON' : e.code||e.message)) }
 
-const routes=['/','/community','/events','/events/materials','/kadry','/kadry/vacancies','/marketplace','/cabinet','/contacts','/legal/privacy']
+const routes=['/','/community','/events','/events/','/events/materials','/kadry','/kadry/vacancies','/marketplace','/cabinet','/contacts','/legal/privacy']
 for(const route of routes)try{
   const result=await get(new URL(route+'?sitecheck='+Date.now(),origin))
   report('HTTPS '+route,result.status===200&&result.type.includes('text/html')&&Boolean(plan)&&result.body.includes(Buffer.from(plan.entry)),'HTTP '+result.status+(plan?'':'; сборка не определена'))
 }catch(e){report('HTTPS '+route,false,'соединение/TLS не подтверждены: '+e.name)}
+if(plan&&fs.existsSync(path.join(plan.root,'events/kutafin-legal-cup-xvi.jpg')))try{
+  const cover=await get(new URL('/events/kutafin-legal-cup-xvi.jpg',origin))
+  report('Обложка мероприятия',cover.status===200&&cover.body.equals(fs.readFileSync(path.join(plan.root,'events/kutafin-legal-cup-xvi.jpg'))),'HTTP '+cover.status)
+}catch{report('Обложка мероприятия',false,'содержимое файла не подтверждено')}
 
-if(plan){
-  const files=plan.files.filter(f=>/\.(js|css)$/.test(f)), failed=[]
+if(plan)try{
+  const bundle=currentBundle(plan),files=bundle.assets.map(asset=>path.join(plan.root,asset)),failed=[]
+  report('Зависимости текущей сборки',bundle.missing.length===0,bundle.missing.length?bundle.missing.join(', '):'найдено '+files.length+'; старые версии JS сохранены')
   // Four concurrent requests; compare bytes to catch HTML fallbacks and stale chunks.
   let at=0
   await Promise.all(Array.from({length:4},async()=>{while(at<files.length){const file=files[at++],relative='/'+path.relative(plan.root,file).split(path.sep).join('/');try{const r=await get(new URL(relative,origin));if(r.status!==200||!r.body.equals(fs.readFileSync(file)))failed.push(relative+' HTTP '+r.status)}catch{failed.push(relative+' соединение не подтверждено')}}}))
-  report('Все опубликованные JS/CSS',failed.length===0,'проверено '+files.length+(failed.length?'; ошибки: '+failed.join(', '):'; байты совпадают со сборкой'))
-  const scripts=files.filter(f=>f.endsWith('.js')),fields=scripts.filter(f=>fs.readFileSync(f,'utf8').includes('Промокод (необязательно)'))
-  report('Промокод в опубликованной сборке',fields.length>0)
-  report('Обе формы сообщества в сборке',scripts.filter(f=>/\/(CommunityHome|TariffJoinBlock)-[^/]+\.js$/.test(f)).length===2)
-}
+  report('JS/CSS текущей опубликованной сборки',failed.length===0,'проверено '+files.length+(failed.length?'; ошибки: '+failed.join(', '):'; байты совпадают со сборкой'))
+  report('Промокод в текущей сборке',bundle.promo)
+  for(const [name,forms]of Object.entries(bundle.forms))report('Форма '+name+' в текущей сборке',forms.length===1,forms.length===1?forms[0]:'найдено '+forms.length)
+}catch(e){report('Зависимости текущей сборки',false,'не подтверждены: '+(e.code||e.name))}
 try{
   const r=await get(new URL('/api/health',origin)),h=JSON.parse(r.body)
   report('Публичный API через nginx',r.status===200&&h.ok===true,'HTTP '+r.status)
@@ -176,7 +206,7 @@ if(runtime?.value('TELEGRAM_BOT_TOKEN'))try{
 }catch{report('Telegram',false,'соединение или конфигурация не подтверждены')}
 ensureBackup(); save()
 const failed=results.filter(r=>!r.ok)
-console.log('Отчёт и прежние права: '+backup)
+console.log('Отчёт и резервные копии: '+backup)
 console.log('Проверка не создаёт оплат, не отправляет сообщения, не меняет доступ участников и настройки бота. Реальная оплата и доставка PDF новым участникам этой проверкой не подтверждаются.')
 if(failed.length){console.log('SITE_CHECK_INCOMPLETE: не прошли проверки: '+failed.map(f=>f.name).join('; '));process.exitCode=1}
 else console.log('SITE_CHECK_PASSED: страницы, JS/CSS, API, тарифы, промокод и настройки получения событий прошли перечисленные проверки.')
