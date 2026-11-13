@@ -5,39 +5,46 @@ import crypto from 'node:crypto'
 import {spawnSync} from 'node:child_process'
 import {pathToFileURL} from 'node:url'
 const sha=b=>crypto.createHash('sha256').update(b).digest('hex')
-export function nginxRoots(text,host) {
+export function nginxRoots(text,host,port) {
  const tokens=text.match(/#[^\n]*|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|[{};]|[^\s{};]+/g)||[],stack=[],servers=[]
  let words=[]
  for(const token of tokens){
   if(token.startsWith('#'))continue
-  if(token==='{'){const header=words;words=[];const frame={header,root:null,names:[],parent:stack.at(-1),locations:[]};if(header[0]==='server')servers.push(frame);stack.push(frame)}
+  if(token==='{'){const header=words;words=[];const frame={header,root:null,names:[],listen:[],parent:stack.at(-1),locations:[]};if(header[0]==='server')servers.push(frame);stack.push(frame)}
   else if(token==='}') {stack.pop();words=[]}
   else if(token===';'){
    const f=stack.at(-1);if(f&&words[0]==='server_name')f.names=words.slice(1)
+   if(f&&words[0]==='listen'&&words[1])f.listen.push(words[1])
    if(f&&words[0]==='root'&&words.length===2){f.root=words[1];const server=[...stack].reverse().find(x=>x.header[0]==='server');if(server&&f.header[0]==='location'&&f.header.slice(1).join(' ')==='/')server.locations.push(f.root)}
    words=[]
   }else words.push(token.replace(/^(["'])(.*)\1$/,'$2'))
  }
  const roots=[]
- for(const s of servers.filter(s=>s.names.includes(host)||s.names.includes('www.'+host))){let parent=s;while(parent&&!parent.root)parent=parent.parent;roots.push(...s.locations,...(parent?.root?[parent.root]:[]))}
+ for(const s of servers.filter(s=>(s.names.includes(host)||s.names.includes('www.'+host))&&(!port||s.listen.some(l=>l===String(port)||l.endsWith(':'+port))))){let parent=s;while(parent&&!parent.root)parent=parent.parent;roots.push(...s.locations,...(parent?.root?[parent.root]:[]))}
  return [...new Set(roots.filter(r=>path.isAbsolute(r)&&!r.includes('$')).map(r=>path.resolve(r)))]
 }
 export function publishStatic(source,target,backup) {
  const root=fs.realpathSync(target),files=[];fs.mkdirSync(backup,{recursive:true,mode:0o700})
  const walk=(dir,relative='')=>{for(const e of fs.readdirSync(dir,{withFileTypes:true})){if(e.isSymbolicLink())throw Error('Символьная ссылка в сборке');const rel=path.join(relative,e.name);if(e.isDirectory())walk(path.join(dir,e.name),rel);else files.push(rel)}};walk(source)
  files.sort((a,b)=>(a==='index.html'?1:0)-(b==='index.html'?1:0))
- const changes=[]
+ const changes=[],publicFiles=[],publicDirectories=new Set([root])
  for(const relative of files){
   const dest=path.join(root,relative);let parent=path.dirname(dest);while(!fs.existsSync(parent))parent=path.dirname(parent)
   const real=fs.realpathSync(parent);if(real!==root&&!real.startsWith(root+path.sep))throw Error('Путь публикации выходит из корня сайта')
   if(fs.existsSync(dest)&&fs.lstatSync(dest).isSymbolicLink())throw Error('Ссылка вместо файла сайта')
   const after=fs.readFileSync(path.join(source,relative)),before=fs.existsSync(dest)?fs.readFileSync(dest):null
+  publicFiles.push(dest)
+  for(let dir=path.dirname(dest);dir!==root;dir=path.dirname(dir))publicDirectories.add(dir)
   if(before&&before.equals(after))continue
   if(before){const saved=path.join(backup,relative);fs.mkdirSync(path.dirname(saved),{recursive:true,mode:0o700});fs.writeFileSync(saved,before,{mode:0o600})}
   changes.push({relative,dest,before,after})
  }
  fs.writeFileSync(path.join(backup,'manifest.json'),JSON.stringify(changes.map(c=>({path:c.relative,existed:c.before!==null,sha256:sha(c.after)})),null,2),{mode:0o600})
  for(const c of changes){fs.mkdirSync(path.dirname(c.dest),{recursive:true,mode:0o755});for(let dir=path.dirname(c.dest);dir!==root;dir=path.dirname(dir))fs.chmodSync(dir,0o755);const temp=c.dest+'.promo-'+crypto.randomBytes(5).toString('hex');try{fs.writeFileSync(temp,c.after,{mode:0o644,flag:'wx'});fs.chmodSync(temp,0o644);fs.renameSync(temp,c.dest)}finally{fs.rmSync(temp,{force:true})}}
+ // Under a private umask even an unchanged index and the document root itself
+ // can be unreadable to nginx. Normalise only paths belonging to this build.
+ for(const dir of publicDirectories)fs.chmodSync(dir,0o755)
+ for(const file of publicFiles)fs.chmodSync(file,0o644)
  return changes.length
 }
 async function main(){
