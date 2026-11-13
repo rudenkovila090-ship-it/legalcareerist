@@ -1,6 +1,13 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import type { Testimonial } from './Testimonials'
 
+function compactDate(value: string) {
+  const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря']
+  const parts = value.match(/^(\d{1,2}) (\S+) (\d{4})$/)
+  const month = parts ? months.indexOf(parts[2]) + 1 : 0
+  return parts && month ? `${parts[1].padStart(2, '0')}.${String(month).padStart(2, '0')}.${parts[3]}` : value
+}
+
 export default function TestimonialCarousel({ items, dark }: { items: Testimonial[]; dark?: boolean }) {
   const trackRef = useRef<HTMLDivElement>(null)
   const dialogRef = useRef<HTMLDialogElement>(null)
@@ -94,13 +101,16 @@ export default function TestimonialCarousel({ items, dark }: { items: Testimonia
           className="flex snap-x snap-mandatory gap-4 overflow-x-auto overscroll-x-contain pb-2 outline-offset-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           {items.map((testimonial, index) => (
-            <figure key={`${testimonial.author}-${index}`} aria-label={`Отзыв: ${testimonial.author}`} className="flex h-80 min-w-0 shrink-0 basis-[85%] snap-start flex-col rounded-2xl bg-[#dbe4f5] p-5 sm:basis-[calc((100%_-_1rem)/2)] md:basis-[calc((100%_-_2rem)/3)]">
-              <figcaption className="rounded-xl bg-white/70 px-4 py-3">
-                <div className="text-sm font-semibold text-ink">{testimonial.author}</div>
-                {(testimonial.role || testimonial.date) && <div className="mt-1 text-xs leading-relaxed text-ink/50">{[testimonial.role, testimonial.date].filter(Boolean).join(' · ')}</div>}
+            <figure key={`${testimonial.author}-${index}`} aria-label={`Отзыв: ${testimonial.author}`} className="flex min-h-[17.25rem] min-w-0 shrink-0 basis-full snap-start flex-col rounded-2xl bg-[#dbe4f5] p-5 sm:basis-[calc((100%_-_1rem)/2)] lg:basis-[calc((100%_-_2rem)/3)]">
+              <figcaption className="rounded-xl bg-white/70 px-2.5 py-3">
+                <div className="flex items-baseline justify-between gap-2">
+                  <div title={testimonial.author} className="min-w-0 truncate text-[13px] font-semibold text-ink lg:text-sm">{testimonial.author}</div>
+                  {testimonial.date && <time title={testimonial.date} className="shrink-0 whitespace-nowrap text-[10px] text-ink/50 sm:text-xs">{compactDate(testimonial.date)}</time>}
+                </div>
+                {testimonial.role && <div className="mt-1 text-xs leading-relaxed text-ink/50">{testimonial.role}</div>}
               </figcaption>
               <blockquote className="mt-4 line-clamp-5 text-sm leading-relaxed text-ink/80">{testimonial.text.replace(/\s+/g, ' ')}</blockquote>
-              <button type="button" aria-haspopup="dialog" aria-label={`Читать отзыв ${testimonial.author} полностью`} onClick={() => setSelected(testimonial)} className="mt-auto self-start pt-4 text-sm font-semibold text-ink underline decoration-ink/30 underline-offset-4 hover:decoration-ink">
+              <button type="button" aria-haspopup="dialog" aria-label={`Читать отзыв ${testimonial.author} полностью`} onClick={() => setSelected(testimonial)} className="mt-10 self-start text-sm font-semibold text-ink underline decoration-ink/30 underline-offset-4 hover:decoration-ink">
                 Читать полностью
               </button>
             </figure>
@@ -120,9 +130,12 @@ export default function TestimonialCarousel({ items, dark }: { items: Testimonia
         className="fixed m-auto max-h-[85dvh] w-[calc(100%_-_2rem)] max-w-2xl overflow-y-auto rounded-2xl bg-white p-6 text-ink shadow-xl backdrop:bg-ink/60 sm:p-8"
       >
         <div className="mb-5 flex items-start justify-between gap-4">
-          <div>
-            <h3 id={`${id}-dialog-title`} className="text-xl font-semibold">{selected?.author}</h3>
-            <p className="mt-1 text-sm text-ink/50">{[selected?.role, selected?.date].filter(Boolean).join(' · ')}</p>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-baseline justify-between gap-3">
+              <h3 id={`${id}-dialog-title`} className="min-w-0 text-lg font-semibold sm:text-xl">{selected?.author}</h3>
+              {selected?.date && <time title={selected.date} className="shrink-0 whitespace-nowrap text-xs text-ink/50">{compactDate(selected.date)}</time>}
+            </div>
+            {selected?.role && <p className="mt-1 text-sm text-ink/50">{selected.role}</p>}
           </div>
           <button type="button" autoFocus onClick={() => dialogRef.current?.close()} aria-label="Закрыть отзыв" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-ink/15 text-xl hover:bg-ink/[0.04]">×</button>
         </div>

@@ -68,7 +68,7 @@ export default function CommunityFooter() {
         <div>
           <div className="mb-3 text-xs font-bold uppercase leading-tight tracking-wide text-white">Сообщество</div>
           <ul className="text-xs">
-            <li><Link className="inline-block py-1 hover:text-white" to="/community#main">О сообществе</Link></li>
+            <li><Link className="inline-block py-1 hover:text-white" to="/community#hero">О сообществе</Link></li>
             <li><Link className="inline-block py-1 hover:text-white" to="/blog?category=Сообщество">Блог</Link></li>
           </ul>
         </div>

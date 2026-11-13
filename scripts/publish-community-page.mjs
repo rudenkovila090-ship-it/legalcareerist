@@ -42,6 +42,7 @@ async function main(){
   const source=staticAccessPlan(option('--dist')||path.join(import.meta.dirname,'../dist')),bundle=currentBundle(source)
   if(bundle.missing.length||Object.values(bundle.forms).some(forms=>forms.length!==1)||!bundle.promo)throw Error('Сборка не подтвердила текущие формы и промокод')
   const text=bundle.assets.filter(asset=>asset.endsWith('.js')).map(asset=>fs.readFileSync(path.join(source.root,asset),'utf8')).join('\n')
+  for(const required of ['Сообщество карьерного юриста','Без подписки','С подпиской','Бесплатная карьерная консультация раз в месяц','Random coffee — нетворкинг','Скидки на мероприятия от 20 до 50%','Полезные материалы — бесплатно','Закрытые мероприятия с приглашёнными экспертами'])if(!text.includes(required))throw Error('Не найдено изменение новой версии: '+required)
   for(const required of ['Наши достижения','Частые вопросы','Как понять, подхожу ли я?','С какого момента открывается моё резидентство в сообществе?','Можно ли сделать возврат?','Входят ли мероприятия в стоимость подписки?','Есть ли заморозка?','Я не из Петербурга или Москвы — стоит ли мне стать резидентом?','Какие есть возможности в сообществе?','Для чего вступать в сообщество?','Как стать резидентом?','Какая аудитория в сообществе?','Я не нашёл ответ на свой вопрос. Как мне с вами связаться?','Здесь будет ответ на этот вопрос.','Предыдущие отзывы','Следующие отзывы','Читать полностью','Карточка амбассадора'])if(!text.includes(required))throw Error('Не найдено изменение в сборке: '+required)
   if(run('nginx',['-t']).status!==0)throw Error('nginx -t не прошёл; публикация не начиналась')
   const nginx=run('nginx',['-T']);if(nginx.status!==0)throw Error('Не прочитан действующий nginx')
@@ -84,14 +85,14 @@ async function main(){
   const modes={}
   for(const file of source.files){const relative=path.relative(source.root,file),dest=path.join(target.root,relative);if(fs.existsSync(dest))modes[relative]=fs.statSync(dest).mode&0o777}
   fs.writeFileSync(path.join(backup,'previous-modes.json'),JSON.stringify(modes),{mode:0o600})
-  fs.writeFileSync(path.join(backup,'release.json'),JSON.stringify({version,commit:option('--commit'),root:target.root,entry:source.entry,previousEntry:target.entry,startedAt:new Date().toISOString(),sourceFiles:['src/pages/community/CommunityHome.tsx','src/components/Testimonials.tsx','src/components/TestimonialCarousel.tsx','src/lib/featureFlags.ts']},null,2),{mode:0o600})
+  fs.writeFileSync(path.join(backup,'release.json'),JSON.stringify({version,commit:option('--commit'),root:target.root,entry:source.entry,previousEntry:target.entry,startedAt:new Date().toISOString(),sourceFiles:['src/pages/community/CommunityHome.tsx','src/pages/community/CommunityFooter.tsx','src/components/FAQSection.tsx','src/components/Testimonials.tsx','src/components/TestimonialCarousel.tsx','src/lib/featureFlags.ts']},null,2),{mode:0o600})
   try{
     if(fs.readFileSync(path.join(target.root,'index.html'),'utf8')!==target.html)throw Error('Началась другая публикация; операция остановлена')
     console.log('Публикую страницу сообщества; резервная копия: '+backup)
     const changed=publishStatic(source.root,target.root,backup)
     await verify()
-    fs.writeFileSync(path.join(backup,'verified.json'),JSON.stringify({verifiedAt:new Date().toISOString(),version,changed,assets:bundle.assets.length,faqQuestions:11,ambassadorCards:5,backendChanged:false,nginxChanged:false}),{mode:0o600})
-    console.log('COMMUNITY_PAGE_PUBLISHED: новая страница подтверждена по публичному HTML и '+bundle.assets.length+' JS/CSS. Баннер, города, 5 карточек амбассадоров, достижения, 11 вопросов и лента отзывов опубликованы. Расчёт трёх тарифов и KQ1111 → 350 ₽ проверен. https://legalcareerist.ru/community')
+    fs.writeFileSync(path.join(backup,'verified.json'),JSON.stringify({verifiedAt:new Date().toISOString(),version,changed,assets:bundle.assets.length,faqQuestions:11,faqColumns:2,comparisonBenefits:7,tariffOrder:['1m','6m','3m'],ambassadorCards:5,backendChanged:false,nginxChanged:false}),{mode:0o600})
+    console.log('COMMUNITY_PAGE_PUBLISHED: новая страница подтверждена по публичному HTML и '+bundle.assets.length+' JS/CSS. Опубликованы новая титульная с кнопкой, сравнение 7 возможностей, подсказки университетов, тарифы 1–6–3 месяца, компактные отзывы, основатель после отзывов и FAQ в две колонки с кнопкой вступления. Расчёт трёх тарифов и KQ1111 → 350 ₽ проверен. https://legalcareerist.ru/community')
     console.log('Резервная копия: '+backup)
   }catch(error){
     let restored=false
