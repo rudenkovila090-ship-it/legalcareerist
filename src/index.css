@@ -27,6 +27,7 @@
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --color-ink: #283953;
   --color-accent: #538ccf;
+  --color-action: #2563eb;
   --color-gold: #45608a;
   --color-gold-light: #538ccf;
   --color-paper: #ffffff;
@@ -45,22 +46,26 @@ body {
   font-family: var(--font-sans);
 }
 
-/* Кобальтовый акцент: основные действия и ссылки, без перекрашивания фонов. */
+/* Насыщенные синие кнопки с белым текстом; светлый акцент — для деталей. */
 .btn-accent,
 button.bg-ink,
 a.bg-ink,
 button.bg-gold-light,
 a.bg-gold-light {
-  background-color: var(--color-accent);
-  color: #0b1c32;
+  background-color: var(--color-action);
+  color: #ffffff;
 }
 .btn-accent:hover,
 button.bg-ink:hover,
 a.bg-ink:hover,
 button.bg-gold-light:hover,
 a.bg-gold-light:hover {
-  background-color: #4680c1;
-  color: #0b1c32;
+  background-color: #1d4ed8;
+  color: #ffffff;
+}
+.btn-accent:focus-visible {
+  outline: 2px solid var(--color-action);
+  outline-offset: 4px;
 }
 a.underline {
   color: var(--color-accent);

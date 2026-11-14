@@ -1,5 +1,7 @@
 import CommunityPromoField from '../../components/CommunityPromoField'
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
+import AmbassadorCarousel, { type Ambassador } from '../../components/AmbassadorCarousel'
+import CommunityAchievements from '../../components/CommunityAchievements'
 import Testimonials from '../../components/Testimonials'
 import { communityTestimonials } from '../../data/testimonials'
 import FAQSection from '../../components/FAQSection'
@@ -25,7 +27,7 @@ const railItems = [
   { id: 'hero', label: 'Сообщество' },
   { id: 'mvc', label: 'Миссия и цель' },
   { id: 'benefits', label: 'Резидентам' },
-  { id: 'map', label: 'Города' },
+  { id: 'map', label: 'География сообщества' },
   { id: 'ambassadors', label: 'Амбассадоры' },
   { id: 'join', label: 'Присоединиться' },
   { id: 'achievements', label: 'Наши достижения' },
@@ -66,19 +68,17 @@ const residentBenefits = [
 
 const displayTariffs = (['1m', '6m', '3m'] as const).map((id) => tariffs.find((tariff) => tariff.id === id)!)
 
-const ambassadors: {
-  id: number
-  lastName: string
-  firstName: string
-  university: string
-  photo?: string
-  role?: string
-}[] = [
-  { id: 1, lastName: 'Барбусова', firstName: 'Александра', university: 'Санкт-Петербургский институт (филиал) ВГУЮ (РПА Минюста России)', photo: alexandraPhoto },
+const ambassadors: Ambassador[] = [
+  { id: 1, lastName: 'Барбусова', firstName: 'Александра', university: 'Санкт-Петербургский институт (филиал) ВГУЮ', universityNote: '(РПА Минюста России)', photo: alexandraPhoto },
   { id: 2, lastName: 'Третьякова', firstName: 'Валерия', university: 'СПбГУ', photo: valeriaPhoto },
   { id: 3, lastName: 'Канду', firstName: 'Ангелина', university: 'СПбГУ', photo: angelinaPhoto },
   { id: 4, lastName: 'Романова', firstName: 'Алена', university: 'СПбГЭУ', role: 'Младший юрист в банкротстве' },
-  { id: 5, lastName: 'Фамилия', firstName: 'Имя', university: 'Университет' },
+  { id: 5, lastName: 'Доманова', firstName: 'Анастасия', role: 'Младший юрист' },
+  { id: 6, lastName: 'Батчина', firstName: 'Арина', university: 'МГИМО' },
+  { id: 7, lastName: 'Шеловская', firstName: 'Мария', university: 'НИУ ВШЭ' },
+  { id: 8, lastName: 'Гранкина', firstName: 'Юлия', university: 'Университет прокуратуры' },
+  { id: 9, lastName: 'Дюскина', firstName: 'Анастасия', university: 'МГЮА' },
+  { id: 10, lastName: 'Аверьянова', firstName: 'Анна', university: 'СПбГУ' },
 ]
 
 // Мозаичная (пиксельная) карта РФ — сетка квадратов-«блоков», как на
@@ -166,7 +166,7 @@ function buildFaqItems() {
 // сразу открывает бота.
 export default function CommunityHome() {
   useDocumentTitle('Сообщество')
-  const [tariffId, setTariffId] = useState<(typeof tariffs)[number]['id']>('1m')
+  const [tariffId, setTariffId] = useState<(typeof tariffs)[number]['id']>('6m')
   const [paid, setPaid] = useState(false)
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
@@ -179,15 +179,36 @@ export default function CommunityHome() {
   const [submitError, setSubmitError] = useState(false)
   const [formError, setFormError] = useState('')
   const [activeCity, setActiveCity] = useState<string | null>(null)
+  const [ambassadorOpen, setAmbassadorOpen] = useState(false)
+  const ambassadorDialog = useRef<HTMLDialogElement>(null)
+  const ambassadorTitleId = useId()
 
   useEffect(() => {
     if (!activeCity) return
     const dismiss = (event: PointerEvent) => {
-      if (!(event.target instanceof Element) || !event.target.closest('[data-city-marker]')) setActiveCity(null)
+      if (!(event.target instanceof Element) || !event.target.closest('[data-city-marker], [data-city-panel]')) setActiveCity(null)
     }
+    const escape = (event: KeyboardEvent) => { if (event.key === 'Escape') setActiveCity(null) }
     document.addEventListener('pointerdown', dismiss)
-    return () => document.removeEventListener('pointerdown', dismiss)
+    document.addEventListener('keydown', escape)
+    return () => {
+      document.removeEventListener('pointerdown', dismiss)
+      document.removeEventListener('keydown', escape)
+    }
   }, [activeCity])
+
+  useEffect(() => {
+    if (!ambassadorOpen) return
+    const dialog = ambassadorDialog.current
+    if (!dialog) return
+    const overflow = document.body.style.overflow
+    dialog.showModal()
+    document.body.style.overflow = 'hidden'
+    return () => {
+      dialog.close()
+      document.body.style.overflow = overflow
+    }
+  }, [ambassadorOpen])
 
   // При возврате кнопкой «Назад» браузер часто восстанавливает страницу из
   // bfcache вместе с "замороженным" состоянием — кнопка так и осталась бы
@@ -293,27 +314,26 @@ export default function CommunityHome() {
       <SectionRail items={railItems} />
 
       <section id="hero" className="bg-ink py-16 text-center text-white sm:py-20">
-        <div className="container-page">
+        <div className="container-page"><div className="mx-auto max-w-5xl">
           <h1 className="text-3xl font-semibold leading-tight tracking-tight sm:text-4xl lg:text-5xl">
             Сообщество карьерного юриста
           </h1>
           <div className="mt-8 w-full rounded-2xl border border-white/15 bg-white/[0.04] p-5 sm:mt-10 sm:p-8">
             <p className="text-base leading-relaxed text-white/80 sm:text-lg lg:text-xl">
               Закрытое сообщество студентов и начинающих юристов: делимся опытом,
-              <span className="block">строим связи</span>
-              <span className="block">и вместе строим карьеру.</span>
+              <span className="block">строим связи и вместе строим карьеру.</span>
             </p>
           </div>
           <button type="button" onClick={scrollToJoin} className="btn-accent mt-8 h-[3.75rem] min-w-60 rounded-full px-10 text-[17.5px] font-semibold">
             Стать резидентом
           </button>
-        </div>
+        </div></div>
       </section>
 
       {/* Миссия — крупная плитка слева; ценность и цель — справа. */}
       <section id="mvc" className="border-y border-ink/10 bg-white py-16">
         <div className="container-page">
-          <div className="grid gap-6 md:grid-cols-2 md:grid-rows-2">
+          <div className="mx-auto grid max-w-5xl gap-6 md:grid-cols-2 md:grid-rows-2">
             {mvc.map((item, index) => (
               <article key={item.label} className={`relative overflow-hidden rounded-2xl border p-8 sm:p-10 ${index === 0 ? 'flex min-h-72 flex-col justify-center border-ink bg-ink text-white md:row-span-2' : 'min-h-48 border-ink/10 bg-[#eef3fb]'}`}>
                 <div>
@@ -348,111 +368,76 @@ export default function CommunityHome() {
                 </tr>
               ))}
             </tbody>
+            <tfoot>
+              <tr className="border-t border-ink/10 bg-accent/[0.04]">
+                <td colSpan={3} className="p-5 text-center">
+                  <button type="button" onClick={scrollToJoin} className="btn-accent min-h-12 rounded-full px-8 py-3 text-sm font-semibold">Стать резидентом</button>
+                </td>
+              </tr>
+            </tfoot>
           </table>
-        </div>
-        <div className="mt-5 rounded-xl border border-accent/30 bg-accent/[0.06] p-4 text-sm">
-          <h3 className="font-semibold">Что доступно за дополнительную плату:</h3>
-          <p className="mt-2 text-ink/70"><span aria-hidden="true">💳 </span>Повторные индивидуальные карьерные консультации — скидка 20%.</p>
         </div>
         </div>
       </section>
 
       <section id="map" className="border-y border-ink/10 bg-white py-12">
         <div className="container-page">
-          <h2 className="mb-8 text-2xl font-semibold sm:text-3xl">Резиденты есть в этих городах</h2>
-          <div className="mx-auto w-4/5 max-w-[38.4rem] rounded-2xl bg-ink/[0.02] p-4 sm:p-6">
-            <div className="relative">
-              <svg viewBox={`0 0 ${RU_MAP_W} ${RU_MAP_H}`} className="w-full" aria-hidden="true">
-                <defs>
-                  <filter id="ru-map-tile-shadow" x="-60%" y="-60%" width="220%" height="220%">
-                    <feDropShadow dx="0" dy="1.2" stdDeviation="0.9" floodColor="#283953" floodOpacity="0.3" />
-                  </filter>
-                </defs>
-                {ruMapRows.map((row, ri) => row.split('').map((cell, ci) => cell === 'X' ? (
-                  <rect key={`${ri}-${ci}`} x={ci * RU_MAP_CELL + 1.5} y={ri * RU_MAP_CELL + 1.5} width={RU_MAP_CELL - 3} height={RU_MAP_CELL - 3} rx={3.5} fill="white" stroke="rgba(40,57,83,0.2)" strokeWidth="1" filter="url(#ru-map-tile-shadow)" />
-                ) : null))}
-              </svg>
-              {cities.map((city, index) => (
-                <div
-                  key={city.id}
-                  id={`city-${city.id}`}
-                  data-city-marker={city.id}
-                  className={`absolute h-6 w-6 -translate-x-1/2 -translate-y-1/2 sm:h-7 sm:w-7 ${activeCity === city.id ? 'z-20' : 'z-10'}`}
-                  style={{ left: `${((city.col + 0.5) * RU_MAP_CELL / RU_MAP_W) * 100}%`, top: `${((city.row + 0.5) * RU_MAP_CELL / RU_MAP_H) * 100}%` }}
-                  onMouseEnter={() => setActiveCity(city.id)}
-                  onMouseLeave={(event) => { if (!event.currentTarget.contains(document.activeElement)) setActiveCity(null) }}
-                  onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setActiveCity(null) }}
-                >
-                  <button
-                    type="button"
-                    aria-label={`${city.name}: университеты резидентов`}
-                    aria-expanded={activeCity === city.id}
-                    aria-describedby={activeCity === city.id ? `city-tooltip-${city.id}` : undefined}
-                    aria-controls={`city-tooltip-${city.id}`}
-                    onClick={() => setActiveCity(city.id)}
-                    onFocus={() => setActiveCity(city.id)}
-                    onKeyDown={(event) => { if (event.key === 'Escape') { event.preventDefault(); setActiveCity(null) } }}
-                    className="flex h-full w-full items-center justify-center rounded-md border-2 border-white bg-ink text-[11px] font-semibold text-white shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink sm:text-xs"
-                  >
-                    {index + 1}
-                  </button>
-                  <span className={`pointer-events-none absolute top-full mt-1.5 text-center text-[10px] font-medium leading-4 text-ink sm:text-sm sm:leading-5 ${city.id === 'spb' ? 'right-1/2 w-20 sm:left-1/2 sm:right-auto sm:w-auto sm:-translate-x-1/2 sm:whitespace-nowrap' : city.id === 'ekb' ? 'left-0 whitespace-nowrap sm:left-1/2 sm:-translate-x-1/2' : 'left-1/2 -translate-x-1/2 whitespace-nowrap'}`}>
-                    {city.name}
-                  </span>
-                  <div id={`city-tooltip-${city.id}`} role="tooltip" hidden={activeCity !== city.id} className={`absolute top-full mt-10 w-56 rounded-xl bg-ink p-4 text-left text-xs leading-relaxed text-white shadow-xl sm:bottom-full sm:top-auto sm:mb-3 sm:mt-0 sm:w-64 left-1/2 -translate-x-1/2`}>
-                    <div className="mb-2 font-semibold">Университеты</div>
-                    <ul className="space-y-1 text-white/80">{city.schools.map((school) => <li key={school}>{school}</li>)}</ul>
+          <h2 className="mb-8 text-2xl font-semibold sm:text-3xl">География сообщества</h2>
+          <div className="mx-auto grid max-w-5xl items-center gap-6 lg:grid-cols-[3fr_2fr]">
+            <div className="mx-auto w-4/5 max-w-[38.4rem] rounded-2xl bg-ink/[0.02] p-4 sm:p-6 lg:w-full">
+              <div className="relative">
+                <svg viewBox={`0 0 ${RU_MAP_W} ${RU_MAP_H}`} className="w-full" aria-hidden="true">
+                  <defs><filter id="ru-map-tile-shadow" x="-60%" y="-60%" width="220%" height="220%"><feDropShadow dx="0" dy="1.2" stdDeviation="0.9" floodColor="#283953" floodOpacity="0.3" /></filter></defs>
+                  {ruMapRows.map((row, ri) => row.split('').map((cell, ci) => cell === 'X' ? (
+                    <rect key={`${ri}-${ci}`} x={ci * RU_MAP_CELL + 1.5} y={ri * RU_MAP_CELL + 1.5} width={RU_MAP_CELL - 3} height={RU_MAP_CELL - 3} rx={3.5} fill="white" stroke="rgba(40,57,83,0.2)" strokeWidth="1" filter="url(#ru-map-tile-shadow)" />
+                  ) : null))}
+                </svg>
+                {cities.map((city) => (
+                  <div key={city.id} id={`city-${city.id}`} data-city-marker={city.id} className="absolute z-10 h-6 w-6 -translate-x-1/2 -translate-y-1/2 sm:h-7 sm:w-7" style={{ left: `${((city.col + 0.5) * RU_MAP_CELL / RU_MAP_W) * 100}%`, top: `${((city.row + 0.5) * RU_MAP_CELL / RU_MAP_H) * 100}%` }} onMouseEnter={() => setActiveCity(city.id)}>
+                    <button type="button" aria-label={`${city.name}: университеты резидентов`} aria-expanded={activeCity === city.id} aria-controls={`city-panel-${city.id}`} onClick={() => setActiveCity(city.id)} onFocus={() => setActiveCity(city.id)} className={`flex h-full w-full items-center justify-center rounded-full border-2 border-white bg-accent shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${activeCity === city.id ? 'ring-4 ring-accent/25' : ''}`}>
+                      <span aria-hidden="true" className="h-2 w-2 rounded-full bg-white" />
+                    </button>
+                    <span className={`pointer-events-none absolute top-full mt-1.5 text-center text-[10px] font-medium leading-4 text-ink sm:text-sm sm:leading-5 ${city.id === 'spb' ? 'right-1/2 w-20 sm:left-1/2 sm:right-auto sm:w-auto sm:-translate-x-1/2 sm:whitespace-nowrap' : city.id === 'ekb' ? 'left-0 whitespace-nowrap sm:left-1/2 sm:-translate-x-1/2' : 'left-1/2 -translate-x-1/2 whitespace-nowrap'}`}>{city.name}</span>
                   </div>
+                ))}
+              </div>
+            </div>
+            <aside data-city-panel aria-label="Университеты резидентов" aria-live="polite" className="min-h-44 rounded-2xl border border-accent/20 bg-accent/[0.04] p-6 lg:min-h-72">
+              {cities.map((city) => (
+                <div key={city.id} id={`city-panel-${city.id}`} hidden={activeCity !== city.id}>
+                  <h3 className="text-lg font-semibold">{city.name}</h3>
+                  <p className="mt-2 text-xs font-medium uppercase tracking-wide text-accent">Университеты резидентов</p>
+                  <ul className="mt-4 space-y-2 text-sm leading-relaxed text-ink/70">{city.schools.map((school) => <li key={school}>{school}</li>)}</ul>
                 </div>
               ))}
-            </div>
+              {!activeCity && <div className="flex min-h-32 flex-col justify-center lg:min-h-60"><h3 className="font-semibold">Университеты резидентов</h3><p className="mt-3 text-sm leading-relaxed text-ink/60">Наведите на отметку города на карте или нажмите на нее.</p></div>}
+            </aside>
           </div>
         </div>
       </section>
 
       <section id="ambassadors" className="container-page scroll-mt-24 py-12">
-        <h2 className="mb-8 text-2xl font-semibold sm:text-3xl">Амбассадоры</h2>
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-5">
-          {ambassadors.map((ambassador) => (
-            <article key={ambassador.id} aria-label={`Карточка амбассадора ${ambassador.id}`} className="min-w-0 overflow-hidden rounded-2xl border border-ink/10 bg-white">
-              <div className="aspect-[3/4] overflow-hidden bg-gradient-to-b from-accent/10 to-accent/[0.02]">
-                {ambassador.photo ? (
-                  <img src={ambassador.photo} alt={`${ambassador.lastName} ${ambassador.firstName}`} className="h-full w-full object-contain object-bottom" loading="lazy" />
-                ) : (
-                  <div role="img" aria-label="Место для фотографии амбассадора" className="flex h-full flex-col items-center justify-center gap-3 text-ink/30">
-                    <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-14 w-14" aria-hidden="true">
-                      <circle cx="32" cy="22" r="10" />
-                      <path d="M13 56c0-12 8-20 19-20s19 8 19 20" />
-                    </svg>
-                    <span className="text-xs">Фото</span>
-                  </div>
-                )}
-              </div>
-              <div className="p-4 sm:p-5">
-                <h3 className="text-base font-semibold leading-snug sm:text-lg">
-                  <span className="block">{ambassador.lastName}</span>
-                  <span className="block">{ambassador.firstName}</span>
-                </h3>
-                <p className="mt-3 break-words text-xs leading-5 text-ink/60">{ambassador.university}</p>
-                {ambassador.role && <p className="mt-2 text-xs leading-5 text-ink/70">{ambassador.role}</p>}
-              </div>
-            </article>
-          ))}
-        </div>
+        <AmbassadorCarousel items={ambassadors} />
       </section>
 
       {/* Заявка в амбассадоры — отправка через существующий реестр лидов. */}
       {SHOW_AMBASSADORS && (
       <section id="ambassador-form" className="scroll-mt-16 border-y border-ink/10 bg-white py-12 text-center">
         <div className="container-page">
-          <h2 className="mb-8 text-2xl font-semibold sm:text-3xl">Стать амбассадором</h2>
+          <button type="button" onClick={() => setAmbassadorOpen(true)} aria-haspopup="dialog" className="btn-accent rounded-full px-8 py-3 text-sm font-semibold">Стать амбассадором</button>
+          <dialog ref={ambassadorDialog} aria-labelledby={ambassadorTitleId} onCancel={() => setAmbassadorOpen(false)} onClick={(event) => { if (event.target === event.currentTarget) setAmbassadorOpen(false) }} className="m-auto max-h-[90dvh] w-[calc(100%_-_2rem)] max-w-2xl overflow-y-auto rounded-2xl border-0 bg-white p-0 text-ink shadow-xl backdrop:bg-ink/70">
+          <div className="p-5 text-left sm:p-8">
+            <div className="mb-6 flex items-center justify-between gap-4">
+              <h2 id={ambassadorTitleId} className="text-xl font-semibold sm:text-2xl">Стать амбассадором</h2>
+              <button type="button" aria-label="Закрыть заявку амбассадора" onClick={() => setAmbassadorOpen(false)} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink/50 hover:bg-ink/[0.04]">✕</button>
+            </div>
 
           {ambassadorSent ? (
             <div className="mx-auto max-w-md">
               <LeadSuccessCard description="Мы свяжемся с вами в Telegram." />
             </div>
           ) : (
-            <form onSubmit={withLeadSubmission(handleAmbassadorSubmit)} className="glass mx-auto grid max-w-2xl gap-3 rounded-2xl p-6 text-left sm:grid-cols-2">
+            <form onSubmit={withLeadSubmission(handleAmbassadorSubmit)} className="grid gap-3 text-left sm:grid-cols-2">
               <input aria-label="ФИО" required
                 value={ambassadorForm.name}
                 onChange={(e) => setAmbassadorForm((f) => ({ ...f, name: e.target.value }))}
@@ -494,6 +479,8 @@ export default function CommunityHome() {
               </button>
             </form>
           )}
+          </div>
+          </dialog>
         </div>
       </section>
       )}
@@ -502,9 +489,8 @@ export default function CommunityHome() {
       <section id="join" className="scroll-mt-16 bg-ink py-14 text-white">
         <div className="container-page text-center">
           <h2 className="text-2xl font-semibold sm:text-3xl">Присоединиться</h2>
-          <p className="mb-8 mt-3 text-sm text-white/60 sm:text-base">Выберите удобный период подписки</p>
 
-          <div className="mx-auto grid max-w-4xl items-stretch gap-6 lg:grid-cols-3">
+          <div className="mx-auto mt-8 grid max-w-4xl items-stretch gap-6 lg:grid-cols-3">
                 {displayTariffs.map((t) => {
                   const selected = tariffId === t.id
                   return (
@@ -629,18 +615,7 @@ export default function CommunityHome() {
         )}
       </section>
 
-      <section id="achievements" className="container-page scroll-mt-24 py-14">
-        <h2 className="mb-8 text-2xl font-semibold sm:text-3xl">Наши достижения</h2>
-        <div className="grid gap-4 sm:grid-cols-3">
-          {['Сообщество', 'Встречи и события', 'Карьерные истории'].map((achievement) => (
-            <article key={achievement} className="rounded-2xl border border-ink/10 bg-ink/[0.02] p-6">
-              <h3 className="text-sm font-medium text-ink/60">{achievement}</h3>
-              <p className="my-4 text-4xl font-semibold"><mark className="rounded-md bg-yellow-200 px-2 text-ink">…</mark></p>
-              <p className="text-sm leading-relaxed"><mark className="box-decoration-clone rounded-sm bg-yellow-200 px-1 text-ink">Здесь будет достижение сообщества.</mark></p>
-            </article>
-          ))}
-        </div>
-      </section>
+      <CommunityAchievements />
 
       {/* Отзывы */}
       <div id="reviews">

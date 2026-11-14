@@ -43,6 +43,7 @@ globalThis.fetch=async(input,options={})=>{
  if(options.method&&options.method!=='GET')throw Error('unexpected mutation');
  if(fs.existsSync(path.join(root,'wrong-site'))&&!route.startsWith('/assets/'))return new Response('<html>OTHER ORIGIN</html>');
  if(updated&&fs.existsSync(path.join(root,'fail-chunks'))&&route.includes('CommunityHome-'))return new Response('WRONG_CHUNK');
+ if(updated&&fs.existsSync(path.join(root,'fail-image'))&&route.includes('certificate-raso-lbf-2026-'))return new Response('WRONG_CERTIFICATE');
  const file=route.startsWith('/assets/')?path.join(live,route):path.join(live,'index.html');
  return fs.existsSync(file)?new Response(fs.readFileSync(file)):new Response('missing',{status:404});
 };
@@ -71,7 +72,7 @@ globalThis.fetch=async(input,options={})=>{
     repaired=invoke();assert repaired.returncode==0,repaired.stdout+repaired.stderr
     assert chunk.exists()
     print('PASS: repeat is read-only; missing lazy chunk is repaired despite identical index.html')
-    for flag in ['fail-quote','fail-chunks']:
+    for flag in ['fail-quote','fail-chunks','fail-image']:
         reset();(root/flag).touch()
         failed=invoke();assert failed.returncode==1,failed.stdout+failed.stderr
         assert 'Прежние файлы сайта восстановлены' in failed.stderr

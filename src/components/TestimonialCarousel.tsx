@@ -61,10 +61,7 @@ export default function TestimonialCarousel({ items, dark }: { items: Testimonia
     <section className={dark ? 'border-y border-white/10 bg-ink py-14' : 'border-y border-ink/10 bg-white py-14'}>
       <div className="container-page">
         <div className="mb-6 flex items-end justify-between gap-4">
-          <div>
-            <div className={`mb-2 text-sm font-medium uppercase tracking-wide ${dark ? 'text-gold-light' : 'text-gold'}`}>Отзывы</div>
-            <h2 id={`${id}-title`} className={`text-2xl font-semibold ${dark ? 'text-white' : ''}`}>Что говорят о нас</h2>
-          </div>
+          <h2 id={`${id}-title`} className={`text-2xl font-semibold ${dark ? 'text-white' : ''}`}>Отзывы</h2>
           <div className="flex shrink-0 gap-2">
             {[
               { direction: -1, label: 'Предыдущие отзывы', enabled: canPrevious, path: 'M15 18 9 12l6-6' },
