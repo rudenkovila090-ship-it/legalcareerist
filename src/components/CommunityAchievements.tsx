@@ -1,4 +1,14 @@
 import certificateRasoLbf from '../assets/certificate-raso-lbf-2026.jpg'
+import conferenceThanks from '../assets/achievements/conference-thanks-2026.png'
+import telegramRating from '../assets/achievements/legal-telegram-rating-2025.jpg'
+
+function AchievementImage({ src, alt, label, width, height }: { src: string; alt: string; label: string; width: number; height: number }) {
+  return (
+    <a href={src} target="_blank" rel="noreferrer" aria-label={label} className="block aspect-[640/452] overflow-hidden bg-[#05264a]">
+      <img src={src} alt={alt} className="h-full w-full object-contain" loading="lazy" width={width} height={height} />
+    </a>
+  )
+}
 
 export default function CommunityAchievements() {
   return (
@@ -6,43 +16,26 @@ export default function CommunityAchievements() {
       <h2 className="mb-8 text-2xl font-semibold sm:text-3xl">Наши достижения</h2>
       <div className="grid items-stretch gap-5 lg:grid-cols-3">
         <article className="overflow-hidden rounded-2xl border border-ink/10 bg-white">
-          <a href={certificateRasoLbf} target="_blank" rel="noreferrer" aria-label="Открыть сертификат рейтинга РАСО и Legal Business Forum">
-            <img src={certificateRasoLbf} alt="Сертификат рейтинга РАСО и Legal Business Forum, 2026: 3-я группа — профессиональные сообщества; отдельно отмечены персональный бренд и интегральная оценка" className="aspect-[640/452] w-full object-contain" loading="lazy" width={640} height={452} />
-          </a>
+          <AchievementImage src={certificateRasoLbf} alt="Сертификат рейтинга РАСО и Legal Business Forum, 2026: 3-я группа — профессиональные сообщества; отдельно отмечены персональный бренд и интегральная оценка" label="Открыть сертификат рейтинга РАСО и Legal Business Forum" width={640} height={452} />
           <div className="p-5">
-            <p className="text-xs font-medium text-accent">РАСО × Legal Business Forum · 2026</p>
-            <h3 className="mt-2 text-lg font-semibold">3-я группа рейтинга</h3>
+            <p className="min-h-8 text-xs font-medium leading-4 text-accent">РАСО × Legal Business Forum · 2026</p>
+            <h3 className="mt-2 min-h-14 text-lg font-semibold">3-я группа рейтинга</h3>
             <p className="mt-3 text-sm leading-relaxed text-ink/70">Вошли в 3-ю группу «Профессиональные сообщества» рейтинга репутационного капитала юридического рынка Москвы и Санкт-Петербурга. Отдельно отмечены в категориях «Персональный бренд» и «Интегральная оценка».</p>
           </div>
         </article>
         <article className="overflow-hidden rounded-2xl border border-ink/10 bg-white">
-          <div className="flex aspect-[640/452] flex-col justify-center bg-ink p-7 text-white">
-            <p className="text-xs uppercase tracking-wide text-white/60">XI конференция · 2026</p>
-            <p className="mt-4 text-2xl font-semibold">Юридический бизнес России</p>
-            <p className="mt-5 text-sm text-white/80">Благодарность информационному партнеру</p>
-          </div>
+          <AchievementImage src={conferenceThanks} alt="Благодарность информационному партнеру «Карьерный юрист» от XI конференции «Юридический бизнес России 2026»" label="Открыть оригинал благодарности информационному партнеру" width={4200} height={2968} />
           <div className="p-5">
-            <p className="text-xs font-medium text-accent">Москва · 8–9 октября 2026</p>
-            <h3 className="mt-2 text-lg font-semibold">За развитие профессиональных связей</h3>
+            <p className="min-h-8 text-xs font-medium leading-4 text-accent">Москва · 8–9 октября 2026</p>
+            <h3 className="mt-2 min-h-14 text-lg font-semibold">За развитие профессиональных связей</h3>
             <p className="mt-3 text-sm leading-relaxed text-ink/70">Получили благодарность за содействие в продвижении XI конференции «Юридический бизнес России» и укреплении профессиональных связей в юридическом сообществе.</p>
           </div>
         </article>
         <article className="overflow-hidden rounded-2xl border border-ink/10 bg-white">
-          <div className="flex aspect-[640/452] flex-col justify-center bg-accent/[0.08] p-6">
-            <p className="text-xs font-medium uppercase tracking-wide text-ink/60">Юридические клубы · 2025</p>
-            <div className="mt-5 grid grid-cols-3 gap-2 text-center">
-              {[{ place: 8, label: 'Самые большие' }, { place: 12, label: 'Индекс качества' }, { place: 5, label: 'Самые вовлеченные' }].map((rating) => (
-                <div key={rating.place} className="rounded-xl bg-white p-2 py-4">
-                  <p className="text-3xl font-semibold text-accent">{rating.place}</p>
-                  <p className="mt-1 text-[10px] text-ink/50">место</p>
-                  <p className="mt-3 text-[11px] leading-relaxed text-ink/70">{rating.label}</p>
-                </div>
-              ))}
-            </div>
-          </div>
+          <AchievementImage src={telegramRating} alt="Оригинальная карточка рейтинга юридических Telegram-каналов 2025 для «Карьерного юриста»" label="Открыть оригинал рейтинга юридических Telegram-каналов 2025" width={1280} height={780} />
           <div className="p-5">
-            <p className="text-xs font-medium text-accent">Рейтинг юридических Telegram-каналов · 2025</p>
-            <h3 className="mt-2 text-lg font-semibold">Среди юридических клубов</h3>
+            <p className="min-h-8 text-xs font-medium leading-4 text-accent">Рейтинг юридических Telegram-каналов · 2025</p>
+            <h3 className="mt-2 min-h-14 text-lg font-semibold">Среди юридических клубов</h3>
             <ul className="mt-3 space-y-2 text-sm leading-relaxed text-ink/70">
               <li>Самые большие — 8 место</li>
               <li>Индекс качества — 12 место</li>

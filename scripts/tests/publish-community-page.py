@@ -44,6 +44,8 @@ globalThis.fetch=async(input,options={})=>{
  if(fs.existsSync(path.join(root,'wrong-site'))&&!route.startsWith('/assets/'))return new Response('<html>OTHER ORIGIN</html>');
  if(updated&&fs.existsSync(path.join(root,'fail-chunks'))&&route.includes('CommunityHome-'))return new Response('WRONG_CHUNK');
  if(updated&&fs.existsSync(path.join(root,'fail-image'))&&route.includes('certificate-raso-lbf-2026-'))return new Response('WRONG_CERTIFICATE');
+ if(updated&&fs.existsSync(path.join(root,'fail-thanks'))&&route.includes('conference-thanks-2026-'))return new Response('WRONG_THANKS');
+ if(updated&&fs.existsSync(path.join(root,'fail-rating'))&&route.includes('legal-telegram-rating-2025-'))return new Response('WRONG_RATING');
  const file=route.startsWith('/assets/')?path.join(live,route):path.join(live,'index.html');
  return fs.existsSync(file)?new Response(fs.readFileSync(file)):new Response('missing',{status:404});
 };
@@ -65,6 +67,7 @@ globalThis.fetch=async(input,options={})=>{
     first=list((root/'backups').iterdir());assert len(first)==1
     assert (first[0]/'index.html').read_text()==oldhtml
     assert json.loads((first[0]/'verified.json').read_text())['faqQuestions']==11
+    assert json.loads((first[0]/'verified.json').read_text())['achievementOriginals']==3
     print('PASS: actual reviewed build published, all current JS/CSS and quotes verified, old assets/private data preserved')
     repeat=invoke();assert repeat.returncode==0,repeat.stdout+repeat.stderr
     assert 'повторная запись не нужна' in repeat.stdout and len(list((root/'backups').iterdir()))==1
@@ -72,7 +75,7 @@ globalThis.fetch=async(input,options={})=>{
     repaired=invoke();assert repaired.returncode==0,repaired.stdout+repaired.stderr
     assert chunk.exists()
     print('PASS: repeat is read-only; missing lazy chunk is repaired despite identical index.html')
-    for flag in ['fail-quote','fail-chunks','fail-image']:
+    for flag in ['fail-quote','fail-chunks','fail-image','fail-thanks','fail-rating']:
         reset();(root/flag).touch()
         failed=invoke();assert failed.returncode==1,failed.stdout+failed.stderr
         assert 'Прежние файлы сайта восстановлены' in failed.stderr
@@ -86,3 +89,15 @@ globalThis.fetch=async(input,options={})=>{
     requests=[json.loads(line) for line in (root/'requests.jsonl').read_text().splitlines()]
     assert all(item['method']=='GET' or item['route']=='/api/community/promo' for item in requests)
     print('PASS: wrong public origin causes no writes; only reads and read-only quote POSTs are allowed')
+    (root/'wrong-site').unlink();reset()
+    tampered=root/'tampered-build';shutil.copytree(source,tampered)
+    next((tampered/'assets').glob('conference-thanks-2026-*.png')).write_bytes(b'ALTERED_ORIGINAL')
+    alteredcmd=cmd.copy();alteredcmd[alteredcmd.index('--dist')+1]=str(tampered)
+    before=len(list((root/'backups').iterdir()))
+    before_requests=(root/'requests.jsonl').read_bytes()
+    rejected=subprocess.run(alteredcmd,env=env,text=True,capture_output=True,timeout=60)
+    assert rejected.returncode==1 and 'Оригинал изменен' in rejected.stderr,rejected.stdout+rejected.stderr
+    assert len(list((root/'backups').iterdir()))==before and (live/'index.html').read_text()==oldhtml
+    assert (root/'requests.jsonl').read_bytes()==before_requests
+    check_private()
+    print('PASS: altered archive original is rejected before HTTP requests or any public changes')

@@ -350,7 +350,7 @@ export default function CommunityHome() {
         <h2 className="mb-8 text-2xl font-semibold sm:text-3xl">Что входит в резидентство</h2>
         <div className="community-comparison overflow-hidden rounded-2xl border border-ink/10">
           <table className="w-full table-fixed border-collapse text-left">
-            <colgroup><col className="w-[45%] sm:w-1/2" /><col className="w-1/5 sm:w-1/4" /><col className="w-[35%] sm:w-1/4" /></colgroup>
+            <colgroup><col className="w-1/2 lg:w-[58%]" /><col className="w-1/5 sm:w-1/4 lg:w-[21%]" /><col className="w-[30%] sm:w-1/4 lg:w-[21%]" /></colgroup>
             <thead>
               <tr className="bg-ink/[0.03]">
                 <th scope="col" className="p-3 text-xs font-normal text-black sm:p-5 sm:text-sm">Возможности</th>
@@ -361,7 +361,7 @@ export default function CommunityHome() {
             <tbody>
               {residentBenefits.map((benefit) => (
                 <tr key={benefit} className="border-t border-ink/10">
-                  <th scope="row" className="p-3 text-[10.4px] font-normal leading-relaxed text-black sm:p-4 sm:text-[12.8px]">{benefit}</th>
+                  <th scope="row" className="p-3 text-[10.4px] font-normal leading-relaxed text-black [text-wrap:balance] sm:p-4 sm:text-[12.8px]">{benefit.replace('юридического рынка', 'юридического\u00a0рынка')}</th>
                   <td className="text-center"><span aria-hidden="true" className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-ink/[0.04] text-xl text-ink/60">×</span><span className="sr-only">Не входит без подписки</span></td>
                   <td className="bg-accent/[0.12] text-center"><span aria-hidden="true" className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-accent text-lg text-[#0b1c32]">✓</span><span className="sr-only">Входит в подписку</span></td>
                 </tr>

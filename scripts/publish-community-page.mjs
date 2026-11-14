@@ -49,6 +49,16 @@ async function main(){
   if(portraits.length!==3)throw Error('Не найдены три подготовленных портрета амбассадоров')
   const certificates=source.files.filter(file=>/\/certificate-raso-lbf-2026-[^/]+\.jpg$/.test(file))
   if(certificates.length!==1)throw Error('Не найден оригинал сертификата рейтинга РАСО и Legal Business Forum')
+  const originalRecords=JSON.parse(fs.readFileSync(new URL('../src/assets/achievements/originals.json',import.meta.url),'utf8'))
+  if(originalRecords.length!==2)throw Error('Не подтверждены два оригинала из архива владельца')
+  const archiveOriginals=originalRecords.map(record=>{
+    const {name,ext}=path.parse(record.file)
+    const matches=source.files.filter(file=>path.basename(file).startsWith(name+'-')&&path.extname(file)===ext)
+    if(matches.length!==1)throw Error('Не найден оригинал из архива: '+record.file)
+    const bytes=fs.readFileSync(matches[0])
+    if(bytes.length!==record.bytes||hash(bytes)!==record.sha256)throw Error('Оригинал изменен: '+record.file)
+    return matches[0]
+  })
   if(run('nginx',['-t']).status!==0)throw Error('nginx -t не прошёл; публикация не начиналась')
   const nginx=run('nginx',['-T']);if(nginx.status!==0)throw Error('Не прочитан действующий nginx')
   const roots=[]
@@ -72,7 +82,7 @@ async function main(){
       while(next<bundle.assets.length){const asset=bundle.assets[next++];try{if(!(await get(asset)).equals(fs.readFileSync(path.join(source.root,asset))))failures.push(asset)}catch{failures.push(asset)}}
     }))
     if(failures.length)throw Error('Не совпадают опубликованные JS/CSS: '+failures.slice(0,6).join(', '))
-    for(const file of [...portraits,...certificates]){const route='/'+path.relative(source.root,file).split(path.sep).join('/');if(!(await get(route)).equals(fs.readFileSync(file)))throw Error('Не подтверждено изображение: '+route)}
+    for(const file of [...portraits,...certificates,...archiveOriginals]){const route='/'+path.relative(source.root,file).split(path.sep).join('/');if(!(await get(route)).equals(fs.readFileSync(file)))throw Error('Не подтверждено изображение: '+route)}
     for(const [tariffId,promoCode,amount,months,subscriptionId]of [['1m','',690,1,'2854597'],['3m','',1770,3,'3005286'],['6m','',3180,6,'3005289'],['1m','KQ1111',350,1,'2611878']]){
       const quote=JSON.parse(await get('/api/community/promo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tariffId,promoCode})}))
       if(quote.ok!==true||quote.applied!==Boolean(promoCode)||quote.amount!==amount||quote.months!==months||String(quote.subscriptionId)!==subscriptionId)throw Error('Не подтверждён расчёт '+(promoCode||tariffId))
@@ -91,14 +101,14 @@ async function main(){
   const modes={}
   for(const file of source.files){const relative=path.relative(source.root,file),dest=path.join(target.root,relative);if(fs.existsSync(dest))modes[relative]=fs.statSync(dest).mode&0o777}
   fs.writeFileSync(path.join(backup,'previous-modes.json'),JSON.stringify(modes),{mode:0o600})
-  fs.writeFileSync(path.join(backup,'release.json'),JSON.stringify({version,commit:option('--commit'),root:target.root,entry:source.entry,previousEntry:target.entry,startedAt:new Date().toISOString(),sourceFiles:['src/pages/community/CommunityHome.tsx','src/assets/ambassadors/','src/components/AmbassadorCarousel.tsx','src/components/CommunityAchievements.tsx','src/components/CommunityPromoField.tsx','src/components/ConsentCheck.tsx','src/components/HowHeardField.tsx','src/components/TariffJoinBlock.tsx','src/components/FAQSection.tsx','src/components/TestimonialCarousel.tsx','src/index.css','src/lib/featureFlags.ts'],copyNormalization:'visible frontend text: ё → е; URLs and identifiers preserved'},null,2),{mode:0o600})
+  fs.writeFileSync(path.join(backup,'release.json'),JSON.stringify({version,commit:option('--commit'),root:target.root,entry:source.entry,previousEntry:target.entry,startedAt:new Date().toISOString(),sourceFiles:['src/pages/community/CommunityHome.tsx','src/assets/ambassadors/','src/assets/achievements/','src/components/AmbassadorCarousel.tsx','src/components/CommunityAchievements.tsx','src/components/CommunityPromoField.tsx','src/components/ConsentCheck.tsx','src/components/HowHeardField.tsx','src/components/TariffJoinBlock.tsx','src/components/FAQSection.tsx','src/components/TestimonialCarousel.tsx','src/index.css','src/lib/featureFlags.ts'],copyNormalization:'visible frontend text: ё → е; URLs and identifiers preserved'},null,2),{mode:0o600})
   try{
     if(fs.readFileSync(path.join(target.root,'index.html'),'utf8')!==target.html)throw Error('Началась другая публикация; операция остановлена')
     console.log('Публикую страницу сообщества; резервная копия: '+backup)
     const changed=publishStatic(source.root,target.root,backup)
     await verify()
-    fs.writeFileSync(path.join(backup,'verified.json'),JSON.stringify({verifiedAt:new Date().toISOString(),version,changed,assets:bundle.assets.length,faqQuestions:11,faqColumns:2,comparisonBenefits:11,tariffOrder:['1m','6m','3m'],ambassadorCards:10,namedAmbassadors:10,portraitFiles:3,achievementOriginals:1,achievements:3,ambassadorForm:true,ambassadorModal:true,ambassadorCarouselLoop:true,defaultTariff:'6m',geographySidePanel:true,backendChanged:false,nginxChanged:false}),{mode:0o600})
-    console.log('COMMUNITY_PAGE_PUBLISHED: новая страница подтверждена по публичному HTML и '+bundle.assets.length+' JS/CSS. Опубликованы новая титульная с кнопкой, сравнение 11 возможностей с кнопкой под галочками, география с университетами справа, равные тарифы 1–6–3 месяца с выбором 6 месяцев, циклическая лента 10 амбассадоров и заявка по кнопке, достижения и сертификат РАСО, компактные отзывы, основатель после отзывов и FAQ в две колонки с кнопкой вступления. Расчёт трёх тарифов и KQ1111 → 350 ₽ проверен. https://legalcareerist.ru/community')
+    fs.writeFileSync(path.join(backup,'verified.json'),JSON.stringify({verifiedAt:new Date().toISOString(),version,changed,assets:bundle.assets.length,faqQuestions:11,faqColumns:2,comparisonBenefits:11,tariffOrder:['1m','6m','3m'],ambassadorCards:10,namedAmbassadors:10,portraitFiles:3,achievementOriginals:3,archiveOriginals:originalRecords,achievements:3,ambassadorForm:true,ambassadorModal:true,ambassadorCarouselLoop:true,defaultTariff:'6m',geographySidePanel:true,backendChanged:false,nginxChanged:false}),{mode:0o600})
+    console.log('COMMUNITY_PAGE_PUBLISHED: новая страница подтверждена по публичному HTML и '+bundle.assets.length+' JS/CSS. Опубликованы новая титульная с кнопкой, сравнение 11 возможностей с кнопкой под галочками, география с университетами справа, равные тарифы 1–6–3 месяца с выбором 6 месяцев, циклическая лента 10 амбассадоров и заявка по кнопке, достижения с тремя оригинальными изображениями (сертификат РАСО, благодарность и рейтинг), компактные отзывы, основатель после отзывов и FAQ в две колонки с кнопкой вступления. Расчёт трёх тарифов и KQ1111 → 350 ₽ проверен. https://legalcareerist.ru/community')
     console.log('Резервная копия: '+backup)
   }catch(error){
     let restored=false
