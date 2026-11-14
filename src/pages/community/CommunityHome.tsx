@@ -52,17 +52,16 @@ const mvc = [
 ]
 
 const residentBenefits = [
-  'Доступ в закрытое сообщество юристов и студентов в Telegram',
-  'Нетворкинг, новые знакомства и обмен профессиональным опытом',
-  'Онлайн-вебинары с приглашенными экспертами',
-  'Мастермайнды, карьерные разборы и групповые обсуждения',
-  'Онлайн- и офлайн-встречи резидентов в разных городах',
-  'Доступ к базе знаний',
-  'Доступ к подборкам юридических вакансий и стажировок',
-  'Первая карьерная консультация — бесплатно',
-  'Возможность выступить спикером, поделиться опытом или стать гостем подкаста',
-  'Возможность публиковать свои статьи и экспертные материалы на площадках «Карьерного юриста»',
-  'Скидка 20–50% на мероприятия «Карьерного юриста»',
+  'Закрытый чат в Телеграме',
+  'Нетворкинг',
+  'Закрытые мероприятия с приглашенными экспертами юридического рынка',
+  'Мастермайнды и карьерные разборы',
+  'Онлайн- и офлайн-встречи резидентов',
+  'База знаний',
+  'Закрытые вакансии и стажировки',
+  'Одна бесплатная карьерная консультация в месяц',
+  'Спикерство на мероприятиях и подкастах',
+  'Скидки от 20 до 50 процентов на мероприятия',
   'Специальные предложения и скидки от партнеров',
 ]
 
@@ -310,7 +309,7 @@ export default function CommunityHome() {
   }
 
   return (
-    <div>
+    <div className="community-page">
       <SectionRail items={railItems} />
 
       <section id="hero" className="bg-ink py-16 text-center text-white sm:py-20">
@@ -349,29 +348,30 @@ export default function CommunityHome() {
       <section id="benefits" className="container-page py-14">
         <div className="mx-auto max-w-5xl">
         <h2 className="mb-8 text-2xl font-semibold sm:text-3xl">Что входит в резидентство</h2>
-        <div className="overflow-hidden rounded-2xl border border-ink/10">
+        <div className="community-comparison overflow-hidden rounded-2xl border border-ink/10">
           <table className="w-full table-fixed border-collapse text-left">
-            <colgroup><col className="w-[52%] sm:w-[50%]" /><col /><col /></colgroup>
+            <colgroup><col className="w-[45%] sm:w-1/2" /><col className="w-1/5 sm:w-1/4" /><col className="w-[35%] sm:w-1/4" /></colgroup>
             <thead>
               <tr className="bg-ink/[0.03]">
-                <th scope="col" className="p-3 text-xs font-medium text-ink/60 sm:p-5 sm:text-sm">Возможности</th>
+                <th scope="col" className="p-3 text-xs font-normal text-black sm:p-5 sm:text-sm">Возможности</th>
                 <th scope="col" className="px-1 py-5 text-center text-xs font-semibold text-ink/60 sm:px-3 sm:text-base">Без подписки</th>
                 <th scope="col" className="bg-accent px-1 py-5 text-center text-xs font-semibold text-[#0b1c32] sm:px-3 sm:text-base">С подпиской</th>
               </tr>
             </thead>
             <tbody>
-              {residentBenefits.map((benefit, index) => (
-                <tr key={benefit} className={`border-t border-ink/10 ${index === 0 ? 'bg-accent/[0.08]' : ''}`}>
-                  <th scope="row" className="p-3 text-[10.4px] font-medium leading-relaxed sm:p-4 sm:text-[12.8px]">{benefit}</th>
-                  <td className="text-center"><span aria-hidden="true" className="text-lg text-ink/25">—</span><span className="sr-only">Не входит без подписки</span></td>
+              {residentBenefits.map((benefit) => (
+                <tr key={benefit} className="border-t border-ink/10">
+                  <th scope="row" className="p-3 text-[10.4px] font-normal leading-relaxed text-black sm:p-4 sm:text-[12.8px]">{benefit}</th>
+                  <td className="text-center"><span aria-hidden="true" className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-ink/[0.04] text-xl text-ink/60">×</span><span className="sr-only">Не входит без подписки</span></td>
                   <td className="bg-accent/[0.12] text-center"><span aria-hidden="true" className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-accent text-lg text-[#0b1c32]">✓</span><span className="sr-only">Входит в подписку</span></td>
                 </tr>
               ))}
             </tbody>
             <tfoot>
-              <tr className="border-t border-ink/10 bg-accent/[0.04]">
-                <td colSpan={3} className="p-5 text-center">
-                  <button type="button" onClick={scrollToJoin} className="btn-accent min-h-12 rounded-full px-8 py-3 text-sm font-semibold">Стать резидентом</button>
+              <tr className="border-t border-ink/10">
+                <td colSpan={2} />
+                <td className="bg-accent/[0.12] px-1 py-4 text-center sm:px-3">
+                  <button type="button" onClick={scrollToJoin} className="btn-accent min-h-12 w-full max-w-56 rounded-xl px-1 py-2 text-[11px] font-semibold leading-4 min-[390px]:text-xs lg:rounded-full lg:text-sm">Стать резидентом</button>
                 </td>
               </tr>
             </tfoot>
@@ -383,7 +383,7 @@ export default function CommunityHome() {
       <section id="map" className="border-y border-ink/10 bg-white py-12">
         <div className="container-page">
           <h2 className="mb-8 text-2xl font-semibold sm:text-3xl">География сообщества</h2>
-          <div className="mx-auto grid max-w-5xl items-center gap-6 lg:grid-cols-[3fr_2fr]">
+          <div className="mx-auto grid max-w-5xl items-start gap-6 lg:grid-cols-[3fr_2fr]">
             <div className="mx-auto w-4/5 max-w-[38.4rem] rounded-2xl bg-ink/[0.02] p-4 sm:p-6 lg:w-full">
               <div className="relative">
                 <svg viewBox={`0 0 ${RU_MAP_W} ${RU_MAP_H}`} className="w-full" aria-hidden="true">
@@ -402,7 +402,7 @@ export default function CommunityHome() {
                 ))}
               </div>
             </div>
-            <aside data-city-panel aria-label="Университеты резидентов" aria-live="polite" className="min-h-44 rounded-2xl border border-accent/20 bg-accent/[0.04] p-6 lg:min-h-72">
+            <aside data-city-panel hidden={!activeCity} aria-label="Университеты резидентов" aria-live="polite" className="community-city-panel min-h-44 rounded-2xl border border-accent/20 bg-accent/[0.04] p-6 lg:min-h-72">
               {cities.map((city) => (
                 <div key={city.id} id={`city-panel-${city.id}`} hidden={activeCity !== city.id}>
                   <h3 className="text-lg font-semibold">{city.name}</h3>
@@ -410,7 +410,6 @@ export default function CommunityHome() {
                   <ul className="mt-4 space-y-2 text-sm leading-relaxed text-ink/70">{city.schools.map((school) => <li key={school}>{school}</li>)}</ul>
                 </div>
               ))}
-              {!activeCity && <div className="flex min-h-32 flex-col justify-center lg:min-h-60"><h3 className="font-semibold">Университеты резидентов</h3><p className="mt-3 text-sm leading-relaxed text-ink/60">Наведите на отметку города на карте или нажмите на нее.</p></div>}
             </aside>
           </div>
         </div>
