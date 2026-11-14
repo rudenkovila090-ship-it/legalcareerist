@@ -19,8 +19,7 @@ export default function CommunityAchievements() {
           <AchievementImage src={certificateRasoLbf} alt="Сертификат рейтинга РАСО и Legal Business Forum, 2026: 3-я группа — профессиональные сообщества; отдельно отмечены персональный бренд и интегральная оценка" label="Открыть сертификат рейтинга РАСО и Legal Business Forum" width={640} height={452} />
           <div className="p-5">
             <p className="min-h-8 text-xs font-medium leading-4 text-accent">РАСО × Legal Business Forum · 2026</p>
-            <h3 className="mt-2 min-h-14 text-lg font-semibold">3-я группа рейтинга</h3>
-            <p className="mt-3 text-sm leading-relaxed text-ink/70">3-я группа рейтинга в группе «Профессиональные сообщества»</p>
+            <h3 className="mt-2 min-h-14 text-lg font-semibold">3-я группа рейтинга в группе «Профессиональные сообщества»</h3>
           </div>
         </article>
         <article className="overflow-hidden rounded-2xl border border-ink/10 bg-white">
