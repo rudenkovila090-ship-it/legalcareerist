@@ -37,7 +37,7 @@ function Locked({ status }: { status?: string }) {
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-ink/[0.06] text-ink/70">{cabinetIcon.lock}</div>
         <h1 className="mt-4 text-xl font-semibold">База знаний — для резидентов сообщества</h1>
         <p className="mt-2 text-sm text-ink/70">
-          Подробные материалы по карьере юриста открыты участникам сообщества с действующей подпиской. {ended ? 'Ваша подписка закончилась: продлите её, и доступ вернётся сразу.' : 'Вступите в сообщество, чтобы открыть базу.'}
+          Подробные материалы по карьере юриста открыты участникам сообщества с действующей подпиской. {ended ? 'Ваша подписка закончилась: продлите ее, и доступ вернется сразу.' : 'Вступите в сообщество, чтобы открыть базу.'}
         </p>
         <a href="/community#join" className={`mt-6 inline-block rounded-full bg-ink px-6 py-2.5 text-sm font-semibold text-white hover:bg-ink/90 ${focusRing}`}>{ended ? 'Продлить подписку' : 'Вступить в сообщество'}</a>
         <div className="mt-4"><Link to="/cabinet" className={`rounded text-sm text-ink/50 hover:text-ink ${focusRing}`}>← В кабинет</Link></div>
@@ -198,7 +198,7 @@ function Workspace({ data, pageId, current, marks }: { data: KbIndex; pageId: st
           ) : (
             <div className="py-16 text-center">
               <h1 className="text-xl font-semibold">{current.state === 'missing' ? 'Страница не найдена' : 'Не получилось открыть страницу'}</h1>
-              <p className="mt-2 text-sm text-ink/60">{current.state === 'missing' ? 'Возможно, её переименовали или убрали. Выберите материал через фильтры или поиск.' : 'Попробуйте обновить страницу через минуту.'}</p>
+              <p className="mt-2 text-sm text-ink/60">{current.state === 'missing' ? 'Возможно, ее переименовали или убрали. Выберите материал через фильтры или поиск.' : 'Попробуйте обновить страницу через минуту.'}</p>
               {current.state === 'missing' && <button type="button" onClick={() => setPaletteOpen(true)} className={`mt-4 rounded-full border border-ink/15 px-5 py-2 text-sm font-semibold text-ink/70 hover:text-ink ${focusRing}`}>Открыть поиск</button>}
             </div>
           )}

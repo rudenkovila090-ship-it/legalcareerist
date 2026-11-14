@@ -99,7 +99,7 @@ function ReviewForm({ slug, token, initial, onSaved }: { slug: string; token: st
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     const consent = consentOf(e)
-    if (!rating) return setMissing('Поставьте оценку звёздами.')
+    if (!rating) return setMissing('Поставьте оценку звездами.')
     if (!displayName.trim()) return setMissing('Укажите, как подписать отзыв: только имя, без фамилии.')
     if (!publishConsent) return setMissing('Без отдельного согласия на публикацию отзыв отправить нельзя: отзывы на сайте видны всем.')
     setMissing('')
@@ -123,7 +123,7 @@ function ReviewForm({ slug, token, initial, onSaved }: { slug: string; token: st
       <div className="glass mt-5 rounded-xl p-6 text-center">
         <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-2xl text-emerald-600">✓</span>
         <div className="mt-3 font-semibold">Спасибо за отзыв!</div>
-        <p className="mt-1 text-sm text-ink/60">Он уже опубликован на этой странице. Если захотите что-то изменить, откройте ссылку из письма ещё раз. Чтобы снять отзыв с сайта, напишите на <a className="underline" href="mailto:rudenkov.ilia@yandex.ru">rudenkov.ilia@yandex.ru</a>.</p>
+        <p className="mt-1 text-sm text-ink/60">Он уже опубликован на этой странице. Если захотите что-то изменить, откройте ссылку из письма еще раз. Чтобы снять отзыв с сайта, напишите на <a className="underline" href="mailto:rudenkov.ilia@yandex.ru">rudenkov.ilia@yandex.ru</a>.</p>
       </div>
     )
   }
@@ -189,7 +189,7 @@ function ReviewForm({ slug, token, initial, onSaved }: { slug: string; token: st
       </div>
       <ConsentCheck marketing={false} />
       {missing && <p className="text-sm text-red-600">{missing}</p>}
-      {state === 'error' && <p className="text-sm text-red-600">Не получилось отправить отзыв. Попробуйте ещё раз через минуту или напишите в поддержку.</p>}
+      {state === 'error' && <p className="text-sm text-red-600">Не получилось отправить отзыв. Попробуйте еще раз через минуту или напишите в поддержку.</p>}
       <button type="submit" disabled={state === 'sending'} className="rounded-full bg-ink px-6 py-2.5 text-sm font-semibold text-white hover:bg-ink/90 disabled:opacity-60">
         {state === 'sending' ? 'Отправляем…' : initial ? 'Сохранить отзыв' : 'Отправить отзыв'}
       </button>

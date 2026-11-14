@@ -53,7 +53,7 @@ function PrivacyForm({ profile, onSaved }: { profile: Profile; onSaved: (p: Prof
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-3">
-          <span className={`text-sm font-medium ${hidden ? 'text-emerald-700' : 'text-ink/50'}`}>{hidden ? 'Включён' : 'Выключен'}</span>
+          <span className={`text-sm font-medium ${hidden ? 'text-emerald-700' : 'text-ink/50'}`}>{hidden ? 'Включен' : 'Выключен'}</span>
           <Switch checked={hidden} onChange={setHidden} label="Скрытый поиск" />
         </div>
       </div>
@@ -167,7 +167,7 @@ function PracticesForm({ profile, practices, levels, onSaved }: { profile: Profi
 }
 
 // ---- Ожидания по роли ----
-const FORMATS = [{ id: 'office', label: 'Офис' }, { id: 'hybrid', label: 'Гибрид' }, { id: 'remote', label: 'Удалённо' }]
+const FORMATS = [{ id: 'office', label: 'Офис' }, { id: 'hybrid', label: 'Гибрид' }, { id: 'remote', label: 'Удаленно' }]
 const RELOCATION = [{ id: 'no', label: 'Нет' }, { id: 'maybe', label: 'Возможно' }, { id: 'yes', label: 'Да, готов(а)' }]
 const OVERTIME = [{ id: 'no', label: 'Нет' }, { id: 'sometimes', label: 'Иногда' }, { id: 'yes', label: 'Да, готов(а)' }]
 
@@ -222,7 +222,7 @@ function ExpectationsForm({ profile, onSaved }: { profile: Profile; onSaved: (p:
           <input value={from} onChange={(ev) => setFrom(ev.target.value)} inputMode="numeric" placeholder="от" aria-label="Зарплата от" className={inputClass} />
           <input value={to} onChange={(ev) => setTo(ev.target.value)} inputMode="numeric" placeholder="до" aria-label="Зарплата до" className={inputClass} />
         </div>
-        <p className="mt-2 text-xs text-ink/50">Вилка нужна для подбора вакансий. Работодателю она не показывается, пока вы сами не решите её раскрыть.</p>
+        <p className="mt-2 text-xs text-ink/50">Вилка нужна для подбора вакансий. Работодателю она не показывается, пока вы сами не решите ее раскрыть.</p>
       </div>
       <div>
         <label className={labelClass}>Готовность к переработкам</label>

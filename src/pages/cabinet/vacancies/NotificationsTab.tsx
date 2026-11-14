@@ -88,7 +88,7 @@ export default function NotificationsTab({ onRead }: { onRead: () => void }) {
       <section aria-label="Лента уведомлений">
         <BlockHead
           title="Лента"
-          note={unread > 0 ? `${unread} непрочитанных` : 'Всё прочитано'}
+          note={unread > 0 ? `${unread} непрочитанных` : 'Все прочитано'}
           aside={unread > 0 ? <button type="button" onClick={() => void readAll()} className={btnGhost}>Отметить все прочитанными</button> : undefined}
         />
         {items.length === 0 ? (

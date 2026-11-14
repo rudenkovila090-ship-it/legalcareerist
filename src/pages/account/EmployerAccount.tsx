@@ -445,7 +445,7 @@ export default function EmployerAccount() {
     setResponseStatusBulk([...selectedResponseIds], status)
     setSelectedResponseIds(new Set())
     refreshResponses()
-    setNotice(`Статус «${responseStatusLabel[status]}» применён к ${selectedResponseIds.size} откликам.`)
+    setNotice(`Статус «${responseStatusLabel[status]}» применен к ${selectedResponseIds.size} откликам.`)
   }
 
   function handleDuplicateVacancy(data: (typeof vacancies)[number]['data']) {

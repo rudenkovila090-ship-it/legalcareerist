@@ -54,7 +54,7 @@ export default function ApplicationsTab() {
     const r = await withdrawApplication(number, reason)
     setBusy(false)
     if (!r.ok) {
-      setError(r.error === 'closed' ? 'Этот отклик уже закрыт.' : 'Не получилось отозвать. Попробуйте ещё раз.')
+      setError(r.error === 'closed' ? 'Этот отклик уже закрыт.' : 'Не получилось отозвать. Попробуйте еще раз.')
       return
     }
     setAsking(null)
@@ -71,7 +71,7 @@ export default function ApplicationsTab() {
         title="Откликов пока нет"
         action={<Link to="/cabinet/vacancies" className={btnPrimary}>Смотреть вакансии</Link>}
       >
-        Откликнитесь на вакансию, и она появится здесь с путём отклика: передан работодателю, собеседование, оффер. Отклики находим по почте аккаунта и привязанному Telegram.
+        Откликнитесь на вакансию, и она появится здесь с путем отклика: передан работодателю, собеседование, оффер. Отклики находим по почте аккаунта и привязанному Telegram.
       </EmptyNote>
     )
   }
@@ -93,7 +93,7 @@ export default function ApplicationsTab() {
               </h3>
               <p className="mt-0.5 text-xs text-ink/55">Отклик №{a.number} · отправлен {longDate(a.createdAt)}</p>
             </div>
-            <span className="text-xs text-ink/45">обновлён {relativeTime(a.statusAt)}</span>
+            <span className="text-xs text-ink/45">обновлен {relativeTime(a.statusAt)}</span>
           </div>
           <div className="mt-3 overflow-x-auto pb-1">
             <div className="min-w-[20rem]">
@@ -113,7 +113,7 @@ export default function ApplicationsTab() {
           {asking === a.number && (
             <div className="mt-4 rounded-2xl bg-ink/[0.04] p-4">
               <label className="block text-sm font-medium" htmlFor={`why-${a.number}`}>Отозвать отклик? Причину можно не указывать</label>
-              <textarea id={`why-${a.number}`} value={reason} onChange={(e) => setReason(e.target.value.slice(0, 300))} rows={2} placeholder="Например: нашёл другую работу" className="mt-2 w-full rounded-xl border border-ink/15 bg-white px-3 py-2 text-base placeholder:text-ink/40 focus:border-ink/40 focus:outline-none sm:text-sm" />
+              <textarea id={`why-${a.number}`} value={reason} onChange={(e) => setReason(e.target.value.slice(0, 300))} rows={2} placeholder="Например: нашел другую работу" className="mt-2 w-full rounded-xl border border-ink/15 bg-white px-3 py-2 text-base placeholder:text-ink/40 focus:border-ink/40 focus:outline-none sm:text-sm" />
               {error && <p role="alert" className="mt-2 text-sm text-red-600">{error}</p>}
               <div className="mt-3 flex flex-wrap gap-2">
                 <button type="button" disabled={busy} onClick={() => void withdraw(a.number)} className="inline-flex items-center rounded-full bg-red-600 px-5 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60">{busy ? 'Отзываем…' : 'Да, отозвать'}</button>
@@ -133,10 +133,10 @@ export default function ApplicationsTab() {
         {work.length > 0 ? <ul className="grid grid-cols-[minmax(0,1fr)] gap-3 xl:grid-cols-2">{work.map((a) => card(a, false))}</ul> : <p className="rounded-2xl bg-white/60 px-4 py-3 text-sm text-ink/60">Все отклики завершены. <Link to="/cabinet/vacancies" className="font-medium text-gold hover:text-ink">Посмотреть свежие вакансии →</Link></p>}
       </section>
       {done.length > 0 && (
-        <section aria-label="Завершённые отклики">
+        <section aria-label="Завершенные отклики">
           <details className="group">
             <summary className={`flex cursor-pointer list-none items-center gap-2 rounded text-sm font-semibold text-ink/60 hover:text-ink ${focusRing}`}>
-              Завершённые · {done.length}
+              Завершенные · {done.length}
               <span className="text-ink/35 transition-transform group-open:rotate-90" aria-hidden="true">›</span>
             </summary>
             <ul className="mt-3 grid grid-cols-[minmax(0,1fr)] gap-3 xl:grid-cols-2">{done.map((a) => card(a, true))}</ul>

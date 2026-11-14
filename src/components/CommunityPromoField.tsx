@@ -14,19 +14,19 @@ export default function CommunityPromoField({ value, onChange, tariffId, onPrice
         const data=await response.json()
         if(controller.signal.aborted)return
         if(!response.ok||!data.applied||!Number.isFinite(data.amount))throw Error('invalid')
-        onPriceChange(data.amount);setMessage(`Промокод применён: ${Number(data.amount).toLocaleString('ru-RU')} ₽ ${data.months===1?'каждый месяц':`за ${data.months} мес.`}`)
+        onPriceChange(data.amount);setMessage(`Промокод применен: ${Number(data.amount).toLocaleString('ru-RU')} ₽ ${data.months===1?'каждый месяц':`за ${data.months} мес.`}`)
       }catch{if(!controller.signal.aborted){setInvalid(true);setMessage('Промокод не найден, недоступен для этого тарифа или не удалось его проверить.')}}
     },300)
     return ()=>{window.clearTimeout(timer);controller.abort()}
   },[value,tariffId,onPriceChange])
   return (
     <label className="grid gap-1.5 text-sm text-ink">
-      <span>Промокод (необязательно)</span>
       <input
+        aria-label="Промокод"
         name="promoCode"
         value={value}
         onChange={(event) => {onPriceChange(null);onChange(event.target.value.toUpperCase().replace(/\s+/g, ''))}}
-        placeholder="Введите промокод"
+        placeholder="Промокод"
         maxLength={32}
         autoComplete="off"
         autoCapitalize="characters"

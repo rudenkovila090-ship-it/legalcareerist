@@ -18,7 +18,7 @@ export function ConsentsSection({ user, onRefresh }: { user: CabinetUser; onRefr
     setPending(value)
     setNote('')
     const r = await setMarketing(value)
-    if (!r.ok) setNote('Не получилось сохранить. Попробуйте ещё раз.')
+    if (!r.ok) setNote('Не получилось сохранить. Попробуйте еще раз.')
     else if (!r.data.applied) setNote('Решение записано. Рассылки идут через Telegram-бота: откройте его и нажмите Start, чтобы сообщения доходили.')
     await onRefresh()
     setPending(null)
@@ -32,7 +32,7 @@ export function ConsentsSection({ user, onRefresh }: { user: CabinetUser; onRefr
         <p className="mt-1 text-sm text-ink/60">Без них сервис не может работать с вашими данными.</p>
         <dl className="mt-4 space-y-3 text-sm">
           <Row label="Ознакомление с Политикой и согласие на обработку данных в Telegram-боте" value={c.processingAt ? `Дано ${longDate(c.processingAt)}` : 'Не давали'} ok={Boolean(c.processingAt)} />
-          <Row label="То же при сохранении профиля в кабинете" value={c.profileAt ? `Дано ${longDate(c.profileAt)}` : 'Профиль ещё не сохраняли'} ok={Boolean(c.profileAt)} />
+          <Row label="То же при сохранении профиля в кабинете" value={c.profileAt ? `Дано ${longDate(c.profileAt)}` : 'Профиль еще не сохраняли'} ok={Boolean(c.profileAt)} />
         </dl>
         <p className="mt-4 text-xs text-ink/50">
           Документы: <Link to="/legal/privacy" className="underline" target="_blank">Политика</Link>, <Link to="/legal/consent" className="underline" target="_blank">Согласие на обработку</Link>.
@@ -93,7 +93,7 @@ export function MyDataSection() {
     setError('')
     const r = await requestDeletion()
     setSending(false)
-    if (!r.ok) return setError('Не получилось отправить запрос. Попробуйте ещё раз.')
+    if (!r.ok) return setError('Не получилось отправить запрос. Попробуйте еще раз.')
     setSentAt(r.data.at)
     setConfirm(false)
   }
@@ -106,7 +106,7 @@ export function MyDataSection() {
         <button type="button" onClick={download} disabled={downloading} className="mt-4 rounded-full bg-ink px-6 py-2.5 text-sm font-semibold text-white hover:bg-ink/90 disabled:opacity-60">
           {downloading ? 'Готовим файл…' : 'Скачать файл (JSON)'}
         </button>
-        {downloadError && <p role="alert" className="mt-2 text-sm text-red-600">Не получилось подготовить файл. Попробуйте ещё раз.</p>}
+        {downloadError && <p role="alert" className="mt-2 text-sm text-red-600">Не получилось подготовить файл. Попробуйте еще раз.</p>}
       </Card>
 
       <Card>
@@ -156,10 +156,10 @@ export function VisibilitySection() {
           </ul>
         </Card>
         <Card>
-          <h2 className="text-lg font-semibold text-ink">Остаётся только у вас</h2>
+          <h2 className="text-lg font-semibold text-ink">Остается только у вас</h2>
           <ul className="mt-4 space-y-2 text-sm text-ink/80">
             <li>Контакты (телефон, почта, Telegram) — пока вы сами не отправите их в отклике или чате</li>
-            <li>Зарплатная вилка — пока вы сами не решите её раскрыть</li>
+            <li>Зарплатная вилка — пока вы сами не решите ее раскрыть</li>
             <li>Режим конфиденциальности и список компаний, от которых вы скрылись</li>
             <li>Другие ваши отклики и вся история переписки с другими компаниями</li>
             <li>Подписка, оплаты, согласия и данные для сообщества</li>

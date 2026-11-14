@@ -72,8 +72,8 @@ export default function CapitalPanel({ career }: { career: CareerHandle }) {
       <div className="sticky bottom-3 z-10 flex flex-wrap items-center gap-3 rounded-2xl bg-white/95 p-2.5 shadow-[0_1px_2px_rgba(40,57,83,0.08),0_8px_20px_-10px_rgba(40,57,83,0.35)] backdrop-blur">
         <button type="submit" disabled={busy || !dirty} className={btnPrimary}>{busy ? 'Сохраняем…' : 'Сохранить'}</button>
         {message === 'saved' && !dirty && <span className="text-xs font-semibold text-emerald-700">Сохранено</span>}
-        {message === 'error' && <span role="alert" className="text-xs text-red-600">Не получилось сохранить. Попробуйте ещё раз.</span>}
-        {dirty && !busy && <span className="text-xs text-ink/55">Есть несохранённые изменения</span>}
+        {message === 'error' && <span role="alert" className="text-xs text-red-600">Не получилось сохранить. Попробуйте еще раз.</span>}
+        {dirty && !busy && <span className="text-xs text-ink/55">Есть несохраненные изменения</span>}
       </div>
     </form>
   )

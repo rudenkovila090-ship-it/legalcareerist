@@ -74,7 +74,7 @@ function TodoDetails({ items }: { items: string[] }) {
   return (
     <details className="group px-1">
       <summary className={`inline-flex cursor-pointer list-none items-center gap-1.5 rounded text-xs font-medium text-ink/50 hover:text-ink ${focusRing}`}>
-        Что ещё не сделано <span className="transition-transform group-open:rotate-90" aria-hidden="true">›</span>
+        Что еще не сделано <span className="transition-transform group-open:rotate-90" aria-hidden="true">›</span>
       </summary>
       <ul className="mt-2 space-y-1.5">
         {items.map((item) => (
@@ -99,7 +99,7 @@ function Locked({ titles, user }: { titles: string[]; user: CabinetUser }) {
           <h2 className="text-lg font-semibold">Для резидентов сообщества</h2>
         </div>
         <p className="mt-3 max-w-2xl text-sm text-ink/70">
-          Эти разделы доступны резидентам сообщества. {ended ? 'Ваша подписка закончилась: продлите её, чтобы вернуть доступ.' : 'Вступите в сообщество, и они откроются.'}
+          Эти разделы доступны резидентам сообщества. {ended ? 'Ваша подписка закончилась: продлите ее, чтобы вернуть доступ.' : 'Вступите в сообщество, и они откроются.'}
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
           {titles.map((t) => <span key={t} className="rounded-full bg-ink/[0.06] px-3 py-1.5 text-xs font-medium text-ink/70">{t}</span>)}

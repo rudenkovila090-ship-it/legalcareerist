@@ -8,7 +8,7 @@ import type { CareerHandle } from './useCareer'
 // «Мои достижения»: награды, публикации, выступления, проекты, образование, участие в мероприятиях. Описывайте без раскрытия клиентов.
 // Записи пойдут в медиакит.
 
-const errorText = (code: string) => ({ title_required: 'Напишите название достижения.', too_many: 'Достижений уже много. Удалите лишние.', too_many_attempts: 'Слишком много действий за час. Попробуйте позже.' })[code] ?? 'Не получилось сохранить. Попробуйте ещё раз.'
+const errorText = (code: string) => ({ title_required: 'Напишите название достижения.', too_many: 'Достижений уже много. Удалите лишние.', too_many_attempts: 'Слишком много действий за час. Попробуйте позже.' })[code] ?? 'Не получилось сохранить. Попробуйте еще раз.'
 const empty: AchievementInput = { title: '', category: 'project', year: '', description: '', link: '' }
 const toInput = (a: Achievement): AchievementInput => ({ title: a.title, category: a.category, year: a.year ? String(a.year) : '', description: a.description, link: a.link })
 
@@ -90,7 +90,7 @@ export default function AchievementsPanel({ career }: { career: CareerHandle }) 
 
       <div>
         {list.length === 0 ? (
-          <EmptyNote icon={icon.trophy} title="Достижений пока нет">Добавьте первое: награду, публикацию, проект или участие в мероприятии. Всё это попадёт в медиакит.</EmptyNote>
+          <EmptyNote icon={icon.trophy} title="Достижений пока нет">Добавьте первое: награду, публикацию, проект или участие в мероприятии. Все это попадет в медиакит.</EmptyNote>
         ) : (
           <ul className="space-y-2">
             {list.map((a) => (

@@ -97,7 +97,7 @@ export default function TariffJoinBlock() {
       const data = await res.json()
       if (data.error === 'invalid_promo_code' || data.error === 'promo_not_available') {
         setSubmitting(false)
-        setFormError(data.error === 'promo_not_available' ? 'Промокод не найден, выключен или не подходит выбранному тарифу.' : 'Промокод: используйте 3–32 буквы, цифры, дефис или подчёркивание.')
+        setFormError(data.error === 'promo_not_available' ? 'Промокод не найден, выключен или не подходит выбранному тарифу.' : 'Промокод: используйте 3–32 буквы, цифры, дефис или подчеркивание.')
         return
       }
       if (!res.ok || !data.url) throw new Error('subscribe_failed')
@@ -206,7 +206,7 @@ export default function TariffJoinBlock() {
               {submitError && (
                 <p className="text-sm text-red-600">Не получилось перейти к оплате — попробуйте еще раз через минуту.</p>
               )}
-              <ConsentCheck />
+              <ConsentCheck compact />
               <button
                 id="btn-community-join"
                 type="submit"

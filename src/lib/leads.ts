@@ -208,7 +208,7 @@ export function withLeadSubmission(handler: (event: FormEvent) => void | Promise
       message.className = 'mt-3 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-800'
       message.textContent = error instanceof Error && error.message === 'file_not_received'
         ? 'Заявка сохранена, но файл принять не удалось. Проверьте соединение и повторите отправку. Заполненные поля сохранены.'
-        : 'Не удалось подтвердить получение заявки. Проверьте соединение и попробуйте ещё раз. Заполненные поля сохранены.'
+        : 'Не удалось подтвердить получение заявки. Проверьте соединение и попробуйте еще раз. Заполненные поля сохранены.'
       form.append(message)
     } finally {
       delete form.dataset.leadSubmitting

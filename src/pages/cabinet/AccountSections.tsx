@@ -29,7 +29,7 @@ export function ProfileInfoSection({ user, onSaved }: { user: CabinetUser; onSav
     const r = await updateContact(name, phone)
     if (!r.ok) {
       setBusy(false)
-      setError(r.error === 'bad_phone' ? 'Телефон указан неверно: нужны цифры, можно с +, пробелами и скобками (7–15 цифр).' : r.error === 'network' ? 'Не получилось связаться с сервером. Попробуйте ещё раз.' : 'Не получилось сохранить. Попробуйте ещё раз.')
+      setError(r.error === 'bad_phone' ? 'Телефон указан неверно: нужны цифры, можно с +, пробелами и скобками (7–15 цифр).' : r.error === 'network' ? 'Не получилось связаться с сервером. Попробуйте еще раз.' : 'Не получилось сохранить. Попробуйте еще раз.')
       return
     }
     setName(r.data.contact.name)
@@ -169,7 +169,7 @@ export function SettingsSection({ user }: { user: CabinetUser }) {
       </Group>
 
       <Group title="Конфиденциальность">
-        <NavRow to="/cabinet/privacy" icon={icon.lock} title="Скрытый поиск" note="Резюме не видно работодателям, пока вы не откликнулись" value={user.privacy.hidden ? 'Включён' : 'Выключен'} good={user.privacy.hidden} />
+        <NavRow to="/cabinet/privacy" icon={icon.lock} title="Скрытый поиск" note="Резюме не видно работодателям, пока вы не откликнулись" value={user.privacy.hidden ? 'Включен' : 'Выключен'} good={user.privacy.hidden} />
       </Group>
     </div>
   )

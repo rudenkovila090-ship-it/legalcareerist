@@ -7,8 +7,8 @@ const field = 'rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:t
 
 const ERRORS: Record<string, string> = {
   too_many_attempts: 'Слишком много запросов. Попробуйте через час.',
-  file_missing: 'Файл материала сейчас недоступен. Напишите в поддержку — пришлём вручную.',
-  mail_failed: 'Не получилось отправить письмо. Проверьте адрес и попробуйте ещё раз через минуту.',
+  file_missing: 'Файл материала сейчас недоступен. Напишите в поддержку — пришлем вручную.',
+  mail_failed: 'Не получилось отправить письмо. Проверьте адрес и попробуйте еще раз через минуту.',
 }
 
 interface Props {
@@ -41,12 +41,12 @@ export default function FreeMaterialForm({ slug, linkDays = 7 }: Props) {
       })
       const data = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string }
       if (!res.ok || !data.ok) {
-        setError(ERRORS[data.error ?? ''] ?? 'Не получилось отправить материал. Попробуйте ещё раз через минуту.')
+        setError(ERRORS[data.error ?? ''] ?? 'Не получилось отправить материал. Попробуйте еще раз через минуту.')
         return
       }
       setSentTo(email.trim())
     } catch {
-      setError('Не получилось отправить материал. Проверьте интернет и попробуйте ещё раз.')
+      setError('Не получилось отправить материал. Проверьте интернет и попробуйте еще раз.')
     } finally {
       setBusy(false)
     }
@@ -67,7 +67,7 @@ export default function FreeMaterialForm({ slug, linkDays = 7 }: Props) {
   return (
     <form onSubmit={submit} className="mt-4 grid gap-3">
       <input aria-label="Имя" autoComplete="name" placeholder="Имя (необязательно)" value={name} onChange={(e) => setName(e.target.value)} maxLength={120} className={field} />
-      <input aria-label="Почта — сюда пришлём ссылку на файл" type="email" autoComplete="email" required placeholder="Почта — сюда пришлём ссылку" value={email} onChange={(e) => setEmail(e.target.value)} className={field} />
+      <input aria-label="Почта — сюда пришлем ссылку на файл" type="email" autoComplete="email" required placeholder="Почта — сюда пришлем ссылку" value={email} onChange={(e) => setEmail(e.target.value)} className={field} />
       <HowHeardField value={howHeard} onChange={setHowHeard} className={field} />
       <button
         id="btn-material-free"
@@ -79,7 +79,7 @@ export default function FreeMaterialForm({ slug, linkDays = 7 }: Props) {
       </button>
       {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
       <ConsentCheck />
-      <p className="text-xs leading-relaxed text-ink/60">Пришлём личную ссылку на PDF — она действует {linkDays} дней.</p>
+      <p className="text-xs leading-relaxed text-ink/60">Пришлем личную ссылку на PDF — она действует {linkDays} дней.</p>
     </form>
   )
 }

@@ -11,13 +11,13 @@ export function activityLabel(e: ActivityEntry): string {
     case 'login': return 'Вход в кабинет'
     case 'password_set': return 'Задан пароль, почта подтверждена'
     case 'password_reset': return 'Пароль восстановлен'
-    case 'password_changed': return 'Пароль изменён'
+    case 'password_changed': return 'Пароль изменен'
     case 'telegram_linked': return 'Telegram привязан'
     case 'telegram_unlinked': return 'Telegram отвязан'
-    case 'profile_saved': return `Сохранён профиль${e.part && PARTS[e.part] ? `: ${PARTS[e.part]}` : ''}`
+    case 'profile_saved': return `Сохранен профиль${e.part && PARTS[e.part] ? `: ${PARTS[e.part]}` : ''}`
     case 'contact_updated': return 'Обновлены личные данные'
     case 'document_added': return `Загружен документ${e.docType && DOC_TYPES[e.docType] ? `: ${DOC_TYPES[e.docType]}` : ''}`
-    case 'document_deleted': return 'Удалён документ'
+    case 'document_deleted': return 'Удален документ'
     case 'marketing_changed': return e.value ? 'Включены рекламные и информационные сообщения' : 'Выключены рекламные и информационные сообщения'
     case 'data_exported': return 'Скачаны данные о вас'
     case 'deletion_requested': return 'Запрошено удаление данных'

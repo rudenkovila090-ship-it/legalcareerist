@@ -107,7 +107,7 @@ export default function MediakitPanel({ career }: { career: CareerHandle }) {
     <div className="grid grid-cols-[minmax(0,1fr)] gap-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
       <Surface>
         <h2 className="text-base font-semibold">Медиакит</h2>
-        <p className="mb-3 mt-0.5 text-xs text-ink/55">Страница о вас для партнёров и организаторов. Справа — как она будет выглядеть.</p>
+        <p className="mb-3 mt-0.5 text-xs text-ink/55">Страница о вас для партнеров и организаторов. Справа — как она будет выглядеть.</p>
         <form onSubmit={submit} className="space-y-3">
           <div>
             <label htmlFor="mk-head" className={label}>Кто вы в одной строке</label>
@@ -136,7 +136,7 @@ export default function MediakitPanel({ career }: { career: CareerHandle }) {
           <div className="flex flex-wrap items-center gap-3">
             <button type="submit" disabled={busy} className={btnPrimary}>{busy ? 'Сохраняем…' : 'Сохранить'}</button>
             {message === 'saved' && <span className="text-xs font-semibold text-emerald-700">Сохранено</span>}
-            {message === 'error' && <span role="alert" className="text-xs text-red-600">Не получилось сохранить. Попробуйте ещё раз.</span>}
+            {message === 'error' && <span role="alert" className="text-xs text-red-600">Не получилось сохранить. Попробуйте еще раз.</span>}
           </div>
         </form>
       </Surface>
@@ -148,7 +148,7 @@ export default function MediakitPanel({ career }: { career: CareerHandle }) {
             {sheet.headline && <p className="mt-1 text-sm font-semibold text-gold">{sheet.headline}</p>}
             {sheet.contacts.length > 0 && <p className="mt-2 text-xs text-ink/55">{sheet.contacts.join(' · ')}</p>}
           </header>
-          {empty && <p className="py-6 text-center text-[13px] text-ink/45">Заполните форму слева: страница соберётся здесь.</p>}
+          {empty && <p className="py-6 text-center text-[13px] text-ink/45">Заполните форму слева: страница соберется здесь.</p>}
           {sheet.about && <section className="mt-4"><h4 className="mb-1.5 border-b-2 border-amber-300 pb-1 text-[11px] font-bold uppercase tracking-wider text-gold">О себе</h4><p className="whitespace-pre-wrap text-[13px] leading-relaxed">{sheet.about}</p></section>}
           {sheet.topics.length > 0 && <section className="mt-4"><h4 className="mb-1.5 border-b-2 border-amber-300 pb-1 text-[11px] font-bold uppercase tracking-wider text-gold">Темы выступлений</h4><ul className="list-disc space-y-1 pl-5 text-[13px]">{sheet.topics.map((t) => <li key={t}>{t}</li>)}</ul></section>}
           {sheet.achievements.length > 0 && (

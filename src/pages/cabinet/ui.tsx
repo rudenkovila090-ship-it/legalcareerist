@@ -23,7 +23,7 @@ export function Switch({ checked, onChange, label, disabled }: { checked: boolea
 export function Todo({ items }: { items: string[] }) {
   return (
     <Card>
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">Что ещё не сделано</h2>
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">Что еще не сделано</h2>
       <ul className="mt-3 space-y-2.5">
         {items.map((item) => (
           <li key={item} className="flex items-start gap-3 text-sm text-ink/80">

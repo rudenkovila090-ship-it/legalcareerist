@@ -17,10 +17,10 @@ export default function EventPhotos() {
   const event = events.find((e) => e.slug === slug)
   const report = getPhotoReport(slug)
   const [open, setOpen] = useState<number | null>(null)
-  useDocumentTitle(event && report ? `Фотоотчёт: ${event.title}` : 'Фотоотчёта пока нет')
+  useDocumentTitle(event && report ? `Фотоотчет: ${event.title}` : 'Фотоотчета пока нет')
   useNoindex(!event || !report)
   useSocialMeta({
-    title: event && report ? `Фотоотчёт: ${event.title}` : undefined,
+    title: event && report ? `Фотоотчет: ${event.title}` : undefined,
     description: report?.description ?? (event ? `Фотографии с мероприятия «${event.title}»` : undefined),
     path: slug ? `/events/${slug}/photos` : undefined,
   })
@@ -29,7 +29,7 @@ export default function EventPhotos() {
     return (
       <div>
         <div className="container-page py-16">
-          <h1 className="text-2xl font-semibold">Фотоотчёта пока нет</h1>
+          <h1 className="text-2xl font-semibold">Фотоотчета пока нет</h1>
           <p className="mt-3 text-ink/70">
             {event ? <>Фотографии с мероприятия появятся после его проведения. <Link className="underline" to={`/events/${event.slug}`}>К мероприятию</Link></> : <Link className="underline" to="/events">Все мероприятия</Link>}
           </p>
@@ -46,7 +46,7 @@ export default function EventPhotos() {
     <div>
       <div className="container-page pb-12 pt-8">
         <Link to={`/events/${event.slug}`} className="text-sm text-ink/50 hover:text-ink">← К мероприятию</Link>
-        <div className="mt-4 text-sm font-medium uppercase tracking-wide text-gold">Фотоотчёт</div>
+        <div className="mt-4 text-sm font-medium uppercase tracking-wide text-gold">Фотоотчет</div>
         <h1 className="mt-1 text-3xl font-semibold sm:text-4xl">{event.title}</h1>
         <div className="mt-2 text-sm text-ink/60">
           {date} · {event.format === 'online' ? 'Онлайн' : event.format === 'hybrid' ? `${event.city || 'Очно'} + онлайн` : event.city} · {report.photos.length} {pluralRu(report.photos.length, ['фотография', 'фотографии', 'фотографий'])}

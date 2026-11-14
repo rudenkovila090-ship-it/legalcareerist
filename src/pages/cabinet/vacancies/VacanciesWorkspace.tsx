@@ -43,7 +43,7 @@ export default function VacanciesWorkspace({ page, ctx }: { page: CabinetPage; c
         <Stat label="Открытых вакансий" value={openCount} hint="на сайте и в кабинете" to="/cabinet/vacancies" />
         <Stat label="Откликов в работе" value={num(v?.active)} hint={v ? `всего ${v.applications}` : undefined} to="/cabinet/applications" />
         <Stat label="Новых ответов рекрутера" value={num(v?.unreadChats)} hint={v && v.unreadChats > 0 ? 'ждут в чате' : 'пока нет'} to="/cabinet/chat" attention={Boolean(v && v.unreadChats > 0)} />
-        <Stat label="Новых уведомлений" value={num(v?.unreadNotifications)} hint={v && v.unreadNotifications > 0 ? 'непрочитанные' : 'всё прочитано'} to="/cabinet/notifications" attention={Boolean(v && v.unreadNotifications > 0)} />
+        <Stat label="Новых уведомлений" value={num(v?.unreadNotifications)} hint={v && v.unreadNotifications > 0 ? 'непрочитанные' : 'все прочитано'} to="/cabinet/notifications" attention={Boolean(v && v.unreadNotifications > 0)} />
       </StatStrip>
 
       <div className="mt-2">

@@ -21,7 +21,7 @@ export default function HowHeardField({
     <input
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      placeholder={`${HOW_HEARD_LABEL} (необязательно)`}
+      placeholder={HOW_HEARD_LABEL}
       aria-label={HOW_HEARD_LABEL}
       maxLength={200}
       className={`w-full ${className}`}

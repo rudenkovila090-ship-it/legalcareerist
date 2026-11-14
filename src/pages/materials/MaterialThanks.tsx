@@ -28,7 +28,7 @@ export default function MaterialThanks() {
           </p>
 
           <p className="mt-6 text-xs text-ink/50">
-            Не пришло письмо, не открывается ссылка или срок закончился? Напишите в поддержку, пришлём новую ссылку:{' '}
+            Не пришло письмо, не открывается ссылка или срок закончился? Напишите в поддержку, пришлем новую ссылку:{' '}
             <a className="underline" href="https://t.me/legalcareerist_support" target="_blank" rel="noreferrer">@legalcareerist_support</a>
           </p>
           <Link to="/marketplace" className="mt-4 inline-block text-sm font-medium text-ink underline">В маркетплейс</Link>

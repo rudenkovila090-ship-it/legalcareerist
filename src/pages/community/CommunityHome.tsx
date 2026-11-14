@@ -6,6 +6,9 @@ import FAQSection from '../../components/FAQSection'
 import SectionRail from '../../components/SectionRail'
 import { submitLead, leadSubmissionId, withLeadSubmission } from '../../lib/leads'
 import ilyaPhoto from '../../assets/ilya-rudenkov.jpg'
+import alexandraPhoto from '../../assets/ambassadors/alexandra-barbusova.png'
+import valeriaPhoto from '../../assets/ambassadors/valeria-tretyakova.png'
+import angelinaPhoto from '../../assets/ambassadors/angelina-kandu.png'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import { tariffs } from '../../data/tariffs'
 import CommunityFooter from './CommunityFooter'
@@ -47,31 +50,36 @@ const mvc = [
 ]
 
 const residentBenefits = [
-  'Закрытые вакансии',
-  'Бесплатная карьерная консультация раз в месяц',
-  'Random coffee — нетворкинг',
-  'Скидки на мероприятия от 20 до 50%',
-  'База знаний',
-  'Полезные материалы — бесплатно',
-  'Закрытые мероприятия с приглашёнными экспертами',
+  'Доступ в закрытое сообщество юристов и студентов в Telegram',
+  'Нетворкинг, новые знакомства и обмен профессиональным опытом',
+  'Онлайн-вебинары с приглашенными экспертами',
+  'Мастермайнды, карьерные разборы и групповые обсуждения',
+  'Онлайн- и офлайн-встречи резидентов в разных городах',
+  'Доступ к базе знаний',
+  'Доступ к подборкам юридических вакансий и стажировок',
+  'Первая карьерная консультация — бесплатно',
+  'Возможность выступить спикером, поделиться опытом или стать гостем подкаста',
+  'Возможность публиковать свои статьи и экспертные материалы на площадках «Карьерного юриста»',
+  'Скидка 20–50% на мероприятия «Карьерного юриста»',
+  'Специальные предложения и скидки от партнеров',
 ]
 
 const displayTariffs = (['1m', '6m', '3m'] as const).map((id) => tariffs.find((tariff) => tariff.id === id)!)
 
-// Пять мест для анкет. Фотографии и подтверждённые данные заполняются
-// здесь, когда владелец выберет амбассадоров для публичной страницы.
 const ambassadors: {
   id: number
   lastName: string
   firstName: string
   university: string
   photo?: string
-}[] = Array.from({ length: 5 }, (_, index) => ({
-  id: index + 1,
-  lastName: 'Фамилия',
-  firstName: 'Имя',
-  university: 'Университет',
-}))
+  role?: string
+}[] = [
+  { id: 1, lastName: 'Барбусова', firstName: 'Александра', university: 'Санкт-Петербургский институт (филиал) ВГУЮ (РПА Минюста России)', photo: alexandraPhoto },
+  { id: 2, lastName: 'Третьякова', firstName: 'Валерия', university: 'СПбГУ', photo: valeriaPhoto },
+  { id: 3, lastName: 'Канду', firstName: 'Ангелина', university: 'СПбГУ', photo: angelinaPhoto },
+  { id: 4, lastName: 'Романова', firstName: 'Алена', university: 'СПбГЭУ', role: 'Младший юрист в банкротстве' },
+  { id: 5, lastName: 'Фамилия', firstName: 'Имя', university: 'Университет' },
+]
 
 // Мозаичная (пиксельная) карта РФ — сетка квадратов-«блоков», как на
 // референсе заказчика: каждая ячейка со скругленными углами и легкой
@@ -132,7 +140,7 @@ const cities = [
 function buildFaqItems() {
   return [
     'Как понять, подхожу ли я?',
-    'С какого момента открывается моё резидентство в сообществе?',
+    'С какого момента открывается мое резидентство в сообществе?',
     'Можно ли сделать возврат?',
     'Входят ли мероприятия в стоимость подписки?',
     'Есть ли заморозка?',
@@ -141,7 +149,7 @@ function buildFaqItems() {
     'Для чего вступать в сообщество?',
     'Как стать резидентом?',
     'Какая аудитория в сообществе?',
-    'Я не нашёл ответ на свой вопрос. Как мне с вами связаться?',
+    'Я не нашел ответ на свой вопрос. Как мне с вами связаться?',
   ].map((question) => ({
     q: question,
     a: <mark className="box-decoration-clone rounded-sm bg-yellow-200 px-1.5 py-0.5 text-ink">Здесь будет ответ на этот вопрос.</mark>,
@@ -196,8 +204,9 @@ export default function CommunityHome() {
     return () => window.removeEventListener('pageshow', handlePageShow)
   }, [])
 
-  const [ambassadorForm, setAmbassadorForm] = useState({ name: '', phone: '', email: '', telegram: '', about: '', howHeard: '' })
+  const [ambassadorForm, setAmbassadorForm] = useState({ name: '', phone: '', email: '', telegram: '', about: '' })
   const [ambassadorSent, setAmbassadorSent] = useState(false)
+  const [ambassadorError, setAmbassadorError] = useState('')
 
   const tariff = tariffs.find((t) => t.id === tariffId)!
 
@@ -246,7 +255,7 @@ export default function CommunityHome() {
       const data = await res.json()
       if (data.error === 'invalid_promo_code' || data.error === 'promo_not_available') {
         setSubmitting(false)
-        setFormError(data.error === 'promo_not_available' ? 'Промокод не найден, выключен или не подходит выбранному тарифу.' : 'Промокод: используйте 3–32 буквы, цифры, дефис или подчёркивание.')
+        setFormError(data.error === 'promo_not_available' ? 'Промокод не найден, выключен или не подходит выбранному тарифу.' : 'Промокод: используйте 3–32 буквы, цифры, дефис или подчеркивание.')
         return
       }
       if (!res.ok || !data.url) throw new Error('subscribe_failed')
@@ -261,7 +270,9 @@ export default function CommunityHome() {
   async function handleAmbassadorSubmit(e: FormEvent) {
     e.preventDefault()
     const consent = consentOf(e)
-    if (!ambassadorForm.name.trim() || (!ambassadorForm.phone.trim() && !ambassadorForm.telegram.trim())) return
+    const invalid = validateJoinContacts(ambassadorForm) || (!ambassadorForm.about.trim() ? 'Расскажите, почему вы хотите стать резидентом.' : null)
+    setAmbassadorError(invalid || '')
+    if (invalid) return
     await submitLead({
       requestId: leadSubmissionId(e),
       sourceBlock: 'community',
@@ -271,7 +282,6 @@ export default function CommunityHome() {
       phone: ambassadorForm.phone || undefined,
       email: ambassadorForm.email || undefined,
       telegram: ambassadorForm.telegram || undefined,
-      howHeard: ambassadorForm.howHeard,
       interest: [ambassadorForm.about].filter(Boolean),
       consent,
     })
@@ -289,10 +299,12 @@ export default function CommunityHome() {
           </h1>
           <div className="mt-8 w-full rounded-2xl border border-white/15 bg-white/[0.04] p-5 sm:mt-10 sm:p-8">
             <p className="text-base leading-relaxed text-white/80 sm:text-lg lg:text-xl">
-              Закрытое сообщество студентов и начинающих юристов: делимся опытом, строим связи и вместе строим карьеру.
+              Закрытое сообщество студентов и начинающих юристов: делимся опытом,
+              <span className="block">строим связи</span>
+              <span className="block">и вместе строим карьеру.</span>
             </p>
           </div>
-          <button type="button" onClick={scrollToJoin} className="mt-8 rounded-full bg-white px-8 py-3.5 text-sm font-semibold text-ink hover:bg-white/90">
+          <button type="button" onClick={scrollToJoin} className="btn-accent mt-8 h-[3.75rem] min-w-60 rounded-full px-10 text-[17.5px] font-semibold">
             Стать резидентом
           </button>
         </div>
@@ -303,8 +315,7 @@ export default function CommunityHome() {
         <div className="container-page">
           <div className="grid gap-6 md:grid-cols-2 md:grid-rows-2">
             {mvc.map((item, index) => (
-              <article key={item.label} className={`relative overflow-hidden rounded-2xl border p-8 sm:p-10 ${index === 0 ? 'flex min-h-72 flex-col justify-between border-ink bg-ink text-white md:row-span-2' : 'min-h-48 border-ink/10 bg-[#eef3fb]'}`}>
-                <span aria-hidden="true" className={`mb-6 block text-4xl font-semibold ${index === 0 ? 'text-white/25' : 'text-ink/20'}`}>0{index + 1}</span>
+              <article key={item.label} className={`relative overflow-hidden rounded-2xl border p-8 sm:p-10 ${index === 0 ? 'flex min-h-72 flex-col justify-center border-ink bg-ink text-white md:row-span-2' : 'min-h-48 border-ink/10 bg-[#eef3fb]'}`}>
                 <div>
                   <h2 className={`text-xl font-semibold sm:text-2xl ${index === 0 ? 'text-white' : 'text-ink'}`}>{item.label}</h2>
                   <p className={`mt-4 text-base leading-relaxed sm:text-lg ${index === 0 ? 'text-white/75' : 'text-ink/70'}`}>{item.text}</p>
@@ -316,100 +327,40 @@ export default function CommunityHome() {
       </section>
 
       <section id="benefits" className="container-page py-14">
-        <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Возможности сообщества</div>
+        <div className="mx-auto max-w-5xl">
         <h2 className="mb-8 text-2xl font-semibold sm:text-3xl">Что входит в резидентство</h2>
         <div className="overflow-hidden rounded-2xl border border-ink/10">
           <table className="w-full table-fixed border-collapse text-left">
-            <colgroup><col className="w-[52%] sm:w-[58%]" /><col /><col /></colgroup>
+            <colgroup><col className="w-[52%] sm:w-[50%]" /><col /><col /></colgroup>
             <thead>
               <tr className="bg-ink/[0.03]">
                 <th scope="col" className="p-3 text-xs font-medium text-ink/60 sm:p-5 sm:text-sm">Возможности</th>
                 <th scope="col" className="px-1 py-5 text-center text-xs font-semibold text-ink/60 sm:px-3 sm:text-base">Без подписки</th>
-                <th scope="col" className="bg-ink px-1 py-5 text-center text-xs font-semibold text-white sm:px-3 sm:text-base">С подпиской</th>
+                <th scope="col" className="bg-accent px-1 py-5 text-center text-xs font-semibold text-[#0b1c32] sm:px-3 sm:text-base">С подпиской</th>
               </tr>
             </thead>
             <tbody>
-              {residentBenefits.map((benefit) => (
-                <tr key={benefit} className="border-t border-ink/10">
-                  <th scope="row" className="p-3 text-[13px] font-medium leading-relaxed sm:p-5 sm:text-base">{benefit}</th>
+              {residentBenefits.map((benefit, index) => (
+                <tr key={benefit} className={`border-t border-ink/10 ${index === 0 ? 'bg-accent/[0.08]' : ''}`}>
+                  <th scope="row" className="p-3 text-[10.4px] font-medium leading-relaxed sm:p-4 sm:text-[12.8px]">{benefit}</th>
                   <td className="text-center"><span aria-hidden="true" className="text-lg text-ink/25">—</span><span className="sr-only">Не входит без подписки</span></td>
-                  <td className="bg-[#eef3fb] text-center"><span aria-hidden="true" className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-ink text-lg text-white">✓</span><span className="sr-only">Входит в подписку</span></td>
+                  <td className="bg-accent/[0.12] text-center"><span aria-hidden="true" className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-accent text-lg text-[#0b1c32]">✓</span><span className="sr-only">Входит в подписку</span></td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-        <p className="mt-4 text-xs leading-relaxed text-ink/50">Сравнение относится к возможностям закрытого сообщества.</p>
-      </section>
-
-      {/* Форма заявки открывается отдельно от витрины амбассадоров. */}
-      {SHOW_AMBASSADORS && (
-      <section id="ambassador-form" className="scroll-mt-16 border-y border-ink/10 bg-white py-12 text-center">
-        <div className="container-page">
-          <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Стать амбассадором</div>
-          <h2 className="mb-2 text-2xl font-semibold">Хотите представлять сообщество в своем вузе или городе?</h2>
-          <p className="mx-auto mb-6 max-w-xl text-sm text-ink/60">
-            Амбассадоры помогают развивать сообщество: рассказывают о нем среди своих, помогают с
-            мероприятиями, представляют «Карьерного юриста» в своем городе.
-          </p>
-
-          {ambassadorSent ? (
-            <div className="mx-auto max-w-md">
-              <LeadSuccessCard description="Мы свяжемся с вами в Telegram." />
-            </div>
-          ) : (
-            <form onSubmit={withLeadSubmission(handleAmbassadorSubmit)} className="glass mx-auto grid max-w-2xl gap-3 rounded-2xl p-6 text-left sm:grid-cols-2">
-              <input aria-label="ФИО"
-                value={ambassadorForm.name}
-                onChange={(e) => setAmbassadorForm((f) => ({ ...f, name: e.target.value }))}
-                placeholder="ФИО"
-                className="rounded-lg border border-ink/15 px-3 py-2 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40"
-              />
-              <PhoneInput
-                value={ambassadorForm.phone}
-                onChange={(value) => setAmbassadorForm((f) => ({ ...f, phone: value }))}
-                className="rounded-lg border border-ink/15 px-3 py-2 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40"
-              />
-              <input aria-label="Почта"
-                type="email"
-                value={ambassadorForm.email}
-                onChange={(e) => setAmbassadorForm((f) => ({ ...f, email: e.target.value }))}
-                placeholder="Почта"
-                className="rounded-lg border border-ink/15 px-3 py-2 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40"
-              />
-              <input aria-label="Telegram"
-                value={ambassadorForm.telegram}
-                onChange={(e) => setAmbassadorForm((f) => ({ ...f, telegram: e.target.value }))}
-                placeholder="Telegram"
-                className="rounded-lg border border-ink/15 px-3 py-2 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40"
-              />
-              <textarea aria-label="Напишите, почему должны выбрать вас"
-                value={ambassadorForm.about}
-                onChange={(e) => setAmbassadorForm((f) => ({ ...f, about: e.target.value }))}
-                placeholder="Напишите, почему должны выбрать вас"
-                rows={3}
-                className="rounded-lg border border-ink/15 px-3 py-2 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40 sm:col-span-2"
-              />
-              <div className="sm:col-span-2">
-                <HowHeardField value={ambassadorForm.howHeard} onChange={(v) => setAmbassadorForm((f) => ({ ...f, howHeard: v }))} />
-              </div>
-              <ConsentCheck className="sm:col-span-2" />
-              <button
-                type="submit"
-                className="rounded-lg bg-ink py-2.5 text-sm font-semibold text-white hover:bg-ink/90 sm:col-span-2"
-              >
-                Стать амбассадором
-              </button>
-            </form>
-          )}
+        <div className="mt-5 rounded-xl border border-accent/30 bg-accent/[0.06] p-4 text-sm">
+          <h3 className="font-semibold">Что доступно за дополнительную плату:</h3>
+          <p className="mt-2 text-ink/70"><span aria-hidden="true">💳 </span>Повторные индивидуальные карьерные консультации — скидка 20%.</p>
+        </div>
         </div>
       </section>
-      )}
 
       <section id="map" className="border-y border-ink/10 bg-white py-12">
         <div className="container-page">
           <h2 className="mb-8 text-2xl font-semibold sm:text-3xl">Резиденты есть в этих городах</h2>
-          <div className="mx-auto max-w-3xl rounded-2xl bg-ink/[0.02] p-4 sm:p-6">
+          <div className="mx-auto w-4/5 max-w-[38.4rem] rounded-2xl bg-ink/[0.02] p-4 sm:p-6">
             <div className="relative">
               <svg viewBox={`0 0 ${RU_MAP_W} ${RU_MAP_H}`} className="w-full" aria-hidden="true">
                 <defs>
@@ -445,10 +396,10 @@ export default function CommunityHome() {
                   >
                     {index + 1}
                   </button>
-                  <span className={`pointer-events-none absolute top-full mt-1.5 text-center text-[10px] font-medium leading-4 text-ink sm:text-sm sm:leading-5 ${city.id === 'spb' ? 'right-1/2 w-20 sm:left-1/2 sm:right-auto sm:w-auto sm:-translate-x-1/2 sm:whitespace-nowrap' : 'left-1/2 -translate-x-1/2 whitespace-nowrap'}`}>
+                  <span className={`pointer-events-none absolute top-full mt-1.5 text-center text-[10px] font-medium leading-4 text-ink sm:text-sm sm:leading-5 ${city.id === 'spb' ? 'right-1/2 w-20 sm:left-1/2 sm:right-auto sm:w-auto sm:-translate-x-1/2 sm:whitespace-nowrap' : city.id === 'ekb' ? 'left-0 whitespace-nowrap sm:left-1/2 sm:-translate-x-1/2' : 'left-1/2 -translate-x-1/2 whitespace-nowrap'}`}>
                     {city.name}
                   </span>
-                  <div id={`city-tooltip-${city.id}`} role="tooltip" hidden={activeCity !== city.id} className={`absolute top-full mt-10 w-56 rounded-xl bg-ink p-4 text-left text-xs leading-relaxed text-white shadow-xl sm:bottom-full sm:top-auto sm:mb-3 sm:mt-0 sm:w-64 ${city.id === 'spb' ? 'left-0' : 'left-1/2 -translate-x-1/2'}`}>
+                  <div id={`city-tooltip-${city.id}`} role="tooltip" hidden={activeCity !== city.id} className={`absolute top-full mt-10 w-56 rounded-xl bg-ink p-4 text-left text-xs leading-relaxed text-white shadow-xl sm:bottom-full sm:top-auto sm:mb-3 sm:mt-0 sm:w-64 left-1/2 -translate-x-1/2`}>
                     <div className="mb-2 font-semibold">Университеты</div>
                     <ul className="space-y-1 text-white/80">{city.schools.map((school) => <li key={school}>{school}</li>)}</ul>
                   </div>
@@ -464,9 +415,9 @@ export default function CommunityHome() {
         <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-5">
           {ambassadors.map((ambassador) => (
             <article key={ambassador.id} aria-label={`Карточка амбассадора ${ambassador.id}`} className="min-w-0 overflow-hidden rounded-2xl border border-ink/10 bg-white">
-              <div className="aspect-[3/4] overflow-hidden bg-ink/[0.04]">
+              <div className="aspect-[3/4] overflow-hidden bg-gradient-to-b from-accent/10 to-accent/[0.02]">
                 {ambassador.photo ? (
-                  <img src={ambassador.photo} alt={`${ambassador.lastName} ${ambassador.firstName}`} className="h-full w-full object-cover" loading="lazy" />
+                  <img src={ambassador.photo} alt={`${ambassador.lastName} ${ambassador.firstName}`} className="h-full w-full object-contain object-bottom" loading="lazy" />
                 ) : (
                   <div role="img" aria-label="Место для фотографии амбассадора" className="flex h-full flex-col items-center justify-center gap-3 text-ink/30">
                     <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-14 w-14" aria-hidden="true">
@@ -482,12 +433,70 @@ export default function CommunityHome() {
                   <span className="block">{ambassador.lastName}</span>
                   <span className="block">{ambassador.firstName}</span>
                 </h3>
-                <p className="mt-3 break-words text-sm leading-5 text-ink/60">{ambassador.university}</p>
+                <p className="mt-3 break-words text-xs leading-5 text-ink/60">{ambassador.university}</p>
+                {ambassador.role && <p className="mt-2 text-xs leading-5 text-ink/70">{ambassador.role}</p>}
               </div>
             </article>
           ))}
         </div>
       </section>
+
+      {/* Заявка в амбассадоры — отправка через существующий реестр лидов. */}
+      {SHOW_AMBASSADORS && (
+      <section id="ambassador-form" className="scroll-mt-16 border-y border-ink/10 bg-white py-12 text-center">
+        <div className="container-page">
+          <h2 className="mb-8 text-2xl font-semibold sm:text-3xl">Стать амбассадором</h2>
+
+          {ambassadorSent ? (
+            <div className="mx-auto max-w-md">
+              <LeadSuccessCard description="Мы свяжемся с вами в Telegram." />
+            </div>
+          ) : (
+            <form onSubmit={withLeadSubmission(handleAmbassadorSubmit)} className="glass mx-auto grid max-w-2xl gap-3 rounded-2xl p-6 text-left sm:grid-cols-2">
+              <input aria-label="ФИО" required
+                value={ambassadorForm.name}
+                onChange={(e) => setAmbassadorForm((f) => ({ ...f, name: e.target.value }))}
+                placeholder="ФИО"
+                className="rounded-lg border border-ink/15 px-3 py-2 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40"
+              />
+              <PhoneInput required
+                value={ambassadorForm.phone}
+                onChange={(value) => setAmbassadorForm((f) => ({ ...f, phone: value }))}
+                className="rounded-lg border border-ink/15 px-3 py-2 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40"
+              />
+              <input aria-label="Почта"
+                type="email" required
+                value={ambassadorForm.email}
+                onChange={(e) => setAmbassadorForm((f) => ({ ...f, email: e.target.value }))}
+                placeholder="Почта"
+                className="rounded-lg border border-ink/15 px-3 py-2 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40"
+              />
+              <input aria-label="Телеграм" required
+                value={ambassadorForm.telegram}
+                onChange={(e) => setAmbassadorForm((f) => ({ ...f, telegram: e.target.value }))}
+                placeholder="Телеграм"
+                className="rounded-lg border border-ink/15 px-3 py-2 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40"
+              />
+              <textarea required aria-label="Почему вы хотите стать резидентом?"
+                value={ambassadorForm.about}
+                onChange={(e) => setAmbassadorForm((f) => ({ ...f, about: e.target.value }))}
+                placeholder="Почему вы хотите стать резидентом?"
+                rows={3}
+                className="rounded-lg border border-ink/15 px-3 py-2 text-sm outline-none placeholder:text-ink/40 focus:border-ink/40 sm:col-span-2"
+              />
+              <ConsentCheck compact className="sm:col-span-2" />
+              {ambassadorError && <p role="alert" className="text-sm text-red-600 sm:col-span-2">{ambassadorError}</p>}
+              <button
+                type="submit"
+                className="btn-accent justify-self-center rounded-full px-8 py-3 text-sm font-semibold sm:col-span-2"
+              >
+                Стать амбассадором
+              </button>
+            </form>
+          )}
+        </div>
+      </section>
+      )}
 
       {/* Присоединиться: лид-заявка + тарифы */}
       <section id="join" className="scroll-mt-16 bg-ink py-14 text-white">
@@ -495,7 +504,7 @@ export default function CommunityHome() {
           <h2 className="text-2xl font-semibold sm:text-3xl">Присоединиться</h2>
           <p className="mb-8 mt-3 text-sm text-white/60 sm:text-base">Выберите удобный период подписки</p>
 
-          <div className="mx-auto grid max-w-5xl items-center gap-6 lg:grid-cols-[1fr_1.25fr_1fr]">
+          <div className="mx-auto grid max-w-4xl items-stretch gap-6 lg:grid-cols-3">
                 {displayTariffs.map((t) => {
                   const selected = tariffId === t.id
                   return (
@@ -512,7 +521,7 @@ export default function CommunityHome() {
                           setTariffId(t.id)
                         }
                       }}
-                      className={`relative flex cursor-pointer flex-col items-center justify-self-center rounded-2xl border p-4 pt-8 text-center outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-4 focus-visible:ring-offset-ink sm:p-5 sm:pt-8 lg:p-5 lg:pt-8 ${t.id === '6m' ? 'min-h-[22.5rem] w-full' : 'min-h-72 w-4/5 lg:w-full'} ${
+                      className={`relative flex cursor-pointer flex-col items-center justify-self-center rounded-2xl border p-4 pt-8 text-center outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-4 focus-visible:ring-offset-ink sm:p-5 sm:pt-8 lg:p-5 lg:pt-8 min-h-72 w-full ${
                         selected ? 'border-gold-light bg-[#344e75] ring-1 ring-gold-light' : 'border-white/15 bg-[#2d415f]'
                       }`}
                     >
@@ -528,7 +537,7 @@ export default function CommunityHome() {
                       {t.id === '1m' ? (
                         <p className="text-xs leading-relaxed text-white/50">{t.note}</p>
                       ) : (
-                        <span className="inline-flex max-w-full items-center justify-center whitespace-nowrap rounded-full bg-emerald-400/15 px-2 py-1.5 text-[10px] font-semibold leading-5 text-emerald-300 min-[360px]:text-[11px] lg:text-xs">
+                        <span className="inline-flex max-w-full items-center justify-center whitespace-nowrap rounded-full bg-emerald-400/15 px-2 py-1.5 text-[11px] font-semibold leading-5 text-emerald-300 lg:text-xs">
                           {t.note}
                         </span>
                       )}
@@ -605,7 +614,7 @@ export default function CommunityHome() {
                 {submitError && (
                   <p className="text-sm text-red-600">Не получилось перейти к оплате — попробуйте еще раз через минуту.</p>
                 )}
-                <ConsentCheck />
+                <ConsentCheck compact />
                 <button
                   id="btn-community-join"
                   type="submit"
@@ -664,11 +673,11 @@ export default function CommunityHome() {
 
       {/* FAQ */}
       <div id="faq">
-        <FAQSection items={buildFaqItems()} title="Частые вопросы" columns={2} />
+        <FAQSection items={buildFaqItems()} title="Частые вопросы" columns={2} inlineTitle compact />
       </div>
 
-      <div className="container-page pb-14 text-center">
-        <button type="button" onClick={scrollToJoin} className="rounded-full bg-ink px-8 py-3.5 text-sm font-semibold text-white hover:bg-ink/90">Стать резидентом</button>
+      <div className="container-page border-t border-ink/15 py-10 text-center">
+        <button type="button" onClick={scrollToJoin} className="btn-accent h-[3.75rem] min-w-60 rounded-full px-10 text-[17.5px] font-semibold">Стать резидентом</button>
       </div>
 
       <CommunityFooter />

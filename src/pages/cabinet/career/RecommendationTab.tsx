@@ -25,7 +25,7 @@ const errorText = (code: string) =>
     too_many_active: 'Уже есть три запроса в работе. Дождитесь результата или отмените лишний.',
     too_many: 'Слишком много запросов. Напишите в поддержку.',
     too_many_attempts: 'Слишком много попыток. Попробуйте через час.',
-  })[code] ?? 'Не получилось отправить. Попробуйте ещё раз.'
+  })[code] ?? 'Не получилось отправить. Попробуйте еще раз.'
 
 function Request({ r, onCancel }: { r: RecommendationRequest; onCancel: (id: string) => void }) {
   const [copied, setCopied] = useState(false)
@@ -63,7 +63,7 @@ function Request({ r, onCancel }: { r: RecommendationRequest; onCancel: (id: str
           <p className="whitespace-pre-wrap break-words text-[13px] leading-relaxed">{r.result}</p>
           <div className="mt-2.5 flex flex-wrap items-center gap-2">
             <button type="button" onClick={() => void copy()} className={btnAccent}>{copied ? 'Скопировано' : 'Скопировать текст'}</button>
-            <span className="text-xs text-ink/50">Приложите её к отклику или резюме.</span>
+            <span className="text-xs text-ink/50">Приложите ее к отклику или резюме.</span>
           </div>
         </div>
       )}

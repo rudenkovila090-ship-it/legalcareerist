@@ -116,7 +116,7 @@ export default function ChatTab({ onRead }: { onRead: () => void }) {
     const r = await sendChatMessage(slug, body)
     setSending(false)
     if (!r.ok) {
-      setError(r.error === 'too_many_attempts' ? 'Слишком много сообщений за час. Попробуйте позже.' : r.error === 'too_many_threads' ? 'Слишком много переписок. Напишите в поддержку.' : 'Не получилось отправить. Попробуйте ещё раз.')
+      setError(r.error === 'too_many_attempts' ? 'Слишком много сообщений за час. Попробуйте позже.' : r.error === 'too_many_threads' ? 'Слишком много переписок. Напишите в поддержку.' : 'Не получилось отправить. Попробуйте еще раз.')
       return
     }
     setText('')
@@ -212,7 +212,7 @@ export default function ChatTab({ onRead }: { onRead: () => void }) {
                 {current && current.messages.length > 0 ? (
                   current.messages.map((m) => <Bubble key={m.id} m={m} />)
                 ) : (
-                  <li className="py-8 text-center text-sm text-ink/50">Задайте вопрос рекрутеру по этой вакансии. Ответ придёт сюда, в уведомления и в Telegram, если он привязан.</li>
+                  <li className="py-8 text-center text-sm text-ink/50">Задайте вопрос рекрутеру по этой вакансии. Ответ придет сюда, в уведомления и в Telegram, если он привязан.</li>
                 )}
               </ul>
             )}

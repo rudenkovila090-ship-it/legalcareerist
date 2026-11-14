@@ -144,7 +144,7 @@ export const demoCandidates: CandidateContact[] = [
   },
   {
     id: 4,
-    position: 'Помощник юриста (стажёр)',
+    position: 'Помощник юриста (стажер)',
     sphere: 'Судебная практика, гражданское право',
     exp: 'Студент 1 курса',
     salaryFrom: '',

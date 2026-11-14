@@ -5,17 +5,18 @@ interface Props {
   className?: string
   /** Показывать необязательную галочку про рекламу. */
   marketing?: boolean
+  compact?: boolean
 }
 
 // Три отдельные галочки под формой, ни одна не отмечена заранее:
 //   1) ознакомлен с Политикой — обязательна; 2) согласие на обработку персональных данных — обязательна;
 //   3) согласие на рекламные и информационные сообщения — по желанию.
 // Обязательные закрыты браузером (required): форма не отправится. Состояние читает consentOf(e) из src/lib/consent.ts.
-export default function ConsentCheck({ tone = 'light', className = '', marketing = true }: Props) {
+export default function ConsentCheck({ tone = 'light', className = '', marketing = true, compact = false }: Props) {
   const text = tone === 'dark' ? 'text-white/60' : 'text-ink/60'
   const link = tone === 'dark' ? 'underline hover:text-white' : 'underline hover:text-ink'
-  const row = `flex cursor-pointer items-start gap-2 text-left text-xs leading-relaxed ${text}`
-  const box = 'mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-gold'
+  const row = `flex cursor-pointer items-start gap-2 text-left leading-relaxed ${compact ? 'text-[9.6px]' : 'text-xs'} ${text}`
+  const box = `mt-0.5 shrink-0 cursor-pointer accent-accent ${compact ? 'h-[12.8px] w-[12.8px]' : 'h-4 w-4'}`
   return (
     <div className={`grid gap-2 ${className}`}>
       <label className={row}>
@@ -38,7 +39,7 @@ export default function ConsentCheck({ tone = 'light', className = '', marketing
           <span>
             Хочу получать{' '}
             <Link to="/legal/marketing-consent" target="_blank" className={link}>рекламные и информационные сообщения</Link>
-            {' '}о мероприятиях, материалах и сообществе — по желанию
+            {' '}о мероприятиях, материалах и сообществе
           </span>
         </label>
       )}

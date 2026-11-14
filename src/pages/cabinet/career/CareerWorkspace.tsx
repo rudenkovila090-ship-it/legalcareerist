@@ -73,7 +73,7 @@ export default function CareerWorkspace({ page, ctx }: { page: CabinetPage; ctx:
           <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
               <h2 className="flex items-center gap-2 text-base font-semibold"><span className="text-ink/50">{icon.lock}</span>Для резидентов сообщества</h2>
-              <p className="mt-1 max-w-xl text-[13px] text-ink/60">Карьерный план, подготовка к интервью, шаблоны, рекомендация, портфолио и подкаст доступны резидентам с действующей подпиской. {ended ? 'Ваша подписка закончилась: продлите её, чтобы вернуть доступ.' : 'Вступите в сообщество, и всё откроется.'}</p>
+              <p className="mt-1 max-w-xl text-[13px] text-ink/60">Карьерный план, подготовка к интервью, шаблоны, рекомендация, портфолио и подкаст доступны резидентам с действующей подпиской. {ended ? 'Ваша подписка закончилась: продлите ее, чтобы вернуть доступ.' : 'Вступите в сообщество, и все откроется.'}</p>
             </div>
             <a href="/community#join" className={btnPrimary}>{ended ? 'Продлить подписку' : 'Вступить в сообщество'}</a>
           </div>

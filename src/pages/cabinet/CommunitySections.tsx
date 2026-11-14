@@ -104,13 +104,13 @@ const SUPPORT_EMAIL = 'info@legalcareerist.ru'
 
 const linkError = (code: string): string =>
   ({
-    bad_code: 'Код не подошёл: он неверный, просрочен (живёт 10 минут) или уже использован. Отправьте боту /link и возьмите новый.',
+    bad_code: 'Код не подошел: он неверный, просрочен (живет 10 минут) или уже использован. Отправьте боту /link и возьмите новый.',
     telegram_taken: `Этот Telegram уже привязан к другому кабинету. Откройте тот кабинет и отвяжите Telegram там или напишите нам: ${SUPPORT_EMAIL}`,
     already_linked: 'К этому кабинету уже привязан Telegram. Сначала отвяжите его.',
     too_many_attempts: 'Слишком много попыток. Попробуйте через 15 минут.',
     unauthorized: 'Сессия закончилась. Войдите снова.',
-    network: 'Не получилось связаться с сервером. Попробуйте ещё раз.',
-  })[code] ?? 'Не получилось привязать Telegram. Попробуйте ещё раз.'
+    network: 'Не получилось связаться с сервером. Попробуйте еще раз.',
+  })[code] ?? 'Не получилось привязать Telegram. Попробуйте еще раз.'
 
 export function TelegramSection({ user, onRefresh }: { user: CabinetUser; onRefresh: () => Promise<void> }) {
   const tg = user.telegram
@@ -149,7 +149,7 @@ export function TelegramSection({ user, onRefresh }: { user: CabinetUser; onRefr
     return (
       <Card>
         <span className={`inline-block rounded-full px-3 py-1 text-xs font-semibold ${user.telegramLinked ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-800'}`}>
-          {user.telegramLinked ? 'Бот подключён' : 'Бот не подключён'}
+          {user.telegramLinked ? 'Бот подключен' : 'Бот не подключен'}
         </span>
         <p className="mt-3 text-lg font-semibold">@{TELEGRAM_BOT_USERNAME}</p>
         <p className="mt-1 max-w-xl text-sm text-ink/60">Telegram администратора задан в настройках сервера: подписка и согласия берутся из карточки в боте.</p>
@@ -198,7 +198,7 @@ export function TelegramSection({ user, onRefresh }: { user: CabinetUser; onRefr
       <ol className="mt-5 space-y-5 text-sm">
         <li>
           <p className="font-medium">1. Получите код в боте</p>
-          <p className="mt-1 text-ink/60">Откройте @{TELEGRAM_BOT_USERNAME} и нажмите Start, бот пришлёт код. Если бот уже открыт, отправьте ему команду /link.</p>
+          <p className="mt-1 text-ink/60">Откройте @{TELEGRAM_BOT_USERNAME} и нажмите Start, бот пришлет код. Если бот уже открыт, отправьте ему команду /link.</p>
           <a href={`https://t.me/${TELEGRAM_BOT_USERNAME}?start=link`} target="_blank" rel="noreferrer" className="mt-3 inline-block rounded-full bg-ink px-6 py-2.5 text-sm font-semibold text-white hover:bg-ink/90">
             Получить код в боте
           </a>
@@ -272,7 +272,7 @@ export function StatusSection({ user, onRefresh }: { user: CabinetUser; onRefres
     const r = await renewLockedSubscription()
     setBusy(false)
     if (r.ok) window.location.assign(r.data.url)
-    else setError(r.error === 'paid_access_remaining' ? 'Текущий оплаченный период ещё действует. Новое оформление доступно после его окончания.' : 'Не удалось безопасно подготовить продление по прежней цене. Попробуйте позже или обратитесь в поддержку; новая оплата не создана.')
+    else setError(r.error === 'paid_access_remaining' ? 'Текущий оплаченный период еще действует. Новое оформление доступно после его окончания.' : 'Не удалось безопасно подготовить продление по прежней цене. Попробуйте позже или обратитесь в поддержку; новая оплата не создана.')
   }
   async function doCancel() {
     if (!reasonCode || (reasonCode === 'other' && !reason.trim())) { setError('Выберите причину отключения. Для варианта «Другое» напишите короткий ответ.'); return }
@@ -281,7 +281,7 @@ export function StatusSection({ user, onRefresh }: { user: CabinetUser; onRefres
     const r = await cancelSubscription(reason, reasonCode)
     setBusy(false)
     if (!r.ok) {
-      setError(r.error === 'too_many_attempts' ? 'Слишком много попыток. Попробуйте позже или напишите в чат поддержки.' : r.error === 'already_cancelled' ? 'Подписка уже отключена. Обновите страницу.' : 'Не получилось отключить. Попробуйте ещё раз или напишите в чат поддержки.')
+      setError(r.error === 'too_many_attempts' ? 'Слишком много попыток. Попробуйте позже или напишите в чат поддержки.' : r.error === 'already_cancelled' ? 'Подписка уже отключена. Обновите страницу.' : 'Не получилось отключить. Попробуйте еще раз или напишите в чат поддержки.')
       return
     }
     setPanel('none')
@@ -296,7 +296,7 @@ export function StatusSection({ user, onRefresh }: { user: CabinetUser; onRefres
         ? 'Тест основателя: путь отключения пройден, подписка не изменилась.'
         : r.data.confirmed
           ? `Отключение автопродления подтверждено. Доступ к сообществу сохранится${r.data.endsAt ? ` до ${subscriptionDate(r.data.endsAt)}` : ' до конца оплаченного периода'}.`
-          : 'Не удалось подтвердить отключение в платёжной системе. Автопродление пока остаётся включённым. Попробуйте ещё раз или обратитесь в чат поддержки.',
+          : 'Не удалось подтвердить отключение в платежной системе. Автопродление пока остается включенным. Попробуйте еще раз или обратитесь в чат поддержки.',
     })
     const refreshed = await fetchSubscription()
     if (refreshed.ok) setSub(refreshed.data.subscription)
@@ -309,7 +309,7 @@ export function StatusSection({ user, onRefresh }: { user: CabinetUser; onRefres
       const result = await retentionCheckout()
       setBusy(false)
       if (result.ok) window.location.assign(result.data.url)
-      else setError(result.error === 'paid_access_remaining' ? 'Текущий доступ ещё действует. Новый период можно оплатить после его окончания.' : 'Не удалось подготовить оплату по персональной цене. Обратитесь в поддержку; списания не включены.')
+      else setError(result.error === 'paid_access_remaining' ? 'Текущий доступ еще действует. Новый период можно оплатить после его окончания.' : 'Не удалось подготовить оплату по персональной цене. Обратитесь в поддержку; списания не включены.')
     } else {
       const result = await claimRetentionOffer()
       setBusy(false)
@@ -334,11 +334,11 @@ export function StatusSection({ user, onRefresh }: { user: CabinetUser; onRefres
     const r = await requestCardChange()
     setBusy(false)
     if (!r.ok) {
-      setError(r.error === 'too_many_attempts' ? 'Запрос уже отправлен. Ответ придёт в чат поддержки.' : 'Не получилось отправить запрос. Напишите в чат поддержки.')
+      setError(r.error === 'too_many_attempts' ? 'Запрос уже отправлен. Ответ придет в чат поддержки.' : 'Не получилось отправить запрос. Напишите в чат поддержки.')
       return
     }
     setPanel('none')
-    setDone({ kind: 'card', text: 'Запрос отправлен. Ответ придёт в чат поддержки, на почту и в Telegram, если он привязан.' })
+    setDone({ kind: 'card', text: 'Запрос отправлен. Ответ придет в чат поддержки, на почту и в Telegram, если он привязан.' })
   }
 
   const badge =
@@ -351,11 +351,11 @@ export function StatusSection({ user, onRefresh }: { user: CabinetUser; onRefres
     <div className="space-y-4">
       <Card>
         <div className="flex flex-wrap items-center gap-2">{badge}</div>
-        {sub.inGrace && <p className="my-3 rounded-xl bg-gold/10 p-4 text-sm">Оплата ожидается. Дополнительный доступ сохраняется до {subscriptionDate(sub.graceUntil)}. Закреплённая цена: {money(sub.lockedPrice)}.</p>}
+        {sub.inGrace && <p className="my-3 rounded-xl bg-gold/10 p-4 text-sm">Оплата ожидается. Дополнительный доступ сохраняется до {subscriptionDate(sub.graceUntil)}. Закрепленная цена: {money(sub.lockedPrice)}.</p>}
         {sub.retentionOffer && <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
           <h3 className="font-semibold">{sub.retentionOffer.redeemed ? 'Ваша персональная цена сохранена' : 'Оставайтесь за 500 ₽ в месяц'}</h3>
-          <p className="mt-2 text-sm">{money(sub.retentionOffer.amount)} в месяц вместо {money(sub.retentionOffer.baseAmount)}. Цена действует на последующие оплаты и сохраняется после перерыва. Повторная отмена не снижает её ещё раз.</p>
-          <p className="mt-2 text-sm">{sub.retentionOffer.claimed ? 'Предложение сохранено. ' : ''}Автопродление остаётся отключённым. {sub.retentionOffer.canCheckout ? 'Оплату и условия автопродления вы подтвердите на странице Prodamus.' : `Новый период можно оплатить после ${subscriptionDate(sub.retentionOffer.checkoutAt)}.`}</p>
+          <p className="mt-2 text-sm">{money(sub.retentionOffer.amount)} в месяц вместо {money(sub.retentionOffer.baseAmount)}. Цена действует на последующие оплаты и сохраняется после перерыва. Повторная отмена не снижает ее еще раз.</p>
+          <p className="mt-2 text-sm">{sub.retentionOffer.claimed ? 'Предложение сохранено. ' : ''}Автопродление остается отключенным. {sub.retentionOffer.canCheckout ? 'Оплату и условия автопродления вы подтвердите на странице Prodamus.' : `Новый период можно оплатить после ${subscriptionDate(sub.retentionOffer.checkoutAt)}.`}</p>
           <div className="mt-3 flex flex-wrap gap-2">
             {!sub.retentionOffer.claimed && <button type="button" disabled={busy} onClick={() => void doRetention('claim')} className="rounded-full bg-ink px-5 py-2 text-sm font-semibold text-white disabled:opacity-60">Сохранить цену {money(sub.retentionOffer.amount)}</button>}
             {sub.retentionOffer.canCheckout && <button type="button" disabled={busy} onClick={() => void doRetention('checkout')} className="rounded-full border border-ink/20 px-5 py-2 text-sm font-semibold disabled:opacity-60">Вернуться за {money(sub.retentionOffer.amount)}</button>}
@@ -393,7 +393,7 @@ export function StatusSection({ user, onRefresh }: { user: CabinetUser; onRefres
                 <h3 className="text-sm font-semibold">Ссылка на вступление в закрытый чат</h3>
                 <p className="mt-1 text-sm text-ink/70">
                   {sub.joined ? `Вы в закрытом чате${sub.joinedAt ? ` с ${longDate(sub.joinedAt)}` : ''}. Ссылка нужна, только если вышли из чата и хотите вернуться. ` : ''}
-                  Подайте заявку по ссылке, и бот одобрит её автоматически: подписка у вас оплачена.
+                  Подайте заявку по ссылке, и бот одобрит ее автоматически: подписка у вас оплачена.
                 </p>
                 <div className="mt-3 flex flex-wrap items-center gap-2.5">
                   <a href={sub.invite.url} target="_blank" rel="noopener noreferrer" className="rounded-full bg-ink px-5 py-2 text-sm font-semibold text-white hover:bg-ink/90">Вступить в сообщество</a>
@@ -445,7 +445,7 @@ export function StatusSection({ user, onRefresh }: { user: CabinetUser; onRefres
             <p className="mt-1 text-sm text-ink/70">После подтверждения Prodamus автопродление будет отключено. Доступ сохранится до {subscriptionDate(sub.cancellationEndsAt ?? sub.until)}. Выберите причину и подтвердите отключение.</p>
             <label htmlFor="cancel-reason-code" className="mt-3 block text-sm font-medium text-ink/80">Почему отключаете? Выберите один вариант</label>
             <select id="cancel-reason-code" required value={reasonCode} onChange={e => { setReasonCode(e.target.value); setError('') }} className="mt-1.5 w-full rounded-xl border border-ink/15 bg-white px-4 py-3 text-base sm:text-sm">
-              <option value="">Выберите причину</option><option value="price">Дорого</option><option value="time">Нет времени</option><option value="content">Не подошёл формат</option><option value="payment">Проблема с оплатой</option><option value="other">Другое</option>
+              <option value="">Выберите причину</option><option value="price">Дорого</option><option value="time">Нет времени</option><option value="content">Не подошел формат</option><option value="payment">Проблема с оплатой</option><option value="other">Другое</option>
             </select>
             {reasonCode === 'other' && <><label htmlFor="cancel-reason" className="mt-3 block text-sm font-medium">Напишите коротко причину</label><textarea id="cancel-reason" required value={reason} onChange={(e) => setReason(e.target.value)} rows={3} maxLength={500} className="mt-1.5 w-full rounded-xl border border-ink/15 bg-white px-4 py-3 text-base focus:border-ink/40 focus:outline-none sm:text-sm" /></>}
             {error && <p role="alert" className="mt-2 text-sm text-red-600">{error}</p>}
@@ -459,7 +459,7 @@ export function StatusSection({ user, onRefresh }: { user: CabinetUser; onRefres
         {panel === 'card' && (
           <div className="mt-5 rounded-xl border border-ink/10 p-4">
             <h3 className="text-sm font-semibold">Сменить карту для списаний</h3>
-            <p className="mt-1 text-sm text-ink/70">Для проверки доступного способа смены карты отправьте запрос в поддержку. Не присылайте номер карты, CVV или банковские коды. Платёжные данные меняются только безопасным способом Prodamus. Нажмите кнопку: запрос с данными вашей подписки уйдёт нам, а ответ придёт в чат поддержки, на почту и в Telegram, если он привязан.</p>
+            <p className="mt-1 text-sm text-ink/70">Для проверки доступного способа смены карты отправьте запрос в поддержку. Не присылайте номер карты, CVV или банковские коды. Платежные данные меняются только безопасным способом Prodamus. Нажмите кнопку: запрос с данными вашей подписки уйдет нам, а ответ придет в чат поддержки, на почту и в Telegram, если он привязан.</p>
             {error && <p role="alert" className="mt-2 text-sm text-red-600">{error}</p>}
             <div className="mt-3 flex flex-wrap gap-2.5">
               <button type="button" disabled={busy} onClick={() => void doCard()} className="rounded-full bg-ink px-5 py-2 text-sm font-semibold text-white hover:bg-ink/90 disabled:opacity-60">{busy ? 'Отправляем…' : 'Отправить запрос'}</button>

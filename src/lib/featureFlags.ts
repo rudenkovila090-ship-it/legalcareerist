@@ -5,6 +5,6 @@
 // больше в коде трогать не нужно.
 export const SHOW_FIND_EMPLOYEE = false // «Найти сотрудника» (база кандидатов работодателя) — нужно еще много доработать
 export const SHOW_PERSONAL_ACCOUNTS = false // Личные кабинеты — соискатель/работодатель/модератор
-export const SHOW_AMBASSADORS = false // Приём заявок в амбассадоры; карточки на странице сообщества видны независимо
+export const SHOW_AMBASSADORS = true // Приём заявок в амбассадоры; карточки на странице сообщества видны независимо
 export const SHOW_EVENTS_ACCOUNT = false // «Личный кабинет» во вкладках раздела «Мероприятия»
 export const SHOW_CREATE_EVENT = false // «Создать свое событие» в разделе «Мероприятия»

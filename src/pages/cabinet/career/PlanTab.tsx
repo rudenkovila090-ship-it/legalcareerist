@@ -17,7 +17,7 @@ const errorText = (code: string) =>
     bad_request: 'Заполните все четыре вопроса.',
     too_many: 'В плане уже много шагов. Удалите ненужные свои.',
     too_many_attempts: 'Слишком много действий за час. Попробуйте позже.',
-  })[code] ?? 'Не получилось сохранить. Попробуйте ещё раз.'
+  })[code] ?? 'Не получилось сохранить. Попробуйте еще раз.'
 
 function PlanForm({ career, plan, onSaved, onCancel }: { career: CareerHandle; plan: CareerPlan | null; onSaved: (p: CareerPlan) => void; onCancel?: () => void }) {
   const { stages, areas, terms } = career.state.meta
@@ -99,7 +99,7 @@ export default function PlanTab({ career }: { career: CareerHandle }) {
       <div className="grid grid-cols-[minmax(0,1fr)] gap-2 lg:grid-cols-[minmax(0,1fr)_17rem]">
         <Surface>
           <h2 className="text-base font-semibold">{plan ? 'Изменить цель' : 'Составьте карьерный план'}</h2>
-          <p className="mb-3 mt-0.5 text-xs text-ink/55">Ответьте на четыре вопроса, и мы подберём шаги: от резюме и поиска работы до навыков и нетворкинга.</p>
+          <p className="mb-3 mt-0.5 text-xs text-ink/55">Ответьте на четыре вопроса, и мы подберем шаги: от резюме и поиска работы до навыков и нетворкинга.</p>
           <PlanForm career={career} plan={plan} onSaved={(p) => { apply(p); setEditing(false) }} onCancel={plan ? () => setEditing(false) : undefined} />
         </Surface>
         <aside className="rounded-2xl bg-ink p-4 text-white" aria-label="Как это работает">

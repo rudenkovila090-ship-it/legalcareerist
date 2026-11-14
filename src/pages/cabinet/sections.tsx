@@ -27,7 +27,7 @@ export const groups: { id: GroupId; title: string }[] = [
   { id: 'events', title: 'Мероприятия' },
   { id: 'knowledge', title: 'База знаний' },
   { id: 'networking', title: 'Нетворкинг' },
-  { id: 'partner', title: 'Партнёрская программа' },
+  { id: 'partner', title: 'Партнерская программа' },
 ]
 
 /** Все группы, включая скрытую из меню: для перечня «Все разделы» на главной. */
@@ -101,7 +101,7 @@ export const sections: CabinetSection[] = [
   },
   {
     id: 'settings', group: 'account', title: 'Настройки', icon: icon.sliders, ready: true,
-    lead: 'Уведомления, конфиденциальность, безопасность и данные: всё, что можно включить или выключить.',
+    lead: 'Уведомления, конфиденциальность, безопасность и данные: все, что можно включить или выключить.',
     todo: ['Уведомления по темам и каналам (почта, Telegram) вместо одного выключателя рассылок'],
   },
   {
@@ -116,7 +116,7 @@ export const sections: CabinetSection[] = [
   },
   {
     id: 'support', group: 'account', title: 'Чат поддержки', icon: icon.lifebuoy, ready: true,
-    lead: 'Напишите нам: ответ появится здесь, придёт на почту и в Telegram, если он привязан.',
+    lead: 'Напишите нам: ответ появится здесь, придет на почту и в Telegram, если он привязан.',
     todo: ['Вложения к сообщениям'],
   },
   // ---- Для юристов ----
@@ -153,7 +153,7 @@ export const sections: CabinetSection[] = [
   },
   {
     id: 'mydata', group: 'settings', title: 'Мои данные', icon: icon.download, ready: true,
-    lead: 'Скачать всё, что мы о вас храним, или попросить удалить.',
+    lead: 'Скачать все, что мы о вас храним, или попросить удалить.',
     todo: ['Удаление без участия администратора (сейчас запрос уходит администратору и выполняется вручную)', 'Файлы документов прямо в выгрузке (сейчас в выгрузке их список, а сами файлы скачиваются в «Профиль и CV» и «Сопроводительные и тестовые»)'],
   },
   {
@@ -170,7 +170,7 @@ export const sections: CabinetSection[] = [
   {
     id: 'resident', group: 'account', title: 'Подписка', icon: icon.shield, ready: true,
     lead: 'Подписка на сообщество: статус, тариф, следующее списание, история оплат и управление.',
-    todo: ['Доступ к закрытым материалам сообщества прямо из кабинета', 'Смена тарифа из кабинета (сейчас — оформить новую подписку на странице «Сообщество»)', 'Смена карты без участия поддержки: платёжная система такой возможности не даёт, поэтому запрос уходит в чат поддержки'],
+    todo: ['Доступ к закрытым материалам сообщества прямо из кабинета', 'Смена тарифа из кабинета (сейчас — оформить новую подписку на странице «Сообщество»)', 'Смена карты без участия поддержки: платежная система такой возможности не дает, поэтому запрос уходит в чат поддержки'],
   },
   {
     id: 'events', group: 'events', title: 'Мероприятия', icon: icon.ticket, ready: true,
@@ -183,9 +183,9 @@ export const sections: CabinetSection[] = [
     todo: ['Напоминание за месяц до конца срока хранения', 'Связь с профилем юриста: подстановка практик и ожиданий'],
   },
   {
-    id: 'referrals', group: 'partner', title: 'Партнёрская программа', icon: icon.gift,
-    lead: 'Пригласите коллегу или партнёра в сообщество и получите бонус или скидку.',
-    todo: ['Условия: что получает пригласивший и приглашённый, отдельно для резидентов и для партнёров', 'Личная ссылка или промокод и учёт переходов', 'Начисление бонуса или скидки'],
+    id: 'referrals', group: 'partner', title: 'Партнерская программа', icon: icon.gift,
+    lead: 'Пригласите коллегу или партнера в сообщество и получите бонус или скидку.',
+    todo: ['Условия: что получает пригласивший и приглашенный, отдельно для резидентов и для партнеров', 'Личная ссылка или промокод и учет переходов', 'Начисление бонуса или скидки'],
   },
   {
     id: 'telegram', group: 'account', title: 'Telegram-бот', icon: icon.telegram, ready: true,
@@ -237,7 +237,7 @@ export const sections: CabinetSection[] = [
   {
     id: 'market', group: 'career', members: true, title: 'Оценка рынка', icon: icon.chart,
     lead: 'Типичные вилки и требования по практикам — только по данным, которые мы можем подтвердить.',
-    todo: ['Определить источник данных: свои заявки и отчёты, открытые данные или то и другое', 'Графики и фильтры по практике, городу и опыту', 'Связка с зарплатным навигатором на сайте'],
+    todo: ['Определить источник данных: свои заявки и отчеты, открытые данные или то и другое', 'Графики и фильтры по практике, городу и опыту', 'Связка с зарплатным навигатором на сайте'],
   },
   {
     id: 'interview-prep', group: 'career', members: true, ready: true, title: 'Подготовка к интервью', icon: icon.mic,
@@ -251,7 +251,7 @@ export const sections: CabinetSection[] = [
   },
   {
     id: 'recommendations', group: 'career', members: true, ready: true, title: 'Рекомендация', icon: icon.star,
-    lead: 'Запросите рекомендацию от «Карьерного юриста» и приложите её к отклику на вакансию или к резюме.',
+    lead: 'Запросите рекомендацию от «Карьерного юриста» и приложите ее к отклику на вакансию или к резюме.',
     todo: ['Уточнить условия услуги: бесплатно для резидентов или платно', 'Рекомендация в PDF с подписью'],
   },
   {
@@ -266,13 +266,13 @@ export const sections: CabinetSection[] = [
   },
   {
     id: 'achievements', group: 'career', members: true, ready: true, title: 'Мои достижения', icon: icon.trophy,
-    lead: 'Награды, публикации, проекты, участие в мероприятиях — всё, чем вы можете гордиться.',
+    lead: 'Награды, публикации, проекты, участие в мероприятиях — все, чем вы можете гордиться.',
     todo: ['Подтверждающие файлы к достижениям', 'Автоматические достижения: участие в мероприятиях, срок в сообществе'],
   },
   {
     id: 'capital', group: 'career', members: true, ready: true, title: 'Мой профессиональный капитал', icon: icon.gem,
     lead: 'Из чего складывается ваша профессиональная ценность: знания, опыт, репутация и связи.',
-    todo: ['Согласовать итоговый состав анкеты (сейчас предварительный)', 'Способ расчёта и шкалы, динамика по времени'],
+    todo: ['Согласовать итоговый состав анкеты (сейчас предварительный)', 'Способ расчета и шкалы, динамика по времени'],
   },
   {
     id: 'mediakit', group: 'career', members: true, ready: true, title: 'Медиакит', icon: icon.card,
@@ -321,7 +321,7 @@ const GROUP_LEADS: Record<string, string> = {
   career: '',
   events: 'Афиша ближайших мероприятий и ваши регистрации.',
   networking: 'Знакомства и встречи с коллегами из сообщества.',
-  partner: 'Приглашайте коллег и партнёров в сообщество и получайте бонусы.',
+  partner: 'Приглашайте коллег и партнеров в сообщество и получайте бонусы.',
   lawyer: 'Профиль юриста: практики, ожидания по роли, документы и проверка резюме.',
 }
 const STACKED_GROUPS: GroupId[] = ['vacancies', 'career', 'events', 'networking', 'partner', 'lawyer']
@@ -334,7 +334,7 @@ export function resolvePage(rawParam?: string): CabinetPage | null {
   if (!param) return null
   const settings = sections.find((s) => s.id === 'settings')
   const settingsPage = (anchor?: string): CabinetPage | null =>
-    settings ? { menuId: 'account', title: settings.title, lead: 'Безопасность, конфиденциальность, согласия и ваши данные: всё в одном месте.', parts: [settings, ...sectionsOfGroup('settings')], anchor, stacked: true } : null
+    settings ? { menuId: 'account', title: settings.title, lead: 'Безопасность, конфиденциальность, согласия и ваши данные: все в одном месте.', parts: [settings, ...sectionsOfGroup('settings')], anchor, stacked: true } : null
   if (param === 'settings') return settingsPage()
   const group = groups.find((g) => g.id === param)
   if (group && STACKED_GROUPS.includes(group.id)) return { menuId: group.id, title: group.title, lead: GROUP_LEADS[group.id], parts: sectionsOfGroup(group.id), stacked: true }

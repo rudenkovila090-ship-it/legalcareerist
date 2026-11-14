@@ -23,7 +23,7 @@ const errorText = (code: string) =>
     position_required: 'Укажите, кем хотите работать.',
     no_contact: 'Нужна почта аккаунта или ник в Telegram, чтобы мы нашли вашу запись.',
     too_many_attempts: 'Слишком много попыток. Попробуйте через час.',
-  })[code] ?? 'Не получилось сохранить. Попробуйте ещё раз.'
+  })[code] ?? 'Не получилось сохранить. Попробуйте еще раз.'
 
 function Facts({ r, now, dark }: { r: ReserveInfo; now: number; dark?: boolean }) {
   const left = Math.max(0, Math.ceil((r.until - now) / DAY))
@@ -167,7 +167,7 @@ export default function ReserveTab({ onChanged }: { onChanged: () => void }) {
 
         {/* Уровень 2: форма */}
         <Surface>
-          <BlockHead title={r ? 'Ваши данные в резерве' : 'Вступить в резерв'} note={r ? 'Можно поправить в любой момент' : 'Имя и почту возьмём из кабинета'} />
+          <BlockHead title={r ? 'Ваши данные в резерве' : 'Вступить в резерв'} note={r ? 'Можно поправить в любой момент' : 'Имя и почту возьмем из кабинета'} />
           {!state.hasContact && !r && <p className="mb-3 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-800">Нужна почта аккаунта или привязанный Telegram, чтобы мы нашли вашу запись. <Link to="/cabinet/telegram" className="font-semibold underline">Привязать Telegram</Link></p>}
           <form onSubmit={submit} className="space-y-4">
             <div>
@@ -228,7 +228,7 @@ export default function ReserveTab({ onChanged }: { onChanged: () => void }) {
             </div>
           </Surface>
         )}
-        <p className="px-2 text-xs leading-relaxed text-ink/45">Всё, что мы о вас храним, можно скачать или удалить в разделе «Аккаунт → Настройки».</p>
+        <p className="px-2 text-xs leading-relaxed text-ink/45">Все, что мы о вас храним, можно скачать или удалить в разделе «Аккаунт → Настройки».</p>
       </aside>
     </div>
   )

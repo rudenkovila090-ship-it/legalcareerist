@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { requestContactEmail, confirmContactEmail, type CabinetUser } from '../../lib/cabinet'
 import { fieldClass, labelClass } from './shared'
-const errors: Record<string, string> = { bad_password: 'Текущий пароль неверный.', bad_email: 'Проверьте адрес почты.', bad_code: 'Код неверный или срок истёк. Запросите новый код.', too_many_attempts: 'Слишком много попыток. Попробуйте позже.', mail_unavailable: 'Отправка писем сейчас недоступна.', mail_failed: 'Не удалось отправить письмо. Повторите через минуту.', demo_shared_account: 'В общем демо-аккаунте смена почты отключена.' }
+const errors: Record<string, string> = { bad_password: 'Текущий пароль неверный.', bad_email: 'Проверьте адрес почты.', bad_code: 'Код неверный или срок истек. Запросите новый код.', too_many_attempts: 'Слишком много попыток. Попробуйте позже.', mail_unavailable: 'Отправка писем сейчас недоступна.', mail_failed: 'Не удалось отправить письмо. Повторите через минуту.', demo_shared_account: 'В общем демо-аккаунте смена почты отключена.' }
 export default function ContactEmail({ user, onSaved }: { user: CabinetUser; onSaved: () => Promise<void> }) {
   const [email, setEmail] = useState(user.contact.email)
   const [password, setPassword] = useState('')
@@ -13,7 +13,7 @@ export default function ContactEmail({ user, onSaved }: { user: CabinetUser; onS
   async function submit(e: FormEvent) {
     e.preventDefault(); setBusy(true); setError(''); setSaved(false)
     const r = pending ? await confirmContactEmail(code) : await requestContactEmail(email, password)
-    if (!r.ok) setError(errors[r.error] || 'Не удалось сохранить почту. Попробуйте ещё раз.')
+    if (!r.ok) setError(errors[r.error] || 'Не удалось сохранить почту. Попробуйте еще раз.')
     else if (pending) { await onSaved(); setPending(''); setCode(''); setSaved(true) }
     else { setPending(r.data.email); setPassword('') }
     setBusy(false)

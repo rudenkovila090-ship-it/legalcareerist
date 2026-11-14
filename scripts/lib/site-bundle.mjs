@@ -25,5 +25,5 @@ export function currentBundle(plan) {
   }
   const scripts=[...seen].filter(f=>f.endsWith('.js')&&!missing.has(f))
   const forms=Object.fromEntries(['CommunityHome','TariffJoinBlock'].map(name=>[name,scripts.filter(f=>new RegExp('/'+name+'-[^/]+\\.js$').test(f))]))
-  return {assets:[...seen],missing:[...missing],forms,promo:scripts.some(file=>fs.readFileSync(path.join(plan.root,file),'utf8').includes('Промокод (необязательно)'))}
+  return {assets:[...seen],missing:[...missing],forms,promo:scripts.some(file=>{const text=fs.readFileSync(path.join(plan.root,file),'utf8');return text.includes('Промокод (необязательно)')||text.includes('Промокод')&&text.includes('promoCode')&&text.includes('autoCapitalize')})}
 }

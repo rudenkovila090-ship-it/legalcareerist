@@ -82,7 +82,7 @@ export default function JoinSuccess() {
     body = (
       <p className="text-sm leading-relaxed text-ink/70" role="status">
         {gaveUp
-          ? 'Оплата ещё не подтвердилась. Обычно это занимает меньше минуты: ссылка на вступление придёт на почту и в бота. Если письма нет, напишите нам в поддержку.'
+          ? 'Оплата еще не подтвердилась. Обычно это занимает меньше минуты: ссылка на вступление придет на почту и в бота. Если письма нет, напишите нам в поддержку.'
           : 'Подтверждаем оплату, обычно это занимает меньше минуты…'}
       </p>
     )
@@ -91,7 +91,7 @@ export default function JoinSuccess() {
     body = (
       <>
         <p className="text-sm leading-relaxed text-ink/70">
-          {access.joined ? 'Вы уже в закрытом сообществе. Ссылка нужна, только если вышли из чата и хотите вернуться.' : 'Подписка оформлена. Нажмите кнопку и подайте заявку на вступление: бот одобрит её автоматически.'}
+          {access.joined ? 'Вы уже в закрытом сообществе. Ссылка нужна, только если вышли из чата и хотите вернуться.' : 'Подписка оформлена. Нажмите кнопку и подайте заявку на вступление: бот одобрит ее автоматически.'}
         </p>
         <a href={invite.url} target="_blank" rel="noopener noreferrer" className={`mt-6 inline-block ${btn}`}>Вступить в сообщество</a>
         <p className="mt-4 break-all text-xs text-ink/50">{invite.url}</p>
@@ -103,12 +103,12 @@ export default function JoinSuccess() {
       </>
     )
   } else {
-    body = <p className="text-sm leading-relaxed text-ink/70">Подписка оформлена. Ссылку на вступление в чат пришлёт поддержка в ближайшее время. Если ждать не хочется, напишите нам.</p>
+    body = <p className="text-sm leading-relaxed text-ink/70">Подписка оформлена. Ссылку на вступление в чат пришлет поддержка в ближайшее время. Если ждать не хочется, напишите нам.</p>
   }
 
   return (
     <div>
-      <PageHero eyebrow="Сообщество" title="Оплата прошла успешно" description="Осталось вступить в закрытый чат сообщества, это займёт одну минуту." />
+      <PageHero eyebrow="Сообщество" title="Оплата прошла успешно" description="Осталось вступить в закрытый чат сообщества, это займет одну минуту." />
       <section className="container-page pb-16">
         <div className="glass mx-auto max-w-xl rounded-2xl p-8 text-center">
           <div className="mb-3 flex justify-center">
@@ -117,7 +117,7 @@ export default function JoinSuccess() {
           {body}
           {valid && access?.paid && (
             <div className="mt-8 border-t border-ink/10 pt-6">
-              <p className="text-xs leading-relaxed text-ink/60">Бот пришлёт напоминания о списании и откроет личный кабинет резидента в Telegram. Запускать его необязательно: подписка уже учтена.</p>
+              <p className="text-xs leading-relaxed text-ink/60">Бот пришлет напоминания о списании и откроет личный кабинет резидента в Telegram. Запускать его необязательно: подписка уже учтена.</p>
               <div className="mt-4 flex flex-wrap justify-center gap-3">
                 <button type="button" onClick={() => openTelegramBot(`access_${token}`)} className={ghost}>Открыть бота</button>
                 <a href="/cabinet" className={ghost}>Личный кабинет</a>

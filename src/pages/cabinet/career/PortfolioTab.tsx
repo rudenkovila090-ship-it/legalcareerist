@@ -54,7 +54,7 @@ export default function PortfolioTab({ career, sub }: { career: CareerHandle; su
           <Link to="/cabinet/mediakit" className={`group flex flex-col gap-3 rounded-2xl bg-gold-light/30 p-4 text-ink transition-transform hover:-translate-y-0.5 ${focusRing}`}>
             <span className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-ink/65"><span className="flex h-6 w-6 items-center justify-center rounded-full bg-ink text-white [&>svg]:h-3.5 [&>svg]:w-3.5">{icon.card}</span>Медиакит</span>
             <span className="text-xl font-semibold leading-snug">{kitFilled ? 'Медиакит собран' : 'Соберите медиакит'}</span>
-            <span className="text-xs text-ink/70">Одна страница о вас: профиль, достижения, темы выступлений и контакты. Её можно сохранить в PDF.</span>
+            <span className="text-xs text-ink/70">Одна страница о вас: профиль, достижения, темы выступлений и контакты. Ее можно сохранить в PDF.</span>
             <span><Chip>{kitFilled ? 'открыть' : 'начать'}</Chip></span>
           </Link>
         </div>

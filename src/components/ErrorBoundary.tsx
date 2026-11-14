@@ -43,7 +43,7 @@ export default class ErrorBoundary extends Component<Props, State> {
           <div className="glass mx-auto max-w-md rounded-2xl p-8">
             <h1 className="text-xl font-semibold">Что-то пошло не так</h1>
             <p className="mt-2 text-sm text-ink/60">
-              Не удалось отобразить эту страницу. Попробуйте обновить её — если ошибка повторится, дайте нам знать.
+              Не удалось отобразить эту страницу. Попробуйте обновить ее — если ошибка повторится, дайте нам знать.
             </p>
             <button
               type="button"

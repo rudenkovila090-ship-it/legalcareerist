@@ -13,11 +13,11 @@ const messages: Record<string, string> = {
   unauthorized: 'Войдите в кабинет снова.',
   admin_only: 'Загружать материалы может только владелец сайта.',
   incomplete_upload: 'Файл передался не полностью. Повторите загрузку.',
-  file_changed: 'Переданный файл не прошёл проверку. Повторите загрузку.',
+  file_changed: 'Переданный файл не прошел проверку. Повторите загрузку.',
   chunk_conflict: 'Передача прервалась. Повторите загрузку.',
   network: 'Не удалось связаться с сервером. Проверьте соединение и повторите загрузку.',
 }
-const message = (code: string) => messages[code] || 'Не удалось подтвердить сохранение. Обновите статус и попробуйте ещё раз.'
+const message = (code: string) => messages[code] || 'Не удалось подтвердить сохранение. Обновите статус и попробуйте еще раз.'
 
 export default function MaterialManager() {
   const [materials, setMaterials] = useState<Material[] | null>(null)
@@ -116,7 +116,7 @@ export default function MaterialManager() {
             {busy === material.slug && <progress aria-label="Передача PDF" value={progress} max={100} className="mt-3 block w-full" />}
             {notice[material.slug]?.text && <p role={notice[material.slug].ok ? 'status' : 'alert'} className={`mt-3 text-sm ${notice[material.slug].ok ? 'text-emerald-700' : 'text-red-700'}`}>{notice[material.slug].text}</p>}
             {material.versions.length > 0 && <details className="mt-4 text-sm">
-              <summary className="cursor-pointer font-medium">Сохранённые версии</summary>
+              <summary className="cursor-pointer font-medium">Сохраненные версии</summary>
               <ul className="mt-3 space-y-2">
                 {material.versions.map(version => <li key={version.sha256} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-ink/[0.04] p-3">
                   <span>{date(version.at)} мск · {size(version.bytes)}</span>

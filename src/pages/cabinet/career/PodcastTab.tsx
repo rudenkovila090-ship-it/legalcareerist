@@ -18,7 +18,7 @@ const errorText = (code: string) =>
     contact_required: 'Оставьте хотя бы один способ связи: почту, телефон или Telegram.',
     topics_required: 'Напишите хотя бы одну тему, о которой хотите рассказать.',
     too_many_attempts: 'Слишком много попыток. Попробуйте через час.',
-  })[code] ?? 'Не получилось отправить. Попробуйте ещё раз.'
+  })[code] ?? 'Не получилось отправить. Попробуйте еще раз.'
 
 const empty: PodcastInput = { name: '', email: '', phone: '', telegram: '', about: '', topics: '', link: '' }
 const fromApplication = (a: PodcastApplication): PodcastInput => ({ name: a.name, email: a.email, phone: a.phone, telegram: a.telegram, about: a.about, topics: a.topics, link: a.link })
@@ -92,7 +92,7 @@ export default function PodcastTab({ career }: { career: CareerHandle }) {
               <span className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-300 text-ink [&>svg]:h-3.5 [&>svg]:w-3.5">{icon.headphones}</span>Подкаст
             </div>
             <h2 className="mt-2 text-lg font-semibold leading-snug sm:text-xl">Станьте гостем эпизода</h2>
-            <p className="mt-1 max-w-lg text-[13px] text-white/70">Расскажите, о чём вам интересно поговорить в подкасте «Карьерный юрист»: оставьте контакты и темы, мы свяжемся, когда будем собирать гостей.</p>
+            <p className="mt-1 max-w-lg text-[13px] text-white/70">Расскажите, о чем вам интересно поговорить в подкасте «Карьерный юрист»: оставьте контакты и темы, мы свяжемся, когда будем собирать гостей.</p>
           </div>
         </section>
 

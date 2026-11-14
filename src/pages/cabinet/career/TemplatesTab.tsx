@@ -32,7 +32,7 @@ function TemplateCard({ t }: { t: TemplateItem }) {
           <span className="[&>svg]:h-3.5 [&>svg]:w-3.5">{icon.download}</span>
           {busy ? 'Скачиваем…' : 'Скачать'}
         </button>
-        {failed && <span role="alert" className="text-xs text-red-600">Не получилось скачать. Попробуйте ещё раз.</span>}
+        {failed && <span role="alert" className="text-xs text-red-600">Не получилось скачать. Попробуйте еще раз.</span>}
       </div>
     </li>
   )

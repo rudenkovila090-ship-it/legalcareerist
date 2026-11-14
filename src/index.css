@@ -26,8 +26,9 @@
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --color-ink: #283953;
+  --color-accent: #538ccf;
   --color-gold: #45608a;
-  --color-gold-light: #6f93c4;
+  --color-gold-light: #538ccf;
   --color-paper: #ffffff;
 }
 
@@ -42,6 +43,27 @@ body {
   background-color: var(--color-paper);
   color: var(--color-ink);
   font-family: var(--font-sans);
+}
+
+/* Кобальтовый акцент: основные действия и ссылки, без перекрашивания фонов. */
+.btn-accent,
+button.bg-ink,
+a.bg-ink,
+button.bg-gold-light,
+a.bg-gold-light {
+  background-color: var(--color-accent);
+  color: #0b1c32;
+}
+.btn-accent:hover,
+button.bg-ink:hover,
+a.bg-ink:hover,
+button.bg-gold-light:hover,
+a.bg-gold-light:hover {
+  background-color: #4680c1;
+  color: #0b1c32;
+}
+a.underline {
+  color: var(--color-accent);
 }
 
 /* Висячие строки (1-2 слова на последней строке абзаца/заголовка) —

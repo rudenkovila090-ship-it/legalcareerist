@@ -171,12 +171,12 @@ function ShareButtons({ title }: { title: string }) {
   )
 }
 
-function ticketFormError(code: unknown, fallback = 'Не получилось перейти к оплате. Проверьте соединение и попробуйте ещё раз. Заполненные поля сохранены.'): string {
+function ticketFormError(code: unknown, fallback = 'Не получилось перейти к оплате. Проверьте соединение и попробуйте еще раз. Заполненные поля сохранены.'): string {
   switch (code) {
     case 'demo_only': case 'demo_shared_account': return 'В демо-кабинете реальные покупки отключены. Для покупки откройте эту страницу в приватном окне браузера или выйдите из демо-кабинета.'
     case 'unknown_event': case 'not_for_sale': case 'unknown_tariff': return 'Не удалось подтвердить доступность билета. Обновите страницу. Если ошибка повторится, обратитесь к организатору.'
     case 'consent_required': return 'Подтвердите ознакомление с политикой и согласие на обработку персональных данных.'
-    case 'email_required': return 'Укажите действующую почту — на неё придёт билет.'
+    case 'email_required': return 'Укажите действующую почту — на нее придет билет.'
     case 'name_required': return 'Укажите имя участника.'
     case 'invalid_promo': return 'Такого промокода нет или он больше не действует.'
     default: return fallback
@@ -474,7 +474,7 @@ export default function EventDetail() {
             </button>
             {getPhotoReport(event.slug) && (
               <Link to={`/events/${event.slug}/photos`} className="rounded-full border border-white/40 px-5 py-3 text-sm font-semibold text-white hover:bg-white/10">
-                Фотоотчёт
+                Фотоотчет
               </Link>
             )}
             <ShareButtons title={event.title} />
@@ -768,7 +768,7 @@ export default function EventDetail() {
                 <div className="text-sm font-semibold uppercase tracking-wide text-gold">Регистрация</div>
                 <h3 className="mt-1 text-lg font-semibold">{event.price === 0 ? 'Участие бесплатное' : event.price !== null ? `Билет — ${eventPriceText(event)}` : 'Регистрация у организатора'}</h3>
                 <p className="mt-2 text-sm text-ink/70">
-                  {event.registrationNote || (event.type === 'championship' ? 'Регистрация и приём работ проходят на сайте организатора.' : 'Регистрация проходит на сайте организатора.')}
+                  {event.registrationNote || (event.type === 'championship' ? 'Регистрация и прием работ проходят на сайте организатора.' : 'Регистрация проходит на сайте организатора.')}
                   {event.keyDates?.[0] && <> Срок: <span className="font-semibold text-ink">{event.keyDates[0].when}</span>.</>}
                 </p>
                 {event.registrationLink && !event.collectTicketLead && (

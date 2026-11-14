@@ -112,7 +112,7 @@ export default function MaterialDetail() {
       setPurchasing(false)
       setPurchaseError(error instanceof Error && error.message === 'material_unavailable'
         ? 'Материал временно недоступен для покупки. Напишите в поддержку — поможем его получить.'
-        : 'Не получилось перейти к оплате — попробуйте ещё раз через минуту.')
+        : 'Не получилось перейти к оплате — попробуйте еще раз через минуту.')
     }
   }
 
@@ -163,7 +163,7 @@ export default function MaterialDetail() {
                 <div className="text-2xl font-semibold">{money.format(material.price)} ₽</div>
                 <span className="mt-3 inline-block rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">В разработке</span>
                 <p className="mt-3 text-sm leading-relaxed text-ink/70">
-                  Материал ещё готовится, оплата откроется, когда он будет готов. Условия доступа уже опубликованы в оферте.
+                  Материал еще готовится, оплата откроется, когда он будет готов. Условия доступа уже опубликованы в оферте.
                 </p>
                 {material.offerPath && (
                   <Link to={material.offerPath} className="mt-4 block w-full rounded-full border border-ink/15 px-6 py-2.5 text-center text-sm font-semibold text-ink/70 hover:text-ink">
@@ -263,10 +263,10 @@ export default function MaterialDetail() {
                 onChange={(value) => setPurchaseForm((f) => ({ ...f, phone: value }))}
                 className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
               />
-              <input aria-label="Почта — сюда пришлём файл"
+              <input aria-label="Почта — сюда пришлем файл"
                 type="email"
                 required
-                placeholder="Почта — сюда пришлём файл"
+                placeholder="Почта — сюда пришлем файл"
                 value={purchaseForm.email}
                 onChange={(e) => setPurchaseForm((f) => ({ ...f, email: e.target.value }))}
                 className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"

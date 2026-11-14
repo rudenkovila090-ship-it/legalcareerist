@@ -35,7 +35,7 @@ export default function Dashboard({ user, dash }: { user: CabinetUser; dash: Das
         <Tile to="/cabinet/resident" icon={icon.shield} label="Подписка" value={sub.title} note={sub.sub} variant="ink" />
         <Tile to="/cabinet/events" icon={icon.ticket} label="Мероприятия" value={dash ? String(dash.counts.events) : '—'} note={dash ? pluralRu(dash.counts.events, ['регистрация', 'регистрации', 'регистраций']) : ' '} variant="gold" />
         <Tile to="/cabinet/cv" icon={icon.folder} label="Документы" value={dash ? String(dash.counts.documents) : '—'} note="резюме и письма" variant="light" />
-        <Tile to="/cabinet/support" icon={icon.lifebuoy} label="Поддержка" value={unread > 0 ? `${unread} ${pluralRu(unread, ['ответ', 'ответа', 'ответов'])}` : 'Написать'} note={unread > 0 ? 'ждёт вас в чате' : 'ответим в чате'} variant={unread > 0 ? 'alert' : 'outline'} />
+        <Tile to="/cabinet/support" icon={icon.lifebuoy} label="Поддержка" value={unread > 0 ? `${unread} ${pluralRu(unread, ['ответ', 'ответа', 'ответов'])}` : 'Написать'} note={unread > 0 ? 'ждет вас в чате' : 'ответим в чате'} variant={unread > 0 ? 'alert' : 'outline'} />
       </div>
 
       {/* Новости: что происходит в сообществе и в «Карьерном юристе» (берутся из src/data/news.ts) */}

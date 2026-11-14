@@ -101,7 +101,7 @@ function CompletenessCard() {
         ))}
       </ul>
       <p className="mt-4 text-sm text-ink/60">
-        {privacy.hidden ? 'Скрытый поиск включён: резюме не видно в базе кандидатов.' : 'Скрытый поиск выключен.'}{' '}
+        {privacy.hidden ? 'Скрытый поиск включен: резюме не видно в базе кандидатов.' : 'Скрытый поиск выключен.'}{' '}
         <Link to="/cabinet/privacy" className="underline hover:text-ink">Изменить</Link>
       </p>
     </Card>
@@ -272,7 +272,7 @@ function DocCard({ doc, state, onState }: { doc: CabinetDoc; state: DocumentsSta
     setError('')
     const ok = await downloadVersion(doc.id, v)
     setBusy('')
-    if (!ok) setError('Не удалось скачать файл. Попробуйте ещё раз.')
+    if (!ok) setError('Не удалось скачать файл. Попробуйте еще раз.')
   }
 
   async function save(e: FormEvent<HTMLFormElement>) {

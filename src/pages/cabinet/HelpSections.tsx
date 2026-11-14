@@ -13,7 +13,7 @@ export function HelpSection() {
   return (
     <div className="space-y-6">
       <div className="grid gap-3 sm:grid-cols-3">
-        <ContactTile to="/cabinet/support" icon={icon.lifebuoy} title="Чат поддержки" note="Ответ придёт сюда и на почту" />
+        <ContactTile to="/cabinet/support" icon={icon.lifebuoy} title="Чат поддержки" note="Ответ придет сюда и на почту" />
         <ContactTile href="mailto:info@legalcareerist.ru" icon={icon.mail} title="Почта" note="info@legalcareerist.ru" />
         <ContactTile href="https://t.me/legalcareerist_support" icon={icon.telegram} title="Telegram" note="@legalcareerist_support" />
       </div>
@@ -86,15 +86,15 @@ function ContactTile({ to, href, icon: ic, title, note }: { to?: string; href?: 
 }
 
 // ---- Чат поддержки ----
-const SUGGESTIONS = ['Не пришёл билет на мероприятие', 'Вопрос по подписке', 'Проблема со входом в кабинет', 'Хочу сменить почту аккаунта']
+const SUGGESTIONS = ['Не пришел билет на мероприятие', 'Вопрос по подписке', 'Проблема со входом в кабинет', 'Хочу сменить почту аккаунта']
 
 const sendError = (code: string): string =>
   ({
     too_many_attempts: 'Слишком много сообщений за час. Попробуйте позже или напишите на info@legalcareerist.ru.',
     empty: 'Напишите текст сообщения.',
     unauthorized: 'Сессия закончилась. Войдите снова.',
-    network: 'Не получилось связаться с сервером. Сообщение не отправлено, попробуйте ещё раз.',
-  })[code] ?? 'Не получилось отправить. Попробуйте ещё раз.'
+    network: 'Не получилось связаться с сервером. Сообщение не отправлено, попробуйте еще раз.',
+  })[code] ?? 'Не получилось отправить. Попробуйте еще раз.'
 
 /** Сколько секунд между обновлениями чата, пока он открыт: так ответ поддержки появляется без перезагрузки. */
 const POLL_MS = 20_000
@@ -179,7 +179,7 @@ export function SupportSection({ onRead }: { onRead: () => void }) {
           <IconBubble>{icon.lifebuoy}</IconBubble>
           <div className="min-w-0">
             <div className="text-sm font-semibold">Служба поддержки</div>
-            <div className="truncate text-xs text-ink/50">Ответ придёт сюда, на почту и в Telegram, если он привязан</div>
+            <div className="truncate text-xs text-ink/50">Ответ придет сюда, на почту и в Telegram, если он привязан</div>
           </div>
         </div>
 

@@ -30,23 +30,23 @@ const accountError = (code: AccountError): string =>
     bad_email: 'Проверьте адрес почты: он указан не полностью.',
     consent_required: 'Отметьте две обязательные галочки внизу формы.',
     too_many_attempts: 'Слишком много попыток. Попробуйте через час.',
-    mail_failed: 'Не получилось отправить письмо. Попробуйте ещё раз через минуту.',
+    mail_failed: 'Не получилось отправить письмо. Попробуйте еще раз через минуту.',
     mail_unavailable: `Отправка писем сейчас недоступна. Напишите нам: ${SUPPORT_EMAIL}`,
-    network: 'Не получилось связаться с сервером. Попробуйте ещё раз.',
-    error: 'Что-то пошло не так. Попробуйте ещё раз.',
-  })[code] ?? 'Что-то пошло не так. Попробуйте ещё раз.'
+    network: 'Не получилось связаться с сервером. Попробуйте еще раз.',
+    error: 'Что-то пошло не так. Попробуйте еще раз.',
+  })[code] ?? 'Что-то пошло не так. Попробуйте еще раз.'
 
 const passwordError = (code: string): string =>
   ({
-    password_short: 'Пароль короче 10 символов. Придумайте подлиннее: подойдёт фраза из нескольких слов.',
+    password_short: 'Пароль короче 10 символов. Придумайте подлиннее: подойдет фраза из нескольких слов.',
     password_long: 'Пароль длиннее 200 символов.',
     password_weak: 'Такой пароль слишком простой: он из списка частых или совпадает с почтой. Придумайте другой.',
     bad_credentials: 'Текущий пароль указан неверно.',
     bad_token: 'Ссылка перестала действовать. Запросите новую.',
     too_many_attempts: 'Слишком много попыток. Попробуйте позже.',
     unauthorized: 'Сессия закончилась. Войдите снова.',
-    network: 'Не получилось связаться с сервером. Попробуйте ещё раз.',
-  })[code] ?? 'Не получилось сохранить пароль. Попробуйте ещё раз.'
+    network: 'Не получилось связаться с сервером. Попробуйте еще раз.',
+  })[code] ?? 'Не получилось сохранить пароль. Попробуйте еще раз.'
 
 /** Секунды до повторной отправки письма: сервер шлёт на один адрес не чаще раза в минуту, поэтому кнопку на это время закрываем. */
 function useCooldown(seconds: number) {
@@ -108,7 +108,7 @@ export function Landing({ notice, onSignedIn }: { notice?: string; onSignedIn: (
       <PageHero
         eyebrow="Личный кабинет"
         title="Личный кабинет"
-        description="Покупки и билеты, подписка на сообщество, профиль и документы в одном месте. Войдите по почте, которую указывали при покупке: так мы найдём ваши оплаты."
+        description="Покупки и билеты, подписка на сообщество, профиль и документы в одном месте. Войдите по почте, которую указывали при покупке: так мы найдем ваши оплаты."
       />
       <div className="container-page grid gap-6 py-12 lg:grid-cols-[1fr_24rem]">
         <section className="glass h-fit rounded-2xl p-6">
@@ -123,7 +123,7 @@ export function Landing({ notice, onSignedIn }: { notice?: string; onSignedIn: (
           </ul>
           <p className="mt-5 text-sm text-ink/60">Остальные разделы — отклики и интервью, карьерный план, оценка рынка — подключаем по очереди.</p>
           <p className="mt-5 border-t border-ink/10 pt-4 text-xs text-ink/50">
-            Пароль вы задаёте сами по ссылке из письма. Мы храним его только в зашифрованном виде и не можем его прочитать.
+            Пароль вы задаете сами по ссылке из письма. Мы храним его только в зашифрованном виде и не можем его прочитать.
             Данные кабинета не попадают в Яндекс Метрику.
           </p>
         </section>
@@ -174,7 +174,7 @@ function LoginForm({ notice, onSignedIn, onForgot, onRegister }: { notice?: stri
       setError(
         r.error === 'too_many_attempts' ? 'Слишком много попыток. Попробуйте через 15 минут.'
         : r.error === 'not_configured' ? 'Вход пока не настроен.'
-        : r.error === 'network' ? 'Не получилось связаться с сервером. Попробуйте ещё раз.'
+        : r.error === 'network' ? 'Не получилось связаться с сервером. Попробуйте еще раз.'
         : 'Неверная почта или пароль.',
       )
       return
@@ -200,7 +200,7 @@ function LoginForm({ notice, onSignedIn, onForgot, onRegister }: { notice?: stri
           <p>{error}</p>
           {failed && (
             <p className="mt-1 text-ink/60">
-              Ещё не регистрировались или не успели задать пароль по ссылке из письма?{' '}
+              Еще не регистрировались или не успели задать пароль по ссылке из письма?{' '}
               <button type="button" onClick={onRegister} className="font-semibold underline hover:text-ink">Зарегистрируйтесь</button>: мы вышлем новое письмо.
             </p>
           )}
@@ -250,7 +250,7 @@ function RegisterForm({ onLogin }: { onLogin: () => void }) {
   if (sent) {
     return (
       <Done title="Проверьте почту">
-        <p>Мы отправили письмо на <b className="break-words text-ink">{sent.email}</b>. В нём ссылка, по которой вы задаёте пароль и сразу входите в кабинет. Она действует 24 часа.</p>
+        <p>Мы отправили письмо на <b className="break-words text-ink">{sent.email}</b>. В нем ссылка, по которой вы задаете пароль и сразу входите в кабинет. Она действует 24 часа.</p>
         <p>Письма нет? Загляните в «Спам» или подождите минуту и отправьте снова. Если для этого адреса кабинет уже создан, ссылка в письме поможет войти.</p>
         {error && <p role="alert" className="text-red-600">{error}</p>}
         <div className="flex flex-wrap justify-center gap-3 pt-2">
@@ -272,7 +272,7 @@ function RegisterForm({ onLogin }: { onLogin: () => void }) {
       <div>
         <label className={labelClass} htmlFor="reg-email">Почта</label>
         <input id="reg-email" value={email} onChange={(e) => setEmail(e.target.value)} type="email" autoComplete="email" required placeholder="name@example.ru" className={inputClass} />
-        <p className="mt-1.5 text-xs text-ink/50">Укажите ту же почту, что при покупке: по ней мы найдём билеты и подписку.</p>
+        <p className="mt-1.5 text-xs text-ink/50">Укажите ту же почту, что при покупке: по ней мы найдем билеты и подписку.</p>
       </div>
       <ConsentCheck />
       {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
@@ -309,7 +309,7 @@ function ForgotForm({ onBack }: { onBack: () => void }) {
     return (
       <Done title="Проверьте почту">
         <p>Если для <b className="break-words text-ink">{sent}</b> есть кабинет, мы отправили ссылку для нового пароля. Она действует 2 часа.</p>
-        <p>Письма нет? Загляните в «Спам». Если вы ещё не регистрировались, вернитесь ко входу и откройте вкладку «Регистрация».</p>
+        <p>Письма нет? Загляните в «Спам». Если вы еще не регистрировались, вернитесь ко входу и откройте вкладку «Регистрация».</p>
         {error && <p role="alert" className="text-red-600">{error}</p>}
         <div className="flex flex-wrap justify-center gap-3 pt-2">
           <button type="button" disabled={busy || cooldown.left > 0} onClick={() => void send(sent)} className="rounded-full border border-ink/15 px-5 py-2 text-sm font-semibold text-ink/70 hover:text-ink disabled:opacity-50">
@@ -379,7 +379,7 @@ export function ActivatePage({ onSignedIn }: { onSignedIn: (user: CabinetUser) =
     const me = await fetchMe()
     setBusy(false)
     if (me.state !== 'authed') {
-      setError('Пароль сохранён, но кабинет не открылся. Войдите на странице входа.')
+      setError('Пароль сохранен, но кабинет не открылся. Войдите на странице входа.')
       return
     }
     onSignedIn(me.user)
@@ -399,9 +399,9 @@ export function ActivatePage({ onSignedIn }: { onSignedIn: (user: CabinetUser) =
           {state.state === 'invalid' && (
             <div className="space-y-3 text-sm text-ink/70">
               <h2 className="text-lg font-semibold text-ink">Ссылка не действует</h2>
-              <p>Её уже использовали или срок вышел: ссылка для первого пароля живёт 24 часа, для восстановления — 2 часа.</p>
+              <p>Ее уже использовали или срок вышел: ссылка для первого пароля живет 24 часа, для восстановления — 2 часа.</p>
               <p>
-                Если вы ещё не задавали пароль, <Link to="/cabinet?mode=register" replace className="font-semibold underline hover:text-ink">зарегистрируйтесь заново</Link>: мы вышлем новое письмо.
+                Если вы еще не задавали пароль, <Link to="/cabinet?mode=register" replace className="font-semibold underline hover:text-ink">зарегистрируйтесь заново</Link>: мы вышлем новое письмо.
                 Если пароль забыт, <Link to="/cabinet?mode=forgot" replace className="font-semibold underline hover:text-ink">восстановите его</Link>.
               </p>
             </div>
@@ -411,7 +411,7 @@ export function ActivatePage({ onSignedIn }: { onSignedIn: (user: CabinetUser) =
               <p className="text-sm text-ink/70">
                 {info.purpose === 'reset' ? 'Новый пароль для ' : 'Придумайте пароль для входа. Почта: '}
                 <b className="break-words text-ink">{info.email}</b>
-                {info.purpose === 'reset' ? '. После сохранения вы войдёте в кабинет, а на других устройствах вход закроется.' : '. После сохранения вы сразу окажетесь в кабинете.'}
+                {info.purpose === 'reset' ? '. После сохранения вы войдете в кабинет, а на других устройствах вход закроется.' : '. После сохранения вы сразу окажетесь в кабинете.'}
               </p>
               {/* Скрытое поле с почтой: менеджеры паролей сохраняют пароль вместе с логином. */}
               <input type="text" name="username" value={info.email} autoComplete="username" readOnly tabIndex={-1} aria-hidden="true" className="sr-only" />
@@ -480,9 +480,9 @@ export function PasswordSection({ user }: { user: CabinetUser }) {
         {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
         <div className="flex flex-wrap items-center gap-4">
           <button type="submit" disabled={busy} className={submitClass}>{busy ? 'Сохраняем…' : 'Сменить пароль'}</button>
-          {saved && <span role="status" className="text-sm font-medium text-emerald-700">Пароль изменён. На других устройствах вход закрыт.</span>}
+          {saved && <span role="status" className="text-sm font-medium text-emerald-700">Пароль изменен. На других устройствах вход закрыт.</span>}
         </div>
-        <p className="text-xs text-ink/50">Не помните текущий? Выйдите и нажмите «Забыли пароль» на странице входа: мы пришлём ссылку на почту.</p>
+        <p className="text-xs text-ink/50">Не помните текущий? Выйдите и нажмите «Забыли пароль» на странице входа: мы пришлем ссылку на почту.</p>
       </form>
     </div>
   )

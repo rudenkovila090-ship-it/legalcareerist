@@ -101,7 +101,7 @@ export default function TestimonialCarousel({ items, dark }: { items: Testimonia
           className="flex snap-x snap-mandatory gap-4 overflow-x-auto overscroll-x-contain pb-2 outline-offset-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           {items.map((testimonial, index) => (
-            <figure key={`${testimonial.author}-${index}`} aria-label={`Отзыв: ${testimonial.author}`} className="flex min-h-[17.25rem] min-w-0 shrink-0 basis-full snap-start flex-col rounded-2xl bg-[#dbe4f5] p-5 sm:basis-[calc((100%_-_1rem)/2)] lg:basis-[calc((100%_-_2rem)/3)]">
+            <figure key={`${testimonial.author}-${index}`} aria-label={`Отзыв: ${testimonial.author}`} className="flex min-h-60 min-w-0 shrink-0 basis-full snap-start flex-col rounded-2xl bg-[#dbe4f5] p-5 sm:basis-[calc((100%_-_1rem)/2)] lg:basis-[calc((100%_-_2rem)/3)]">
               <figcaption className="rounded-xl bg-white/70 px-2.5 py-3">
                 <div className="flex items-baseline justify-between gap-2">
                   <div title={testimonial.author} className="min-w-0 truncate text-[13px] font-semibold text-ink lg:text-sm">{testimonial.author}</div>
@@ -109,8 +109,8 @@ export default function TestimonialCarousel({ items, dark }: { items: Testimonia
                 </div>
                 {testimonial.role && <div className="mt-1 text-xs leading-relaxed text-ink/50">{testimonial.role}</div>}
               </figcaption>
-              <blockquote className="mt-4 line-clamp-5 text-sm leading-relaxed text-ink/80">{testimonial.text.replace(/\s+/g, ' ')}</blockquote>
-              <button type="button" aria-haspopup="dialog" aria-label={`Читать отзыв ${testimonial.author} полностью`} onClick={() => setSelected(testimonial)} className="mt-10 self-start text-sm font-semibold text-ink underline decoration-ink/30 underline-offset-4 hover:decoration-ink">
+              <blockquote className="mt-4 line-clamp-4 text-sm leading-relaxed text-ink/80">{testimonial.text.replace(/\s+/g, ' ')}</blockquote>
+              <button type="button" aria-haspopup="dialog" aria-label={`Читать отзыв ${testimonial.author} полностью`} onClick={() => setSelected(testimonial)} className="mt-6 self-start text-sm font-semibold text-ink underline decoration-ink/30 underline-offset-4 hover:decoration-ink">
                 Читать полностью
               </button>
             </figure>

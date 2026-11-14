@@ -477,7 +477,7 @@ export default function EventsHome() {
       phone: partnerForm.phone,
       email: partnerForm.email,
       howHeard: partnerForm.howHeard,
-      interest: [`Компания: ${partnerForm.company}`, `Формат партнёрства: ${partnershipFormatLabel(partnerForm.format)}`],
+      interest: [`Компания: ${partnerForm.company}`, `Формат партнерства: ${partnershipFormatLabel(partnerForm.format)}`],
       consent,
     })
     setPartnerSent(true)

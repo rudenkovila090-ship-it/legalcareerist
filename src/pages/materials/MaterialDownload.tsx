@@ -68,7 +68,7 @@ export default function MaterialDownload() {
                   </a>
                 </>
               ) : (
-                <p className="mt-2 text-sm text-ink/60">Файл ещё готовится. Напишите в поддержку, и мы пришлём материал: {support}.</p>
+                <p className="mt-2 text-sm text-ink/60">Файл еще готовится. Напишите в поддержку, и мы пришлем материал: {support}.</p>
               )}
             </>
           )}
@@ -76,7 +76,7 @@ export default function MaterialDownload() {
           {info.state === 'expired' && (
             <>
               <div className="font-semibold">Срок ссылки закончился</div>
-              <p className="mt-2 text-sm text-ink/60">Личная ссылка действует 7 дней. Напишите в поддержку, мы пришлём новую: {support}.</p>
+              <p className="mt-2 text-sm text-ink/60">Личная ссылка действует 7 дней. Напишите в поддержку, мы пришлем новую: {support}.</p>
             </>
           )}
 
