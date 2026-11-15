@@ -54,8 +54,8 @@ body:has(.community-page) {
   --color-action-hover: #213d69;
   --color-gold: #2a4d85;
   --color-gold-light: #2a4d85;
-  --color-white: #f6ebe6;
-  --color-paper: #f6ebe6;
+  --color-white: #ffffff;
+  --color-paper: #ffffff;
 }
 body:has(.community-page) :is(input:not([type="checkbox"]):not([type="radio"]), textarea, select) {
   background-color: var(--color-white);
