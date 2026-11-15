@@ -327,7 +327,7 @@ export default function CommunityHome() {
               <span className="block">строим связи и вместе строим карьеру.</span>
             </p>
           </div>
-          <button type="button" onClick={scrollToJoin} className="btn-accent mt-8 h-[3.75rem] min-w-60 rounded-full px-10 text-[17.5px] font-semibold">
+          <button type="button" onClick={scrollToJoin} className="btn-accent mt-8 h-[3.75rem] min-w-60 rounded-full border border-white/70 px-10 text-[17.5px] font-semibold">
             Стать резидентом
           </button>
         </div></div>
@@ -366,7 +366,7 @@ export default function CommunityHome() {
               <tr className="bg-ink/[0.03]">
                 <th scope="col" className="p-3 text-xs font-normal text-black sm:p-5 sm:text-sm">Возможности</th>
                 <th scope="col" className="px-1 py-5 text-center text-xs font-semibold text-ink/60 sm:px-3 sm:text-base">Без подписки</th>
-                <th scope="col" className="bg-accent px-1 py-5 text-center text-xs font-semibold text-[#0b1c32] sm:px-3 sm:text-base">С подпиской</th>
+                <th scope="col" className="bg-accent px-1 py-5 text-center text-xs font-semibold text-white sm:px-3 sm:text-base">С подпиской</th>
               </tr>
             </thead>
             <tbody>
@@ -374,7 +374,7 @@ export default function CommunityHome() {
                 <tr key={benefit} className="border-t border-ink/10">
                   <th scope="row" className="p-3 text-[10.4px] font-normal leading-relaxed text-black [text-wrap:balance] sm:p-4 sm:text-[12.8px]">{benefit.replace('юридического рынка', 'юридического\u00a0рынка')}</th>
                   <td className="text-center"><span aria-hidden="true" className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-ink/[0.04] text-xl text-ink/60">×</span><span className="sr-only">Не входит без подписки</span></td>
-                  <td className="bg-accent/[0.12] text-center"><span aria-hidden="true" className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-accent text-lg text-[#0b1c32]">✓</span><span className="sr-only">Входит в подписку</span></td>
+                  <td className="bg-accent/[0.12] text-center"><span aria-hidden="true" className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-accent text-lg text-white">✓</span><span className="sr-only">Входит в подписку</span></td>
                 </tr>
               ))}
             </tbody>
@@ -400,7 +400,7 @@ export default function CommunityHome() {
                 <svg viewBox={`0 0 ${RU_MAP_W} ${RU_MAP_H}`} className="w-full" aria-hidden="true">
                   <defs><filter id="ru-map-tile-shadow" x="-60%" y="-60%" width="220%" height="220%"><feDropShadow dx="0" dy="1.2" stdDeviation="0.9" floodColor="#283953" floodOpacity="0.3" /></filter></defs>
                   {ruMapRows.map((row, ri) => row.split('').map((cell, ci) => cell === 'X' ? (
-                    <rect key={`${ri}-${ci}`} x={ci * RU_MAP_CELL + 1.5} y={ri * RU_MAP_CELL + 1.5} width={RU_MAP_CELL - 3} height={RU_MAP_CELL - 3} rx={3.5} fill="white" stroke="rgba(40,57,83,0.2)" strokeWidth="1" filter="url(#ru-map-tile-shadow)" />
+                    <rect key={`${ri}-${ci}`} x={ci * RU_MAP_CELL + 1.5} y={ri * RU_MAP_CELL + 1.5} width={RU_MAP_CELL - 3} height={RU_MAP_CELL - 3} rx={3.5} fill="var(--color-white)" stroke="rgba(40,57,83,0.2)" strokeWidth="1" filter="url(#ru-map-tile-shadow)" />
                   ) : null))}
                 </svg>
                 {cities.map((city) => (
@@ -518,17 +518,17 @@ export default function CommunityHome() {
                         }
                       }}
                       className={`relative flex cursor-pointer flex-col items-center justify-self-center rounded-2xl border p-4 pt-8 text-center outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-4 focus-visible:ring-offset-ink sm:p-5 sm:pt-8 lg:p-5 lg:pt-8 min-h-72 w-full ${
-                        selected ? 'border-gold-light bg-[#344e75] ring-1 ring-gold-light' : 'border-white/15 bg-[#2d415f]'
+                        selected ? 'border-white/80 bg-[#344e75] ring-1 ring-white/60' : 'border-white/15 bg-[#2d415f]'
                       }`}
                     >
                       <span
                         className={`h-4 w-4 shrink-0 rounded-full border-2 ${
-                          selected ? 'border-gold-light bg-gold-light' : 'border-white/30'
+                          selected ? 'border-white bg-white' : 'border-white/30'
                         }`}
                       />
                       <div className="mt-3 text-xs font-medium uppercase tracking-wide text-white/50">Подписка</div>
                       <div className="mt-1 text-lg font-semibold">{t.period}</div>
-                      <div className="mt-3 text-3xl font-semibold text-gold-light">{t.priceLabel}</div>
+                      <div className="mt-3 text-3xl font-semibold text-white">{t.priceLabel}</div>
                       <div className="mt-4 flex-1" />
                       {t.id === '1m' ? (
                         <p className="text-xs leading-relaxed text-white/50">{t.note}</p>
@@ -543,7 +543,7 @@ export default function CommunityHome() {
                           e.stopPropagation()
                           handlePay(t.id)
                         }}
-                        className="mt-5 w-full rounded-lg bg-gold-light py-2.5 text-sm font-semibold text-ink hover:opacity-90"
+                        className="mt-5 w-full rounded-lg border border-white/60 bg-gold-light py-2.5 text-sm font-semibold text-white hover:opacity-90"
                       >
                         Оплатить
                       </button>
