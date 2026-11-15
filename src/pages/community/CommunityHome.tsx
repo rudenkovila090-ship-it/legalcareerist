@@ -2,6 +2,7 @@ import CommunityPromoField from '../../components/CommunityPromoField'
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
 import AmbassadorCarousel, { type Ambassador } from '../../components/AmbassadorCarousel'
 import CommunityAchievements from '../../components/CommunityAchievements'
+import CommunityFunctionality from '../../components/CommunityFunctionality'
 import Testimonials from '../../components/Testimonials'
 import { communityTestimonials } from '../../data/testimonials'
 import FAQSection from '../../components/FAQSection'
@@ -30,9 +31,12 @@ const railItems = [
   { id: 'map', label: 'География сообщества' },
   { id: 'ambassadors', label: 'Амбассадоры' },
   { id: 'join', label: 'Присоединиться' },
+  { id: 'functionality', label: 'Функционал' },
+  { id: 'digital-platforms', label: 'Цифровые платформы' },
   { id: 'achievements', label: 'Наши достижения' },
   { id: 'reviews', label: 'Отзывы' },
   { id: 'founder', label: 'Основатель' },
+  { id: 'partners', label: 'Партнеры' },
   { id: 'faq', label: 'FAQ' },
 ]
 
@@ -338,6 +342,13 @@ export default function CommunityHome() {
                 <div>
                   <h2 className={`text-xl font-semibold sm:text-2xl ${index === 0 ? 'text-white' : 'text-ink'}`}>{item.label}</h2>
                   <p className={`mt-4 text-base leading-relaxed sm:text-lg ${index === 0 ? 'text-white/75' : 'text-ink/70'}`}>{item.text}</p>
+                  {item.label === 'Ценность' && (
+                    <ul aria-label="Ценности сообщества — в разработке" className="mt-5 grid grid-cols-2 gap-2">
+                      {Array.from({ length: 4 }, (_, valueIndex) => (
+                        <li key={valueIndex} className="rounded-lg border border-dashed border-accent/30 bg-white/80 px-2 py-3 text-center text-xs leading-relaxed text-ink/55">В разработке</li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
               </article>
             ))}
@@ -614,6 +625,8 @@ export default function CommunityHome() {
         )}
       </section>
 
+      <CommunityFunctionality />
+
       <CommunityAchievements />
 
       {/* Отзывы */}
@@ -643,6 +656,11 @@ export default function CommunityHome() {
             </div>
           </div>
         </div>
+      </section>
+
+      <section id="partners" className="container-page scroll-mt-24 py-14">
+        <h2 className="mb-8 text-2xl font-semibold sm:text-3xl">Партнеры</h2>
+        <div className="rounded-2xl border border-dashed border-accent/30 bg-accent/[0.04] px-6 py-10 text-center text-sm text-ink/55">В разработке</div>
       </section>
 
       {/* FAQ */}
