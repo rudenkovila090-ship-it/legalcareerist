@@ -1,4 +1,5 @@
-// Publish the reviewed frontend only. The API, bot, nginx and private data are untouched.
+// Publish the reviewed frontend, optionally adding one external event to the generated catalog.
+// API/bot code, nginx, payments and resident data are untouched.
 import fs from 'node:fs'
 import path from 'node:path'
 import crypto from 'node:crypto'
@@ -10,9 +11,30 @@ import {currentBundle} from './lib/site-bundle.mjs'
 
 const hash=bytes=>crypto.createHash('sha256').update(bytes).digest('hex')
 const run=(name,args)=>spawnSync(name,args,{encoding:'utf8',timeout:15000,maxBuffer:32*1024*1024})
-const write=(file,bytes,mode=0o644)=>{
+const write=(file,bytes,mode=0o644,owner=null)=>{
   const temp=file+'.community-'+crypto.randomBytes(5).toString('hex')
-  try{fs.writeFileSync(temp,bytes,{mode,flag:'wx'});fs.chmodSync(temp,mode);fs.renameSync(temp,file)}finally{fs.rmSync(temp,{force:true})}
+  try{fs.writeFileSync(temp,bytes,{mode,flag:'wx'});if(owner)fs.chownSync(temp,owner.uid,owner.gid);fs.chmodSync(temp,mode);fs.renameSync(temp,file)}finally{fs.rmSync(temp,{force:true})}
+}
+
+function preparePartnerEvent(slug,checkout,source,text){
+  if(!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)||!checkout)throw Error('Для мероприятия укажите корректный --event-slug и --server-checkout')
+  const built=JSON.parse(fs.readFileSync(path.join(import.meta.dirname,'../server/data/event-catalog.json'),'utf8'))
+  if(!Array.isArray(built))throw Error('Не сформирован каталог мероприятий при сборке')
+  const matches=built.filter(item=>item.slug===slug)
+  if(matches.length!==1)throw Error('В сборке не найдено единственное мероприятие: '+slug)
+  const record=matches[0]
+  if(record.collectTicketLead||record.price!==null||record.tariffs?.length||!record.registrationLink?.startsWith('https://'))throw Error('Этот режим предназначен для внешнего мероприятия без указанной цены и собственной оплаты')
+  for(const value of [slug,record.title,record.registrationLink])if(!text.includes(value))throw Error('Мероприятие не подтверждено в JS сборки: '+value)
+  const sitemap=path.join(source.root,'sitemap.xml')
+  if(!fs.readFileSync(sitemap,'utf8').includes('https://legalcareerist.ru/events/'+slug))throw Error('Мероприятие отсутствует в sitemap')
+  const root=fs.realpathSync(checkout),file=path.join(root,'server/data/event-catalog.json')
+  if(fs.realpathSync(path.dirname(file))!==path.dirname(file)||!fs.lstatSync(file).isFile())throw Error('Каталог сервера должен быть обычным файлом внутри --server-checkout')
+  const before=fs.readFileSync(file),owner=fs.statSync(file),current=JSON.parse(before.toString('utf8'))
+  if(!Array.isArray(current)||current.some(item=>!item||typeof item.slug!=='string'))throw Error('Каталог сервера поврежден; изменений нет')
+  const existing=current.filter(item=>item.slug===slug)
+  if(existing.length>1||existing.length===1&&JSON.stringify(existing[0])!==JSON.stringify(record))throw Error('Мероприятие уже есть в серверном каталоге с другими данными; изменений нет')
+  const after=existing.length?before:Buffer.from(JSON.stringify([...current,record],null,2)+'\n')
+  return {slug,record,file,before,after,owner,changed:!before.equals(after),installed:false,sitemap}
 }
 
 export function restoreStatic(root,backup) {
@@ -43,6 +65,7 @@ async function main(){
   if(bundle.missing.length||Object.values(bundle.forms).some(forms=>forms.length!==1)||!bundle.promo)throw Error('Сборка не подтвердила текущие формы и промокод')
   const canonical=value=>value.replace(/ё/g,'е').replace(/Ё/g,'Е')
   const text=canonical(bundle.assets.filter(asset=>asset.endsWith('.js')).map(asset=>fs.readFileSync(path.join(source.root,asset),'utf8')).join('\n'))
+  const eventSlug=option('--event-slug'),event=eventSlug?preparePartnerEvent(eventSlug,option('--server-checkout'),source,text):null
   for(const required of ["Сообщество карьерного юриста","Без подписки","С подпиской","Закрытый чат в Телеграме","Нетворкинг","Закрытые мероприятия с приглашенными экспертами юридического рынка","Мастермайнды и карьерные разборы","Онлайн- и офлайн-встречи резидентов","База знаний","Закрытые вакансии и стажировки","Одна бесплатная карьерная консультация в месяц","Спикерство на мероприятиях и подкастах","Скидки от 20 до 50 процентов на мероприятия","Специальные предложения и скидки от партнеров","Барбусова","Александра","Третьякова","Валерия","Канду","Ангелина","Романова","Алена","Доманова","Батчина","Шеловская","Гранкина","Дюскина","Аверьянова","География сообщества","Предыдущие амбассадоры","Следующие амбассадоры","Лента циклическая.","3-я группа рейтинга","Юридический бизнес России","Рейтинг юридических Telegram-каналов · 2025","3-я группа рейтинга в группе «Профессиональные сообщества»","Стать амбассадором","Почему вы хотите стать резидентом?"])if(!text.includes(canonical(required)))throw Error('Не найдено изменение новой версии: '+required)
   for(const required of ['Наши достижения','Частые вопросы','Как понять, подхожу ли я?','С какого момента открывается моё резидентство в сообществе?','Можно ли сделать возврат?','Входят ли мероприятия в стоимость подписки?','Есть ли заморозка?','Я не из Петербурга или Москвы — стоит ли мне стать резидентом?','Какие есть возможности в сообществе?','Для чего вступать в сообщество?','Как стать резидентом?','Какая аудитория в сообществе?','Я не нашёл ответ на свой вопрос. Как мне с вами связаться?','Здесь будет ответ на этот вопрос.','Предыдущие отзывы','Следующие отзывы','Читать полностью','Карточка амбассадора'])if(!text.includes(canonical(required)))throw Error('Не найдено изменение в сборке: '+required)
   for(const required of ["Функционал","Построение карьеры","Составление и редактирование резюме","Шаблоны резюме","Подготовка к собеседованию","Знакомство","Рандом-кофе","Онлайн-встречи","Офлайн-события","Чат в Телеграме","Групповые форматы работы","Цифровые платформы","Личный кабинет","Telegram Mini App","Общие возможности","Профиль резидента","Лента","Календарь","База знаний","Партнеры","В разработке"])if(!text.includes(canonical(required)))throw Error('Не найден новый блок сообщества: '+required)
@@ -81,6 +104,11 @@ async function main(){
   }
   const verify=async()=>{
     await pages(source.entry)
+    if(event){
+      if(!(await get('/events/'+event.slug)).includes(Buffer.from(source.entry)))throw Error('Не подтверждена публичная страница мероприятия')
+      if(!(await get('/sitemap.xml')).equals(fs.readFileSync(event.sitemap)))throw Error('Не подтверждена новая карта сайта')
+      if(!fs.readFileSync(event.file).equals(event.after))throw Error('Каталог мероприятий изменился во время публикации')
+    }
     let next=0;const failures=[]
     await Promise.all(Array.from({length:4},async()=>{
       while(next<bundle.assets.length){const asset=bundle.assets[next++];try{if(!(await get(asset)).equals(fs.readFileSync(path.join(source.root,asset))))failures.push(asset)}catch{failures.push(asset)}}
@@ -95,8 +123,8 @@ async function main(){
   // Verify the actual configured document root before publishing anything.
   await pages(target.entry)
   if(!(await get(target.entry)).equals(fs.readFileSync(path.join(target.root,target.entry))))throw Error('nginx и публичный сайт используют разные сборки; изменений нет')
-  if(source.html===target.html){
-    try{await verify();console.log('COMMUNITY_PAGE_PUBLISHED: эта версия уже опубликована; повторная запись не нужна. https://legalcareerist.ru/community');return}
+  if(source.html===target.html&&!event?.changed){
+    try{await verify();console.log('COMMUNITY_PAGE_PUBLISHED: эта версия уже опубликована; повторная запись не нужна. https://legalcareerist.ru/community');if(event)console.log('PARTNER_EVENT_PUBLISHED: https://legalcareerist.ru/events/'+event.slug+'; эта версия и каталог уже опубликованы.');return}
     catch{console.log('HTML уже обновлён; проверяю и восстанавливаю файлы текущей сборки.')}
   }
   const base=option('--backup-root')||'/root/legalcareerist-bot-backups'
@@ -105,19 +133,30 @@ async function main(){
   const modes={}
   for(const file of source.files){const relative=path.relative(source.root,file),dest=path.join(target.root,relative);if(fs.existsSync(dest))modes[relative]=fs.statSync(dest).mode&0o777}
   fs.writeFileSync(path.join(backup,'previous-modes.json'),JSON.stringify(modes),{mode:0o600})
-  fs.writeFileSync(path.join(backup,'release.json'),JSON.stringify({version,commit:option('--commit'),root:target.root,entry:source.entry,previousEntry:target.entry,startedAt:new Date().toISOString(),sourceFiles:['src/pages/community/CommunityHome.tsx','src/assets/ambassadors/','src/assets/achievements/','src/components/AmbassadorCarousel.tsx','src/components/CommunityAchievements.tsx','src/components/CommunityFunctionality.tsx','src/components/CommunityPromoField.tsx','src/components/ConsentCheck.tsx','src/components/HowHeardField.tsx','src/components/TariffJoinBlock.tsx','src/components/FAQSection.tsx','src/components/TestimonialCarousel.tsx','src/index.css','src/lib/featureFlags.ts'],copyNormalization:'visible frontend text: ё → е; URLs and identifiers preserved'},null,2),{mode:0o600})
+  fs.writeFileSync(path.join(backup,'release.json'),JSON.stringify({version,commit:option('--commit'),root:target.root,entry:source.entry,previousEntry:target.entry,startedAt:new Date().toISOString(),partnerEvent:event?{slug:event.slug,catalog:event.file,changed:event.changed}:null,sourceFiles:['src/pages/community/CommunityHome.tsx','src/assets/ambassadors/','src/assets/achievements/','src/components/AmbassadorCarousel.tsx','src/components/CommunityAchievements.tsx','src/components/CommunityFunctionality.tsx','src/components/CommunityPromoField.tsx','src/components/ConsentCheck.tsx','src/components/HowHeardField.tsx','src/components/TariffJoinBlock.tsx','src/components/FAQSection.tsx','src/components/TestimonialCarousel.tsx','src/index.css','src/lib/featureFlags.ts',...(event?['src/data/events.ts']:[])],copyNormalization:'visible frontend text: ё → е; URLs and identifiers preserved'},null,2),{mode:0o600})
   try{
     if(fs.readFileSync(path.join(target.root,'index.html'),'utf8')!==target.html)throw Error('Началась другая публикация; операция остановлена')
+    if(event?.changed){
+      if(!fs.readFileSync(event.file).equals(event.before))throw Error('Каталог мероприятий уже изменен другим процессом; операция остановлена')
+      fs.writeFileSync(path.join(backup,'event-catalog.before.json'),event.before,{mode:0o600})
+      write(event.file,event.after,event.owner.mode&0o777,event.owner);event.installed=true
+    }
     console.log('Публикую страницу сообщества; резервная копия: '+backup)
     const changed=publishStatic(source.root,target.root,backup)
     await verify()
     fs.writeFileSync(path.join(backup,'verified.json'),JSON.stringify({verifiedAt:new Date().toISOString(),version,changed,assets:bundle.assets.length,faqQuestions:11,faqColumns:2,comparisonBenefits:11,tariffOrder:['1m','6m','3m'],ambassadorCards:10,namedAmbassadors:10,portraitFiles:4,achievementOriginals:3,archiveOriginals:originalRecords,achievements:3,ambassadorForm:true,ambassadorModal:true,ambassadorCarouselLoop:true,defaultTariff:'6m',geographySidePanel:true,functionalityGroups:2,digitalPlatformSources:2,digitalPlatformFeatures:4,valuePlaceholders:4,partnersPlaceholder:true,communityPalette:{blue:'#2A4D85',white:'#FFFFFF'},backendChanged:false,nginxChanged:false}),{mode:0o600})
     console.log('COMMUNITY_PAGE_PUBLISHED: новая страница подтверждена по публичному HTML и '+bundle.assets.length+' JS/CSS. Опубликованы новая титульная с кнопкой, палитра Blue Hour / White, сравнение 11 возможностей с кнопкой под галочками, география с университетами справа, равные тарифы 1–6–3 месяца с выбором 6 месяцев, циклическая лента 10 амбассадоров и заявка по кнопке, функционал и схема цифровых платформ, заготовки ценностей и партнеров, достижения с тремя оригинальными изображениями (сертификат РАСО, благодарность и рейтинг), компактные отзывы, основатель после отзывов и FAQ в две колонки с кнопкой вступления. Расчёт трёх тарифов и KQ1111 → 350 ₽ проверен. https://legalcareerist.ru/community')
     console.log('Резервная копия: '+backup)
+    if(event)console.log('PARTNER_EVENT_PUBLISHED: https://legalcareerist.ru/events/'+event.slug+'; страница и запись серверного каталога проверены.')
   }catch(error){
     let restored=false
     try{restoreStatic(target.root,backup);restored=fs.readFileSync(path.join(target.root,'index.html'),'utf8')===target.html}catch{}
-    throw Error(error.message+'. '+(restored?'Прежние файлы сайта восстановлены.':'Восстановление не подтверждено.')+' Резервная копия: '+backup)
+    let catalogRestored=!event?.installed
+    if(event?.installed)try{
+      if(!fs.readFileSync(event.file).equals(event.after))throw Error('Каталог изменен другим процессом')
+      write(event.file,event.before,event.owner.mode&0o777,event.owner);catalogRestored=true
+    }catch{}
+    throw Error(error.message+'. '+(restored?'Прежние файлы сайта восстановлены.':'Восстановление не подтверждено.')+(event?(catalogRestored?' Прежний каталог мероприятий сохранен.':' Откат каталога не подтвержден; проверьте резервную копию.'):'')+' Резервная копия: '+backup)
   }
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(path.resolve(process.argv[1])).href)main().catch(error=>{console.error('ПУБЛИКАЦИЯ НЕ ПОДТВЕРЖДЕНА: '+error.message);process.exitCode=1})

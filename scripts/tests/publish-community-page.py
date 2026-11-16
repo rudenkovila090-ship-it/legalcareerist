@@ -47,13 +47,15 @@ globalThis.fetch=async(input,options={})=>{
  if(updated&&fs.existsSync(path.join(root,'fail-thanks'))&&route.includes('conference-thanks-2026-'))return new Response('WRONG_THANKS');
  if(updated&&fs.existsSync(path.join(root,'fail-rating'))&&route.includes('legal-telegram-rating-2025-'))return new Response('WRONG_RATING');
  if(updated&&fs.existsSync(path.join(root,'fail-alena'))&&route.includes('alena-romanova-'))return new Response('WRONG_PORTRAIT');
- const file=route.startsWith('/assets/')?path.join(live,route):path.join(live,'index.html');
+ if(updated&&fs.existsSync(path.join(root,'fail-event'))&&route==='/events/peresborka-yuridicheskogo-produkta-19-noyabrya-2026')return new Response('MISSING_EVENT',{status:404});
+ if(updated&&fs.existsSync(path.join(root,'fail-sitemap'))&&route==='/sitemap.xml')return new Response('OLD_SITEMAP');
+ const file=route.startsWith('/assets/')||route==='/sitemap.xml'?path.join(live,route):path.join(live,'index.html');
  return fs.existsSync(file)?new Response(fs.readFileSync(file)):new Response('missing',{status:404});
 };
 ''')
     env={**os.environ,'PATH':str(binary)+':'+os.environ['PATH'],'NODE_OPTIONS':'--import '+str(stub),'PAGE_PUBLISH_TEST_ROOT':str(root)}
     cmd=['node',str(repo/'scripts/publish-community-page.mjs'),'--dist',str(source),'--backup-root',str(root/'backups'),'--commit','synthetic-reviewed-release']
-    def invoke():return subprocess.run(cmd,env=env,text=True,capture_output=True,timeout=60)
+    def invoke(*extra):return subprocess.run([*cmd,*extra],env=env,text=True,capture_output=True,timeout=60)
     def check_private():
         assert (private/'payments.json').read_text()=='{"payment":"preserve"}'
         assert (private/'.env').read_text()=='SYNTHETIC_SECRET=never-print'
@@ -103,3 +105,45 @@ globalThis.fetch=async(input,options={})=>{
     assert (root/'requests.jsonl').read_bytes()==before_requests
     check_private()
     print('PASS: altered archive original is rejected before HTTP requests or any public changes')
+
+    checkout=root/'checkout';catalog=checkout/'server/data/event-catalog.json';catalog.parent.mkdir(parents=True)
+    # A live paid event may have server-specific fields and a price different from this checkout.
+    # Adding an external meeting must preserve that record, permissions and bytes on rollback.
+    original=b'[ {"slug":"existing-paid-event","title":"Existing paid event","price":4890,"serverOnly":"PRESERVE","tariffs":[{"id":"light","price":4890}]} ]\n'
+    catalog.write_bytes(original);catalog.chmod(0o640)
+    event_args=['--event-slug','peresborka-yuridicheskogo-produkta-19-noyabrya-2026','--server-checkout',str(checkout)]
+    reset();installed=invoke(*event_args)
+    assert installed.returncode==0,installed.stdout+installed.stderr
+    assert 'PARTNER_EVENT_PUBLISHED' in installed.stdout
+    actual=json.loads(catalog.read_text());assert len(actual)==2
+    assert actual[0]==json.loads(original)[0]
+    assert actual[1]['slug']==event_args[1] and actual[1]['registrationLink']=='https://go.urbiz.pro/3Jtiw5Px'
+    assert actual[1]['price'] is None and not actual[1]['collectTicketLead']
+    assert catalog.stat().st_mode&0o777==0o640
+    installed_bytes=catalog.read_bytes();before_backups=len(list((root/'backups').iterdir()))
+    again=invoke(*event_args);assert again.returncode==0,again.stdout+again.stderr
+    assert 'PARTNER_EVENT_PUBLISHED' in again.stdout
+    assert catalog.read_bytes()==installed_bytes and len(list((root/'backups').iterdir()))==before_backups
+    check_private()
+    print('PASS: external event published, live paid-event data and catalog permissions preserved; repeat makes no writes')
+    # Identical frontend may still be missing its server catalog entry.
+    catalog.write_bytes(original)
+    repair=invoke(*event_args);assert repair.returncode==0,repair.stdout+repair.stderr
+    assert len(json.loads(catalog.read_text()))==2
+    print('PASS: missing catalog entry is repaired even when the frontend is already current')
+    for flag in ['fail-event','fail-sitemap','fail-quote']:
+        reset();catalog.write_bytes(original);(root/flag).touch()
+        failed=invoke(*event_args);assert failed.returncode==1,failed.stdout+failed.stderr
+        assert (live/'index.html').read_text()==oldhtml and catalog.read_bytes()==original
+        assert catalog.stat().st_mode&0o777==0o640
+        backups=sorted((root/'backups').iterdir(),key=lambda path:path.stat().st_mtime_ns)
+        assert (backups[-1]/'event-catalog.before.json').read_bytes()==original
+        check_private();(root/flag).unlink()
+        print('PASS: '+flag+' restores both previous website and exact catalog bytes')
+    reset();conflicting=json.loads(original)+[{**actual[1],'price':999}]
+    catalog.write_text(json.dumps(conflicting));before_catalog=catalog.read_bytes()
+    before_requests=(root/'requests.jsonl').read_bytes();before_backups=len(list((root/'backups').iterdir()))
+    refused=invoke(*event_args);assert refused.returncode==1 and 'другими данными' in refused.stderr,refused.stdout+refused.stderr
+    assert catalog.read_bytes()==before_catalog and (live/'index.html').read_text()==oldhtml
+    assert len(list((root/'backups').iterdir()))==before_backups and (root/'requests.jsonl').read_bytes()==before_requests
+    print('PASS: conflicting live event is rejected before HTTP requests or writes')
