@@ -1,0 +1,91 @@
+{
+  "version": 1,
+  "date": "2026-11-16",
+  "files": [
+    {
+      "path": "02-yuridicheskaya-kariera/02-rost-i-rukovoditel/04-kak-zarabatyvat-bolshe.md",
+      "id": "yuridicheskaya-kariera/rost-i-rukovoditel/kak-zarabatyvat-bolshe",
+      "title": "Как зарабатывать больше в найме и в своем деле",
+      "parent": "yuridicheskaya-kariera/rost-i-rukovoditel",
+      "sha256": "d1286ac437f72e1bb084915968e47f5984fda0a06514421bbabbc92d90dc39fe",
+      "bytes": 23286,
+      "source": {
+        "fileName": "Как_зарабатывать_больше_в_найме_и_в_своем_деле.docx",
+        "sha256": "b31fad5629d2a946883d5ac7d2d37ec1555d22c8fc9a9e3c7d5237b9248e1927",
+        "bytes": 52268
+      },
+      "searchQueries": [
+        "зарабатывать больше",
+        "Follow-up"
+      ]
+    },
+    {
+      "path": "04-yuridicheskiy-menedzhment/02-kak-postroit-yuridicheskiy-biznes-v-b2b.md",
+      "id": "yuridicheskiy-menedzhment/kak-postroit-yuridicheskiy-biznes-v-b2b",
+      "title": "Как построить юридический бизнес в сегменте B2B",
+      "parent": "yuridicheskiy-menedzhment",
+      "sha256": "0834e43b31609144a25d0e6e6021d8dca652b3cfe1a8822e6054fa681145354e",
+      "bytes": 24204,
+      "source": {
+        "fileName": "Как_построить_юридический_бизнес_в_B2B.docx",
+        "sha256": "379ff70c6ab09c260692672ad30eb35205e12b9f3c373f669846a0169f8cd743",
+        "bytes": 51709
+      },
+      "searchQueries": [
+        "B2B",
+        "ценовая толерантность"
+      ]
+    },
+    {
+      "path": "01-yuridicheskiy-mir/01-yuridicheskiy-rynok/03-perenasyshchenie-rynka-yuristov-i-ii.md",
+      "id": "yuridicheskiy-mir/yuridicheskiy-rynok/perenasyshchenie-rynka-yuristov-i-ii",
+      "title": "Перенасыщение рынка юристов, ИИ и будущее юридического образования",
+      "parent": "yuridicheskiy-mir/yuridicheskiy-rynok",
+      "sha256": "10246207bad61b9e089f07c013eb4c5fc0ab81383f24adc886caf59c77c83024",
+      "bytes": 25077,
+      "source": {
+        "fileName": "Перенасыщение_рынка_юристов_и_ИИ.docx",
+        "sha256": "778dbe45723a930d73f94b0357457b1a1c7c45ce825eb46e8d30e699cdf7696d",
+        "bytes": 50117
+      },
+      "searchQueries": [
+        "Перенасыщение",
+        "автоматизировать"
+      ]
+    },
+    {
+      "path": "07-lichnyy-brend-i-marketing/06-kak-privlekat-klientov-7-sposobov.md",
+      "id": "lichnyy-brend-i-marketing/kak-privlekat-klientov-7-sposobov",
+      "title": "Как привлекать клиентов: 7 способов — от очевидных до неожиданных",
+      "parent": "lichnyy-brend-i-marketing",
+      "sha256": "41727828b453914b76b9a1f61eaa7411fb7058d87397dca1a71585e588a05c6c",
+      "bytes": 24977,
+      "source": {
+        "fileName": "Как_привлекать_клиентов_7_способов.docx",
+        "sha256": "c0c714692d5354ab5f4a388fe55676c612c73018615e66ba8f92b8f158962523",
+        "bytes": 52625
+      },
+      "searchQueries": [
+        "7 способов",
+        "комьюнити"
+      ]
+    },
+    {
+      "path": "02-yuridicheskaya-kariera/02-rost-i-rukovoditel/05-mentorstvo-dlya-yuristov.md",
+      "id": "yuridicheskaya-kariera/rost-i-rukovoditel/mentorstvo-dlya-yuristov",
+      "title": "Менторство для юристов: кому и зачем",
+      "parent": "yuridicheskaya-kariera/rost-i-rukovoditel",
+      "sha256": "d476bdf5de648f1f7b914d5d91f727d5140b8caf13c1d6d31cfda90893ba8a84",
+      "bytes": 21653,
+      "source": {
+        "fileName": "Менторство_для_юристов_кому_и_зачем.docx",
+        "sha256": "4f2c879c45ca7d7a1f4c8f5e6cf14e1878c8592abdc1f4bb8623ab2031efca84",
+        "bytes": 48235
+      },
+      "searchQueries": [
+        "Менторство",
+        "солиситора"
+      ]
+    }
+  ]
+}
