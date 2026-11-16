@@ -12,6 +12,7 @@ import ilyaPhoto from '../../assets/ilya-rudenkov.jpg'
 import alexandraPhoto from '../../assets/ambassadors/alexandra-barbusova.png'
 import valeriaPhoto from '../../assets/ambassadors/valeria-tretyakova.png'
 import angelinaPhoto from '../../assets/ambassadors/angelina-kandu.png'
+import alenaPhoto from '../../assets/ambassadors/alena-romanova.png'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import { tariffs } from '../../data/tariffs'
 import CommunityFooter from './CommunityFooter'
@@ -75,7 +76,7 @@ const ambassadors: Ambassador[] = [
   { id: 1, lastName: 'Барбусова', firstName: 'Александра', university: 'Санкт-Петербургский институт (филиал) ВГУЮ', universityNote: '(РПА Минюста России)', photo: alexandraPhoto },
   { id: 2, lastName: 'Третьякова', firstName: 'Валерия', university: 'СПбГУ', photo: valeriaPhoto },
   { id: 3, lastName: 'Канду', firstName: 'Ангелина', university: 'СПбГУ', photo: angelinaPhoto },
-  { id: 4, lastName: 'Романова', firstName: 'Алена', university: 'СПбГЭУ', role: 'Младший юрист в банкротстве' },
+  { id: 4, lastName: 'Романова', firstName: 'Алена', university: 'СПбГЭУ', role: 'Младший юрист в банкротстве', photo: alenaPhoto },
   { id: 5, lastName: 'Доманова', firstName: 'Анастасия', role: 'Младший юрист' },
   { id: 6, lastName: 'Батчина', firstName: 'Арина', university: 'МГИМО' },
   { id: 7, lastName: 'Шеловская', firstName: 'Мария', university: 'НИУ ВШЭ' },

@@ -49,8 +49,8 @@ async function main(){
   const cssText=bundle.assets.filter(asset=>asset.endsWith('.css')).map(asset=>fs.readFileSync(path.join(source.root,asset),'utf8')).join('\n')
   const paletteCss=cssText.match(/body:has\(\.community-page\)\s*\{([^}]*)\}/)?.[1]||''
   if(!/--color-accent\s*:\s*#2a4d85\b/i.test(paletteCss)||!/--color-white\s*:\s*#(?:fff|ffffff)\b/i.test(paletteCss)||!/--color-paper\s*:\s*#(?:fff|ffffff)\b/i.test(paletteCss))throw Error('Не подтверждена палитра сообщества Blue Hour / White')
-  const portraits=source.files.filter(file=>/\/(?:alexandra-barbusova|valeria-tretyakova|angelina-kandu)-[^/]+\.png$/.test(file))
-  if(portraits.length!==3)throw Error('Не найдены три подготовленных портрета амбассадоров')
+  const portraits=source.files.filter(file=>/\/(?:alexandra-barbusova|valeria-tretyakova|angelina-kandu|alena-romanova)-[^/]+\.png$/.test(file))
+  if(portraits.length!==4)throw Error('Не найдены четыре подготовленных портрета амбассадоров')
   const certificates=source.files.filter(file=>/\/certificate-raso-lbf-2026-[^/]+\.jpg$/.test(file))
   if(certificates.length!==1)throw Error('Не найден оригинал сертификата рейтинга РАСО и Legal Business Forum')
   const originalRecords=JSON.parse(fs.readFileSync(new URL('../src/assets/achievements/originals.json',import.meta.url),'utf8'))
@@ -111,7 +111,7 @@ async function main(){
     console.log('Публикую страницу сообщества; резервная копия: '+backup)
     const changed=publishStatic(source.root,target.root,backup)
     await verify()
-    fs.writeFileSync(path.join(backup,'verified.json'),JSON.stringify({verifiedAt:new Date().toISOString(),version,changed,assets:bundle.assets.length,faqQuestions:11,faqColumns:2,comparisonBenefits:11,tariffOrder:['1m','6m','3m'],ambassadorCards:10,namedAmbassadors:10,portraitFiles:3,achievementOriginals:3,archiveOriginals:originalRecords,achievements:3,ambassadorForm:true,ambassadorModal:true,ambassadorCarouselLoop:true,defaultTariff:'6m',geographySidePanel:true,functionalityGroups:2,digitalPlatformSources:2,digitalPlatformFeatures:4,valuePlaceholders:4,partnersPlaceholder:true,communityPalette:{blue:'#2A4D85',white:'#FFFFFF'},backendChanged:false,nginxChanged:false}),{mode:0o600})
+    fs.writeFileSync(path.join(backup,'verified.json'),JSON.stringify({verifiedAt:new Date().toISOString(),version,changed,assets:bundle.assets.length,faqQuestions:11,faqColumns:2,comparisonBenefits:11,tariffOrder:['1m','6m','3m'],ambassadorCards:10,namedAmbassadors:10,portraitFiles:4,achievementOriginals:3,archiveOriginals:originalRecords,achievements:3,ambassadorForm:true,ambassadorModal:true,ambassadorCarouselLoop:true,defaultTariff:'6m',geographySidePanel:true,functionalityGroups:2,digitalPlatformSources:2,digitalPlatformFeatures:4,valuePlaceholders:4,partnersPlaceholder:true,communityPalette:{blue:'#2A4D85',white:'#FFFFFF'},backendChanged:false,nginxChanged:false}),{mode:0o600})
     console.log('COMMUNITY_PAGE_PUBLISHED: новая страница подтверждена по публичному HTML и '+bundle.assets.length+' JS/CSS. Опубликованы новая титульная с кнопкой, палитра Blue Hour / White, сравнение 11 возможностей с кнопкой под галочками, география с университетами справа, равные тарифы 1–6–3 месяца с выбором 6 месяцев, циклическая лента 10 амбассадоров и заявка по кнопке, функционал и схема цифровых платформ, заготовки ценностей и партнеров, достижения с тремя оригинальными изображениями (сертификат РАСО, благодарность и рейтинг), компактные отзывы, основатель после отзывов и FAQ в две колонки с кнопкой вступления. Расчёт трёх тарифов и KQ1111 → 350 ₽ проверен. https://legalcareerist.ru/community')
     console.log('Резервная копия: '+backup)
   }catch(error){

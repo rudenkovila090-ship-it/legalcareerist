@@ -46,6 +46,7 @@ globalThis.fetch=async(input,options={})=>{
  if(updated&&fs.existsSync(path.join(root,'fail-image'))&&route.includes('certificate-raso-lbf-2026-'))return new Response('WRONG_CERTIFICATE');
  if(updated&&fs.existsSync(path.join(root,'fail-thanks'))&&route.includes('conference-thanks-2026-'))return new Response('WRONG_THANKS');
  if(updated&&fs.existsSync(path.join(root,'fail-rating'))&&route.includes('legal-telegram-rating-2025-'))return new Response('WRONG_RATING');
+ if(updated&&fs.existsSync(path.join(root,'fail-alena'))&&route.includes('alena-romanova-'))return new Response('WRONG_PORTRAIT');
  const file=route.startsWith('/assets/')?path.join(live,route):path.join(live,'index.html');
  return fs.existsSync(file)?new Response(fs.readFileSync(file)):new Response('missing',{status:404});
 };
@@ -68,6 +69,7 @@ globalThis.fetch=async(input,options={})=>{
     assert (first[0]/'index.html').read_text()==oldhtml
     assert json.loads((first[0]/'verified.json').read_text())['faqQuestions']==11
     assert json.loads((first[0]/'verified.json').read_text())['achievementOriginals']==3
+    assert json.loads((first[0]/'verified.json').read_text())['portraitFiles']==4
     print('PASS: actual reviewed build published, all current JS/CSS and quotes verified, old assets/private data preserved')
     repeat=invoke();assert repeat.returncode==0,repeat.stdout+repeat.stderr
     assert 'повторная запись не нужна' in repeat.stdout and len(list((root/'backups').iterdir()))==1
@@ -75,7 +77,7 @@ globalThis.fetch=async(input,options={})=>{
     repaired=invoke();assert repaired.returncode==0,repaired.stdout+repaired.stderr
     assert chunk.exists()
     print('PASS: repeat is read-only; missing lazy chunk is repaired despite identical index.html')
-    for flag in ['fail-quote','fail-chunks','fail-image','fail-thanks','fail-rating']:
+    for flag in ['fail-quote','fail-chunks','fail-image','fail-thanks','fail-rating','fail-alena']:
         reset();(root/flag).touch()
         failed=invoke();assert failed.returncode==1,failed.stdout+failed.stderr
         assert 'Прежние файлы сайта восстановлены' in failed.stderr
