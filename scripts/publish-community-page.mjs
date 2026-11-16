@@ -86,6 +86,16 @@ async function main(){
     if(bytes.length!==record.bytes||hash(bytes)!==record.sha256)throw Error('Оригинал изменен: '+record.file)
     return matches[0]
   })
+  const noirOriginalRecords=JSON.parse(fs.readFileSync(new URL('../src/assets/noir/originals.json',import.meta.url),'utf8'))
+  if(noirOriginalRecords.length!==1||noirOriginalRecords[0].file!=='advokat-dyavola.png')throw Error('Не подтвержден оригинал фото «Адвокат дьявола»')
+  const noirOriginals=noirOriginalRecords.map(record=>{
+    const {name,ext}=path.parse(record.file)
+    const matches=source.files.filter(file=>path.basename(file).startsWith(name+'-')&&path.extname(file)===ext)
+    if(matches.length!==1)throw Error('Не найдено фото «Адвокат дьявола» в сборке')
+    const bytes=fs.readFileSync(matches[0])
+    if(bytes.length!==record.bytes||hash(bytes)!==record.sha256)throw Error('Оригинал фото изменен: '+record.file)
+    return matches[0]
+  })
   if(run('nginx',['-t']).status!==0)throw Error('nginx -t не прошёл; публикация не начиналась')
   const nginx=run('nginx',['-T']);if(nginx.status!==0)throw Error('Не прочитан действующий nginx')
   const roots=[]
@@ -104,6 +114,7 @@ async function main(){
   }
   const verify=async()=>{
     await pages(source.entry)
+    if(!(await get('/events/dzhazovyy-vecher-dlya-yuristov-2')).includes(Buffer.from(source.entry)))throw Error('Не подтверждена страница Legal Night Jazz 2')
     if(event){
       if(!(await get('/events/'+event.slug)).includes(Buffer.from(source.entry)))throw Error('Не подтверждена публичная страница мероприятия')
       if(!(await get('/sitemap.xml')).equals(fs.readFileSync(event.sitemap)))throw Error('Не подтверждена новая карта сайта')
@@ -114,7 +125,7 @@ async function main(){
       while(next<bundle.assets.length){const asset=bundle.assets[next++];try{if(!(await get(asset)).equals(fs.readFileSync(path.join(source.root,asset))))failures.push(asset)}catch{failures.push(asset)}}
     }))
     if(failures.length)throw Error('Не совпадают опубликованные JS/CSS: '+failures.slice(0,6).join(', '))
-    for(const file of [...portraits,...certificates,...archiveOriginals]){const route='/'+path.relative(source.root,file).split(path.sep).join('/');if(!(await get(route)).equals(fs.readFileSync(file)))throw Error('Не подтверждено изображение: '+route)}
+    for(const file of [...portraits,...certificates,...archiveOriginals,...noirOriginals]){const route='/'+path.relative(source.root,file).split(path.sep).join('/');if(!(await get(route)).equals(fs.readFileSync(file)))throw Error('Не подтверждено изображение: '+route)}
     for(const [tariffId,promoCode,amount,months,subscriptionId]of [['1m','',690,1,'2854597'],['3m','',1770,3,'3005286'],['6m','',3180,6,'3005289'],['1m','KQ1111',350,1,'2611878']]){
       const quote=JSON.parse(await get('/api/community/promo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tariffId,promoCode})}))
       if(quote.ok!==true||quote.applied!==Boolean(promoCode)||quote.amount!==amount||quote.months!==months||String(quote.subscriptionId)!==subscriptionId)throw Error('Не подтверждён расчёт '+(promoCode||tariffId))
@@ -124,7 +135,7 @@ async function main(){
   await pages(target.entry)
   if(!(await get(target.entry)).equals(fs.readFileSync(path.join(target.root,target.entry))))throw Error('nginx и публичный сайт используют разные сборки; изменений нет')
   if(source.html===target.html&&!event?.changed){
-    try{await verify();console.log('COMMUNITY_PAGE_PUBLISHED: эта версия уже опубликована; повторная запись не нужна. https://legalcareerist.ru/community');if(event)console.log('PARTNER_EVENT_PUBLISHED: https://legalcareerist.ru/events/'+event.slug+'; эта версия и каталог уже опубликованы.');return}
+    try{await verify();console.log('COMMUNITY_PAGE_PUBLISHED: эта версия уже опубликована; повторная запись не нужна. https://legalcareerist.ru/community');if(event)console.log('PARTNER_EVENT_PUBLISHED: https://legalcareerist.ru/events/'+event.slug+'; эта версия и каталог уже опубликованы.');console.log('JAZZ_PHOTO_PUBLISHED: оригинал фото «Адвокат дьявола» уже опубликован и проверен.');return}
     catch{console.log('HTML уже обновлён; проверяю и восстанавливаю файлы текущей сборки.')}
   }
   const base=option('--backup-root')||'/root/legalcareerist-bot-backups'
@@ -133,7 +144,7 @@ async function main(){
   const modes={}
   for(const file of source.files){const relative=path.relative(source.root,file),dest=path.join(target.root,relative);if(fs.existsSync(dest))modes[relative]=fs.statSync(dest).mode&0o777}
   fs.writeFileSync(path.join(backup,'previous-modes.json'),JSON.stringify(modes),{mode:0o600})
-  fs.writeFileSync(path.join(backup,'release.json'),JSON.stringify({version,commit:option('--commit'),root:target.root,entry:source.entry,previousEntry:target.entry,startedAt:new Date().toISOString(),partnerEvent:event?{slug:event.slug,catalog:event.file,changed:event.changed}:null,sourceFiles:['src/pages/community/CommunityHome.tsx','src/assets/ambassadors/','src/assets/achievements/','src/components/AmbassadorCarousel.tsx','src/components/CommunityAchievements.tsx','src/components/CommunityFunctionality.tsx','src/components/CommunityPromoField.tsx','src/components/ConsentCheck.tsx','src/components/HowHeardField.tsx','src/components/TariffJoinBlock.tsx','src/components/FAQSection.tsx','src/components/TestimonialCarousel.tsx','src/index.css','src/lib/featureFlags.ts',...(event?['src/data/events.ts']:[])],copyNormalization:'visible frontend text: ё → е; URLs and identifiers preserved'},null,2),{mode:0o600})
+  fs.writeFileSync(path.join(backup,'release.json'),JSON.stringify({version,commit:option('--commit'),root:target.root,entry:source.entry,previousEntry:target.entry,startedAt:new Date().toISOString(),partnerEvent:event?{slug:event.slug,catalog:event.file,changed:event.changed}:null,sourceFiles:['src/pages/community/CommunityHome.tsx','src/assets/ambassadors/','src/assets/achievements/','src/components/AmbassadorCarousel.tsx','src/components/CommunityAchievements.tsx','src/components/CommunityFunctionality.tsx','src/components/CommunityPromoField.tsx','src/components/ConsentCheck.tsx','src/components/HowHeardField.tsx','src/components/TariffJoinBlock.tsx','src/components/FAQSection.tsx','src/components/TestimonialCarousel.tsx','src/index.css','src/lib/featureFlags.ts','src/data/eventStories.ts','src/components/noir/SpeakerFiles.tsx','src/pages/events/noir.css','src/assets/noir/advokat-dyavola.png','src/assets/noir/originals.json',...(event?['src/data/events.ts']:[])],copyNormalization:'visible frontend text: ё → е; URLs and identifiers preserved'},null,2),{mode:0o600})
   try{
     if(fs.readFileSync(path.join(target.root,'index.html'),'utf8')!==target.html)throw Error('Началась другая публикация; операция остановлена')
     if(event?.changed){
@@ -144,10 +155,11 @@ async function main(){
     console.log('Публикую страницу сообщества; резервная копия: '+backup)
     const changed=publishStatic(source.root,target.root,backup)
     await verify()
-    fs.writeFileSync(path.join(backup,'verified.json'),JSON.stringify({verifiedAt:new Date().toISOString(),version,changed,assets:bundle.assets.length,faqQuestions:11,faqColumns:2,comparisonBenefits:11,tariffOrder:['1m','6m','3m'],ambassadorCards:10,namedAmbassadors:10,portraitFiles:4,achievementOriginals:3,archiveOriginals:originalRecords,achievements:3,ambassadorForm:true,ambassadorModal:true,ambassadorCarouselLoop:true,defaultTariff:'6m',geographySidePanel:true,functionalityGroups:2,digitalPlatformSources:2,digitalPlatformFeatures:4,valuePlaceholders:4,partnersPlaceholder:true,communityPalette:{blue:'#2A4D85',white:'#FFFFFF'},backendChanged:false,nginxChanged:false}),{mode:0o600})
+    fs.writeFileSync(path.join(backup,'verified.json'),JSON.stringify({verifiedAt:new Date().toISOString(),version,changed,assets:bundle.assets.length,faqQuestions:11,faqColumns:2,comparisonBenefits:11,tariffOrder:['1m','6m','3m'],ambassadorCards:10,namedAmbassadors:10,portraitFiles:4,achievementOriginals:3,archiveOriginals:originalRecords,achievements:3,ambassadorForm:true,ambassadorModal:true,ambassadorCarouselLoop:true,defaultTariff:'6m',geographySidePanel:true,functionalityGroups:2,digitalPlatformSources:2,digitalPlatformFeatures:4,valuePlaceholders:4,partnersPlaceholder:true,noirOriginalPhotos:noirOriginalRecords,communityPalette:{blue:'#2A4D85',white:'#FFFFFF'},backendChanged:false,nginxChanged:false}),{mode:0o600})
     console.log('COMMUNITY_PAGE_PUBLISHED: новая страница подтверждена по публичному HTML и '+bundle.assets.length+' JS/CSS. Опубликованы новая титульная с кнопкой, палитра Blue Hour / White, сравнение 11 возможностей с кнопкой под галочками, география с университетами справа, равные тарифы 1–6–3 месяца с выбором 6 месяцев, циклическая лента 10 амбассадоров и заявка по кнопке, функционал и схема цифровых платформ, заготовки ценностей и партнеров, достижения с тремя оригинальными изображениями (сертификат РАСО, благодарность и рейтинг), компактные отзывы, основатель после отзывов и FAQ в две колонки с кнопкой вступления. Расчёт трёх тарифов и KQ1111 → 350 ₽ проверен. https://legalcareerist.ru/community')
     console.log('Резервная копия: '+backup)
     if(event)console.log('PARTNER_EVENT_PUBLISHED: https://legalcareerist.ru/events/'+event.slug+'; страница и запись серверного каталога проверены.')
+    console.log('JAZZ_PHOTO_PUBLISHED: оригинал фото «Адвокат дьявола» проверен по публичным байтам. https://legalcareerist.ru/events/dzhazovyy-vecher-dlya-yuristov-2#speakers')
   }catch(error){
     let restored=false
     try{restoreStatic(target.root,backup);restored=fs.readFileSync(path.join(target.root,'index.html'),'utf8')===target.html}catch{}

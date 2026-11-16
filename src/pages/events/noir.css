@@ -2224,6 +2224,34 @@ a.fam-ava:hover {
   mix-blend-mode: screen;
   pointer-events: none;
 }
+/* Готовое фото из архива владельца: сохраняем рамку, цвет и весь кадр. */
+.fd-pic[data-original-photo],
+.ef-photo[data-original-photo] {
+  background: #e7d5b7;
+}
+.fd-pic[data-original-photo] img,
+.ef-photo[data-original-photo] img {
+  object-fit: contain;
+  object-position: center;
+  filter: none;
+}
+.fd-pic[data-original-photo]::after,
+.ef-photo[data-original-photo]::after,
+.fd-pic[data-original-photo] .fd-scale {
+  display: none;
+}
+.ef-photo[data-original-photo] {
+  aspect-ratio: 1;
+}
+@media (max-width: 479px) {
+  .ef-top:has(.ef-photo[data-original-photo]) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ef-top:has(.ef-photo[data-original-photo]) .ef-print {
+    width: min(100%, 11rem);
+    justify-self: center;
+  }
+}
 .ef-name {
   margin-top: 0.5rem;
   font: 700 1.02rem/1.2 'Playfair Display', Georgia, serif;

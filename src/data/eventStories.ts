@@ -9,6 +9,7 @@ import portraitBarWoman from '../assets/noir/portrait-bar-woman.webp'
 import speakerJulia from '../assets/noir/speaker-julia-mukhina.webp'
 import speakerIlya from '../assets/noir/speaker-ilya-rudenkov.webp'
 import speakerEva from '../assets/noir/speaker-eva-gerasimova.webp'
+import devilAdvocatePhoto from '../assets/noir/advokat-dyavola.png'
 import partnerDasha from '../assets/noir/partner-dasha-italy.webp'
 import partnerCareerLawyer from '../assets/noir/partner-career-lawyer.webp'
 import partnerWeb2b from '../assets/noir/partner-web2b.webp'
@@ -73,6 +74,8 @@ export interface EventCharacter {
   icon: CharacterIcon
   /** Номер дела на папке и обложке: четыре цифры, у каждой роли свой. */
   caseNo?: string
+  /** Фотография роли: можно добавить до объявления имени гостя. */
+  photo?: string
   /** Гость в этой роли — заполняем, когда имя объявлено. */
   speaker?: EventSpeaker
 }
@@ -497,6 +500,7 @@ export const eventStories: Record<string, EventStory> = {
       {
         name: 'Адвокат дьявола',
         caseNo: '8150',
+        photo: devilAdvocatePhoto,
         epithet: 'человек, который знает правила',
         keywords: 'Профессиональная этика · Риски · Компромиссы',
         text: 'Он умеет объяснить, почему любое решение казалось оправданным в момент его принятия. Даже если последствия оказались разрушительными.',

@@ -96,6 +96,7 @@ const SCALE = [190, 180, 170, 160, 150]
 function FolderFace({ character, index }: { character: EventCharacter; index: number }) {
   const { stamp, face } = look(index)
   const speaker = character.speaker
+  const photo = character.photo ?? speaker?.photo
   const sealed = !speaker
   const risk = speaker?.risk
   return (
@@ -119,8 +120,8 @@ function FolderFace({ character, index }: { character: EventCharacter; index: nu
 
         <span className="fd-mid">
           <span className="fd-photo">
-            <span className="fd-pic" data-photo={speaker?.photo ? '' : undefined}>
-              {speaker?.photo ? <img src={speaker.photo} alt="" loading="lazy" decoding="async" /> : <SilhouetteArt kind={face} />}
+            <span className="fd-pic" data-photo={photo ? '' : undefined} data-original-photo={character.photo ? '' : undefined}>
+              {photo ? <img src={photo} alt="" loading="lazy" decoding="async" /> : <SilhouetteArt kind={face} />}
               <span className="fd-scale">
                 {SCALE.map((n) => (
                   <i key={n}>{n}</i>
@@ -213,6 +214,7 @@ const CLOSE_MS = 950
 /** Дело: вертикальная папка. Сверху фото и «паспорт» дела, ниже два листа — показания и роль. Всё, что может быть длинным, сжато. */
 function EvidenceFile({ character, index, dateLabel, onClose }: EvidenceFileProps) {
   const speaker = character.speaker
+  const photo = character.photo ?? speaker?.photo
   const themes = speaker?.themes ?? []
   const risk = speaker?.risk
   const hasTestimony = Boolean(speaker && (speaker.topic || speaker.topicLead || speaker.description || speaker.questions?.length || speaker.testimony || speaker.suspect))
@@ -288,7 +290,7 @@ function EvidenceFile({ character, index, dateLabel, onClose }: EvidenceFileProp
 
           <div className="ef-top">
             <figure className="ef-print ef-piece" style={piece(0, -1)}>
-              <div className="ef-photo">{speaker?.photo ? <img src={speaker.photo} alt={speaker.name} draggable={false} /> : <SilhouetteArt kind={face} />}</div>
+              <div className="ef-photo" data-original-photo={character.photo ? '' : undefined}>{photo ? <img src={photo} alt={speaker?.name ?? character.name} draggable={false} /> : <SilhouetteArt kind={face} />}</div>
               <figcaption id={titleId} className="ef-name">
                 {speaker ? speaker.name : 'Имя объявим позже'}
               </figcaption>
