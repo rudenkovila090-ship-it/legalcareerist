@@ -16,6 +16,8 @@ import partnerWeb2b from '../assets/noir/partner-web2b.webp'
 import partnerYulia from '../assets/noir/partner-yulia-grebenshchikova.webp'
 import partnerSmaSpb from '../assets/noir/partner-sma-spb.jpg'
 import partnerProCareer from '../assets/noir/partner-pro-career.jpg'
+import partnerStrizh from '../assets/noir/partner-strizh.png'
+import partnerInstitutAdvokatury from '../assets/noir/partner-institut-advokatury.jpg'
 import { noirEventSlugs } from './noirEvents'
 
 // Авторское оформление и тексты отдельных мероприятий. Лежит отдельно от events.ts:
@@ -176,6 +178,8 @@ export interface EventPartner {
   description?: string
   /** Круглая картинка (логотип или фото); контур — часть самого изображения. */
   logo?: string
+  /** Полный логотип без круглой обрезки и растягивания. */
+  logoFit?: 'contain'
   /** Кликабельная ссылка под подписью: label — как показать, href — куда ведёт. */
   link?: { label: string; href: string }
 }
@@ -372,6 +376,25 @@ export const eventStories: Record<string, EventStory> = {
     },
     family: {
       groups: [
+        {
+          title: 'Официальные партнеры',
+          members: [
+            {
+              name: 'ИИ Стриж',
+              description: 'Официальный партнер вечера',
+              logo: partnerStrizh,
+              logoFit: 'contain',
+              link: { label: 'strizh-legal.ru', href: 'https://strizh-legal.ru/' },
+            },
+            {
+              name: 'Институт адвокатуры',
+              description: 'Официальный партнер вечера',
+              logo: partnerInstitutAdvokatury,
+              logoFit: 'contain',
+              link: { label: 'legalstudy.ru', href: 'https://legalstudy.ru/' },
+            },
+          ],
+        },
         {
           title: 'Информационные партнеры',
           members: [

@@ -48,6 +48,8 @@ globalThis.fetch=async(input,options={})=>{
  if(updated&&fs.existsSync(path.join(root,'fail-rating'))&&route.includes('legal-telegram-rating-2025-'))return new Response('WRONG_RATING');
  if(updated&&fs.existsSync(path.join(root,'fail-alena'))&&route.includes('alena-romanova-'))return new Response('WRONG_PORTRAIT');
  if(updated&&fs.existsSync(path.join(root,'fail-jazz-photo'))&&route.includes('advokat-dyavola-'))return new Response('WRONG_JAZZ_PORTRAIT');
+ if(updated&&fs.existsSync(path.join(root,'fail-strizh-logo'))&&route.includes('partner-strizh-'))return new Response('WRONG_STRIZH_LOGO');
+ if(updated&&fs.existsSync(path.join(root,'fail-advocacy-logo'))&&route.includes('partner-institut-advokatury-'))return new Response('WRONG_ADVOCACY_LOGO');
  if(updated&&fs.existsSync(path.join(root,'fail-jazz-page'))&&route==='/events/dzhazovyy-vecher-dlya-yuristov-2')return new Response('MISSING_JAZZ_PAGE',{status:404});
  if(updated&&fs.existsSync(path.join(root,'fail-event'))&&route==='/events/peresborka-yuridicheskogo-produkta-19-noyabrya-2026')return new Response('MISSING_EVENT',{status:404});
  if(updated&&fs.existsSync(path.join(root,'fail-sitemap'))&&route==='/sitemap.xml')return new Response('OLD_SITEMAP');
@@ -67,6 +69,7 @@ globalThis.fetch=async(input,options={})=>{
     result=invoke();assert result.returncode==0,result.stdout+result.stderr
     assert 'COMMUNITY_PAGE_PUBLISHED' in result.stdout
     assert 'JAZZ_PHOTO_PUBLISHED' in result.stdout
+    assert 'JAZZ_PARTNERS_PUBLISHED' in result.stdout
     assert (live/'index.html').read_bytes()==(source/'index.html').read_bytes()
     assert (live/'index.html').stat().st_mode&0o777==0o644 and live.stat().st_mode&0o777==0o755
     check_private()
@@ -76,6 +79,7 @@ globalThis.fetch=async(input,options={})=>{
     assert json.loads((first[0]/'verified.json').read_text())['achievementOriginals']==3
     assert json.loads((first[0]/'verified.json').read_text())['portraitFiles']==4
     assert json.loads((first[0]/'verified.json').read_text())['noirOriginalPhotos'][0]['sha256']=='b20aeef1eb725dec0ba6d3a9f409dfcdfbcf2ed66730b7e6ff1d1678317b8be5'
+    assert {r['url'] for r in json.loads((first[0]/'verified.json').read_text())['officialPartnerLogos']}=={'https://strizh-legal.ru/','https://legalstudy.ru/'}
     print('PASS: actual reviewed build published, all current JS/CSS and quotes verified, old assets/private data preserved')
     repeat=invoke();assert repeat.returncode==0,repeat.stdout+repeat.stderr
     assert 'повторная запись не нужна' in repeat.stdout and len(list((root/'backups').iterdir()))==1
@@ -83,7 +87,7 @@ globalThis.fetch=async(input,options={})=>{
     repaired=invoke();assert repaired.returncode==0,repaired.stdout+repaired.stderr
     assert chunk.exists()
     print('PASS: repeat is read-only; missing lazy chunk is repaired despite identical index.html')
-    for flag in ['fail-quote','fail-chunks','fail-image','fail-thanks','fail-rating','fail-alena','fail-jazz-photo','fail-jazz-page']:
+    for flag in ['fail-quote','fail-chunks','fail-image','fail-thanks','fail-rating','fail-alena','fail-jazz-photo','fail-jazz-page','fail-strizh-logo','fail-advocacy-logo']:
         reset();(root/flag).touch()
         failed=invoke();assert failed.returncode==1,failed.stdout+failed.stderr
         assert 'Прежние файлы сайта восстановлены' in failed.stderr
@@ -118,6 +122,16 @@ globalThis.fetch=async(input,options={})=>{
     assert len(list((root/'backups').iterdir()))==before and (live/'index.html').read_text()==oldhtml
     assert (root/'requests.jsonl').read_bytes()==before_requests
     print('PASS: altered devil advocate original is rejected before HTTP requests or writes')
+
+    for stem,ext in [('partner-strizh','png'),('partner-institut-advokatury','jpg')]:
+        altered_partner=root/('altered-'+stem);shutil.copytree(source,altered_partner)
+        next((altered_partner/'assets').glob(stem+'-*.'+ext)).write_bytes(b'ALTERED_PARTNER_LOGO')
+        partnercmd=cmd.copy();partnercmd[partnercmd.index('--dist')+1]=str(altered_partner)
+        rejected_partner=subprocess.run(partnercmd,env=env,text=True,capture_output=True,timeout=60)
+        assert rejected_partner.returncode==1 and 'Оригинал логотипа изменен' in rejected_partner.stderr,rejected_partner.stdout+rejected_partner.stderr
+        assert len(list((root/'backups').iterdir()))==before and (live/'index.html').read_text()==oldhtml
+        assert (root/'requests.jsonl').read_bytes()==before_requests
+        print('PASS: altered '+stem+' original rejected before HTTP requests or writes')
 
     checkout=root/'checkout';catalog=checkout/'server/data/event-catalog.json';catalog.parent.mkdir(parents=True)
     # A live paid event may have server-specific fields and a price different from this checkout.

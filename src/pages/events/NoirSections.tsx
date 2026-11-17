@@ -324,16 +324,16 @@ export function NoirFamily({ story }: { story: EventStory }) {
           <div className="fam-members mt-4">
             {g.members.map((m, i) => (
               <Reveal key={m.name} variant="zoom" delay={i * 120}>
-                <div className="fam-member">
+                <div className="fam-member" data-logo-fit={m.logoFit}>
                   {m.logo &&
                     (m.link ? (
                       // Картинка тоже ведёт по ссылке, но для клавиатуры и скринридеров ссылка одна — подпись под ней.
-                      <a href={m.link.href} target="_blank" rel="noopener noreferrer" tabIndex={-1} aria-hidden="true" className="fam-ava">
-                        <img src={m.logo} alt="" draggable={false} />
+                      <a href={m.link.href} target="_blank" rel="noopener noreferrer" tabIndex={-1} aria-hidden="true" className="fam-ava" data-logo-fit={m.logoFit}>
+                        <img src={m.logo} alt="" draggable={false} loading="lazy" decoding="async" />
                       </a>
                     ) : (
-                      <span className="fam-ava">
-                        <img src={m.logo} alt={m.name} draggable={false} />
+                      <span className="fam-ava" data-logo-fit={m.logoFit}>
+                        <img src={m.logo} alt={m.name} draggable={false} loading="lazy" decoding="async" />
                       </span>
                     ))}
                   <p className="fam-name font-noir font-semibold leading-snug text-ink">{m.name}</p>

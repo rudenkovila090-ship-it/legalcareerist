@@ -1,0 +1,26 @@
+[
+  {
+    "sourceArchive": "110bd30a-9e86-492f-aaa1-916149ab440f.zip",
+    "sourceEntry": "110bd30a-9e86-492f-aaa1-916149ab440f.jfif",
+    "bytes": 27541,
+    "width": 640,
+    "height": 640,
+    "format": "JPEG",
+    "sha256": "5922b685aca2983377cce9a85f92046dfd25a8a1a5c2c7b68bd43a07e4188cbe",
+    "file": "partner-institut-advokatury.jpg",
+    "name": "Институт адвокатуры",
+    "url": "https://legalstudy.ru/"
+  },
+  {
+    "sourceArchive": "110bd30a-9e86-492f-aaa1-916149ab440f.zip",
+    "sourceEntry": "main_strizh.png",
+    "bytes": 693887,
+    "width": 6280,
+    "height": 8001,
+    "format": "PNG",
+    "sha256": "f4a381c13f2e71281a5b002d4ac3d6cd9ae64723c4fadbf3a9ba951274d01fee",
+    "file": "partner-strizh.png",
+    "name": "ИИ Стриж",
+    "url": "https://strizh-legal.ru/"
+  }
+]

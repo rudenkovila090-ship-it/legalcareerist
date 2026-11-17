@@ -663,6 +663,21 @@
   height: 100%;
   border-radius: 50%;
 }
+/* Полные логотипы официальных партнеров: исходные пропорции и цвета. */
+.fam-ava[data-logo-fit='contain'] {
+  width: 6rem;
+  height: 6rem;
+  padding: 0.35rem;
+  border-radius: 0.75rem;
+  background: #fff;
+}
+.fam-ava[data-logo-fit='contain'] img {
+  object-fit: contain;
+  border-radius: 0;
+}
+.fam-member[data-logo-fit='contain'] .fam-description {
+  font-size: 0.75rem;
+}
 a.fam-ava:hover {
   box-shadow: 0 0 0 4px rgba(217, 168, 92, 0.18), 0 0 26px rgba(217, 168, 92, 0.38);
 }
