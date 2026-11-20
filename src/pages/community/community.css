@@ -34,39 +34,43 @@
 .community-page .btn-accent:disabled { opacity: .6; }
 
 /* The title and its promise share a clear axis, without a box inside a box. */
-.community-page #hero { position: relative; overflow: hidden; padding-block: 5rem; background: var(--community-night); }
+.community-page #hero { position: relative; overflow: hidden; padding-block: 3.5rem; background: var(--community-night); }
 .community-page #hero .container-page { position: relative; z-index: 1; }
-.community-page #hero h1 { max-width: 19ch; margin-inline: auto; font-size: clamp(2.25rem, 4.5vw, 4rem); font-weight: 600; line-height: 1.08; }
+.community-page #hero h1 { max-width: none; margin-inline: auto; font-size: clamp(1.5rem, 3vw, 2.6667rem); font-weight: 600; line-height: 1.15; }
 .community-page .community-hero-copy { width: 100%; margin: 1.75rem auto 0; }
 .community-page .community-hero-copy p { color: #dce5f3; font-size: clamp(1rem, 1.5vw, 1.125rem); line-height: 1.7; }
 .community-page .community-hero-cta { min-height: 3.75rem; margin-top: 2rem; padding: .875rem 2rem; border: 1px solid #9eb4d4; font-size: 1.0625rem; }
 .community-page .community-hero-mark { position: absolute; right: -1rem; top: 12%; height: 92%; width: 23rem; color: #8eacd2; opacity: .12; pointer-events: none; }
+.community-page .community-floating-join { position: fixed; z-index: 35; right: 1.5rem; bottom: calc(1rem + env(safe-area-inset-bottom, 0px)); max-width: calc(100vw - 2rem); min-height: 3rem; padding: .75rem 1.25rem; border: 1px solid #ffffffb3; font-size: .875rem; box-shadow: 0 6px 20px #1d2e492e; }
+.community-page .community-floating-join:hover { box-shadow: 0 6px 20px #1d2e492e; }
+.community-page > footer { padding-bottom: 4.5rem; }
 
-/* Mission spans the two naturally sized right-hand rows. */
+/* The mission, values and goal share a compact three-column row. */
 .community-page #mvc { border-color: var(--community-line); }
-.community-page .community-mvc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; align-items: stretch; }
-.community-page .community-mvc-card { min-width: 0; position: relative; padding: 1.75rem 2rem; border: 1px solid var(--community-line); border-radius: 16px; background: #fff; }
+.community-page .community-mvc-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; align-items: stretch; }
+.community-page .community-mvc-card { min-width: 0; position: relative; padding: 1.5rem; border: 1px solid var(--community-line); border-radius: 16px; background: #fff; }
 .community-page .community-mvc-card h2 { font-size: 1.375rem; }
 .community-page .community-mvc-card p { margin-top: 1rem; font-size: 1rem; line-height: 1.65; color: var(--community-muted); }
-.community-page .community-mission { grid-row: span 2; display: flex; align-items: center; overflow: hidden; padding: 2.5rem; background: var(--color-accent); border-color: var(--color-accent); }
+.community-page .community-mission { display: flex; align-items: flex-start; overflow: hidden; background: var(--color-accent); border-color: var(--color-accent); }
 .community-page .community-mission > div { position: relative; z-index: 1; }
-.community-page .community-mission h2 { font-size: 2rem; }
-.community-page .community-mission p { max-width: 28ch; color: #e3ebf7; font-size: 1.125rem; line-height: 1.75; }
+.community-page .community-mission h2 { font-size: 1.375rem; }
+.community-page .community-mission p { color: #e3ebf7; font-size: 1rem; line-height: 1.65; }
 .community-page .community-mission::after { content: ''; position: absolute; width: 12rem; height: 12rem; right: -4.5rem; bottom: -4.5rem; border: 1px solid #9db6d7; border-radius: 50%; opacity: .4; }
 .community-page .community-mvc-card ul { gap: .5rem; margin-top: 1rem; }
 .community-page .community-mvc-card li { padding: .625rem .5rem; background: var(--community-wash); border: 1px dashed #bdcbe0; color: var(--community-muted); font-size: .75rem; border-radius: 8px; }
 
 /* The comparison remains a real table, including on small screens. */
 .community-page .community-comparison { border-color: var(--community-line); border-radius: 16px; box-shadow: none; }
+.community-page .community-comparison table { font-family: var(--font-sans); }
 .community-page .community-comparison thead tr { background: var(--community-wash); }
 .community-page .community-comparison thead th { padding: 1rem 1.25rem; font-size: .875rem; line-height: 1.4; }
 .community-page .community-comparison thead th:not(:first-child) { color: var(--community-muted); }
 .community-page .community-comparison thead th:last-child { background: var(--color-accent); color: #fff; }
 .community-page .community-comparison tbody tr, .community-page .community-comparison tfoot tr { border-color: var(--community-line); }
-.community-page .community-comparison tbody th { padding: .875rem 1.25rem; color: #111; font-size: .875rem; line-height: 1.55; font-weight: 400; text-wrap: pretty; }
+.community-page .community-comparison tbody th { padding: .875rem 1.25rem; color: #111; font-family: inherit; font-size: 1rem; line-height: 1.6; font-weight: 400; text-wrap: pretty; }
 .community-page .community-comparison :is(tbody td:last-child, tfoot td:last-child) { background: var(--community-wash); }
 .community-page .community-benefit-no, .community-page .community-benefit-yes { display: inline-flex; align-items: center; justify-content: center; vertical-align: middle; width: 1.75rem; height: 1.75rem; border-radius: 50%; }
-.community-page .community-benefit-no { color: #77879d; }
+.community-page .community-benefit-no { color: #b46d75; background: #fff1f2; }
 .community-page .community-benefit-yes { background: var(--color-accent); color: #fff; }
 .community-page .community-benefit-yes svg { width: 1rem; height: 1rem; }
 .community-page .community-comparison tfoot td:last-child { padding: 1rem .75rem; }
@@ -123,23 +127,26 @@
 
 /* Both clients lead into one compact shared feature diagram. */
 .community-page #functionality { border-color: var(--community-line); }
-.community-page #functionality article { padding: 1.75rem; border-color: var(--community-line); border-radius: 16px; background: var(--community-wash); }
-.community-page #functionality article > div { margin-bottom: 1.25rem; }
-.community-page #functionality article > div > span { width: 2.75rem; height: 2.75rem; border: 1px solid var(--community-line); border-radius: 10px; background: #fff; }
+.community-page #functionality article { padding: 1.5rem; border-color: var(--community-line); border-radius: 16px; background: var(--community-wash); }
+.community-page #functionality article > div { margin-bottom: 1rem; }
+.community-page #functionality article > div > span { width: 2.25rem; height: 2.25rem; flex-shrink: 0; border: 1px solid var(--community-line); border-radius: 10px; background: #fff; }
 .community-page #functionality h3 { font-size: 1.125rem; }
 .community-page #functionality ul { color: var(--community-muted); font-size: .9375rem; line-height: 1.6; }
-.community-page #functionality li + li { margin-top: .75rem; }
-.community-page .community-platform-flow { display: grid; grid-template-columns: 1fr 6rem 1.5fr; align-items: center; }
-.community-page .community-platform-sources { display: grid; gap: 1rem; }
-.community-page .community-platform-sources > div { flex-direction: row; justify-content: flex-start; gap: 1rem; width: 100%; max-width: none; min-height: 6.5rem; padding: 1.25rem; background: #fff; border-color: var(--community-line); border-radius: 12px; }
-.community-page .community-platform-sources h3 { font-size: 1rem; text-align: left; }
+.community-page #functionality li + li { margin-top: .5rem; }
+.community-page #digital-platforms { padding-block: 2.5rem; }
+.community-page #digital-platforms > h2 { margin-bottom: 1.5rem; font-size: 1.75rem; }
+.community-page .community-platform-flow { display: grid; grid-template-columns: 1fr 4rem 1.5fr; align-items: center; }
+.community-page .community-platform-sources { display: grid; gap: .75rem; }
+.community-page .community-platform-sources > div { flex-direction: row; justify-content: flex-start; gap: .75rem; width: 100%; max-width: none; min-height: 4.25rem; padding: .75rem 1rem; background: #fff; border-color: var(--community-line); border-radius: 12px; }
+.community-page .community-platform-sources svg { width: 1.5rem; height: 1.5rem; flex-shrink: 0; }
+.community-page .community-platform-sources h3 { font-size: .9375rem; text-align: left; }
 .community-page .community-platform-connector { color: var(--color-accent); }
-.community-page .community-connector-wide { width: 100%; height: 15rem; }
+.community-page .community-connector-wide { width: 100%; height: 10rem; }
 .community-page .community-connector-narrow { display: none; }
-.community-page .community-platform-flow figcaption { padding: 1.5rem; background: var(--community-wash); border-color: var(--community-line); border-radius: 16px; }
-.community-page .community-platform-flow figcaption h3 { color: var(--color-ink); font-size: .875rem; }
-.community-page .community-platform-flow figcaption ul { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; }
-.community-page .community-platform-flow figcaption li { min-height: 4.5rem; padding: .875rem .5rem; border: 1px solid var(--community-line); border-radius: 8px; background: #fff; color: var(--community-muted); font-size: .875rem; }
+.community-page .community-platform-flow figcaption { padding: 1rem; background: var(--community-wash); border-color: var(--community-line); border-radius: 16px; }
+.community-page .community-platform-flow figcaption h3 { margin-bottom: .5rem; color: var(--color-ink); font-size: .875rem; }
+.community-page .community-platform-flow figcaption ul { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; }
+.community-page .community-platform-flow figcaption li { min-height: 2.75rem; padding: .5rem; border: 1px solid var(--community-line); border-radius: 8px; background: #fff; color: var(--community-muted); font-size: .875rem; line-height: 1.45; }
 
 .community-page #founder { border-color: var(--community-line); }
 .community-page .community-founder-card { display: flex; align-items: flex-start; gap: 1.75rem; max-width: 54rem; }
@@ -190,19 +197,20 @@
 }
 @media (max-width: 767px) {
   .community-page :where(section[id]:not(#hero), #reviews > section, #faq > section) { padding-block: 3rem; }
-  .community-page #hero { padding-block: 3.5rem; }
+  .community-page #hero { padding-block: 2.5rem; }
   .community-page .community-hero-mark { right: -8rem; opacity: .08; }
+  .community-page .community-floating-join { right: 1rem; }
   .community-page .community-mvc-grid { grid-template-columns: 1fr; }
   .community-page .community-mvc-card { padding: 1.5rem; }
-  .community-page .community-mission { grid-row: auto; padding: 2rem 1.5rem; }
-  .community-page .community-mission h2 { font-size: 1.5rem; }
+  .community-page .community-mission { padding: 1.5rem; }
+  .community-page .community-mission h2 { font-size: 1.375rem; }
   .community-page .community-mission p { max-width: none; font-size: 1rem; }
   .community-page .community-comparison col:first-child { width: 55%; }
   .community-page .community-comparison col:nth-child(2) { width: 17%; }
   .community-page .community-comparison col:last-child { width: 28%; }
   .community-page .community-comparison thead th { padding: 1rem .25rem; font-size: .6875rem; }
   .community-page .community-comparison thead th:first-child { padding-inline: .75rem; }
-  .community-page .community-comparison tbody th { padding: .875rem .75rem; font-size: .8125rem; line-height: 1.55; }
+  .community-page .community-comparison tbody th { padding: .875rem .75rem; font-size: .875rem; line-height: 1.6; }
   .community-page .community-benefit-yes, .community-page .community-benefit-no { width: 1.5rem; height: 1.5rem; }
   .community-page .community-comparison tfoot td:last-child { padding: .75rem .25rem; }
   .community-page .community-comparison tfoot button { font-size: .6875rem; padding-inline: .25rem; min-height: 3rem; border-radius: 8px; }
@@ -213,11 +221,13 @@
   .community-page #ambassador-form { padding-top: 0; }
   .community-page .community-platform-flow { display: block; }
   .community-page .community-platform-sources { grid-template-columns: 1fr 1fr; gap: .75rem; }
-  .community-page .community-platform-sources > div { min-height: 7rem; padding: 1rem .625rem; flex-direction: column; justify-content: center; gap: .75rem; }
+  .community-page #digital-platforms { padding-block: 2rem; }
+  .community-page #digital-platforms > h2 { font-size: 1.5rem; }
+  .community-page .community-platform-sources > div { min-height: 5.5rem; padding: .75rem .625rem; flex-direction: column; justify-content: center; gap: .5rem; }
   .community-page .community-platform-sources h3 { font-size: .875rem; text-align: center; }
   .community-page .community-connector-wide { display: none; }
-  .community-page .community-connector-narrow { display: block; width: 100%; height: 4rem; }
-  .community-page .community-platform-flow figcaption { padding: 1.25rem; }
+  .community-page .community-connector-narrow { display: block; width: 100%; height: 3rem; }
+  .community-page .community-platform-flow figcaption { padding: 1rem; }
   .community-page #faq > section > div { gap: 0; }
   .community-page #faq summary { min-height: 4rem; }
   .community-page .community-founder-card { gap: 1.25rem; }

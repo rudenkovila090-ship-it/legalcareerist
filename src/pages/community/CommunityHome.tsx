@@ -49,7 +49,7 @@ const mvc = [
     text: 'Поддерживать, давать совет, помогать сделать следующий шаг в карьере — будь то первая работа, смена работы или развитие личного бренда.',
   },
   {
-    label: 'Ценность',
+    label: 'Ценности',
     text: 'Закрытые вакансии, экспертная информация от приглашенных экспертов, база знаний, возможность найти работу.',
   },
   {
@@ -342,7 +342,7 @@ export default function CommunityHome() {
         <svg className="community-hero-mark" viewBox="0 0 360 400" fill="none" aria-hidden="true"><g stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M60 380V220M125 325V150M190 265V80M255 210V10" /><path d="M20 380H335M20 320H335M20 260H335M20 200H335" opacity=".25" /></g></svg>
         <div className="container-page"><div className="community-inner">
           <h1>
-            Сообщество карьерного юриста
+            Карьерный юрист — сообщество
           </h1>
           <div className="community-hero-copy">
             <p>
@@ -356,7 +356,7 @@ export default function CommunityHome() {
         </div></div>
       </section>
 
-      {/* Миссия — крупная плитка слева; ценность и цель — справа. */}
+      {/* Три равных столбца на компьютере; последовательные карточки на телефоне. */}
       <section id="mvc" className="border-y border-ink/10 bg-white py-16">
         <div className="container-page">
           <div className="community-mvc-grid">
@@ -365,7 +365,7 @@ export default function CommunityHome() {
                 <div>
                   <h2 className={`text-xl font-semibold sm:text-2xl ${index === 0 ? 'text-white' : 'text-ink'}`}>{item.label}</h2>
                   <p className={`mt-4 text-base leading-relaxed sm:text-lg ${index === 0 ? 'text-white/75' : 'text-ink/70'}`}>{item.text}</p>
-                  {item.label === 'Ценность' && (
+                  {item.label === 'Ценности' && (
                     <ul aria-label="Ценности сообщества — в разработке" className="mt-5 grid grid-cols-2 gap-2">
                       {Array.from({ length: 4 }, (_, valueIndex) => (
                         <li key={valueIndex} className="rounded-lg border border-dashed border-accent/30 bg-white/80 px-2 py-3 text-center text-xs leading-relaxed text-ink/55">В разработке</li>
@@ -697,6 +697,15 @@ export default function CommunityHome() {
       </div>
 
       <CommunityFooter />
+
+      {!paid && !ambassadorOpen && (
+        <button type="button" className="btn-accent community-floating-join" aria-label="Стать резидентом — выбрать тариф" onClick={() => {
+          scrollToJoin()
+          document.querySelector<HTMLElement>('#join .community-tariff-select[aria-pressed="true"]')?.focus({ preventScroll: true })
+        }}>
+          Стать резидентом <CommunityIcon name="arrow" />
+        </button>
+      )}
     </div>
   )
 }

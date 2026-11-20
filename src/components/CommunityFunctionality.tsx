@@ -1,17 +1,19 @@
+// Based on the resident/demo cabinet: career/CareerWorkspace, vacancies and NetworkingSection.
+// Planned market assessment and CV-photo tools are deliberately not listed as available.
 const functionalityGroups = [
   {
     title: 'Построение карьеры',
     icon: 'M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M4 7h16v13H4zM4 12c4 3 12 3 16 0M12 11v4',
-    items: ['Составление и редактирование резюме', 'Шаблоны резюме', 'Подготовка к собеседованию'],
+    items: ['Профессиональный профиль и резюме', 'Карьерный план и подготовка к интервью', 'Библиотека шаблонов', 'Портфолио, достижения и медиакит', 'Запрос рекомендации', 'Заявка на участие в подкасте'],
   },
   {
     title: 'Знакомство',
     icon: 'M4 8h12v8a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4zM16 9h2a3 3 0 0 1 0 6h-2M7 3v2M11 2v3M3 22h15',
-    items: ['Рандом-кофе', 'Онлайн-встречи', 'Офлайн-события', 'Чат в Телеграме', 'Групповые форматы работы'],
+    items: ['Random coffee', 'Онлайн- и офлайн-встречи', 'Закрытый чат в Телеграме', 'Личная записная книжка контактов', 'Групповые форматы работы'],
   },
 ]
 
-const platformFeatures = ['Профиль резидента', 'Лента', 'Календарь', 'База знаний']
+const platformFeatures = ['Профиль и документы', 'Вакансии и отклики', 'Мероприятия и регистрации', 'База знаний и поиск']
 
 function OutlineIcon({ path, className = 'h-6 w-6' }: { path: string; className?: string }) {
   return (
@@ -48,7 +50,7 @@ export default function CommunityFunctionality() {
         <figure aria-label="Личный кабинет и Telegram Mini App объединены общими возможностями резидента" className="community-platform-flow">
           <div className="community-platform-sources">
             {[
-              { title: 'Личный кабинет', path: 'M3 4h18v13H3zM8 21h8M12 17v4' },
+              { title: 'Личный кабинет на сайте', path: 'M3 4h18v13H3zM8 21h8M12 17v4' },
               { title: 'Telegram Mini App', path: 'm21 3-8 17-3-7-7-3L21 3ZM10 13 21 3' },
             ].map((platform) => (
               <div key={platform.title} className="flex min-h-32 w-[calc(100%_-_1rem)] max-w-72 flex-col items-center justify-center justify-self-center gap-3 rounded-2xl border border-accent/25 bg-accent/[0.05] px-3 py-5 text-center sm:min-h-36">
@@ -58,11 +60,11 @@ export default function CommunityFunctionality() {
             ))}
           </div>
           <div aria-hidden="true" className="community-platform-connector">
-            <svg className="community-connector-wide" viewBox="0 0 100 240" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M0 56h36v128H0M36 120h58m-8-8 8 8-8 8" /></svg>
+            <svg className="community-connector-wide" viewBox="0 0 100 160" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M0 40h36v80H0M36 80h58m-8-8 8 8-8 8" /></svg>
             <svg className="community-connector-narrow" viewBox="0 0 300 64" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M74 0v26h152V0M150 26v32m-7-7 7 7 7-7" /></svg>
           </div>
           <figcaption className="rounded-2xl border border-accent/25 bg-gradient-to-br from-accent/[0.08] to-white p-4 sm:p-6">
-            <h3 className="mb-5 text-center text-sm font-semibold text-ink/70">Общие возможности</h3>
+            <h3 className="mb-5 text-center text-sm font-semibold text-ink/70">Возможности кабинета резидента</h3>
             <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               {platformFeatures.map((feature) => (
                 <li key={feature} className="flex min-h-20 items-center justify-center rounded-xl border border-ink/[0.06] bg-white px-3 py-4 text-center text-xs font-medium leading-relaxed sm:text-sm">{feature}</li>
