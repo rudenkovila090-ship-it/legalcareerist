@@ -79,7 +79,6 @@ const ambassadors: Ambassador[] = [
   { id: 4, lastName: 'Романова', firstName: 'Алена', university: 'СПбГЭУ', role: 'Младший юрист в банкротстве', photo: alenaPhoto },
   { id: 5, lastName: 'Доманова', firstName: 'Анастасия', role: 'Младший юрист' },
   { id: 6, lastName: 'Батчина', firstName: 'Арина', university: 'МГИМО' },
-  { id: 7, lastName: 'Шеловская', firstName: 'Мария', university: 'НИУ ВШЭ' },
   { id: 8, lastName: 'Гранкина', firstName: 'Юлия', university: 'Университет прокуратуры' },
   { id: 9, lastName: 'Дюскина', firstName: 'Анастасия', university: 'МГЮА' },
   { id: 10, lastName: 'Аверьянова', firstName: 'Анна', university: 'СПбГУ' },

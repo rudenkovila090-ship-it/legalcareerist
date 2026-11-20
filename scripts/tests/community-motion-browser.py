@@ -56,10 +56,10 @@ with sync_playwright() as p:
         track=page.locator('#ambassadors [aria-roledescription="карусель"]')
         bounds=track.bounding_box()
         assert 40<=bounds['x']<=81 and bounds['x']+bounds['width']>=width-81,bounds
-        assert page.locator('#ambassadors [data-loop-copy="1"] article').count()==10
-        for i in range(10):
+        assert page.locator('#ambassadors [data-loop-copy="1"] article').count()==9
+        for i in range(9):
             page.get_by_role('button',name='Следующие амбассадоры',exact=True).click()
-            expected=(i+1)%10+1
+            expected=(i+1)%9+1
             page.wait_for_function('(n)=>document.querySelector("#ambassadors [role=status]").textContent.includes(`Амбассадор ${n} из`)',arg=expected)
         page.locator('#ambassadors').screenshot(path=str(OUT/f'ambassadors-{width}.png'))
 
