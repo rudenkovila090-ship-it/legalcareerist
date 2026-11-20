@@ -14,7 +14,7 @@ export default function CommunityAchievements() {
   return (
     <section id="achievements" className="container-page scroll-mt-24 py-14">
       <h2 className="mb-8 text-2xl font-semibold sm:text-3xl">Наши достижения</h2>
-      <div className="grid items-stretch gap-5 lg:grid-cols-3">
+      <div className="community-achievements-grid grid items-stretch gap-5 md:grid-cols-3">
         <article className="overflow-hidden rounded-2xl border border-ink/10 bg-white">
           <AchievementImage src={certificateRasoLbf} alt="Сертификат рейтинга РАСО и Legal Business Forum, 2026: 3-я группа — профессиональные сообщества; отдельно отмечены персональный бренд и интегральная оценка" label="Открыть сертификат рейтинга РАСО и Legal Business Forum" width={640} height={452} />
           <div className="p-5">

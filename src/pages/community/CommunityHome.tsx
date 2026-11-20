@@ -670,10 +670,6 @@ export default function CommunityHome() {
         <FAQSection items={buildFaqItems()} title="Частые вопросы" columns={2} inlineTitle compact />
       </div>
 
-      <div className="container-page border-t border-ink/15 py-10 text-center">
-        <button type="button" onClick={scrollToJoin} className="btn-accent h-[3.75rem] min-w-60 rounded-full px-10 text-[17.5px] font-semibold">Стать резидентом</button>
-      </div>
-
       <CommunityFooter />
 
       {!paid && !ambassadorOpen && (

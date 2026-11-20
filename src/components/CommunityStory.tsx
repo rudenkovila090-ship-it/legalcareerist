@@ -1,5 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react'
-import storyArt from '../assets/community/mission-layers.webp'
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 
 interface StoryItem { label: string; text: string }
 const motionQuery = '(min-width: 900px) and (min-height: 600px) and (prefers-reduced-motion: no-preference)'
@@ -12,7 +11,6 @@ export default function CommunityStory({ items }: { items: StoryItem[] }) {
   const activeRef = useRef(0)
   const trackRef = useRef<HTMLDivElement>(null)
   const stageRef = useRef<HTMLDivElement>(null)
-  const tabRefs = useRef<(HTMLButtonElement | null)[]>([])
   const id = useId()
 
   useEffect(() => {
@@ -23,11 +21,12 @@ export default function CommunityStory({ items }: { items: StoryItem[] }) {
     return () => media.removeEventListener('change', sync)
   }, [])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!interactive) return
     const track = trackRef.current, stage = stageRef.current
     if (!track || !stage) return
     let frame = 0
+    let alive = true
     const update = () => {
       frame = 0
       const top = Number.parseFloat(getComputedStyle(stage).top) || 0
@@ -35,7 +34,6 @@ export default function CommunityStory({ items }: { items: StoryItem[] }) {
       const progress = clamp((top - track.getBoundingClientRect().top) / distance)
       track.style.setProperty('--layer-second', String(1 - clamp((progress - .16) / .22)))
       track.style.setProperty('--layer-third', String(1 - clamp((progress - .5) / .22)))
-      track.style.setProperty('--story-progress', String(progress))
       const next = progress < .38 ? 0 : progress < .72 ? 1 : 2
       if (next !== activeRef.current) {
         activeRef.current = next
@@ -43,13 +41,26 @@ export default function CommunityStory({ items }: { items: StoryItem[] }) {
       }
     }
     const schedule = () => { if (!frame) frame = requestAnimationFrame(update) }
-    update()
+    const measure = () => {
+      const heights = Array.from(track.querySelectorAll<HTMLElement>('.community-story-panel')).map(panel => {
+        const style = getComputedStyle(panel)
+        return (panel.querySelector<HTMLElement>('.community-story-text')?.scrollHeight ?? 0) + parseFloat(style.paddingTop) + parseFloat(style.paddingBottom) + 2
+      })
+      track.style.setProperty('--story-panel-height', `${Math.ceil(Math.max(0, ...heights))}px`)
+      schedule()
+    }
+    measure()
+    const observer = new ResizeObserver(measure)
+    track.querySelectorAll('.community-story-text').forEach(text => observer.observe(text))
+    document.fonts.ready.then(() => { if (alive) measure() })
     window.addEventListener('scroll', schedule, { passive: true })
-    window.addEventListener('resize', schedule)
+    window.addEventListener('resize', measure)
     return () => {
+      alive = false
+      observer.disconnect()
       cancelAnimationFrame(frame)
       window.removeEventListener('scroll', schedule)
-      window.removeEventListener('resize', schedule)
+      window.removeEventListener('resize', measure)
     }
   }, [interactive])
 
@@ -67,24 +78,20 @@ export default function CommunityStory({ items }: { items: StoryItem[] }) {
     <section id="mvc" className={`community-story ${interactive ? 'is-interactive' : 'is-static'}`} data-active-layer={active}>
       <div className="container-page">
         <div ref={trackRef} className="community-story-track">
-          <div ref={stageRef} className="community-story-stage">
+          <div ref={stageRef} className="community-story-stage" tabIndex={interactive ? 0 : undefined} role={interactive ? 'region' : undefined} aria-label={interactive ? 'Миссия, ценности и цель сообщества' : undefined} aria-describedby={interactive ? `${id}-help` : undefined} onKeyDown={event => {
+            if (!interactive) return
+            const next = event.key === 'ArrowRight' ? (active + 1) % items.length : event.key === 'ArrowLeft' ? (active + items.length - 1) % items.length : event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1 : -1
+            if (next < 0) return
+            event.preventDefault()
+            select(next)
+          }}>
+            {interactive && <p id={`${id}-help`} className="sr-only">Листайте страницу или используйте стрелки влево и вправо, чтобы прочитать три слоя.</p>}
             <div className="community-story-copy">
-              {interactive && <div className="community-story-tabs" role="tablist" aria-label="Миссия, ценности и цель сообщества">
-                {items.map((item, index) => (
-                  <button key={item.label} ref={el => { tabRefs.current[index] = el }} id={`${id}-tab-${index}`} type="button" role="tab" aria-selected={active === index} aria-controls={`${id}-panel-${index}`} tabIndex={active === index ? 0 : -1} onClick={() => select(index)} onKeyDown={event => {
-                    const next = event.key === 'ArrowRight' ? (index + 1) % items.length : event.key === 'ArrowLeft' ? (index + items.length - 1) % items.length : event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1 : -1
-                    if (next < 0) return
-                    event.preventDefault()
-                    tabRefs.current[next]?.focus()
-                    select(next)
-                  }}>{item.label}</button>
-                ))}
-              </div>}
               <div className="community-story-panels">
                 {items.map((item, index) => (
-                  <article key={item.label} id={`${id}-panel-${index}`} className={`community-story-panel community-story-panel-${index} ${active === index ? 'is-active' : ''}`} role={interactive ? 'tabpanel' : undefined} aria-labelledby={interactive ? `${id}-tab-${index}` : undefined} aria-hidden={interactive && active !== index ? true : undefined} inert={interactive && active !== index ? true : undefined}>
+                  <article key={item.label} className={`community-story-panel community-story-panel-${index} ${active === index ? 'is-active' : ''}`} aria-labelledby={`${id}-heading-${index}`} aria-hidden={interactive && active !== index ? true : undefined} inert={interactive && active !== index ? true : undefined}>
                     <div className="community-story-text">
-                      <h2>{item.label}</h2>
+                      <h2 id={`${id}-heading-${index}`}>{item.label}</h2>
                       <p>{item.text}</p>
                       {item.label === 'Ценности' && <ul aria-label="Ценности сообщества — в разработке" className="community-story-values">
                         {Array.from({ length: 4 }, (_, valueIndex) => <li key={valueIndex}>В разработке</li>)}
@@ -94,9 +101,6 @@ export default function CommunityStory({ items }: { items: StoryItem[] }) {
                 ))}
               </div>
             </div>
-            <figure className="community-story-art" aria-hidden="true">
-              <img src={storyArt} alt="" width="1122" height="1402" loading="lazy" decoding="async" />
-            </figure>
           </div>
         </div>
       </div>
