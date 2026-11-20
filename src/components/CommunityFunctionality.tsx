@@ -45,8 +45,8 @@ export default function CommunityFunctionality() {
 
       <section id="digital-platforms" className="container-page scroll-mt-24 py-14">
         <h2 className="mb-8 text-2xl font-semibold sm:text-3xl">Цифровые платформы</h2>
-        <figure aria-label="Личный кабинет и Telegram Mini App объединены общими возможностями резидента" className="mx-auto max-w-3xl">
-          <div className="grid grid-cols-2 items-stretch">
+        <figure aria-label="Личный кабинет и Telegram Mini App объединены общими возможностями резидента" className="community-platform-flow">
+          <div className="community-platform-sources">
             {[
               { title: 'Личный кабинет', path: 'M3 4h18v13H3zM8 21h8M12 17v4' },
               { title: 'Telegram Mini App', path: 'm21 3-8 17-3-7-7-3L21 3ZM10 13 21 3' },
@@ -57,10 +57,9 @@ export default function CommunityFunctionality() {
               </div>
             ))}
           </div>
-          <div aria-hidden="true" className="relative h-20 text-accent">
-            <span className="absolute left-1/4 right-1/4 top-0 h-10 rounded-b-xl border-x-2 border-b-2 border-accent/60" />
-            <span className="absolute left-1/2 top-10 h-9 -translate-x-1/2 border-l-2 border-accent/60" />
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute bottom-0 left-1/2 h-5 w-5 -translate-x-1/2"><path d="m6 9 6 6 6-6" /></svg>
+          <div aria-hidden="true" className="community-platform-connector">
+            <svg className="community-connector-wide" viewBox="0 0 100 240" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M0 56h36v128H0M36 120h58m-8-8 8 8-8 8" /></svg>
+            <svg className="community-connector-narrow" viewBox="0 0 300 64" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M74 0v26h152V0M150 26v32m-7-7 7 7 7-7" /></svg>
           </div>
           <figcaption className="rounded-2xl border border-accent/25 bg-gradient-to-br from-accent/[0.08] to-white p-4 sm:p-6">
             <h3 className="mb-5 text-center text-sm font-semibold text-ink/70">Общие возможности</h3>

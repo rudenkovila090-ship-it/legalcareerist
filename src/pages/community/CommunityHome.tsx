@@ -24,6 +24,8 @@ import { SHOW_AMBASSADORS } from '../../lib/featureFlags'
 import ConsentCheck from '../../components/ConsentCheck'
 import { consentOf } from '../../lib/consent'
 import { goal } from '../../lib/metrika'
+import CommunityIcon from '../../components/CommunityIcon'
+import './community.css'
 
 const railItems = [
   { id: 'hero', label: 'Сообщество' },
@@ -172,6 +174,8 @@ export default function CommunityHome() {
   useDocumentTitle('Сообщество')
   const [tariffId, setTariffId] = useState<(typeof tariffs)[number]['id']>('6m')
   const [paid, setPaid] = useState(false)
+  const paymentDialog = useRef<HTMLDialogElement>(null)
+  const paymentTitleId = useId()
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
@@ -186,6 +190,21 @@ export default function CommunityHome() {
   const [ambassadorOpen, setAmbassadorOpen] = useState(false)
   const ambassadorDialog = useRef<HTMLDialogElement>(null)
   const ambassadorTitleId = useId()
+
+  useEffect(() => {
+    if (!paid) return
+    const dialog = paymentDialog.current
+    if (!dialog) return
+    const overflow = document.body.style.overflow
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    dialog.showModal()
+    document.body.style.overflow = 'hidden'
+    return () => {
+      dialog.close()
+      document.body.style.overflow = overflow
+      if (previousFocus?.isConnected) previousFocus.focus({ preventScroll: true })
+    }
+  }, [paid])
 
   useEffect(() => {
     if (!activeCity) return
@@ -206,11 +225,13 @@ export default function CommunityHome() {
     const dialog = ambassadorDialog.current
     if (!dialog) return
     const overflow = document.body.style.overflow
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null
     dialog.showModal()
     document.body.style.overflow = 'hidden'
     return () => {
       dialog.close()
       document.body.style.overflow = overflow
+      if (previousFocus?.isConnected) previousFocus.focus({ preventScroll: true })
     }
   }, [ambassadorOpen])
 
@@ -242,7 +263,7 @@ export default function CommunityHome() {
   }
 
   function scrollToJoin() {
-    document.getElementById('join')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    document.getElementById('join')?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'start' })
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -317,19 +338,20 @@ export default function CommunityHome() {
     <div className="community-page">
       <SectionRail items={railItems} />
 
-      <section id="hero" className="bg-ink py-16 text-center text-white sm:py-20">
-        <div className="container-page"><div className="mx-auto max-w-5xl">
-          <h1 className="text-3xl font-semibold leading-tight tracking-tight sm:text-4xl lg:text-5xl">
+      <section id="hero" className="community-hero text-center text-white">
+        <svg className="community-hero-mark" viewBox="0 0 360 400" fill="none" aria-hidden="true"><g stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M60 380V220M125 325V150M190 265V80M255 210V10" /><path d="M20 380H335M20 320H335M20 260H335M20 200H335" opacity=".25" /></g></svg>
+        <div className="container-page"><div className="community-inner">
+          <h1>
             Сообщество карьерного юриста
           </h1>
-          <div className="mt-8 w-full rounded-2xl border border-white/15 bg-white/[0.04] p-5 sm:mt-10 sm:p-8">
-            <p className="text-base leading-relaxed text-white/80 sm:text-lg lg:text-xl">
+          <div className="community-hero-copy">
+            <p>
               Закрытое сообщество студентов и начинающих юристов: делимся опытом,
               <span className="block">строим связи и вместе строим карьеру.</span>
             </p>
           </div>
-          <button type="button" onClick={scrollToJoin} className="btn-accent mt-8 h-[3.75rem] min-w-60 rounded-full border border-white/70 px-10 text-[17.5px] font-semibold">
-            Стать резидентом
+          <button type="button" onClick={scrollToJoin} className="btn-accent community-hero-cta">
+            Стать резидентом <CommunityIcon name="arrow" />
           </button>
         </div></div>
       </section>
@@ -337,9 +359,9 @@ export default function CommunityHome() {
       {/* Миссия — крупная плитка слева; ценность и цель — справа. */}
       <section id="mvc" className="border-y border-ink/10 bg-white py-16">
         <div className="container-page">
-          <div className="mx-auto grid max-w-5xl gap-6 md:grid-cols-2 md:grid-rows-2">
+          <div className="community-mvc-grid">
             {mvc.map((item, index) => (
-              <article key={item.label} className={`relative overflow-hidden rounded-2xl border p-8 sm:p-10 ${index === 0 ? 'flex min-h-72 flex-col justify-center border-ink bg-ink text-white md:row-span-2' : 'min-h-48 border-ink/10 bg-[#eef3fb]'}`}>
+              <article key={item.label} className={`community-mvc-card ${index === 0 ? 'community-mission text-white' : ''}`}>
                 <div>
                   <h2 className={`text-xl font-semibold sm:text-2xl ${index === 0 ? 'text-white' : 'text-ink'}`}>{item.label}</h2>
                   <p className={`mt-4 text-base leading-relaxed sm:text-lg ${index === 0 ? 'text-white/75' : 'text-ink/70'}`}>{item.text}</p>
@@ -358,7 +380,7 @@ export default function CommunityHome() {
       </section>
 
       <section id="benefits" className="container-page py-14">
-        <div className="mx-auto max-w-5xl">
+        <div className="community-inner">
         <h2 className="mb-8 text-2xl font-semibold sm:text-3xl">Что входит в резидентство</h2>
         <div className="community-comparison overflow-hidden rounded-2xl border border-ink/10">
           <table className="w-full table-fixed border-collapse text-left">
@@ -374,8 +396,8 @@ export default function CommunityHome() {
               {residentBenefits.map((benefit) => (
                 <tr key={benefit} className="border-t border-ink/10">
                   <th scope="row" className="p-3 text-[10.4px] font-normal leading-relaxed text-black [text-wrap:balance] sm:p-4 sm:text-[12.8px]">{benefit.replace('юридического рынка', 'юридического\u00a0рынка')}</th>
-                  <td className="text-center"><span aria-hidden="true" className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-ink/[0.04] text-xl text-ink/60">×</span><span className="sr-only">Не входит без подписки</span></td>
-                  <td className="bg-accent/[0.12] text-center"><span aria-hidden="true" className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-accent text-lg text-white">✓</span><span className="sr-only">Входит в подписку</span></td>
+                  <td className="text-center"><span className="community-benefit-no"><CommunityIcon name="close" /></span><span className="sr-only">Не входит без подписки</span></td>
+                  <td className="community-benefit-included text-center"><span className="community-benefit-yes"><CommunityIcon name="check" /></span><span className="sr-only">Входит в подписку</span></td>
                 </tr>
               ))}
             </tbody>
@@ -395,18 +417,17 @@ export default function CommunityHome() {
       <section id="map" className="border-y border-ink/10 bg-white py-12">
         <div className="container-page">
           <h2 className="mb-8 text-2xl font-semibold sm:text-3xl">География сообщества</h2>
-          <div className="mx-auto grid max-w-5xl items-start gap-6 lg:grid-cols-[3fr_2fr]">
-            <div className="mx-auto w-4/5 max-w-[38.4rem] rounded-2xl bg-ink/[0.02] p-4 sm:p-6 lg:w-full">
+          <div className={`community-geography ${activeCity ? 'has-active-city' : ''}`}>
+            <div className="community-map-surface">
               <div className="relative">
                 <svg viewBox={`0 0 ${RU_MAP_W} ${RU_MAP_H}`} className="w-full" aria-hidden="true">
-                  <defs><filter id="ru-map-tile-shadow" x="-60%" y="-60%" width="220%" height="220%"><feDropShadow dx="0" dy="1.2" stdDeviation="0.9" floodColor="#283953" floodOpacity="0.3" /></filter></defs>
                   {ruMapRows.map((row, ri) => row.split('').map((cell, ci) => cell === 'X' ? (
-                    <rect key={`${ri}-${ci}`} x={ci * RU_MAP_CELL + 1.5} y={ri * RU_MAP_CELL + 1.5} width={RU_MAP_CELL - 3} height={RU_MAP_CELL - 3} rx={3.5} fill="var(--color-white)" stroke="rgba(40,57,83,0.2)" strokeWidth="1" filter="url(#ru-map-tile-shadow)" />
+                    <rect key={`${ri}-${ci}`} x={ci * RU_MAP_CELL + 1.5} y={ri * RU_MAP_CELL + 1.5} width={RU_MAP_CELL - 3} height={RU_MAP_CELL - 3} rx={2.5} fill="var(--community-map-tile)" stroke="var(--community-map-stroke)" strokeWidth=".8" />
                   ) : null))}
                 </svg>
                 {cities.map((city) => (
                   <div key={city.id} id={`city-${city.id}`} data-city-marker={city.id} className="absolute z-10 h-6 w-6 -translate-x-1/2 -translate-y-1/2 sm:h-7 sm:w-7" style={{ left: `${((city.col + 0.5) * RU_MAP_CELL / RU_MAP_W) * 100}%`, top: `${((city.row + 0.5) * RU_MAP_CELL / RU_MAP_H) * 100}%` }} onMouseEnter={() => setActiveCity(city.id)}>
-                    <button type="button" aria-label={`${city.name}: университеты резидентов`} aria-expanded={activeCity === city.id} aria-controls={`city-panel-${city.id}`} onClick={() => setActiveCity(city.id)} onFocus={() => setActiveCity(city.id)} className={`flex h-full w-full items-center justify-center rounded-full border-2 border-white bg-accent shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${activeCity === city.id ? 'ring-4 ring-accent/25' : ''}`}>
+                    <button type="button" aria-label={`${city.name}: университеты резидентов`} aria-expanded={activeCity === city.id} aria-controls={`city-panel-${city.id}`} onClick={() => setActiveCity(city.id)} onFocus={() => setActiveCity(city.id)} className={`community-map-marker ${activeCity === city.id ? 'is-active' : ''}`}>
                       <span aria-hidden="true" className="h-2 w-2 rounded-full bg-white" />
                     </button>
                     <span className={`pointer-events-none absolute top-full mt-1.5 text-center text-[10px] font-medium leading-4 text-ink sm:text-sm sm:leading-5 ${city.id === 'spb' ? 'right-1/2 w-20 sm:left-1/2 sm:right-auto sm:w-auto sm:-translate-x-1/2 sm:whitespace-nowrap' : city.id === 'ekb' ? 'left-0 whitespace-nowrap sm:left-1/2 sm:-translate-x-1/2' : 'left-1/2 -translate-x-1/2 whitespace-nowrap'}`}>{city.name}</span>
@@ -440,7 +461,7 @@ export default function CommunityHome() {
           <div className="p-5 text-left sm:p-8">
             <div className="mb-6 flex items-center justify-between gap-4">
               <h2 id={ambassadorTitleId} className="text-xl font-semibold sm:text-2xl">Стать амбассадором</h2>
-              <button type="button" aria-label="Закрыть заявку амбассадора" onClick={() => setAmbassadorOpen(false)} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink/50 hover:bg-ink/[0.04]">✕</button>
+              <button type="button" aria-label="Закрыть заявку амбассадора" onClick={() => setAmbassadorOpen(false)} className="community-dialog-close"><CommunityIcon name="close" /></button>
             </div>
 
           {ambassadorSent ? (
@@ -501,73 +522,76 @@ export default function CommunityHome() {
         <div className="container-page text-center">
           <h2 className="text-2xl font-semibold sm:text-3xl">Присоединиться</h2>
 
-          <div className="mx-auto mt-8 grid max-w-4xl items-stretch gap-6 lg:grid-cols-3">
+          <div className="community-tariffs">
                 {displayTariffs.map((t) => {
                   const selected = tariffId === t.id
                   return (
-                    <div
+                    <article
                       key={t.id}
-                      role="button"
-                      aria-pressed={selected}
-                      aria-label={`Выбрать подписку на ${t.period}`}
-                      tabIndex={0}
-                      onClick={() => setTariffId(t.id)}
-                      onKeyDown={(e) => {
-                        if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
-                          e.preventDefault()
-                          setTariffId(t.id)
-                        }
-                      }}
-                      className={`relative flex cursor-pointer flex-col items-center justify-self-center rounded-2xl border p-4 pt-8 text-center outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-4 focus-visible:ring-offset-ink sm:p-5 sm:pt-8 lg:p-5 lg:pt-8 min-h-72 w-full ${
-                        selected ? 'border-white/80 bg-[#344e75] ring-1 ring-white/60' : 'border-white/15 bg-[#2d415f]'
-                      }`}
+                      className={`community-tariff ${selected ? 'is-selected' : ''}`}
                     >
+                      <button type="button" className="community-tariff-select" aria-pressed={selected} aria-label={`Выбрать подписку на ${t.period}`} onClick={() => setTariffId(t.id)}>
                       <span
-                        className={`h-4 w-4 shrink-0 rounded-full border-2 ${
-                          selected ? 'border-white bg-white' : 'border-white/30'
-                        }`}
+                        aria-hidden="true" className={`community-tariff-indicator ${selected ? 'is-selected' : ''}`}
                       />
-                      <div className="mt-3 text-xs font-medium uppercase tracking-wide text-white/50">Подписка</div>
-                      <div className="mt-1 text-lg font-semibold">{t.period}</div>
-                      <div className="mt-3 text-3xl font-semibold text-white">{t.priceLabel}</div>
-                      <div className="mt-4 flex-1" />
+                      <span className="community-tariff-period">{t.period}</span>
+                      <span className="community-tariff-price">{t.priceLabel}</span>
+                      <span className="community-tariff-billing">за весь период</span>
                       {t.id === '1m' ? (
-                        <p className="text-xs leading-relaxed text-white/50">{t.note}</p>
+                        <span className="community-tariff-note">{t.note}</span>
                       ) : (
-                        <span className="inline-flex max-w-full items-center justify-center whitespace-nowrap rounded-full bg-emerald-400/15 px-2 py-1.5 text-[11px] font-semibold leading-5 text-emerald-300 lg:text-xs">
+                        <span className="community-tariff-saving">
                           {t.note}
                         </span>
                       )}
+                      </button>
                       <button
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation()
                           handlePay(t.id)
                         }}
-                        className="mt-5 w-full rounded-lg border border-white/60 bg-gold-light py-2.5 text-sm font-semibold text-white hover:opacity-90"
+                        className="btn-accent community-tariff-pay"
                       >
                         Оплатить
                       </button>
-                    </div>
+                    </article>
                   )
                 })}
               </div>
         </div>
 
-        {/* Модалка оплаты — как в конструкторе карьерной консультации:
-            центрированное окно поверх страницы, а не блок слева. */}
+        {/* Native dialog provides focus containment, Escape and focus restoration. */}
         {paid && (
-          <div
-            className="fixed inset-0 z-50 flex items-end justify-center bg-ink/70 p-0 sm:items-center sm:p-4"
+          <dialog
+            ref={paymentDialog}
+            aria-labelledby={paymentTitleId}
+            onCancel={() => setPaid(false)}
+            onClose={() => setPaid(false)}
+            onKeyDown={(event) => {
+              if (event.key !== 'Tab') return
+              const controls = Array.from(event.currentTarget.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])')).filter((element) => element.getClientRects().length > 0)
+              const first = controls[0], last = controls.at(-1)
+              if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault()
+                last?.focus()
+              } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault()
+                first?.focus()
+              }
+            }}
+            className="community-payment-dialog"
             onClick={(e) => {
-              if (e.target === e.currentTarget) setPaid(false)
+              if (e.target !== e.currentTarget) return
+              const rect = e.currentTarget.getBoundingClientRect()
+              if (e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom) setPaid(false)
             }}
           >
-            <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-white p-6 text-ink sm:rounded-2xl sm:p-8">
+            <div className="community-payment-content">
               <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-lg font-semibold">Тариф «{tariff.period}» — {promoPrice === null ? tariff.priceLabel : `${promoPrice.toLocaleString('ru-RU')} ₽`}</h3>
-                <button type="button" onClick={() => setPaid(false)} className="text-ink/40 hover:text-ink" aria-label="Закрыть">
-                  ✕
+                <h3 id={paymentTitleId} className="text-lg font-semibold">Тариф «{tariff.period}» — {promoPrice === null ? tariff.priceLabel : `${promoPrice.toLocaleString('ru-RU')} ₽`}</h3>
+                <button type="button" onClick={() => setPaid(false)} className="community-dialog-close" aria-label="Закрыть">
+                  <CommunityIcon name="close" />
                 </button>
               </div>
               <div className="mb-5 flex items-center justify-between rounded-lg bg-ink/[0.04] px-4 py-3 text-sm">
@@ -575,7 +599,7 @@ export default function CommunityHome() {
                 <span className="text-base font-semibold text-ink">{promoPrice === null ? tariff.priceLabel : `${promoPrice.toLocaleString('ru-RU')} ₽`}</span>
               </div>
               <form onSubmit={withLeadSubmission(handleSubmit)} className="grid gap-3">
-                <input aria-label="ФИО"
+                <input aria-label="ФИО" autoComplete="name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="ФИО"
@@ -590,7 +614,7 @@ export default function CommunityHome() {
                     className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
                   />
                   <input aria-label="Почта"
-                    type="email"
+                    type="email" autoComplete="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="Почта"
@@ -607,9 +631,9 @@ export default function CommunityHome() {
                 />
                 <CommunityPromoField value={promoCode} onChange={setPromoCode} tariffId={tariffId} onPriceChange={setPromoPrice} />
                 <HowHeardField value={howHeard} onChange={setHowHeard} className="rounded-lg border border-ink/15 px-4 py-2.5 text-sm placeholder:text-ink/40 focus:border-ink/40 focus:outline-none" />
-                {formError && <p className="text-sm text-red-600">{formError}</p>}
+                {formError && <p role="alert" className="text-sm text-red-600">{formError}</p>}
                 {submitError && (
-                  <p className="text-sm text-red-600">Не получилось перейти к оплате — попробуйте еще раз через минуту.</p>
+                  <p role="alert" className="text-sm text-red-600">Не получилось перейти к оплате — попробуйте еще раз через минуту.</p>
                 )}
                 <ConsentCheck compact />
                 <button
@@ -622,7 +646,7 @@ export default function CommunityHome() {
                 </button>
               </form>
             </div>
-          </div>
+          </dialog>
         )}
       </section>
 
@@ -638,8 +662,8 @@ export default function CommunityHome() {
       {/* Основатель сообщества */}
       <section id="founder" className="border-y border-ink/10 bg-white py-12">
         <div className="container-page">
-          <div className="mb-2 text-sm font-medium uppercase tracking-wide text-gold">Основатель сообщества</div>
-          <div className="glass flex flex-col gap-5 rounded-xl p-6 sm:flex-row">
+          <h2 className="mb-8 text-2xl font-semibold sm:text-3xl">Основатель сообщества</h2>
+          <div className="community-founder-card">
             <img
               src={ilyaPhoto}
               alt="Илья Руденков"
@@ -647,7 +671,6 @@ export default function CommunityHome() {
               className="h-20 w-20 shrink-0 rounded-full object-cover shadow-md ring-4 ring-white sm:h-24 sm:w-24"
             />
             <div>
-              <div className="text-sm font-medium uppercase tracking-wide text-gold">Основатель</div>
               <div className="mt-1 text-xl font-semibold">Илья Руденков</div>
               <p className="mt-2 text-sm text-ink/60">
                 Создал сообщество, чтобы у студентов и начинающих юристов было пространство, где

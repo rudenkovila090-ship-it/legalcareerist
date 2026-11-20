@@ -119,71 +119,7 @@ h4 {
   padding-right: 1.25rem;
 }
 
-/* Сообщество: единая ширина и спокойные акценты без изменения порядка блоков. */
-.community-page .container-page {
-  max-width: 66.5rem;
-}
-.community-page #hero {
-  position: relative;
-  background:
-    radial-gradient(ellipse at 15% 0%, color-mix(in srgb, var(--color-white) 5%, transparent), transparent 60%),
-    radial-gradient(ellipse at 90% 100%, color-mix(in srgb, var(--color-white) 3%, transparent), transparent 55%),
-    linear-gradient(135deg, color-mix(in srgb, var(--color-ink) 88%, black), var(--color-ink) 60%, color-mix(in srgb, var(--color-ink) 88%, black));
-}
-.community-page #hero .rounded-2xl {
-  border-color: color-mix(in srgb, var(--color-white) 14%, transparent);
-  background: color-mix(in srgb, var(--color-white) 3%, transparent);
-  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-white) 5%, transparent);
-}
-.community-page :is(#mvc article, .community-comparison, #achievements article) {
-  box-shadow: 0 10px 32px #28395307;
-}
-.community-page #mvc article:first-child {
-  background: linear-gradient(145deg, color-mix(in srgb, var(--color-accent) 88%, black), var(--color-accent));
-}
-.community-page #mvc article:not(:first-child) {
-  background: linear-gradient(145deg, var(--color-white), color-mix(in srgb, var(--color-accent) 8%, var(--color-white)));
-}
-.community-page #reviews figure {
-  background-color: color-mix(in srgb, var(--color-accent) 8%, var(--color-white));
-}
-.community-page .btn-accent {
-  box-shadow: 0 5px 16px color-mix(in srgb, var(--color-action) 12%, transparent);
-  transition: background-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
-}
-.community-page .btn-accent:hover {
-  box-shadow: 0 7px 20px color-mix(in srgb, var(--color-action) 18%, transparent);
-  transform: translateY(-1px);
-}
-.community-page .community-carousel-arrow {
-  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease;
-}
-.community-page .community-carousel-arrow:hover:not(:disabled) {
-  background: var(--color-action);
-  border-color: var(--color-action);
-  color: var(--color-white);
-}
-.community-ambassador-card {
-  transition: border-color 160ms ease, box-shadow 160ms ease;
-}
-.community-ambassador-card:hover {
-  border-color: color-mix(in srgb, var(--color-accent) 50%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-accent) 12%, transparent);
-}
-.community-city-panel:not([hidden]) {
-  animation: community-panel-enter 180ms ease-out;
-}
-@keyframes community-panel-enter {
-  from { opacity: 0; transform: translateY(5px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .community-page :is(.btn-accent, .community-carousel-arrow, .community-ambassador-card) {
-    transition: none;
-  }
-  .community-page .btn-accent:hover { transform: none; }
-  .community-city-panel:not([hidden]) { animation: none; }
-}
+/* Система страницы сообщества изолирована в pages/community/community.css. */
 
 /* Личный кабинет и база знаний: рабочие области шире страниц сайта, чтобы на больших экранах не оставалось пустых полей. */
 .container-wide {

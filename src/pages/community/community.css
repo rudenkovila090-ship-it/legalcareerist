@@ -1,0 +1,244 @@
+/* Community: one scoped system; other pages keep their existing styles. */
+.community-page {
+  --community-night: #1d2e49;
+  --community-muted: #53657e;
+  --community-line: #dce3ed;
+  --community-wash: #f4f7fb;
+  --community-map-tile: #e1e8f2;
+  --community-map-stroke: #c2cfdf;
+  --community-scroll-offset: 8rem;
+  color: var(--color-ink);
+  background: #fff;
+  font-size: 1rem;
+  line-height: 1.65;
+}
+.community-page ::selection { background: #dce7f8; color: #182b45; }
+.community-page .container-page { max-width: 74rem; padding-inline: clamp(1.25rem, 3vw, 2rem); }
+.community-page .community-inner { width: 100%; margin-inline: auto; }
+.community-page :is(section[id], #faq, #reviews) { scroll-margin-top: var(--community-scroll-offset); }
+.community-page :where(section[id]:not(#hero), #reviews > section, #faq > section) { padding-block: 4rem; }
+.community-page :is(h1, h2, h3) { text-wrap: balance; letter-spacing: -.025em; }
+.community-page h2 { font-size: clamp(1.5rem, 2.3vw, 2rem); font-weight: 600; line-height: 1.2; }
+.community-page h3 { line-height: 1.35; }
+.community-page :is(button, a, summary, [tabindex]):focus-visible { outline: 2px solid var(--color-accent); outline-offset: 4px; }
+.community-page :is(#hero, #join) > .container-page :is(button, a):focus-visible,
+.community-page footer :is(button, a):focus-visible { outline-color: #fff; }
+.community-page button { cursor: pointer; }
+.community-page button:disabled { cursor: default; }
+.community-page .btn-accent {
+  display: inline-flex; align-items: center; justify-content: center; gap: .75rem;
+  min-height: 3rem; border-radius: 999px; font-weight: 600;
+  box-shadow: none; transition: background-color 160ms ease, border-color 160ms ease;
+}
+.community-page .btn-accent:hover { transform: none; box-shadow: none; }
+.community-page .btn-accent:disabled { opacity: .6; }
+
+/* The title and its promise share a clear axis, without a box inside a box. */
+.community-page #hero { position: relative; overflow: hidden; padding-block: 5rem; background: var(--community-night); }
+.community-page #hero .container-page { position: relative; z-index: 1; }
+.community-page #hero h1 { max-width: 19ch; margin-inline: auto; font-size: clamp(2.25rem, 4.5vw, 4rem); font-weight: 600; line-height: 1.08; }
+.community-page .community-hero-copy { width: 100%; margin: 1.75rem auto 0; }
+.community-page .community-hero-copy p { color: #dce5f3; font-size: clamp(1rem, 1.5vw, 1.125rem); line-height: 1.7; }
+.community-page .community-hero-cta { min-height: 3.75rem; margin-top: 2rem; padding: .875rem 2rem; border: 1px solid #9eb4d4; font-size: 1.0625rem; }
+.community-page .community-hero-mark { position: absolute; right: -1rem; top: 12%; height: 92%; width: 23rem; color: #8eacd2; opacity: .12; pointer-events: none; }
+
+/* Mission spans the two naturally sized right-hand rows. */
+.community-page #mvc { border-color: var(--community-line); }
+.community-page .community-mvc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; align-items: stretch; }
+.community-page .community-mvc-card { min-width: 0; position: relative; padding: 1.75rem 2rem; border: 1px solid var(--community-line); border-radius: 16px; background: #fff; }
+.community-page .community-mvc-card h2 { font-size: 1.375rem; }
+.community-page .community-mvc-card p { margin-top: 1rem; font-size: 1rem; line-height: 1.65; color: var(--community-muted); }
+.community-page .community-mission { grid-row: span 2; display: flex; align-items: center; overflow: hidden; padding: 2.5rem; background: var(--color-accent); border-color: var(--color-accent); }
+.community-page .community-mission > div { position: relative; z-index: 1; }
+.community-page .community-mission h2 { font-size: 2rem; }
+.community-page .community-mission p { max-width: 28ch; color: #e3ebf7; font-size: 1.125rem; line-height: 1.75; }
+.community-page .community-mission::after { content: ''; position: absolute; width: 12rem; height: 12rem; right: -4.5rem; bottom: -4.5rem; border: 1px solid #9db6d7; border-radius: 50%; opacity: .4; }
+.community-page .community-mvc-card ul { gap: .5rem; margin-top: 1rem; }
+.community-page .community-mvc-card li { padding: .625rem .5rem; background: var(--community-wash); border: 1px dashed #bdcbe0; color: var(--community-muted); font-size: .75rem; border-radius: 8px; }
+
+/* The comparison remains a real table, including on small screens. */
+.community-page .community-comparison { border-color: var(--community-line); border-radius: 16px; box-shadow: none; }
+.community-page .community-comparison thead tr { background: var(--community-wash); }
+.community-page .community-comparison thead th { padding: 1rem 1.25rem; font-size: .875rem; line-height: 1.4; }
+.community-page .community-comparison thead th:not(:first-child) { color: var(--community-muted); }
+.community-page .community-comparison thead th:last-child { background: var(--color-accent); color: #fff; }
+.community-page .community-comparison tbody tr, .community-page .community-comparison tfoot tr { border-color: var(--community-line); }
+.community-page .community-comparison tbody th { padding: .875rem 1.25rem; color: #111; font-size: .875rem; line-height: 1.55; font-weight: 400; text-wrap: pretty; }
+.community-page .community-comparison :is(tbody td:last-child, tfoot td:last-child) { background: var(--community-wash); }
+.community-page .community-benefit-no, .community-page .community-benefit-yes { display: inline-flex; align-items: center; justify-content: center; vertical-align: middle; width: 1.75rem; height: 1.75rem; border-radius: 50%; }
+.community-page .community-benefit-no { color: #77879d; }
+.community-page .community-benefit-yes { background: var(--color-accent); color: #fff; }
+.community-page .community-benefit-yes svg { width: 1rem; height: 1rem; }
+.community-page .community-comparison tfoot td:last-child { padding: 1rem .75rem; }
+.community-page .community-comparison tfoot button { font-size: .8125rem; line-height: 1.3; padding-inline: .75rem; }
+
+/* No empty university panel: the map keeps its place while a panel opens. */
+.community-page #map { border-color: var(--community-line); }
+.community-page .community-geography { position: relative; min-height: 20rem; }
+.community-page .community-map-surface { width: min(80%, 38.4rem); margin-inline: auto; padding: 1.5rem; background: var(--community-wash); border-radius: 16px; }
+.community-page .community-map-marker { display: flex; align-items: center; justify-content: center; position: relative; width: 100%; height: 100%; border-radius: 50%; border: 2px solid #fff; background: var(--color-accent); color: #fff; box-shadow: 0 2px 6px #182b4524; }
+.community-page .community-map-marker::before { content: ''; position: absolute; width: 44px; height: 44px; left: 50%; top: 50%; transform: translate(-50%, -50%); border-radius: 50%; }
+.community-page .community-map-marker:is(:hover, .is-active) { outline: 3px solid #a8bddb; outline-offset: 2px; }
+.community-page .community-city-panel:not([hidden]) { display: block; position: absolute; z-index: 12; right: 0; top: 0; width: min(34%, 23rem); min-height: 0; padding: 1.5rem; background: #fff; border: 1px solid var(--community-line); border-radius: 12px; box-shadow: 0 10px 32px #182b4514; animation: community-panel-enter 150ms ease-out; }
+.community-page .community-city-panel ul { color: var(--community-muted); }
+@keyframes community-panel-enter { from { opacity: .7; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+/* People, evidence and quotes share one restrained card grammar. */
+.community-page #ambassadors { padding-bottom: 1.75rem; }
+.community-page .community-carousel-arrow, .community-page #reviews button[aria-controls] { min-width: 44px; min-height: 44px; border-color: var(--community-line); transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease; }
+.community-page .community-carousel-arrow:hover:not(:disabled), .community-page #reviews button[aria-controls]:hover:not(:disabled) { background: var(--color-accent); border-color: var(--color-accent); color: #fff; }
+.community-page .community-ambassador-card { border-color: var(--community-line); border-radius: 12px; box-shadow: none; }
+.community-page .community-ambassador-card > div:first-child { background: var(--community-wash); }
+.community-page .community-ambassador-card p { color: var(--community-muted); }
+.community-page .community-ambassador-card [role="img"] { color: var(--community-muted); }
+.community-page .community-ambassador-card h3 { font-size: 1.0625rem; line-height: 1.4; }
+.community-page #ambassador-form { padding-top: 0; border: 0; }
+.community-page #achievements article { box-shadow: none; border-color: var(--community-line); border-radius: 12px; }
+.community-page #achievements h3 { font-size: 1.0625rem; line-height: 1.5; }
+.community-page #reviews > section { border-color: var(--community-line); background: var(--community-wash); }
+.community-page #reviews figure { min-height: 0; padding: 1.25rem; background: #fff; border: 1px solid var(--community-line); border-radius: 12px; }
+.community-page #reviews figcaption { padding: 0 0 .875rem; border-radius: 0; border-bottom: 1px solid var(--community-line); background: transparent; }
+.community-page #reviews figcaption time, .community-page #reviews figcaption > div + div { color: var(--community-muted); }
+.community-page #reviews blockquote { margin-top: .875rem; color: var(--community-muted); }
+.community-page #reviews figure > button { margin-top: .5rem; padding-block: .625rem; min-height: 44px; }
+
+/* Membership periods stay equal, 1–6–3; selection never relies on hover. */
+.community-page #join { background: var(--community-night); }
+.community-page .community-tariffs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin-top: 2rem; }
+.community-page .community-tariff { display: flex; flex-direction: column; position: relative; min-width: 0; padding: 1.75rem; text-align: left; border: 1px solid #617591; border-radius: 16px; background: #263b58; }
+.community-page .community-tariff.is-selected { border-color: #dce7f6; outline: 1px solid #dce7f6; background: #304d76; }
+.community-page .community-tariff-select { display: block; flex: 1; width: 100%; text-align: left; border-radius: 8px; }
+.community-page .community-tariff-select:hover { background: transparent; }
+.community-page :is(.community-tariff-period, .community-tariff-price, .community-tariff-billing) { display: block; }
+.community-page .community-tariff-indicator { position: absolute; right: 1.5rem; top: 1.9rem; display: block; width: 1.125rem; height: 1.125rem; border-radius: 50%; border: 1px solid #a1b2ca; }
+.community-page .community-tariff-indicator.is-selected { border-color: #fff; background: #fff; box-shadow: inset 0 0 0 4px #304d76; }
+.community-page .community-tariff-period { padding-right: 2rem; font-size: 1.25rem; line-height: 1.4; font-weight: 500; }
+.community-page .community-tariff-price { margin-top: 1.25rem; font-size: clamp(2rem, 3.5vw, 2.75rem); font-weight: 600; line-height: 1.1; letter-spacing: -.035em; font-variant-numeric: tabular-nums; }
+.community-page .community-tariff-billing { margin-top: .5rem; font-size: .8125rem; color: #d6e0ef; }
+.community-page .community-tariff-note, .community-page .community-tariff-saving { display: block; margin-top: 1.25rem; min-height: 2rem; font-size: clamp(.6875rem, 1vw, .8125rem); line-height: 2rem; white-space: nowrap; }
+.community-page .community-tariff-note { color: #c2d0e4; }
+.community-page .community-tariff-saving { color: #fff; }
+.community-page .community-tariff-pay { width: 100%; margin-top: 1rem; border: 1px solid #8fa8cc; border-radius: 10px; font-size: .875rem; }
+.community-page .community-tariff-pay:hover { border-color: #fff; }
+
+/* Both clients lead into one compact shared feature diagram. */
+.community-page #functionality { border-color: var(--community-line); }
+.community-page #functionality article { padding: 1.75rem; border-color: var(--community-line); border-radius: 16px; background: var(--community-wash); }
+.community-page #functionality article > div { margin-bottom: 1.25rem; }
+.community-page #functionality article > div > span { width: 2.75rem; height: 2.75rem; border: 1px solid var(--community-line); border-radius: 10px; background: #fff; }
+.community-page #functionality h3 { font-size: 1.125rem; }
+.community-page #functionality ul { color: var(--community-muted); font-size: .9375rem; line-height: 1.6; }
+.community-page #functionality li + li { margin-top: .75rem; }
+.community-page .community-platform-flow { display: grid; grid-template-columns: 1fr 6rem 1.5fr; align-items: center; }
+.community-page .community-platform-sources { display: grid; gap: 1rem; }
+.community-page .community-platform-sources > div { flex-direction: row; justify-content: flex-start; gap: 1rem; width: 100%; max-width: none; min-height: 6.5rem; padding: 1.25rem; background: #fff; border-color: var(--community-line); border-radius: 12px; }
+.community-page .community-platform-sources h3 { font-size: 1rem; text-align: left; }
+.community-page .community-platform-connector { color: var(--color-accent); }
+.community-page .community-connector-wide { width: 100%; height: 15rem; }
+.community-page .community-connector-narrow { display: none; }
+.community-page .community-platform-flow figcaption { padding: 1.5rem; background: var(--community-wash); border-color: var(--community-line); border-radius: 16px; }
+.community-page .community-platform-flow figcaption h3 { color: var(--color-ink); font-size: .875rem; }
+.community-page .community-platform-flow figcaption ul { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; }
+.community-page .community-platform-flow figcaption li { min-height: 4.5rem; padding: .875rem .5rem; border: 1px solid var(--community-line); border-radius: 8px; background: #fff; color: var(--community-muted); font-size: .875rem; }
+
+.community-page #founder { border-color: var(--community-line); }
+.community-page .community-founder-card { display: flex; align-items: flex-start; gap: 1.75rem; max-width: 54rem; }
+.community-page .community-founder-card img { width: 7rem; height: 8rem; border-radius: 12px; box-shadow: none; --tw-ring-shadow: 0 0 #0000; }
+.community-page .community-founder-card p { color: var(--community-muted); font-size: .9375rem; line-height: 1.75; }
+.community-page #partners { padding-block: 2.5rem; }
+.community-page #partners > div { padding-block: 1.5rem; border-color: #bdcbe0; color: var(--community-muted); background: var(--community-wash); border-radius: 12px; }
+.community-page #faq h2 { margin-bottom: 1.5rem; gap: 1rem; }
+.community-page #faq h2 span:last-child { font-size: clamp(1.5rem, 2.3vw, 2rem); }
+.community-page #faq > section > div { gap: 2rem; }
+.community-page #faq details { margin-block: 0; padding: 0; border: 0; border-bottom: 1px solid var(--community-line); border-radius: 0; background: #fff; backdrop-filter: none; }
+.community-page #faq details:hover { background: var(--community-wash); }
+.community-page #faq summary { min-height: 4rem; padding: 1rem .25rem; gap: .75rem; font-size: .875rem; line-height: 1.55; }
+.community-page #faq summary > span { width: 1.5rem; height: 1.5rem; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; color: var(--color-accent); }
+.community-page #faq details p { margin: 0 0 1.125rem; padding-inline: .25rem; color: var(--community-muted); }
+.community-page > .container-page:last-of-type { border-color: var(--community-line); }
+
+/* Native dialogs, readable fields, compact consent and visible focus. */
+.community-page .community-payment-dialog { position: fixed; margin: auto; max-height: min(92dvh, 52rem); width: calc(100% - 2rem); max-width: 30rem; padding: 0; overflow-y: auto; border: 0; border-radius: 16px; background: #fff; color: var(--color-ink); box-shadow: 0 24px 64px #13243a38; overscroll-behavior: contain; }
+.community-page dialog::backdrop { background: #152640b8; }
+.community-page .community-payment-content { padding: 1.75rem; }
+.community-page .community-payment-content h3 { padding-right: .75rem; font-size: 1.125rem; }
+.community-page dialog :is(input:not([type=checkbox]), textarea) { min-height: 3rem; border-color: #cbd5e3; border-radius: 9px; font-size: 1rem; }
+.community-page dialog :is(input:not([type=checkbox]), textarea)::placeholder { color: #65768e; opacity: 1; }
+.community-page dialog :is(input, textarea):focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+.community-page dialog label:has(input[type=checkbox]) { color: var(--community-muted); font-size: .6875rem; line-height: 1.6; min-height: 2rem; align-items: flex-start; }
+.community-page dialog input[type=checkbox] { width: .875rem; height: .875rem; margin-top: .2rem; flex-shrink: 0; }
+.community-page .community-dialog-close { flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border: 1px solid var(--community-line); border-radius: 50%; color: var(--community-muted); }
+.community-page .community-dialog-close:hover { background: var(--community-wash); color: var(--color-ink); }
+.community-page #btn-community-join { min-height: 3rem; }
+
+.community-page > nav[aria-label="Оглавление раздела"] ul { padding: .375rem; border: 1px solid var(--community-line); background: #fffffff2; box-shadow: none; backdrop-filter: none; }
+.community-page > nav[aria-label="Оглавление раздела"] li + li { margin-top: 0; }
+.community-page > nav[aria-label="Оглавление раздела"] a { width: 24px; min-height: 24px; border-radius: 999px; }
+.community-page > nav[aria-label="Оглавление раздела"] ul:hover { transform: none; }
+.community-page > footer { background: var(--community-night); color: #c2d0e4; }
+.community-page > footer > div:first-child { max-width: 74rem; margin-inline: auto; padding-inline: 2rem; gap: 2rem; justify-content: space-between; }
+.community-page > footer a { text-underline-offset: .2em; }
+.community-page > footer a[aria-label] { min-height: 44px; min-width: 44px; }
+.community-page > footer > div:last-child > div { color: #c2d0e4; }
+.community-page > footer button { min-height: 44px; }
+
+@media (min-width: 1024px) { .community-page { --community-scroll-offset: 6rem; } }
+@media (max-width: 1023px) {
+  .community-page .community-tariff { padding: 1.5rem 1.125rem; }
+  .community-page .community-tariff-saving { font-size: .6875rem; }
+  .community-page .community-city-panel:not([hidden]) { width: min(42%, 23rem); }
+}
+@media (max-width: 767px) {
+  .community-page :where(section[id]:not(#hero), #reviews > section, #faq > section) { padding-block: 3rem; }
+  .community-page #hero { padding-block: 3.5rem; }
+  .community-page .community-hero-mark { right: -8rem; opacity: .08; }
+  .community-page .community-mvc-grid { grid-template-columns: 1fr; }
+  .community-page .community-mvc-card { padding: 1.5rem; }
+  .community-page .community-mission { grid-row: auto; padding: 2rem 1.5rem; }
+  .community-page .community-mission h2 { font-size: 1.5rem; }
+  .community-page .community-mission p { max-width: none; font-size: 1rem; }
+  .community-page .community-comparison col:first-child { width: 55%; }
+  .community-page .community-comparison col:nth-child(2) { width: 17%; }
+  .community-page .community-comparison col:last-child { width: 28%; }
+  .community-page .community-comparison thead th { padding: 1rem .25rem; font-size: .6875rem; }
+  .community-page .community-comparison thead th:first-child { padding-inline: .75rem; }
+  .community-page .community-comparison tbody th { padding: .875rem .75rem; font-size: .8125rem; line-height: 1.55; }
+  .community-page .community-benefit-yes, .community-page .community-benefit-no { width: 1.5rem; height: 1.5rem; }
+  .community-page .community-comparison tfoot td:last-child { padding: .75rem .25rem; }
+  .community-page .community-comparison tfoot button { font-size: .6875rem; padding-inline: .25rem; min-height: 3rem; border-radius: 8px; }
+  .community-page .community-geography { min-height: 0; }
+  .community-page .community-map-surface { width: 80%; min-width: min(100%, 23rem); padding: 1rem .5rem 1.75rem; }
+  .community-page .community-city-panel:not([hidden]) { position: relative; width: 100%; margin-top: 1rem; }
+  .community-page #ambassadors { padding-bottom: 1.5rem; }
+  .community-page #ambassador-form { padding-top: 0; }
+  .community-page .community-platform-flow { display: block; }
+  .community-page .community-platform-sources { grid-template-columns: 1fr 1fr; gap: .75rem; }
+  .community-page .community-platform-sources > div { min-height: 7rem; padding: 1rem .625rem; flex-direction: column; justify-content: center; gap: .75rem; }
+  .community-page .community-platform-sources h3 { font-size: .875rem; text-align: center; }
+  .community-page .community-connector-wide { display: none; }
+  .community-page .community-connector-narrow { display: block; width: 100%; height: 4rem; }
+  .community-page .community-platform-flow figcaption { padding: 1.25rem; }
+  .community-page #faq > section > div { gap: 0; }
+  .community-page #faq summary { min-height: 4rem; }
+  .community-page .community-founder-card { gap: 1.25rem; }
+  .community-page .community-founder-card img { width: 5rem; height: 6.5rem; }
+  .community-page .community-founder-card p { font-size: .875rem; }
+  .community-page > footer > div:first-child { padding-inline: 1.25rem; justify-content: flex-start; }
+}
+@media (max-width: 639px) {
+  .community-page .community-tariffs { grid-template-columns: 1fr; gap: .75rem; }
+  .community-page .community-tariff { padding: 1.25rem; }
+  .community-page .community-tariff-select { display: grid; grid-template-columns: 1fr auto; column-gap: .5rem; align-items: baseline; }
+  .community-page .community-tariff-period { grid-column: 1 / -1; font-size: 1.125rem; }
+  .community-page .community-tariff-price { margin-top: .875rem; font-size: 2.25rem; }
+  .community-page .community-tariff-billing { font-size: .75rem; }
+  .community-page .community-tariff-note, .community-page .community-tariff-saving { grid-column: 1 / -1; min-height: auto; margin-top: .625rem; font-size: .8125rem; line-height: 1.5; }
+  .community-page .community-tariff-pay { margin-top: 1rem; }
+  .community-page .community-tariff-indicator { top: 1.5rem; right: 1.25rem; }
+  .community-page .community-founder-card { flex-direction: column; }
+  .community-page .community-payment-content { padding: 1.25rem; }
+  .community-page .community-payment-dialog { max-height: 94dvh; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .community-page *, .community-page *::before, .community-page *::after { scroll-behavior: auto; animation: none !important; transition: none !important; }
+}
