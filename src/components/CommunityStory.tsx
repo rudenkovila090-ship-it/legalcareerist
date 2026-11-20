@@ -3,6 +3,11 @@ import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 interface StoryItem { label: string; text: string }
 const motionQuery = '(min-width: 900px) and (min-height: 600px) and (prefers-reduced-motion: no-preference)'
 const clamp = (n: number) => Math.min(1, Math.max(0, n))
+// Start while the block is in the reading area, rather than waiting for the page header.
+function scrollRange(track: HTMLElement) {
+  const pageTop = window.scrollY + track.getBoundingClientRect().top
+  return { start: Math.max(0, pageTop - window.innerHeight * .6), distance: Math.min(180, Math.max(120, window.innerHeight * .2)) }
+}
 
 /** A short scroll story; narrow screens and reduced motion get all the text in flow. */
 export default function CommunityStory({ items }: { items: StoryItem[] }) {
@@ -29,12 +34,10 @@ export default function CommunityStory({ items }: { items: StoryItem[] }) {
     let alive = true
     const update = () => {
       frame = 0
-      const top = Number.parseFloat(getComputedStyle(stage).top) || 0
-      const distance = Math.max(1, track.offsetHeight - stage.offsetHeight)
-      const progress = clamp((top - track.getBoundingClientRect().top) / distance)
-      track.style.setProperty('--layer-second', String(1 - clamp((progress - .16) / .22)))
-      track.style.setProperty('--layer-third', String(1 - clamp((progress - .5) / .22)))
-      const next = progress < .38 ? 0 : progress < .72 ? 1 : 2
+      const { start, distance } = scrollRange(track)
+      const progress = clamp((window.scrollY - start) / distance)
+      track.style.setProperty('--layer-second', String(1 - clamp(progress / .6)))
+      const next = progress < .6 ? 0 : 1
       if (next !== activeRef.current) {
         activeRef.current = next
         setActive(next)
@@ -67,25 +70,24 @@ export default function CommunityStory({ items }: { items: StoryItem[] }) {
   function select(index: number) {
     const track = trackRef.current, stage = stageRef.current
     if (!interactive || !track || !stage) return
-    const top = Number.parseFloat(getComputedStyle(stage).top) || 0
-    const distance = Math.max(1, track.offsetHeight - stage.offsetHeight)
+    const { start, distance } = scrollRange(track)
     // Land inside the readable plateau for the requested layer.
-    const progress = [0, .44, .82][index]
-    window.scrollTo({ top: window.scrollY + track.getBoundingClientRect().top - top + distance * progress, behavior: 'smooth' })
+    const progress = index === 0 ? 0 : .8
+    window.scrollTo({ top: start + distance * progress, behavior: 'smooth' })
   }
 
   return (
     <section id="mvc" className={`community-story ${interactive ? 'is-interactive' : 'is-static'}`} data-active-layer={active}>
       <div className="container-page">
         <div ref={trackRef} className="community-story-track">
-          <div ref={stageRef} className="community-story-stage" tabIndex={interactive ? 0 : undefined} role={interactive ? 'region' : undefined} aria-label={interactive ? 'Миссия, ценности и цель сообщества' : undefined} aria-describedby={interactive ? `${id}-help` : undefined} onKeyDown={event => {
+          <div ref={stageRef} className="community-story-stage" tabIndex={interactive ? 0 : undefined} role={interactive ? 'region' : undefined} aria-label={interactive ? 'Миссия и ценности сообщества' : undefined} aria-describedby={interactive ? `${id}-help` : undefined} onKeyDown={event => {
             if (!interactive) return
             const next = event.key === 'ArrowRight' ? (active + 1) % items.length : event.key === 'ArrowLeft' ? (active + items.length - 1) % items.length : event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1 : -1
             if (next < 0) return
             event.preventDefault()
             select(next)
           }}>
-            {interactive && <p id={`${id}-help`} className="sr-only">Листайте страницу или используйте стрелки влево и вправо, чтобы прочитать три слоя.</p>}
+            {interactive && <p id={`${id}-help`} className="sr-only">Листайте страницу или используйте стрелки влево и вправо, чтобы прочитать миссию и ценности.</p>}
             <div className="community-story-copy">
               <div className="community-story-panels">
                 {items.map((item, index) => (

@@ -109,7 +109,7 @@ body:has(.community-page) header :is(.container-page, .container-wide) { max-wid
 .community-page .community-tariff-billing { margin-top: .5rem; font-size: .8125rem; color: #d6e0ef; }
 .community-page .community-tariff-note, .community-page .community-tariff-saving { display: block; margin-top: 1.25rem; min-height: 2rem; font-size: clamp(.6875rem, 1vw, .8125rem); line-height: 2rem; white-space: nowrap; }
 .community-page .community-tariff-note { color: #c2d0e4; }
-.community-page .community-tariff-saving { padding-inline: .375rem; border-radius: 7px; background: #0f5b3d; color: #9af5bc; font-weight: 650; }
+.community-page .community-tariff-saving { color: #9af5bc; font-weight: 650; }
 .community-page .community-tariff-pay { width: 100%; margin-top: 1rem; border: 1px solid #8fa8cc; border-radius: 10px; font-size: .875rem; }
 .community-page .community-tariff-pay:hover { border-color: #fff; }
 
@@ -232,9 +232,9 @@ body:has(.community-page) header :is(.container-page, .container-wide) { max-wid
   .community-page .community-payment-content { padding: 1.25rem; }
   .community-page .community-payment-dialog { max-height: 94dvh; }
 }
-/* Compact text layers: height follows the longest paragraph, with a short scroll. */
+/* Two full-area layers reveal while entering the viewport, without an empty scroll track. */
 .community-page #mvc.community-story { border-block: 1px solid var(--community-line); padding-block: 1.25rem; }
-.community-page .community-story-track { --layer-second: 1; --layer-third: 1; --story-panel-height: 10rem; }
+.community-page .community-story-track { --layer-second: 1; --story-panel-height: 10rem; --story-stage-height: max(var(--story-panel-height), clamp(13rem, 24vh, 16rem)); }
 .community-page .community-story-stage { display: block; }
 .community-page .community-story-copy { min-width: 0; }
 .community-page .community-story-panel { padding: 1rem 1.5rem; border: 1px solid var(--community-line); border-radius: 12px; background: #fff; }
@@ -243,17 +243,13 @@ body:has(.community-page) header :is(.container-page, .container-wide) { max-wid
 .community-page .community-story-panel h2 { font-size: 1.5rem; line-height: 1.35; }
 .community-page .community-story-panel p { max-width: none; margin: 0; color: var(--community-muted); font-size: 1rem; line-height: 1.65; }
 .community-page .community-story-panel-1 { background: var(--community-wash); }
-.community-page .community-story-panel-2 { background: var(--color-accent); border-color: var(--color-accent); color: #fff; }
-.community-page .community-story-panel-2 p { color: #e3ebf7; }
 .community-page .community-story-values { grid-column: 2; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .5rem; margin-top: .75rem; }
 .community-page .community-story-values li { padding: .375rem .5rem; border: 1px dashed #b4c4da; border-radius: 7px; background: #fff; color: var(--community-muted); font-size: .75rem; text-align: center; }
-.community-page .community-story.is-interactive .community-story-track { height: calc(var(--story-panel-height) + clamp(9rem, 16vh, 12rem)); }
-.community-page .community-story.is-interactive .community-story-stage { position: sticky; top: var(--community-scroll-offset); height: var(--story-panel-height); }
-.community-page .community-story.is-interactive .community-story-panels { position: relative; height: var(--story-panel-height); overflow: hidden; border-radius: 12px; }
+.community-page .community-story.is-interactive .community-story-stage { height: var(--story-stage-height); }
+.community-page .community-story.is-interactive .community-story-panels { position: relative; height: var(--story-stage-height); overflow: hidden; border-radius: 12px; }
 .community-page .community-story.is-interactive .community-story-panel { position: absolute; inset: 0; margin: 0; display: flex; align-items: center; will-change: transform; }
 .community-page .community-story.is-interactive .community-story-panel-0 { z-index: 1; }
 .community-page .community-story.is-interactive .community-story-panel-1 { z-index: 2; transform: translate3d(0, calc(var(--layer-second) * 100%), 0); }
-.community-page .community-story.is-interactive .community-story-panel-2 { z-index: 3; transform: translate3d(0, calc(var(--layer-third) * 100%), 0); }
 .community-page .community-story.is-interactive .community-story-panel.is-active .community-story-text { animation: community-story-write 260ms ease-out both; }
 @keyframes community-story-write { from { opacity: .7; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
 

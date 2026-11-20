@@ -18,33 +18,40 @@ with sync_playwright() as p:
         page.evaluate('document.fonts.ready')
         return page
 
-    for width in [1440,1920]:
-        page=open_page(width)
+    for width,height in [(1440,1000),(1920,900)]:
+        page=open_page(width,height)
         page.screenshot(path=str(OUT/f'hero-{width}.png'))
         story=page.locator('#mvc')
         assert 'is-interactive' in story.get_attribute('class')
         assert story.get_by_role('tab').count()==0
         assert story.locator('img,figure').count()==0
-        assert story.bounding_box()['height']<=360
-        position=page.locator('.community-story-track').evaluate('''e=>{
-          const s=e.querySelector('.community-story-stage');
-          return {start:scrollY+e.getBoundingClientRect().top-parseFloat(getComputedStyle(s).top),travel:e.offsetHeight-s.offsetHeight};
-        }''')
-        stages=[]
-        for index,fraction in [(0,0),(1,.44),(2,.85),(0,0)]:
-            page.evaluate('(o)=>scrollTo({top:o.start+o.travel*o.fraction,behavior:"instant"})',{**position,'fraction':fraction})
+        assert story.bounding_box()['height']<=330
+        assert story.locator('article').count()==2
+        assert story.get_by_role('heading',name='Цель',exact=True,include_hidden=True).count()==0
+        stage=page.locator('.community-story-stage')
+        assert abs(page.locator('.community-story-track').bounding_box()['height']-stage.bounding_box()['height'])<1
+        # Reproduce normal reading, instead of jumping to the old end-of-section thresholds.
+        for index,delta in [(0,0),(1,120),(0,-120)]:
+            if delta: page.mouse.wheel(0,delta)
             page.wait_for_function('(i)=>document.querySelector("#mvc").dataset.activeLayer===String(i)',arg=index)
             page.wait_for_timeout(300)  # the authored text reveal is 260 ms
             assert story.get_by_role('article').count()==1
-            assert story.get_by_role('heading',name=['Миссия','Ценности','Цель'][index],exact=True).is_visible()
-            stages.append(page.locator('.community-story-stage').evaluate('e=>Math.round(e.getBoundingClientRect().top)'))
-            page.locator('.community-story-stage').screenshot(path=str(OUT/f'story-{width}-{index}.png'))
-        assert max(stages)-min(stages)<=1,stages
-        stage=page.locator('.community-story-stage')
+            assert story.get_by_role('heading',name=['Миссия','Ценности'][index],exact=True).is_visible()
+            box=stage.bounding_box()
+            assert abs(story.get_by_role('article').bounding_box()['height']-box['height'])<1
+            assert abs(page.locator('.community-story-panels').bounding_box()['height']-box['height'])<1
+            assert box['y']>page.locator('header').bounding_box()['height']+16,box
+            assert box['y']+box['height']<height,box
+            assert page.locator('#benefits h2').bounding_box()['y']>box['y']+box['height']
+            stage.screenshot(path=str(OUT/f'story-{width}-{index}.png'))
         stage.focus()
         page.keyboard.press('ArrowRight')
         page.wait_for_function('document.querySelector("#mvc").dataset.activeLayer==="1"')
         assert stage.evaluate('e=>document.activeElement===e')
+        for key,index in [('Home',0),('End',1),('ArrowLeft',0)]:
+            page.keyboard.press(key)
+            page.wait_for_function('(i)=>document.querySelector("#mvc").dataset.activeLayer===String(i)',arg=index)
+            assert stage.evaluate('e=>document.activeElement===e')
 
         track=page.locator('#ambassadors [aria-roledescription="карусель"]')
         bounds=track.bounding_box()
@@ -68,7 +75,8 @@ with sync_playwright() as p:
         region=page.locator('.community-partners-marquee')
         region.focus()
         page.keyboard.press('Space')
-        assert marquee.evaluate('e=>getComputedStyle(e).animationPlayState')=='paused'
+        page.wait_for_function('getComputedStyle(document.querySelector(".community-partners-track")).animationPlayState==="paused"')
+        page.evaluate('()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))')
         before=marquee.evaluate('e=>getComputedStyle(e).transform')
         page.wait_for_timeout(180)
         assert before==marquee.evaluate('e=>getComputedStyle(e).transform')
@@ -80,8 +88,9 @@ with sync_playwright() as p:
         assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
         assert page.locator('#faq').evaluate('e=>e.nextElementSibling.tagName')=='FOOTER'
         assert page.locator('.community-tariff-saving').evaluate_all('es=>es.every(e=>e.scrollWidth<=e.clientWidth)')
+        assert page.locator('.community-tariff-saving').evaluate_all('es=>es.every(e=>getComputedStyle(e).backgroundColor==="rgba(0, 0, 0, 0)")')
         assert page.locator('.community-floating-join').bounding_box()['height']>=60
-        results.append({'width':width,'scrollLayers':3,'reverseScroll':True,'keyboardLayers':True,'storyHeight':story.bounding_box()['height'],'ambassadorLoop':True,'partnerMotionAndKeyboardPause':True,'pageOverflow':False})
+        results.append({'width':width,'height':height,'scrollLayers':2,'naturalWheelWhileVisible':True,'emptyScrollTrack':False,'reverseScroll':True,'keyboardLayers':True,'storyHeight':story.bounding_box()['height'],'ambassadorLoop':True,'partnerMotionAndKeyboardPause':True,'savingBackground':'transparent','pageOverflow':False})
         page.close()
 
     for width,height,motion in [(320,1000,'no-preference'),(390,1000,'no-preference'),(768,1000,'no-preference'),(1440,1000,'reduce'),(1440,500,'no-preference')]:
@@ -90,7 +99,8 @@ with sync_playwright() as p:
         assert 'is-static' in story.get_attribute('class')
         assert story.get_by_role('tab').count()==0
         assert page.locator('.community-story-panel[aria-hidden=true]').count()==0
-        for label in ['Миссия','Ценности','Цель']:
+        assert story.locator('article').count()==2
+        for label in ['Миссия','Ценности']:
             assert story.get_by_role('heading',name=label,exact=True).is_visible()
         assert story.get_by_text('В разработке',exact=True).count()==4
         assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
