@@ -25,6 +25,8 @@ import ConsentCheck from '../../components/ConsentCheck'
 import { consentOf } from '../../lib/consent'
 import { goal } from '../../lib/metrika'
 import CommunityIcon from '../../components/CommunityIcon'
+import CommunityStory from '../../components/CommunityStory'
+import CommunityPartners from '../../components/CommunityPartners'
 import './community.css'
 
 const railItems = [
@@ -356,28 +358,7 @@ export default function CommunityHome() {
         </div></div>
       </section>
 
-      {/* Три равных столбца на компьютере; последовательные карточки на телефоне. */}
-      <section id="mvc" className="border-y border-ink/10 bg-white py-16">
-        <div className="container-page">
-          <div className="community-mvc-grid">
-            {mvc.map((item, index) => (
-              <article key={item.label} className={`community-mvc-card ${index === 0 ? 'community-mission text-white' : ''}`}>
-                <div>
-                  <h2 className={`text-xl font-semibold sm:text-2xl ${index === 0 ? 'text-white' : 'text-ink'}`}>{item.label}</h2>
-                  <p className={`mt-4 text-base leading-relaxed sm:text-lg ${index === 0 ? 'text-white/75' : 'text-ink/70'}`}>{item.text}</p>
-                  {item.label === 'Ценности' && (
-                    <ul aria-label="Ценности сообщества — в разработке" className="mt-5 grid grid-cols-2 gap-2">
-                      {Array.from({ length: 4 }, (_, valueIndex) => (
-                        <li key={valueIndex} className="rounded-lg border border-dashed border-accent/30 bg-white/80 px-2 py-3 text-center text-xs leading-relaxed text-ink/55">В разработке</li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
+      <CommunityStory items={mvc} />
 
       <section id="benefits" className="container-page py-14">
         <div className="community-inner">
@@ -682,10 +663,7 @@ export default function CommunityHome() {
         </div>
       </section>
 
-      <section id="partners" className="container-page scroll-mt-24 py-14">
-        <h2 className="mb-8 text-2xl font-semibold sm:text-3xl">Партнеры</h2>
-        <div className="rounded-2xl border border-dashed border-accent/30 bg-accent/[0.04] px-6 py-10 text-center text-sm text-ink/55">В разработке</div>
-      </section>
+      <CommunityPartners />
 
       {/* FAQ */}
       <div id="faq">

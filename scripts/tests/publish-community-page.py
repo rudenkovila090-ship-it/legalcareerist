@@ -44,6 +44,7 @@ globalThis.fetch=async(input,options={})=>{
  if(fs.existsSync(path.join(root,'wrong-site'))&&!route.startsWith('/assets/'))return new Response('<html>OTHER ORIGIN</html>');
  if(updated&&fs.existsSync(path.join(root,'fail-chunks'))&&route.includes('CommunityHome-'))return new Response('WRONG_CHUNK');
  if(updated&&fs.existsSync(path.join(root,'fail-image'))&&route.includes('certificate-raso-lbf-2026-'))return new Response('WRONG_CERTIFICATE');
+ if(updated&&fs.existsSync(path.join(root,'fail-story-art'))&&route.includes('mission-layers-'))return new Response('WRONG_STORY_ART');
  if(updated&&fs.existsSync(path.join(root,'fail-thanks'))&&route.includes('conference-thanks-2026-'))return new Response('WRONG_THANKS');
  if(updated&&fs.existsSync(path.join(root,'fail-rating'))&&route.includes('legal-telegram-rating-2025-'))return new Response('WRONG_RATING');
  if(updated&&fs.existsSync(path.join(root,'fail-alena'))&&route.includes('alena-romanova-'))return new Response('WRONG_PORTRAIT');
@@ -87,7 +88,7 @@ globalThis.fetch=async(input,options={})=>{
     repaired=invoke();assert repaired.returncode==0,repaired.stdout+repaired.stderr
     assert chunk.exists()
     print('PASS: repeat is read-only; missing lazy chunk is repaired despite identical index.html')
-    for flag in ['fail-quote','fail-chunks','fail-image','fail-thanks','fail-rating','fail-alena','fail-jazz-photo','fail-jazz-page','fail-strizh-logo','fail-advocacy-logo']:
+    for flag in ['fail-quote','fail-chunks','fail-image','fail-story-art','fail-thanks','fail-rating','fail-alena','fail-jazz-photo','fail-jazz-page','fail-strizh-logo','fail-advocacy-logo']:
         reset();(root/flag).touch()
         failed=invoke();assert failed.returncode==1,failed.stdout+failed.stderr
         assert 'Прежние файлы сайта восстановлены' in failed.stderr
