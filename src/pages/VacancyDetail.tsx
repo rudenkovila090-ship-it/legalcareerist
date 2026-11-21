@@ -42,9 +42,11 @@ export default function VacancyDetail() {
 
   return (
     <div className="container-page py-12">
-      <Link to={backTo} className="text-xl font-semibold text-gold hover:text-ink">← Все вакансии</Link>
+      <nav aria-label="Навигация по вакансиям" className="mb-6 flex justify-start border-b border-ink/10 pb-4">
+        <Link to={backTo} className="inline-flex min-h-11 items-center rounded-lg border border-gold/30 bg-gold/[0.08] px-4 py-2.5 text-sm font-semibold text-gold transition-colors hover:bg-gold/[0.14] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold">← Все вакансии</Link>
+      </nav>
 
-      <div className="mt-4 grid grid-cols-1 gap-8 lg:grid-cols-[3fr_2fr]">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[3fr_2fr]">
         <div>
           <VacancyDetailBody vacancy={vacancy} />
 
