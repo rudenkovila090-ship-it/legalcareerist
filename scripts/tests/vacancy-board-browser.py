@@ -1,5 +1,5 @@
 import json,os,pathlib,re
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import sync_playwright, expect
 base=os.environ.get('VACANCY_PREVIEW_URL','http://127.0.0.1:4198')
 out=pathlib.Path(os.environ.get('VACANCY_ARTIFACTS','/workspace/artifacts'));out.mkdir(parents=True,exist_ok=True)
 with sync_playwright() as p:
@@ -15,8 +15,8 @@ with sync_playwright() as p:
   page.goto(base+'/kadry/candidates');page.get_by_role('button',name='Вакансии',exact=True).click();page.locator('[data-vacancy-summary]').first.wait_for()
  enter()
  if page.get_by_role('button',name='Отклонить',exact=True).count():page.get_by_role('button',name='Отклонить',exact=True).click()
- board=page.get_by_role('region',name='Поиск вакансий');cards=board.locator('button').filter(has=page.locator('[data-vacancy-summary]'))
- assert cards.count()==6
+ board=page.get_by_role('region',name='Поиск вакансий');cards=board.get_by_role('link').filter(has=page.locator('[data-vacancy-summary]'))
+ expect(cards).to_have_count(6)
  assert not page.get_by_role('heading',name='Доска вакансий',exact=True).count()
  assert not board.get_by_text(re.compile('просмотр')).count()
  assert not any('/api/vacancies/views' in u for _,u in requests)
@@ -27,27 +27,27 @@ with sync_playwright() as p:
  assert max(cards.evaluate_all('(es)=>es.map(e=>e.getBoundingClientRect().height)'))<210
  assert cards.get_by_text('Посмотреть вакансию',exact=False).count()==6
  page.screenshot(path=str(out/'vacancy-board-compact-1440.png'),full_page=True)
- page.get_by_label('Направление',exact=True).select_option('inhouse');assert cards.count()==3
+ page.get_by_label('Направление',exact=True).select_option('inhouse');expect(cards).to_have_count(3)
  page.get_by_label('Направление',exact=True).select_option('all')
- page.get_by_label('Город',exact=True).select_option('Елабуга');assert cards.count()==1
- cards.first.click();page.get_by_role('button',name='← Все вакансии',exact=True).wait_for();page.get_by_text('8 просмотров',exact=False).wait_for()
- page.get_by_role('button',name='← Все вакансии',exact=True).click();assert page.get_by_label('Город',exact=True).input_value()=='Елабуга';assert cards.count()==1
- page.get_by_label('Город',exact=True).select_option('');assert cards.count()==6
- page.get_by_label('Опыт работы',exact=True).select_option('from1');assert cards.count()==1
+ page.get_by_label('Город',exact=True).select_option('Елабуга');expect(cards).to_have_count(1)
+ cards.first.click();page.wait_for_url('**/vacancies/specialist-po-legaltech');page.get_by_role('link',name='← Все вакансии',exact=True).wait_for();page.get_by_text('8 просмотров',exact=False).wait_for()
+ page.get_by_role('link',name='← Все вакансии',exact=True).click();assert page.get_by_label('Город',exact=True).input_value()=='Елабуга';expect(cards).to_have_count(1)
+ page.get_by_label('Город',exact=True).select_option('');expect(cards).to_have_count(6)
+ page.get_by_label('Опыт работы',exact=True).select_option('from1');expect(cards).to_have_count(1)
  page.get_by_label('Опыт работы',exact=True).select_option('any')
- page.get_by_label('Заработная плата, ₽ (например, 100 000)',exact=True).fill('100 000');assert cards.count()==3
- page.get_by_label('Заработная плата, ₽ (например, 100 000)',exact=True).fill('')
- page.get_by_label('Формат',exact=True).select_option('remote');assert cards.count()==0
- page.get_by_label('Формат',exact=True).select_option('any');assert cards.count()==6
- page.get_by_label('График',exact=True).select_option('5/2');assert cards.count()==5
- page.get_by_label('График',exact=True).select_option('any')
- page.get_by_label('Занятость',exact=True).select_option('part');assert cards.count()==0
+ page.get_by_label('Заработная плата, ₽ (например, 100 000)',exact=True).fill('100 000');expect(cards).to_have_count(3)
+ page.get_by_label('Заработная плата, ₽ (например, 100 000)',exact=True).fill('');expect(cards).to_have_count(6)
+ page.get_by_label('Формат',exact=True).select_option('remote');expect(cards).to_have_count(0)
+ page.get_by_label('Формат',exact=True).select_option('any');expect(cards).to_have_count(6)
+ page.get_by_label('График',exact=True).select_option('5/2');expect(cards).to_have_count(5)
+ page.get_by_label('График',exact=True).select_option('any');expect(cards).to_have_count(6)
+ page.get_by_label('Занятость',exact=True).select_option('part');expect(cards).to_have_count(0)
  page.get_by_label('Занятость',exact=True).select_option('any')
- page.get_by_role('button',name='Образование',exact=True).click();page.get_by_label('Среднее специальное',exact=True).check();assert cards.count()==0
- page.get_by_label('Среднее специальное',exact=True).uncheck();assert cards.count()==6
+ page.get_by_role('button',name='Образование',exact=True).click();page.get_by_label('Среднее специальное',exact=True).click();expect(page.get_by_label('Среднее специальное',exact=True)).to_be_checked();expect(cards).to_have_count(0)
+ page.get_by_label('Среднее специальное',exact=True).click();expect(page.get_by_label('Среднее специальное',exact=True)).not_to_be_checked();expect(cards).to_have_count(6)
  page.get_by_role('button',name='Образование',exact=True).click()
- page.get_by_role('button',name='Отрасль компании',exact=True).click();page.get_by_label('IT',exact=True).check();assert cards.count()==2
- page.get_by_label('IT',exact=True).uncheck();assert cards.count()==6
+ page.get_by_role('button',name='Отрасль компании',exact=True).click();page.get_by_label('IT',exact=True).click();expect(page.get_by_label('IT',exact=True)).to_be_checked();expect(cards).to_have_count(2)
+ page.get_by_label('IT',exact=True).click();expect(page.get_by_label('IT',exact=True)).not_to_be_checked();expect(cards).to_have_count(6)
  page.get_by_role('button',name='Отрасль компании',exact=True).click()
  for width in [320,390,768,1024,1440]:
   page.set_viewport_size({'width':width,'height':1000});enter()

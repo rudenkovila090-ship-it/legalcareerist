@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import PageHero from '../../components/PageHero'
 import Testimonials from '../../components/Testimonials'
 import { consultationTestimonials } from '../../data/testimonials'
@@ -8,8 +8,6 @@ import VacancyCardContent, { vacancyCardClass } from '../../components/VacancyCa
 import PhoneInput from '../../components/PhoneInput'
 import LeadSuccessCard from '../../components/LeadSuccessCard'
 import { submitLead, nextTicketNumber, leadSubmissionId, withLeadSubmission } from '../../lib/leadFormCompatibility'
-import VacancyDetailBody from '../../components/VacancyDetailBody'
-import VacancyApplyPanel from '../../components/VacancyApplyPanel'
 import { vacancies } from '../../data/vacancies'
 import { IndustryFilter, EducationFilter } from '../../components/VacancyFilters'
 import {
@@ -119,23 +117,48 @@ function parseMinSalary(text: string) {
   return Number(text.replace(/\D/g, '')) || 0
 }
 
+function filterParam<T extends string>(params: URLSearchParams, key: string, options: readonly T[], fallback: T): T {
+  const value = params.get(key) as T
+  return options.includes(value) ? value : fallback
+}
+
 export default function Candidates() {
-  const [tab, setTab] = useState<(typeof candidateTabs)[number]['id']>('overview')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const tab = candidateTabs.find(item => item.id === searchParams.get('tab'))?.id ?? 'overview'
+  function setFilter(key: string, value: string | string[], fallback = '') {
+    setSearchParams(previous => {
+      const next = new URLSearchParams(previous)
+      next.delete(key)
+      for (const item of typeof value === 'string' ? [value] : value) if (item && item !== fallback) next.append(key, item)
+      return next
+    }, { replace: true })
+  }
+  const setTab = (value: (typeof candidateTabs)[number]['id']) => setFilter('tab', value, 'overview')
   // Сброс скролла наверх при переключении подвкладки — иначе при переходе
   // снизу одной вкладки страница показывала низ следующей.
   useEffect(() => {
     window.scrollTo(0, 0)
   }, [tab])
 
-  const [spec, setSpec] = useState<Specialization | 'all'>('all')
-  const [format, setFormat] = useState<WorkFormat | 'any'>('any')
-  const [schedule, setSchedule] = useState<WorkSchedule | 'any'>('any')
-  const [employment, setEmployment] = useState<EmploymentType | 'any'>('any')
-  const [city, setCity] = useState('')
-  const [experience, setExperience] = useState<ExperienceBucket | 'any'>('any')
-  const [salaryText, setSalaryText] = useState('')
-  const [educationSel, setEducationSel] = useState<Set<EducationLevel>>(new Set())
-  const [industrySel, setIndustrySel] = useState<Set<string>>(new Set())
+  // Keep the list context in its URL so browser Back and the detail-page link restore it.
+  const spec = filterParam(searchParams, 'spec', ['all', ...vacancySpecIds], 'all')
+  const format = filterParam(searchParams, 'format', ['any', ...formats.map(f => f.id)], 'any')
+  const schedule = filterParam(searchParams, 'schedule', ['any', ...WORK_SCHEDULES.map(s => s.id)], 'any')
+  const employment = filterParam(searchParams, 'employment', ['any', ...EMPLOYMENT_TYPES.map(e => e.id)], 'any')
+  const city = searchParams.get('city') ?? ''
+  const experience = filterParam(searchParams, 'experience', ['any', ...EXPERIENCE_BUCKETS.map(e => e.id)], 'any')
+  const salaryText = searchParams.get('salary') ?? ''
+  const educationSel = useMemo(() => new Set(searchParams.getAll('education') as EducationLevel[]), [searchParams])
+  const industrySel = useMemo(() => new Set(searchParams.getAll('industry')), [searchParams])
+  const setSpec = (value: Specialization | 'all') => setFilter('spec', value, 'all')
+  const setFormat = (value: WorkFormat | 'any') => setFilter('format', value, 'any')
+  const setSchedule = (value: WorkSchedule | 'any') => setFilter('schedule', value, 'any')
+  const setEmployment = (value: EmploymentType | 'any') => setFilter('employment', value, 'any')
+  const setCity = (value: string) => setFilter('city', value)
+  const setExperience = (value: ExperienceBucket | 'any') => setFilter('experience', value, 'any')
+  const setSalaryText = (value: string) => setFilter('salary', value)
+  const setEducationSel = (value: Set<EducationLevel>) => setFilter('education', [...value])
+  const setIndustrySel = (value: Set<string>) => setFilter('industry', [...value])
 
   const minSalary = parseMinSalary(salaryText)
 
@@ -180,15 +203,7 @@ export default function Candidates() {
     })
     setSupportTicket(received.ticketNumber ?? ticketNumber)
   }
-  const [selectedVacancySlug, setSelectedVacancySlug] = useState<string | null>(null)
-  const selectedVacancy = vacancies.find((v) => v.slug === selectedVacancySlug) ?? null
-  useDocumentTitle(selectedVacancy?.title ?? 'Кадры — Соискателям')
-  // Открытие конкретной вакансии подменяет список ее карточкой прямо на месте
-  // (без перехода по роуту) — список короче карточки, поэтому без сброса
-  // скролла страницу утаскивало вниз, к старой позиции клика.
-  useEffect(() => {
-    window.scrollTo(0, 0)
-  }, [selectedVacancySlug])
+  useDocumentTitle('Кадры — Соискателям')
 
   const filteredVacancies = useMemo(() => {
     return vacancies.filter((v) => {
@@ -364,36 +379,7 @@ export default function Candidates() {
         </>
       )}
 
-      {tab === 'vacancies' && selectedVacancy && (
-        <section className="container-page pb-16">
-          <button
-            type="button"
-            onClick={() => setSelectedVacancySlug(null)}
-            className="text-xl font-semibold text-gold hover:text-ink"
-          >
-            ← Все вакансии
-          </button>
-
-          <div className="mt-4 grid grid-cols-1 gap-8 lg:grid-cols-[3fr_2fr]">
-            <div>
-              <VacancyDetailBody vacancy={selectedVacancy} />
-            </div>
-
-            <aside>
-              {/* top-[128px] — под двумя закрепленными панелями этой
-                  страницы (шапка сайта h-16≈65px + таб-бар раздела
-                  «Соискателям», который начинает липнуть с top-16 и сам
-                  занимает ~63px), иначе заголовок формы уезжает под них
-                  при прокрутке. Замерено через getBoundingClientRect(). */}
-              <div className="space-y-6 lg:sticky lg:top-[128px]">
-                <VacancyApplyPanel vacancy={selectedVacancy} />
-              </div>
-            </aside>
-          </div>
-        </section>
-      )}
-
-      {tab === 'vacancies' && !selectedVacancy && (
+      {tab === 'vacancies' && (
         <section className="container-page pb-12" aria-label="Поиск вакансий">
           <h1 className="sr-only">Вакансии</h1>
           {/* relative z-20 — у .glass своя изолированная область наложения
@@ -474,14 +460,14 @@ export default function Candidates() {
 
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {filteredVacancies.map((v) => (
-              <button
+              <Link
                 key={v.id}
-                type="button"
-                onClick={() => setSelectedVacancySlug(v.slug)}
+                to={`/vacancies/${v.slug}`}
+                state={{ vacancyReturnTo: `/kadry/candidates?${searchParams.toString()}` }}
                 className={vacancyCardClass}
               >
                 <VacancyCardContent vacancy={v} />
-              </button>
+              </Link>
             ))}
             {filteredVacancies.length === 0 && <p className="text-ink/50">По заданным фильтрам вакансий не найдено.</p>}
           </div>

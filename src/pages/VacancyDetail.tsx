@@ -1,4 +1,4 @@
-import { Link, useParams } from 'react-router-dom'
+import { Link, useLocation, useParams } from 'react-router-dom'
 import { vacancies } from '../data/vacancies'
 import { VacancyCard } from '../components/cards'
 import VacancyDetailBody from '../components/VacancyDetailBody'
@@ -11,6 +11,9 @@ import { useNoindex } from '../lib/pageMeta'
 
 export default function VacancyDetail() {
   const { slug } = useParams()
+  const location = useLocation()
+  const from = location.state?.vacancyReturnTo
+  const backTo = typeof from === 'string' && /^\/kadry\/(?:candidates|vacancies)(?:\?|$)/.test(from) ? from : '/kadry/vacancies'
   const vacancy = vacancies.find((v) => v.slug === slug)
   useDocumentTitle(vacancy?.title ?? 'Вакансия не найдена')
   useNoindex(!vacancy)
@@ -39,7 +42,7 @@ export default function VacancyDetail() {
 
   return (
     <div className="container-page py-12">
-      <Link to="/kadry/vacancies" className="text-xl font-semibold text-gold hover:text-ink">← Все вакансии</Link>
+      <Link to={backTo} className="text-xl font-semibold text-gold hover:text-ink">← Все вакансии</Link>
 
       <div className="mt-4 grid grid-cols-1 gap-8 lg:grid-cols-[3fr_2fr]">
         <div>
