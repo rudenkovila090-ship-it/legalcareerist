@@ -4,6 +4,7 @@ import { pluralRu } from '../lib/plural'
 import { getUtm } from '../lib/utm'
 import { salaryLabel } from '../lib/vacancySalary'
 import { WORK_FORMATS, WORK_SCHEDULES, EMPLOYMENT_TYPES, type Vacancy } from '../types'
+import VacancyShareLink from './VacancyShareLink'
 
 /** @ник → ссылка на Telegram, адрес почты → mailto, телефон → tel: — в шагах «Как откликнуться». */
 const LINKABLE = /(@[A-Za-z0-9_]{4,32}|[\w.+-]+@[\w-]+(?:\.[\w-]+)+|\+\d[\d\s()-]{9,})/g
@@ -103,6 +104,7 @@ export default function VacancyDetailBody({ vacancy, extra }: { vacancy: Vacancy
 
       <div className="mt-2 text-ink/60">{vacancy.anonymous ? 'Компания скрыта' : vacancy.company} · {vacancy.city}</div>
       <div className="mt-1 text-sm text-ink/40">Опубликовано {publishedDate}</div>
+      <VacancyShareLink key={vacancy.slug} slug={vacancy.slug} />
       {extra}
       {stats && (
         <div className="mt-1 text-sm font-semibold text-gold">
