@@ -1,4 +1,4 @@
-// Publish the reviewed frontend, optionally adding one external event to the generated catalog.
+// Publish the reviewed frontend, optionally adding an external event or selected vacancies.
 // API/bot code, nginx, payments and resident data are untouched.
 import fs from 'node:fs'
 import path from 'node:path'
@@ -8,6 +8,7 @@ import {pathToFileURL} from 'node:url'
 import {nginxRoots,publishStatic} from './repair-community-promo-static.mjs'
 import {staticAccessPlan} from './lib/site-static-access.mjs'
 import {currentBundle} from './lib/site-bundle.mjs'
+import {prepareVacancyPublication} from './lib/vacancy-publication.mjs'
 
 const hash=bytes=>crypto.createHash('sha256').update(bytes).digest('hex')
 const run=(name,args)=>spawnSync(name,args,{encoding:'utf8',timeout:15000,maxBuffer:32*1024*1024})
@@ -66,6 +67,7 @@ async function main(){
   const canonical=value=>value.replace(/ё/g,'е').replace(/Ё/g,'Е')
   const text=canonical(bundle.assets.filter(asset=>asset.endsWith('.js')).map(asset=>fs.readFileSync(path.join(source.root,asset),'utf8')).join('\n'))
   const eventSlug=option('--event-slug'),event=eventSlug?preparePartnerEvent(eventSlug,option('--server-checkout'),source,text):null
+  const vacancySlugs=option('--vacancy-slugs'),vacancy=vacancySlugs?prepareVacancyPublication(vacancySlugs,source,text):null
   for(const required of ["Карьерный юрист — сообщество","Без подписки","С подпиской","Закрытый чат в Телеграме","Нетворкинг","Закрытые мероприятия с приглашенными экспертами юридического рынка","Мастермайнды и карьерные разборы","Онлайн- и офлайн-встречи резидентов","База знаний","Закрытые вакансии и стажировки","Одна бесплатная карьерная консультация в месяц","Спикерство на мероприятиях и подкастах","Скидки от 20 до 50 процентов на мероприятия","Специальные предложения и скидки от партнеров","Барбусова","Александра","Третьякова","Валерия","Канду","Ангелина","Романова","Алена","Доманова","Батчина","Гранкина","Дюскина","Аверьянова","География сообщества","Предыдущие амбассадоры","Следующие амбассадоры","Лента циклическая.","3-я группа рейтинга","Юридический бизнес России","Рейтинг юридических Telegram-каналов · 2025","3-я группа рейтинга в группе «Профессиональные сообщества»","Стать амбассадором","Почему вы хотите стать резидентом?"])if(!text.includes(canonical(required)))throw Error('Не найдено изменение новой версии: '+required)
   for(const required of ['Наши достижения','Частые вопросы','Как понять, подхожу ли я?','С какого момента открывается моё резидентство в сообществе?','Можно ли сделать возврат?','Входят ли мероприятия в стоимость подписки?','Есть ли заморозка?','Я не из Петербурга или Москвы — стоит ли мне стать резидентом?','Какие есть возможности в сообществе?','Для чего вступать в сообщество?','Как стать резидентом?','Какая аудитория в сообществе?','Я не нашёл ответ на свой вопрос. Как мне с вами связаться?','Здесь будет ответ на этот вопрос.','Предыдущие отзывы','Следующие отзывы','Читать полностью','Карточка амбассадора'])if(!text.includes(canonical(required)))throw Error('Не найдено изменение в сборке: '+required)
   for(const required of ['Функционал','Построение карьеры','Профессиональный профиль и резюме','Карьерный план и подготовка к интервью','Библиотека шаблонов','Портфолио, достижения и медиакит','Запрос рекомендации','Заявка на участие в подкасте','Знакомство','Random coffee','Онлайн- и офлайн-встречи','Личная записная книжка контактов','Групповые форматы работы','Цифровые платформы','Личный кабинет на сайте','Telegram Mini App','Возможности кабинета резидента','Профиль и документы','Вакансии и отклики','Мероприятия и регистрации','База знаний и поиск','Партнеры','В разработке','Миссия','Ценности'])if(!text.includes(canonical(required)))throw Error('Не найден обновленный блок сообщества: '+required)
@@ -127,6 +129,11 @@ async function main(){
   }
   const verify=async()=>{
     await pages(source.entry)
+    if(vacancy){
+      for(const route of ['/kadry/vacancies',...vacancy.slugs.map(slug=>'/vacancies/'+slug)])if(!(await get(route)).includes(Buffer.from(source.entry)))throw Error('Не подтверждена страница вакансий: '+route)
+      if(!(await get('/sitemap.xml')).equals(fs.readFileSync(path.join(source.root,'sitemap.xml'))))throw Error('Не подтверждена карта сайта с вакансиями')
+      for(const plan of vacancy.plans)if(!fs.readFileSync(plan.file).equals(plan.after))throw Error('Каталог вакансий изменился во время публикации')
+    }
     if(!(await get('/events/dzhazovyy-vecher-dlya-yuristov-2')).includes(Buffer.from(source.entry)))throw Error('Не подтверждена страница Legal Night Jazz 2')
     if(event){
       if(!(await get('/events/'+event.slug)).includes(Buffer.from(source.entry)))throw Error('Не подтверждена публичная страница мероприятия')
@@ -147,8 +154,8 @@ async function main(){
   // Verify the actual configured document root before publishing anything.
   await pages(target.entry)
   if(!(await get(target.entry)).equals(fs.readFileSync(path.join(target.root,target.entry))))throw Error('nginx и публичный сайт используют разные сборки; изменений нет')
-  if(source.html===target.html&&!event?.changed){
-    try{await verify();console.log('COMMUNITY_PAGE_PUBLISHED: эта версия уже опубликована; повторная запись не нужна. https://legalcareerist.ru/community');if(event)console.log('PARTNER_EVENT_PUBLISHED: https://legalcareerist.ru/events/'+event.slug+'; эта версия и каталог уже опубликованы.');console.log('JAZZ_PHOTO_PUBLISHED: оригинал фото «Адвокат дьявола» уже опубликован и проверен.');console.log('JAZZ_PARTNERS_PUBLISHED: официальные партнеры, ссылки и оригинальные логотипы уже опубликованы и проверены.');return}
+  if(source.html===target.html&&!event?.changed&&!vacancy?.plans.some(plan=>plan.changed)){
+    try{await verify();console.log('COMMUNITY_PAGE_PUBLISHED: эта версия уже опубликована; повторная запись не нужна. https://legalcareerist.ru/community');if(event)console.log('PARTNER_EVENT_PUBLISHED: https://legalcareerist.ru/events/'+event.slug+'; эта версия и каталог уже опубликованы.');if(vacancy)console.log('VACANCIES_PUBLISHED: '+vacancy.slugs.length+' вакансии и каталоги API уже опубликованы и проверены.');console.log('JAZZ_PHOTO_PUBLISHED: оригинал фото «Адвокат дьявола» уже опубликован и проверен.');console.log('JAZZ_PARTNERS_PUBLISHED: официальные партнеры, ссылки и оригинальные логотипы уже опубликованы и проверены.');return}
     catch{console.log('HTML уже обновлён; проверяю и восстанавливаю файлы текущей сборки.')}
   }
   const base=option('--backup-root')||'/root/legalcareerist-bot-backups'
@@ -157,9 +164,15 @@ async function main(){
   const modes={}
   for(const file of source.files){const relative=path.relative(source.root,file),dest=path.join(target.root,relative);if(fs.existsSync(dest))modes[relative]=fs.statSync(dest).mode&0o777}
   fs.writeFileSync(path.join(backup,'previous-modes.json'),JSON.stringify(modes),{mode:0o600})
-  fs.writeFileSync(path.join(backup,'release.json'),JSON.stringify({version,commit:option('--commit'),root:target.root,entry:source.entry,previousEntry:target.entry,startedAt:new Date().toISOString(),partnerEvent:event?{slug:event.slug,catalog:event.file,changed:event.changed}:null,sourceFiles:['src/pages/community/CommunityHome.tsx','src/pages/community/community.css','src/components/CommunityIcon.tsx','src/components/CommunityStory.tsx','src/components/CommunityPartners.tsx','src/assets/ambassadors/','src/assets/achievements/','src/components/AmbassadorCarousel.tsx','src/components/CommunityAchievements.tsx','src/components/CommunityFunctionality.tsx','src/components/CommunityPromoField.tsx','src/components/ConsentCheck.tsx','src/components/HowHeardField.tsx','src/components/TariffJoinBlock.tsx','src/components/FAQSection.tsx','src/components/TestimonialCarousel.tsx','src/index.css','src/lib/featureFlags.ts','src/data/eventStories.ts','src/components/noir/SpeakerFiles.tsx','src/pages/events/noir.css','src/assets/noir/advokat-dyavola.png','src/assets/noir/originals.json','src/pages/events/NoirSections.tsx','src/assets/noir/partner-originals.json',...(event?['src/data/events.ts']:[])],copyNormalization:'visible frontend text: ё → е; URLs and identifiers preserved'},null,2),{mode:0o600})
+  fs.writeFileSync(path.join(backup,'release.json'),JSON.stringify({version,commit:option('--commit'),root:target.root,entry:source.entry,previousEntry:target.entry,startedAt:new Date().toISOString(),vacancyPublication:vacancy?{slugs:vacancy.slugs,catalogs:vacancy.plans.map(p=>p.file)}:null,partnerEvent:event?{slug:event.slug,catalog:event.file,changed:event.changed}:null,sourceFiles:[...(vacancy?['src/data/vacancies.ts','src/types.ts','src/components/VacancyDetailBody.tsx']:[]),'src/pages/community/CommunityHome.tsx','src/pages/community/community.css','src/components/CommunityIcon.tsx','src/components/CommunityStory.tsx','src/components/CommunityPartners.tsx','src/assets/ambassadors/','src/assets/achievements/','src/components/AmbassadorCarousel.tsx','src/components/CommunityAchievements.tsx','src/components/CommunityFunctionality.tsx','src/components/CommunityPromoField.tsx','src/components/ConsentCheck.tsx','src/components/HowHeardField.tsx','src/components/TariffJoinBlock.tsx','src/components/FAQSection.tsx','src/components/TestimonialCarousel.tsx','src/index.css','src/lib/featureFlags.ts','src/data/eventStories.ts','src/components/noir/SpeakerFiles.tsx','src/pages/events/noir.css','src/assets/noir/advokat-dyavola.png','src/assets/noir/originals.json','src/pages/events/NoirSections.tsx','src/assets/noir/partner-originals.json',...(event?['src/data/events.ts']:[])],copyNormalization:'visible frontend text: ё → е; URLs and identifiers preserved'},null,2),{mode:0o600})
   try{
     if(fs.readFileSync(path.join(target.root,'index.html'),'utf8')!==target.html)throw Error('Началась другая публикация; операция остановлена')
+    for(const [index,plan]of(vacancy?.plans??[]).entries())if(plan.changed){
+      if(!fs.readFileSync(plan.file).equals(plan.before))throw Error('Каталог вакансий изменен другим процессом; операция остановлена')
+      fs.writeFileSync(path.join(backup,`vacancy-catalog-${index}.before.json`),plan.before,{mode:0o600})
+      fs.writeFileSync(path.join(backup,`vacancy-catalog-${index}.meta.json`),JSON.stringify({file:plan.file,mode:plan.owner.mode&0o777,uid:plan.owner.uid,gid:plan.owner.gid,slugs:vacancy.slugs}),{mode:0o600})
+      write(plan.file,plan.after,plan.owner.mode&0o777,plan.owner);plan.installed=true
+    }
     if(event?.changed){
       if(!fs.readFileSync(event.file).equals(event.before))throw Error('Каталог мероприятий уже изменен другим процессом; операция остановлена')
       fs.writeFileSync(path.join(backup,'event-catalog.before.json'),event.before,{mode:0o600})
@@ -168,9 +181,10 @@ async function main(){
     console.log('Публикую страницу сообщества; резервная копия: '+backup)
     const changed=publishStatic(source.root,target.root,backup)
     await verify()
-    fs.writeFileSync(path.join(backup,'verified.json'),JSON.stringify({verifiedAt:new Date().toISOString(),version,changed,assets:bundle.assets.length,faqQuestions:11,faqColumns:2,comparisonBenefits:11,tariffOrder:['1m','6m','3m'],ambassadorCards:9,namedAmbassadors:9,portraitFiles:4,achievementOriginals:3,archiveOriginals:originalRecords,achievements:3,ambassadorForm:true,ambassadorModal:true,ambassadorCarouselLoop:true,defaultTariff:'6m',geographySidePanel:true,functionalityGroups:2,digitalPlatformSources:2,digitalPlatformFeatures:4,valuePlaceholders:4,partnersPlaceholder:true,noirOriginalPhotos:noirOriginalRecords,officialPartnerLogos:partnerOriginalRecords,communityPalette:{blue:'#2A4D85',white:'#FFFFFF'},communityDesign:'v19',compactStory:true,missionLayers:2,scrollStory:true,partnersMarquee:true,fluidLayout:true,floatingJoin:true,nativePaymentDialog:true,backendChanged:false,nginxChanged:false}),{mode:0o600})
+    fs.writeFileSync(path.join(backup,'verified.json'),JSON.stringify({verifiedAt:new Date().toISOString(),version,changed,publishedVacancies:vacancy?.slugs??[],assets:bundle.assets.length,faqQuestions:11,faqColumns:2,comparisonBenefits:11,tariffOrder:['1m','6m','3m'],ambassadorCards:9,namedAmbassadors:9,portraitFiles:4,achievementOriginals:3,archiveOriginals:originalRecords,achievements:3,ambassadorForm:true,ambassadorModal:true,ambassadorCarouselLoop:true,defaultTariff:'6m',geographySidePanel:true,functionalityGroups:2,digitalPlatformSources:2,digitalPlatformFeatures:4,valuePlaceholders:4,partnersPlaceholder:true,noirOriginalPhotos:noirOriginalRecords,officialPartnerLogos:partnerOriginalRecords,communityPalette:{blue:'#2A4D85',white:'#FFFFFF'},communityDesign:'v19',compactStory:true,missionLayers:2,scrollStory:true,partnersMarquee:true,fluidLayout:true,floatingJoin:true,nativePaymentDialog:true,backendChanged:false,nginxChanged:false}),{mode:0o600})
     console.log('COMMUNITY_PAGE_PUBLISHED: новая страница подтверждена по публичному HTML и '+bundle.assets.length+' JS/CSS. Опубликованы новая титульная с кнопкой, палитра Blue Hour / White, сравнение 11 возможностей с кнопкой под галочками, география с университетами справа, равные тарифы 1–6–3 месяца с выбором 6 месяцев, циклическая лента 9 амбассадоров и заявка по кнопке, функционал и схема цифровых платформ, заготовки ценностей и партнеров, достижения с тремя оригинальными изображениями (сертификат РАСО, благодарность и рейтинг), компактные отзывы, основатель после отзывов на полную ширину, FAQ в две колонки и закрепленная кнопка вступления. Миссия и ценности сменяются внутри видимой области без пустого участка прокрутки; выгода тарифов выделена зеленым текстом без цветного фона. Расчёт трёх тарифов и KQ1111 → 350 ₽ проверен. https://legalcareerist.ru/community')
     console.log('Резервная копия: '+backup)
+    if(vacancy)console.log('VACANCIES_PUBLISHED: '+vacancy.slugs.length+' вакансии размещены; страницы, sitemap и каталоги API проверены. https://legalcareerist.ru/kadry/vacancies')
     if(event)console.log('PARTNER_EVENT_PUBLISHED: https://legalcareerist.ru/events/'+event.slug+'; страница и запись серверного каталога проверены.')
     console.log('JAZZ_PHOTO_PUBLISHED: оригинал фото «Адвокат дьявола» проверен по публичным байтам. https://legalcareerist.ru/events/dzhazovyy-vecher-dlya-yuristov-2#speakers')
     console.log('JAZZ_PARTNERS_PUBLISHED: оригинальные логотипы «ИИ Стриж» и Института адвокатуры и ссылки подтверждены в опубликованной сборке. https://legalcareerist.ru/events/dzhazovyy-vecher-dlya-yuristov-2#family')
@@ -182,7 +196,12 @@ async function main(){
       if(!fs.readFileSync(event.file).equals(event.after))throw Error('Каталог изменен другим процессом')
       write(event.file,event.before,event.owner.mode&0o777,event.owner);catalogRestored=true
     }catch{}
-    throw Error(error.message+'. '+(restored?'Прежние файлы сайта восстановлены.':'Восстановление не подтверждено.')+(event?(catalogRestored?' Прежний каталог мероприятий сохранен.':' Откат каталога не подтвержден; проверьте резервную копию.'):'')+' Резервная копия: '+backup)
+    let vacanciesRestored=true
+    for(const plan of [...(vacancy?.plans??[])].reverse())if(plan.installed)try{
+      if(!fs.readFileSync(plan.file).equals(plan.after))throw Error('Каталог изменен другим процессом')
+      write(plan.file,plan.before,plan.owner.mode&0o777,plan.owner)
+    }catch{vacanciesRestored=false}
+    throw Error(error.message+'. '+(restored?'Прежние файлы сайта восстановлены.':'Восстановление не подтверждено.')+(event?(catalogRestored?' Прежний каталог мероприятий сохранен.':' Откат каталога не подтвержден; проверьте резервную копию.'):'')+(vacancy?(vacanciesRestored?' Прежние каталоги вакансий сохранены.':' Откат каталога вакансий не подтвержден; проверьте резервную копию.'):'')+' Резервная копия: '+backup)
   }
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(path.resolve(process.argv[1])).href)main().catch(error=>{console.error('ПУБЛИКАЦИЯ НЕ ПОДТВЕРЖДЕНА: '+error.message);process.exitCode=1})

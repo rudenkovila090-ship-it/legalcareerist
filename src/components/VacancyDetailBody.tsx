@@ -33,7 +33,7 @@ function buildConditions(vacancy: Vacancy): { label: string; value: string }[] {
   return [
     { label: 'Адрес', value: vacancy.companyAddress || vacancy.city },
     { label: 'Формат работы', value: formatLabel },
-    { label: 'График работы', value: scheduleLabel },
+    scheduleLabel ? { label: 'График работы', value: scheduleLabel } : null,
     { label: 'Занятость', value: employmentLabel },
     vacancy.employmentArrangement ? { label: 'Оформление', value: vacancy.employmentArrangement } : null,
     salaryLabel(vacancy) ? { label: 'Заработная плата', value: salaryLabel(vacancy) as string } : null,
@@ -133,7 +133,8 @@ export default function VacancyDetailBody({ vacancy, extra }: { vacancy: Vacancy
       {vacancy.aboutCompany ? (
         <div className="mt-6 rounded-xl bg-ink/[0.04] p-5">
           <h2 className="font-semibold">О работодателе</h2>
-          <p className="mt-2 text-sm leading-relaxed text-ink/70">{vacancy.aboutCompany}</p>
+          <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-ink/70">{vacancy.aboutCompany}</p>
+          {vacancy.companyWebsite && <a href={vacancy.companyWebsite} target="_blank" rel="noopener noreferrer" className="mt-3 inline-block text-sm text-ink/70 underline hover:text-ink">Сайт работодателя</a>}
         </div>
       ) : (
         // Без отдельного блока "О компании" описание вакансии выполняет роль

@@ -187,8 +187,9 @@ export interface Vacancy extends Tagged {
   level: CandidateLevel
   salaryFrom?: number
   salaryTo?: number
-  schedule: WorkSchedule
-  experience: ExperienceBucket
+  schedule?: WorkSchedule
+  /** Категория опыта для фильтра, если работодатель указал срок в годах. */
+  experience?: ExperienceBucket
   education: EducationLevel[]
   companyIndustry: string[]
   description: string
@@ -222,6 +223,8 @@ export interface Vacancy extends Tagged {
    *  счётчик откликов не показывается. */
   directApply?: boolean
   companyAddress?: string
+  /** Сайт работодателя, если ссылка предоставлена в описании вакансии. */
+  companyWebsite?: string
   /** Координаты офиса для карты на странице вакансии (Яндекс.Карты). */
   officeCoords?: { lat: number; lng: number }
   /** «О работодателе» — короткий блок на странице вакансии (на месте, где раньше была зарплата). */

@@ -174,3 +174,63 @@ globalThis.fetch=async(input,options={})=>{
     assert catalog.read_bytes()==before_catalog and (live/'index.html').read_text()==oldhtml
     assert len(list((root/'backups').iterdir()))==before_backups and (root/'requests.jsonl').read_bytes()==before_requests
     print('PASS: conflicting live event is rejected before HTTP requests or writes')
+
+    # New public jobs must be added to both running API catalogs, without replacing live data.
+    slugs=['yurist-v-it-kompaniyu-nomix','yurist-po-korporativnym-sporam','yurist-it-ip-volodin-i-partnery']
+    vacancy_args=['--vacancy-slugs',','.join(slugs)]
+    vacancy_before=b'[ {"slug":"existing-job","number":46,"title":"Existing job","status":"closed","serverOnly":"PRESERVE"} ]\n'
+    vacancy_files=[];processes=[]
+    for name in ['legalcareerist-api','legalcareerist-resident-demo']:
+        api=root/name;data=api/'data';data.mkdir(parents=True)
+        (api/'index.js').write_text('// synthetic API entry')
+        (api/'.env').write_text('SYNTHETIC_SECRET=never-print')
+        (data/'payments.json').write_text('{"payment":"preserve"}')
+        file=data/'vacancy-catalog.json';file.write_bytes(vacancy_before);file.chmod(0o640)
+        vacancy_files.append(file)
+        processes.append({'name':name,'pm2_env':{'status':'online','pm_exec_path':str(api/'index.js')}})
+    pm2=binary/'pm2'
+    pm2.write_text('#!/usr/bin/env python3\nimport sys,json\nassert sys.argv[1:]==["jlist"],"process mutation forbidden"\nprint('+repr(json.dumps(processes))+')\n')
+    pm2.chmod(0o755)
+    reset();published=invoke(*vacancy_args)
+    assert published.returncode==0,published.stdout+published.stderr
+    assert 'VACANCIES_PUBLISHED: 3' in published.stdout
+    for file in vacancy_files:
+        rows=json.loads(file.read_text())
+        assert len(rows)==4 and rows[0]==json.loads(vacancy_before)[0]
+        assert {v['slug'] for v in rows[1:]}==set(slugs)
+        assert file.stat().st_mode&0o777==0o640
+        assert (file.parent/'payments.json').read_text()=='{"payment":"preserve"}'
+        assert (file.parent.parent/'.env').read_text()=='SYNTHETIC_SECRET=never-print'
+    check_private()
+    previous_bytes=[file.read_bytes() for file in vacancy_files]
+    before_backups=len(list((root/'backups').iterdir()))
+    again=invoke(*vacancy_args);assert again.returncode==0,again.stdout+again.stderr
+    assert 'VACANCIES_PUBLISHED' in again.stdout
+    assert [file.read_bytes() for file in vacancy_files]==previous_bytes
+    assert len(list((root/'backups').iterdir()))==before_backups
+    print('PASS: 3 vacancies published to both API catalogs; live rows, modes, secrets and payments preserved; repeat makes no writes')
+    vacancy_files[0].write_bytes(vacancy_before)
+    repair=invoke(*vacancy_args);assert repair.returncode==0,repair.stdout+repair.stderr
+    assert len(json.loads(vacancy_files[0].read_text()))==4
+    assert vacancy_files[1].read_bytes()==previous_bytes[1]
+    print('PASS: missing API vacancies repaired even when the frontend and demo are already current')
+    for flag in ['fail-sitemap','fail-quote','fail-chunks']:
+        reset()
+        for file in vacancy_files:file.write_bytes(vacancy_before)
+        (root/flag).touch();failed=invoke(*vacancy_args)
+        assert failed.returncode==1,failed.stdout+failed.stderr
+        assert (live/'index.html').read_text()==oldhtml
+        for file in vacancy_files:
+            assert file.read_bytes()==vacancy_before and file.stat().st_mode&0o777==0o640
+        check_private();(root/flag).unlink()
+        print('PASS: '+flag+' restores previous website and exact bytes of both vacancy catalogs')
+    reset()
+    conflicting=json.loads(vacancy_before)+[{**json.loads(previous_bytes[0])[1],'salaryFrom':1}]
+    vacancy_files[0].write_text(json.dumps(conflicting));conflict_before=vacancy_files[0].read_bytes()
+    before_backups=len(list((root/'backups').iterdir()));before_requests=(root/'requests.jsonl').read_bytes()
+    refused=invoke(*vacancy_args)
+    assert refused.returncode==1 and 'другими данными' in refused.stderr,refused.stdout+refused.stderr
+    assert vacancy_files[0].read_bytes()==conflict_before and vacancy_files[1].read_bytes()==vacancy_before
+    assert len(list((root/'backups').iterdir()))==before_backups and (root/'requests.jsonl').read_bytes()==before_requests
+    assert (live/'index.html').read_text()==oldhtml
+    print('PASS: conflicting live vacancy rejected before HTTP requests, backup creation or writes')
