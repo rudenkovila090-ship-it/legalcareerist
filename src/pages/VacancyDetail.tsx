@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { vacancies } from '../data/vacancies'
 import { VacancyCard } from '../components/cards'
@@ -15,6 +16,16 @@ export default function VacancyDetail() {
   const from = location.state?.vacancyReturnTo
   const backTo = typeof from === 'string' && /^\/kadry\/(?:candidates|vacancies)(?:\?|$)/.test(from) ? from : '/kadry/vacancies'
   const vacancy = vacancies.find((v) => v.slug === slug)
+  const layoutRef = useRef<HTMLDivElement>(null)
+  useLayoutEffect(() => {
+    const header = document.querySelector('header')
+    if (!header) return
+    const measure = () => layoutRef.current?.style.setProperty('--vacancy-sticky-top', `${Math.ceil(header.getBoundingClientRect().height) + 16}px`)
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(header)
+    return () => observer.disconnect()
+  }, [vacancy?.slug])
   useDocumentTitle(vacancy?.title ?? 'Вакансия не найдена')
   useNoindex(!vacancy)
   useSocialMeta({
@@ -41,12 +52,12 @@ export default function VacancyDetail() {
   const hasRelated = similar.length > 0 || relatedEvents.length > 0 || relatedArticles.length > 0
 
   return (
-    <div className="container-page py-12">
-      <nav aria-label="Навигация по вакансиям" className="mb-6 flex justify-start border-b border-ink/10 pb-4">
-        <Link to={backTo} className="inline-flex min-h-11 items-center rounded-lg border border-gold/30 bg-gold/[0.08] px-4 py-2.5 text-sm font-semibold text-gold transition-colors hover:bg-gold/[0.14] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold">← Все вакансии</Link>
+    <div ref={layoutRef} className="mx-auto max-w-[90rem] px-5 py-8 lg:grid lg:grid-cols-[10rem_minmax(0,1fr)] lg:gap-6 lg:px-6 lg:py-12">
+      <nav aria-label="Навигация по вакансиям" className="sticky top-[var(--vacancy-sticky-top,8rem)] z-30 -mx-5 mb-6 flex justify-start border-b border-ink/10 bg-white/95 px-5 py-3 backdrop-blur-sm lg:mx-0 lg:mb-0 lg:self-start lg:border-0 lg:bg-transparent lg:p-0 lg:backdrop-blur-none">
+        <Link to={backTo} className="inline-flex min-h-11 items-center justify-center rounded-lg border border-gold/30 bg-gold/[0.08] px-4 py-2.5 text-sm font-semibold text-gold transition-colors hover:bg-gold/[0.14] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold lg:w-full">← Все вакансии</Link>
       </nav>
 
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[3fr_2fr]">
+      <div className="min-w-0 grid grid-cols-1 gap-8 lg:grid-cols-[3fr_2fr]">
         <div>
           <VacancyDetailBody vacancy={vacancy} />
 
@@ -113,9 +124,8 @@ export default function VacancyDetail() {
         </div>
 
         <aside>
-          {/* top-20 — под закрепленной шапкой сайта (h-16 = 64px) с запасом,
-              иначе заголовок формы уезжает под нее при прокрутке. */}
-          <div className="space-y-6 lg:sticky lg:top-20">
+          {/* Both side columns follow the actual header height, including its second row. */}
+          <div className="space-y-6 lg:sticky lg:top-[var(--vacancy-sticky-top,8rem)]">
             <VacancyApplyPanel vacancy={vacancy} />
           </div>
         </aside>

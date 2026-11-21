@@ -25,7 +25,7 @@ with sync_playwright() as p:
  context.route('**/*',route)
  page=context.new_page();errors=[]
  page.on('pageerror',lambda e:errors.append(str(e)))
- for width in [320,390,1440]:
+ for width in [320,390,1024,1440]:
   page.set_viewport_size({'width':width,'height':1000})
   page.goto(base+'/kadry/candidates?tab=vacancies')
   board=page.get_by_role('region',name='Поиск вакансий')
@@ -39,7 +39,21 @@ with sync_playwright() as p:
    assert page.get_by_role('button',name='Скопировать ссылку на вакансию',exact=True).count()==0
    assert page.get_by_role('link',name='Открыть отдельно',exact=True).count()==0
    assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
-   if slug==jobs[0][0]:page.screenshot(path=str(out/f'vacancy-direct-{width}.png'))
+   if slug==jobs[0][0]:
+    nav=page.get_by_role('navigation',name='Навигация по вакансиям',exact=True)
+    back=nav.get_by_role('link',name='← Все вакансии',exact=True)
+    if width>=1024:
+     assert back.bounding_box()['x']+back.bounding_box()['width']<=page.get_by_role('heading',name=title,exact=True).bounding_box()['x']-16
+     assert abs(nav.evaluate('e=>e.getBoundingClientRect().top-e.nextElementSibling.getBoundingClientRect().top'))<1
+    page.screenshot(path=str(out/f'vacancy-direct-{width}.png'))
+    page.mouse.move(width*.6,650);page.mouse.wheel(0,600)
+    page.wait_for_function('scrollY>=500')
+    box=back.bounding_box();header=page.locator('header').bounding_box()
+    assert header['y']+header['height']+8<=box['y']<header['height']+60,(width,box,header)
+    assert back.evaluate('e=>{const b=e.getBoundingClientRect();return document.elementFromPoint(b.x+b.width/2,b.y+b.height/2)?.closest("a")===e}')
+    assert page.get_by_role('heading',name=title,exact=True).bounding_box()['y']<0
+    page.screenshot(path=str(out/f'vacancy-scrolled-{width}.png'))
+    page.mouse.wheel(0,-600);page.wait_for_function('scrollY<=1')
    page.reload()
    page.get_by_role('heading',name=title,exact=True).wait_for()
    assert page.url==base+'/vacancies/'+slug
