@@ -10,7 +10,7 @@ const root = fs.mkdtempSync(path.join(os.tmpdir(), 'event-fixed-checkout-'))
 try {
   fs.mkdirSync(path.join(root, 'lib'))
   fs.writeFileSync(path.join(root, 'package.json'), '{"type":"module"}')
-  for (const name of ['eventLeads.js', 'jsonStore.js', 'consentLog.js', 'eventPaymentTarget.js', 'promoCodes.js']) fs.copyFileSync(path.join(repo, 'server/lib', name), path.join(root, 'lib', name))
+  for (const name of ['eventLeads.js', 'eventTicketDelivery.js', 'jsonStore.js', 'consentLog.js', 'eventPaymentTarget.js', 'promoCodes.js']) fs.copyFileSync(path.join(repo, 'server/lib', name), path.join(root, 'lib', name))
   const leads = await import(pathToFileURL(path.join(root, 'lib/eventLeads.js')))
   const promos = await import(pathToFileURL(path.join(root, 'lib/promoCodes.js')))
   promos.addPromo({code:'SYNTHETIC50',kind:'percent',value:50})

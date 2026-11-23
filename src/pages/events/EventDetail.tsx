@@ -854,6 +854,7 @@ export default function EventDetail() {
                         Скачать билет
                       </a>
                     )}
+                    {receipt.ticket?.botUrl && <a href={receipt.ticket.botUrl} target="_blank" rel="noopener noreferrer" className="mt-2 block font-semibold underline">Получить билет в Telegram</a>}
                   </div>
                 )}
                 {registered ? (

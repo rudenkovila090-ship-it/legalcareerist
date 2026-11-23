@@ -69,7 +69,8 @@ import { createApplication, listApplications } from './lib/candidateApplications
 import { createConsultation, listConsultations, getConsultation, setConsultationStatus, CONSULTATION_STATUSES } from './lib/consultations.js'
 import { createAmbassador, listAmbassadors, getAmbassador, addReferral, deleteAmbassador } from './lib/ambassadors.js'
 import { fixedEventPaymentLink } from './lib/eventPaymentTarget.js'
-import { createEventLead, listEventLeads, getEventLead, setEventLeadStatus, markEventLeadPaid, setEventLeadField } from './lib/eventLeads.js'
+import { createEventLead, listEventLeads, getEventLead, setEventLeadStatus, markEventLeadPaid, setEventLeadField, bindEventLeadTelegram } from './lib/eventLeads.js'
+import { createEventTicketDelivery, ticketBotLink, ticketPaymentNumber } from './lib/eventTicketDelivery.js'
 import { sendMail, mailConfigured } from './lib/mailer.js'
 import { listPromos, addPromo, removePromo, findPromo, applyPromo, markPromoUsed, parsePromoInput, promoLabel, ensureBuiltInPromos } from './lib/promoCodes.js'
 import { cleanHowHeard, howHeardLine, howHeardScreen, logLeadSource } from './lib/howHeard.js'
@@ -296,7 +297,6 @@ function findEvent(slug) {
   return readEventCatalog().find((e) => e.slug === actual)
 }
 
-const EVENT_ORDER_RE = /\bev-(\d+)\b/i
 
 /**
  * Оборачивает работу, которая идёт уже после того, как клиенту отправлен
@@ -2062,6 +2062,7 @@ app.get('/api/ticket/receipt', (req, res) => {
     eventSlug: lead.eventSlug ?? '',
     paidAt: lead.paidAt ?? null,
     hasTicket: hasTicketImage(lead.eventSlug ?? ''),
+    botUrl: ticketBotLink(BOT_USERNAME, lead.token),
   })
 })
 
@@ -2926,7 +2927,8 @@ async function extrasAction(parts, now, chatId) {
     case 'evticket': {
       const e = getEventLead(arg)
       if (!e || e.kind !== 'registration' || !['paid', 'attended'].includes(e.status) || !e.email || !hasTicketImage(e.eventSlug)) return eventCard(arg)
-      const mail = await sendTicketMail(e, e.amount)
+      eventTicketDelivery.request(e.number, 'email')
+      const mail = (await eventTicketDelivery.deliver(e.number, 'email')).email ?? { ok: false, error: 'delivery_in_progress' }
       const card = eventCard(arg)
       const result = mail.ok ? `🎟 Билет ${mail.ticket ? 'отправлен' : 'не приложен, но письмо с подтверждением отправлено'} на ${e.email}` : `⚠️ Письмо не ушло (${mail.error})`
       return { ...card, text: `${result}${mail.ticketError ? `\n⚠️ Билет не нарисовался: ${mail.ticketError}` : ''}\n\n${card.text}` }
@@ -4092,6 +4094,28 @@ async function handleTelegramUpdate(update) {
   if (!chatId || !text || !text.startsWith('/start')) return
 
   const payload = text.slice('/start'.length).trim()
+  const ticketToken = payload.match(/^ticket_([a-f0-9]{24})$/i)?.[1]
+  if (ticketToken) {
+    if (message.chat?.type !== 'private' || String(message.from?.id) !== String(chatId)) return
+    const lead = bindEventLeadTelegram(ticketToken, chatId)
+    if (lead.error) {
+      await sendTelegramMessage(chatId, lead.error === 'telegram_conflict' ? 'Этот билет уже привязан к другому Telegram-аккаунту. Обратитесь в поддержку.' : 'Билет не найден. Откройте бота по ссылке со страницы оплаты.')
+      return
+    }
+    touchBotUser(message.from)
+    if (!['paid', 'attended'].includes(lead.status)) {
+      await sendTelegramMessage(chatId, 'Оплата пока не подтверждена. После подтверждения пришлем билет сюда.')
+      return
+    }
+    const requestKey = `${chatId}:${message.message_id ?? update.update_id}`
+    if (lead.ticketBotRequest !== requestKey) {
+      eventTicketDelivery.request(lead.number, 'telegram')
+      setEventLeadField(lead.number, 'ticketBotRequest', requestKey)
+    }
+    const result = await eventTicketDelivery.deliver(lead.number, 'telegram')
+    if (result.telegram && !result.telegram.ok) await sendTelegramMessage(chatId, 'Отправка билета пока не подтверждена. Если он не появился, напишите в поддержку: ' + SUPPORT_HANDLE)
+    return
+  }
   // Кнопка «Получить код в боте» в кабинете открывает бота по t.me/бот?start=link
   if (payload === 'link') {
     await sendLinkCode(chatId, message.from)
@@ -4137,12 +4161,12 @@ app.post('/api/telegram/webhook', async (req, res) => {
 })
 
 /**
- * Письмо участнику об оплате билета. Если для мероприятия есть шаблон, к письму прикладывается именной билет-картинка
- * (имя, номер и контакты берутся из регистрации). Не получилось нарисовать — письмо уходит без билета, причина в ответе (ticketError).
+ * Письмо участнику об оплате билета. Если для мероприятия есть шаблон, к письму прикладывается именной PDF-билет
+ * (имя, номер и контакты берутся из регистрации). Ошибка формирования оставляет отправку в очереди для повторной попытки.
  * Возвращает { ok, error?, ticket, ticketError? }.
  */
 async function sendTicketMail(lead, amount) {
-  if (!lead.email) return { ok: false, error: 'no_email' }
+  if (!lead.email) return { ok: false, error: 'no_email', definitelyNotSent: true }
   const event = findEvent(lead.eventSlug)
   let ticket = null
   let ticketError = null
@@ -4152,12 +4176,33 @@ async function sendTicketMail(lead, amount) {
     } catch (err) {
       ticketError = err.message || String(err)
       console.error('[ticket] не удалось нарисовать билет, регистрация №', lead.number, err)
+      return { ok: false, error: 'ticket_render_failed', ticket: false, ticketError, definitelyNotSent: true }
     }
   }
-  const { subject, text, html } = composeTicketMail({ lead, amount, event, hasTicket: Boolean(ticket), supportHandle: SUPPORT_HANDLE })
-  const mail = await sendMail({ to: lead.email, subject, text, html, attachments: ticket ? [{ filename: ticket.filename, content: ticket.buffer, contentType: ticket.contentType }] : undefined })
+  const { subject, text, html } = composeTicketMail({ lead, amount, event, hasTicket: Boolean(ticket), supportHandle: SUPPORT_HANDLE, botUsername: BOT_USERNAME })
+  const messageId = `<ticket-${crypto.createHash('sha256').update(lead.token).digest('hex').slice(0, 24)}@legalcareerist.ru>`
+  const mail = await sendMail({ to: lead.email, subject, text, html, messageId, attachments: ticket ? [{ filename: ticket.filename, content: ticket.buffer, contentType: ticket.contentType }] : undefined })
   return { ...mail, ticket: Boolean(ticket && mail.ok), ticketError }
 }
+
+async function sendTicketTelegram(lead) {
+  if (!BOT_TOKEN) return { ok: false, error: 'telegram_not_configured', definitelyNotSent: true }
+  let ticket
+  try { ticket = await renderTicketPdf({ eventSlug: lead.eventSlug, number: lead.number, name: lead.name, phone: lead.phone, email: lead.email, paidAt: lead.paidAt ?? Date.now() }) }
+  catch { return { ok: false, error: 'ticket_render_failed', definitelyNotSent: true } }
+  const text = `Ваш билет №${lead.number} на «${lead.eventTitle}». Оплата подтверждена.`
+  const form = new FormData()
+  form.append('chat_id', String(lead.tgUserId))
+  form.append('caption', text)
+  if (ticket) form.append('document', new Blob([ticket.buffer], { type: ticket.contentType }), ticket.filename)
+  try {
+    const response = ticket ? await telegramFetch('sendDocument', { method: 'POST', body: form }) : await telegramFetch('sendMessage', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: String(lead.tgUserId), text }) })
+    const value = await response.json().catch(() => null)
+    return response.ok && value?.ok === true ? { ok: true } : { ok: false, error: `telegram_${value?.error_code ?? response.status}`, definitelyNotSent: value?.ok === false }
+  } catch (error) { return { ok: false, error: 'telegram_connection_failed', definitelyNotSent: SAFE_RETRY_CODES.has(error?.cause?.code) } }
+}
+
+const eventTicketDelivery = createEventTicketDelivery({ list: listEventLeads, get: getEventLead, patch: (number, state) => setEventLeadField(number, 'ticketDelivery', state), email: lead => sendTicketMail(lead, lead.amount), telegram: sendTicketTelegram })
 
 /** Успешная оплата билета: статус «Оплатил» и сумма в регистрации, письмо участнику, уведомление админу. */
 async function handleEventPayment(number, body, signed) {
@@ -4176,10 +4221,11 @@ async function handleEventPayment(number, body, signed) {
     return
   }
   if (lead.duplicate) {
-    console.log('[prodamus] повторный вебхук по оплате билета — пропускаю:', number)
+    await eventTicketDelivery.deliver(number)
+    console.log('[prodamus] повторная оплата билета: проверена доставка без повторного учета:', number)
     return
   }
-  const mail = await sendTicketMail(lead, amount)
+  const mail = (await eventTicketDelivery.deliver(number)).email ?? { ok: false, error: 'delivery_pending' }
   cancelPending({ kind: 'ticket', eventNumber: lead.number })
   if (lead.promo) markPromoUsed(lead.promo)
   // Сумма в оплате не совпала с ценой билета (частичная оплата, другая цена на платёжной странице) — пусть админ посмотрит.
@@ -4301,10 +4347,10 @@ async function dispatchProdamusBody(body, signed = true, receivedAt = Date.now()
       return
     }
 
-    // Билет на мероприятие: в order_num (наш order_id) или customer_extra лежит «ev-N».
-    const eventMatch = String(body.order_num ?? '').match(EVENT_ORDER_RE) || String(body.customer_extra ?? '').match(EVENT_ORDER_RE)
-    if (eventMatch) {
-      await handleEventPayment(Number(eventMatch[1]), body, signed)
+    // Билет на мероприятие: один и тот же «ev-N» в order_num, order_id или customer_extra.
+    const eventNumber = ticketPaymentNumber(body)
+    if (eventNumber !== null) {
+      await handleEventPayment(eventNumber, body, signed)
       return
     }
 
@@ -4344,7 +4390,7 @@ ensureTodo('Личный кабинет покупателя материало�
 console.log(`[prodamus] платёжные страницы — ${payformSummary()}`)
 console.log(`[mail] почта для писем клиентам: ${mailConfigured() ? 'настроена' : 'не настроена (SMTP_HOST/SMTP_USER/SMTP_PASS в server/.env)'}`)
 
-app.get('/api/health', (_req, res) => res.json({ ok: true, communityOnboarding:1,newcomerQuestDelayMs:NEWCOMER_DELAY_MS,newcomerQuestReady:fs.existsSync(newcomerQuestPath), subscriptionRecovery: 1, subscriptionOffboarding: 1, subscriptionExpiry: 3, subscriptionAdmission: 1, billingAuditVersion: 1, accessRescueVersion: 1, automaticAccessRemovalPaused: automationState().paused, subscriptionAutomation: 1, communityFollowup: 1, automationLastCycle:lastAutomationCycle, automaticProviderCancellation: false, autoExclude: automationState().enabled, graceDays: graceDays() }))
+app.get('/api/health', (_req, res) => res.json({ ok: true, eventTicketDelivery:1, communityOnboarding:1,newcomerQuestDelayMs:NEWCOMER_DELAY_MS,newcomerQuestReady:fs.existsSync(newcomerQuestPath), subscriptionRecovery: 1, subscriptionOffboarding: 1, subscriptionExpiry: 3, subscriptionAdmission: 1, billingAuditVersion: 1, accessRescueVersion: 1, automaticAccessRemovalPaused: automationState().paused, subscriptionAutomation: 1, communityFollowup: 1, automationLastCycle:lastAutomationCycle, automaticProviderCancellation: false, autoExclude: automationState().enabled, graceDays: graceDays() }))
 
 const subscriptionOperations = {
   telegram: async (method, body) => {
@@ -5004,6 +5050,7 @@ setInterval(() => {
 }, 30000).unref()
 
 // Receipt retries continue independently of optional daily report scheduling.
+setInterval(() => afterResponse('event-ticket-delivery', () => eventTicketDelivery.process()), 15000).unref()
 setInterval(() => {
   if (BOT_TOKEN && ADMIN_CHAT_ID) afterResponse('lead-inbox', () => retryLeadNotifications((text, keyboard) => sendTelegramMessage(ADMIN_CHAT_ID, text, keyboard), Date.now(), (buffer, filename, caption) => sendTelegramDocument(ADMIN_CHAT_ID, buffer, filename, caption)))
 }, 15000).unref()
@@ -5032,7 +5079,7 @@ process.on('unhandledRejection', (err) => console.error('[unhandledRejection]', 
 process.on('uncaughtException', (err) => console.error('[uncaughtException]', err))
 
 // Для автотестов: доступ к фоновым задачам без ожидания расписания.
-if (process.env.TEST_HOOKS === '1') globalThis.__hooks = { processCommunityOnboarding:()=>communityOnboarding.process(), deliverOwnerPaymentReminders, deliverChargeFailureNotices, synchronizeSubscriptionPayments, deliverAccessClosureNotices, deliverPaymentAdminNotices, runRetentionJob, sendEventReminders, processExpiry, processAccessExpiry, processAutomaticExpiry, processCommunityAdmission: () => communityAdmission.process(), deliverRenewalNotices, sendAccessEndingReminders, processReviewFlow, sendAutoResidentReminders, sendMorningDigest, sendEveningClose, refreshChatMembership, processCampaigns, sendPendingNoticesIfDue }
+if (process.env.TEST_HOOKS === '1') globalThis.__hooks = { processEventTicketDelivery: () => eventTicketDelivery.process(), processCommunityOnboarding:()=>communityOnboarding.process(), deliverOwnerPaymentReminders, deliverChargeFailureNotices, synchronizeSubscriptionPayments, deliverAccessClosureNotices, deliverPaymentAdminNotices, runRetentionJob, sendEventReminders, processExpiry, processAccessExpiry, processAutomaticExpiry, processCommunityAdmission: () => communityAdmission.process(), deliverRenewalNotices, sendAccessEndingReminders, processReviewFlow, sendAutoResidentReminders, sendMorningDigest, sendEveningClose, refreshChatMembership, processCampaigns, sendPendingNoticesIfDue }
 
 const PORT = process.env.PORT || 3001
 ensureBuiltInPromos()

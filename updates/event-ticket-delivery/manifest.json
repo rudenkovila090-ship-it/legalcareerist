@@ -1,0 +1,145 @@
+{
+  "version": 1,
+  "baseCommit": "46ab4c317cbe8df03c95db580c5b99c6d8059193",
+  "files": [
+    {
+      "path": "index.js",
+      "edits": [
+        [
+          "import { createConsultation, listConsultations, getConsultation, setConsultationStatus, CONSULTATION_STATUSES } from './lib/consultations.js'\nimport { createAmbassador, listAmbassadors, getAmbassador, addReferral, deleteAmbassador } from './lib/ambassadors.js'\nimport { fixedEventPaymentLink } from './lib/eventPaymentTarget.js'\nimport { createEventLead, listEventLeads, getEventLead, setEventLeadStatus, markEventLeadPaid, setEventLeadField } from './lib/eventLeads.js'\nimport { sendMail, mailConfigured } from './lib/mailer.js'\nimport { listPromos, addPromo, removePromo, findPromo, applyPromo, markPromoUsed, parsePromoInput, promoLabel, ensureBuiltInPromos } from './lib/promoCodes.js'\nimport { cleanHowHeard, howHeardLine, howHeardScreen, logLeadSource } from './lib/howHeard.js'\n",
+          "import { createConsultation, listConsultations, getConsultation, setConsultationStatus, CONSULTATION_STATUSES } from './lib/consultations.js'\nimport { createAmbassador, listAmbassadors, getAmbassador, addReferral, deleteAmbassador } from './lib/ambassadors.js'\nimport { fixedEventPaymentLink } from './lib/eventPaymentTarget.js'\nimport { createEventLead, listEventLeads, getEventLead, setEventLeadStatus, markEventLeadPaid, setEventLeadField, bindEventLeadTelegram } from './lib/eventLeads.js'\nimport { createEventTicketDelivery, ticketBotLink, ticketPaymentNumber } from './lib/eventTicketDelivery.js'\nimport { sendMail, mailConfigured } from './lib/mailer.js'\nimport { listPromos, addPromo, removePromo, findPromo, applyPromo, markPromoUsed, parsePromoInput, promoLabel, ensureBuiltInPromos } from './lib/promoCodes.js'\nimport { cleanHowHeard, howHeardLine, howHeardScreen, logLeadSource } from './lib/howHeard.js'\n"
+        ],
+        [
+          "  return readEventCatalog().find((e) => e.slug === actual)\n}\n\nconst EVENT_ORDER_RE = /\\bev-(\\d+)\\b/i\n\n/**\n * Оборачивает работу, которая идёт уже после того, как клиенту отправлен\n",
+          "  return readEventCatalog().find((e) => e.slug === actual)\n}\n\n\n/**\n * Оборачивает работу, которая идёт уже после того, как клиенту отправлен\n"
+        ],
+        [
+          "    eventSlug: lead.eventSlug ?? '',\n    paidAt: lead.paidAt ?? null,\n    hasTicket: hasTicketImage(lead.eventSlug ?? ''),\n  })\n})\n\n",
+          "    eventSlug: lead.eventSlug ?? '',\n    paidAt: lead.paidAt ?? null,\n    hasTicket: hasTicketImage(lead.eventSlug ?? ''),\n    botUrl: ticketBotLink(BOT_USERNAME, lead.token),\n  })\n})\n\n"
+        ],
+        [
+          "    case 'evticket': {\n      const e = getEventLead(arg)\n      if (!e || e.kind !== 'registration' || !['paid', 'attended'].includes(e.status) || !e.email || !hasTicketImage(e.eventSlug)) return eventCard(arg)\n      const mail = await sendTicketMail(e, e.amount)\n      const card = eventCard(arg)\n      const result = mail.ok ? `🎟 Билет ${mail.ticket ? 'отправлен' : 'не приложен, но письмо с подтверждением отправлено'} на ${e.email}` : `⚠️ Письмо не ушло (${mail.error})`\n      return { ...card, text: `${result}${mail.ticketError ? `\\n⚠️ Билет не нарисовался: ${mail.ticketError}` : ''}\\n\\n${card.text}` }\n",
+          "    case 'evticket': {\n      const e = getEventLead(arg)\n      if (!e || e.kind !== 'registration' || !['paid', 'attended'].includes(e.status) || !e.email || !hasTicketImage(e.eventSlug)) return eventCard(arg)\n      eventTicketDelivery.request(e.number, 'email')\n      const mail = (await eventTicketDelivery.deliver(e.number, 'email')).email ?? { ok: false, error: 'delivery_in_progress' }\n      const card = eventCard(arg)\n      const result = mail.ok ? `🎟 Билет ${mail.ticket ? 'отправлен' : 'не приложен, но письмо с подтверждением отправлено'} на ${e.email}` : `⚠️ Письмо не ушло (${mail.error})`\n      return { ...card, text: `${result}${mail.ticketError ? `\\n⚠️ Билет не нарисовался: ${mail.ticketError}` : ''}\\n\\n${card.text}` }\n"
+        ],
+        [
+          "  if (!chatId || !text || !text.startsWith('/start')) return\n\n  const payload = text.slice('/start'.length).trim()\n  // Кнопка «Получить код в боте» в кабинете открывает бота по t.me/бот?start=link\n  if (payload === 'link') {\n    await sendLinkCode(chatId, message.from)\n",
+          "  if (!chatId || !text || !text.startsWith('/start')) return\n\n  const payload = text.slice('/start'.length).trim()\n  const ticketToken = payload.match(/^ticket_([a-f0-9]{24})$/i)?.[1]\n  if (ticketToken) {\n    if (message.chat?.type !== 'private' || String(message.from?.id) !== String(chatId)) return\n    const lead = bindEventLeadTelegram(ticketToken, chatId)\n    if (lead.error) {\n      await sendTelegramMessage(chatId, lead.error === 'telegram_conflict' ? 'Этот билет уже привязан к другому Telegram-аккаунту. Обратитесь в поддержку.' : 'Билет не найден. Откройте бота по ссылке со страницы оплаты.')\n      return\n    }\n    touchBotUser(message.from)\n    if (!['paid', 'attended'].includes(lead.status)) {\n      await sendTelegramMessage(chatId, 'Оплата пока не подтверждена. После подтверждения пришлем билет сюда.')\n      return\n    }\n    const requestKey = `${chatId}:${message.message_id ?? update.update_id}`\n    if (lead.ticketBotRequest !== requestKey) {\n      eventTicketDelivery.request(lead.number, 'telegram')\n      setEventLeadField(lead.number, 'ticketBotRequest', requestKey)\n    }\n    const result = await eventTicketDelivery.deliver(lead.number, 'telegram')\n    if (result.telegram && !result.telegram.ok) await sendTelegramMessage(chatId, 'Отправка билета пока не подтверждена. Если он не появился, напишите в поддержку: ' + SUPPORT_HANDLE)\n    return\n  }\n  // Кнопка «Получить код в боте» в кабинете открывает бота по t.me/бот?start=link\n  if (payload === 'link') {\n    await sendLinkCode(chatId, message.from)\n"
+        ],
+        [
+          "})\n\n/**\n * Письмо участнику об оплате билета. Если для мероприятия есть шаблон, к письму прикладывается именной билет-картинка\n * (имя, номер и контакты берутся из регистрации). Не получилось нарисовать — письмо уходит без билета, причина в ответе (ticketError).\n * Возвращает { ok, error?, ticket, ticketError? }.\n */\nasync function sendTicketMail(lead, amount) {\n  if (!lead.email) return { ok: false, error: 'no_email' }\n  const event = findEvent(lead.eventSlug)\n  let ticket = null\n  let ticketError = null\n",
+          "})\n\n/**\n * Письмо участнику об оплате билета. Если для мероприятия есть шаблон, к письму прикладывается именной PDF-билет\n * (имя, номер и контакты берутся из регистрации). Ошибка формирования оставляет отправку в очереди для повторной попытки.\n * Возвращает { ok, error?, ticket, ticketError? }.\n */\nasync function sendTicketMail(lead, amount) {\n  if (!lead.email) return { ok: false, error: 'no_email', definitelyNotSent: true }\n  const event = findEvent(lead.eventSlug)\n  let ticket = null\n  let ticketError = null\n"
+        ],
+        [
+          "    } catch (err) {\n      ticketError = err.message || String(err)\n      console.error('[ticket] не удалось нарисовать билет, регистрация №', lead.number, err)\n    }\n  }\n  const { subject, text, html } = composeTicketMail({ lead, amount, event, hasTicket: Boolean(ticket), supportHandle: SUPPORT_HANDLE })\n  const mail = await sendMail({ to: lead.email, subject, text, html, attachments: ticket ? [{ filename: ticket.filename, content: ticket.buffer, contentType: ticket.contentType }] : undefined })\n  return { ...mail, ticket: Boolean(ticket && mail.ok), ticketError }\n}\n\n/** Успешная оплата билета: статус «Оплатил» и сумма в регистрации, письмо участнику, уведомление админу. */\nasync function handleEventPayment(number, body, signed) {\n",
+          "    } catch (err) {\n      ticketError = err.message || String(err)\n      console.error('[ticket] не удалось нарисовать билет, регистрация №', lead.number, err)\n      return { ok: false, error: 'ticket_render_failed', ticket: false, ticketError, definitelyNotSent: true }\n    }\n  }\n  const { subject, text, html } = composeTicketMail({ lead, amount, event, hasTicket: Boolean(ticket), supportHandle: SUPPORT_HANDLE, botUsername: BOT_USERNAME })\n  const messageId = `<ticket-${crypto.createHash('sha256').update(lead.token).digest('hex').slice(0, 24)}@legalcareerist.ru>`\n  const mail = await sendMail({ to: lead.email, subject, text, html, messageId, attachments: ticket ? [{ filename: ticket.filename, content: ticket.buffer, contentType: ticket.contentType }] : undefined })\n  return { ...mail, ticket: Boolean(ticket && mail.ok), ticketError }\n}\n\nasync function sendTicketTelegram(lead) {\n  if (!BOT_TOKEN) return { ok: false, error: 'telegram_not_configured', definitelyNotSent: true }\n  let ticket\n  try { ticket = await renderTicketPdf({ eventSlug: lead.eventSlug, number: lead.number, name: lead.name, phone: lead.phone, email: lead.email, paidAt: lead.paidAt ?? Date.now() }) }\n  catch { return { ok: false, error: 'ticket_render_failed', definitelyNotSent: true } }\n  const text = `Ваш билет №${lead.number} на «${lead.eventTitle}». Оплата подтверждена.`\n  const form = new FormData()\n  form.append('chat_id', String(lead.tgUserId))\n  form.append('caption', text)\n  if (ticket) form.append('document', new Blob([ticket.buffer], { type: ticket.contentType }), ticket.filename)\n  try {\n    const response = ticket ? await telegramFetch('sendDocument', { method: 'POST', body: form }) : await telegramFetch('sendMessage', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: String(lead.tgUserId), text }) })\n    const value = await response.json().catch(() => null)\n    return response.ok && value?.ok === true ? { ok: true } : { ok: false, error: `telegram_${value?.error_code ?? response.status}`, definitelyNotSent: value?.ok === false }\n  } catch (error) { return { ok: false, error: 'telegram_connection_failed', definitelyNotSent: SAFE_RETRY_CODES.has(error?.cause?.code) } }\n}\n\nconst eventTicketDelivery = createEventTicketDelivery({ list: listEventLeads, get: getEventLead, patch: (number, state) => setEventLeadField(number, 'ticketDelivery', state), email: lead => sendTicketMail(lead, lead.amount), telegram: sendTicketTelegram })\n\n/** Успешная оплата билета: статус «Оплатил» и сумма в регистрации, письмо участнику, уведомление админу. */\nasync function handleEventPayment(number, body, signed) {\n"
+        ],
+        [
+          "    return\n  }\n  if (lead.duplicate) {\n    console.log('[prodamus] повторный вебхук по оплате билета — пропускаю:', number)\n    return\n  }\n  const mail = await sendTicketMail(lead, amount)\n  cancelPending({ kind: 'ticket', eventNumber: lead.number })\n  if (lead.promo) markPromoUsed(lead.promo)\n  // Сумма в оплате не совпала с ценой билета (частичная оплата, другая цена на платёжной странице) — пусть админ посмотрит.\n",
+          "    return\n  }\n  if (lead.duplicate) {\n    await eventTicketDelivery.deliver(number)\n    console.log('[prodamus] повторная оплата билета: проверена доставка без повторного учета:', number)\n    return\n  }\n  const mail = (await eventTicketDelivery.deliver(number)).email ?? { ok: false, error: 'delivery_pending' }\n  cancelPending({ kind: 'ticket', eventNumber: lead.number })\n  if (lead.promo) markPromoUsed(lead.promo)\n  // Сумма в оплате не совпала с ценой билета (частичная оплата, другая цена на платёжной странице) — пусть админ посмотрит.\n"
+        ],
+        [
+          "      return\n    }\n\n    // Билет на мероприятие: в order_num (наш order_id) или customer_extra лежит «ev-N».\n    const eventMatch = String(body.order_num ?? '').match(EVENT_ORDER_RE) || String(body.customer_extra ?? '').match(EVENT_ORDER_RE)\n    if (eventMatch) {\n      await handleEventPayment(Number(eventMatch[1]), body, signed)\n      return\n    }\n\n",
+          "      return\n    }\n\n    // Билет на мероприятие: один и тот же «ev-N» в order_num, order_id или customer_extra.\n    const eventNumber = ticketPaymentNumber(body)\n    if (eventNumber !== null) {\n      await handleEventPayment(eventNumber, body, signed)\n      return\n    }\n\n"
+        ],
+        [
+          "app.get('/api/health', (_req, res) => res.json({ ok: true,",
+          "app.get('/api/health', (_req, res) => res.json({ ok: true, eventTicketDelivery:1,"
+        ],
+        [
+          "}, 30000).unref()\n\n// Receipt retries continue independently of optional daily report scheduling.\nsetInterval(() => {\n  if (BOT_TOKEN && ADMIN_CHAT_ID) afterResponse('lead-inbox', () => retryLeadNotifications((text, keyboard) => sendTelegramMessage(ADMIN_CHAT_ID, text, keyboard), Date.now(), (buffer, filename, caption) => sendTelegramDocument(ADMIN_CHAT_ID, buffer, filename, caption)))\n}, 15000).unref()\n",
+          "}, 30000).unref()\n\n// Receipt retries continue independently of optional daily report scheduling.\nsetInterval(() => afterResponse('event-ticket-delivery', () => eventTicketDelivery.process()), 15000).unref()\nsetInterval(() => {\n  if (BOT_TOKEN && ADMIN_CHAT_ID) afterResponse('lead-inbox', () => retryLeadNotifications((text, keyboard) => sendTelegramMessage(ADMIN_CHAT_ID, text, keyboard), Date.now(), (buffer, filename, caption) => sendTelegramDocument(ADMIN_CHAT_ID, buffer, filename, caption)))\n}, 15000).unref()\n"
+        ],
+        [
+          "globalThis.__hooks = {",
+          "globalThis.__hooks = { processEventTicketDelivery: () => eventTicketDelivery.process(),"
+        ]
+      ]
+    },
+    {
+      "path": "lib/eventLeads.js",
+      "sha256": "2b25c911b7c1afab54bd2c4ea5e4eb458d267e5ff265e079e5fa8f3078097bba",
+      "beforeSha256": [
+        "c434e8183c6735a1248402d50d219ec995a4b064c905b91daadad0a2a02c4164",
+        "a765979b64cc5f1aa22022e63fef9f107da1f0ba4058a4390c541765cf9bad7c",
+        "28293b478bee3f586cfae855912101b49256948c8c714c8675168aed778192f1"
+      ]
+    },
+    {
+      "path": "lib/mailer.js",
+      "sha256": "3814876a07970126104f3086b9153bb2a77bc99415b1275038dde36a1faed4be",
+      "beforeSha256": [
+        "e2306099aec91a295dadd905fe80c635463bb4908aae0aa16f050b97216bdceb",
+        "0b699b4fe4b8f9136e680f32bcdece688eaafa785231ab768e1264908c70dd3f"
+      ]
+    },
+    {
+      "path": "lib/ticketMail.js",
+      "sha256": "65f63e9a1507c53c7c2ddd5fe127b43c48088a4571342be3c8a5e65016769f8b",
+      "beforeSha256": [
+        "f7802b861f79e3f32d0f5e54c6ebce84d46d0dc20d081d29b7d76c6f7d8c991d",
+        "b1cf30ffb5f00ae9552111c2c0ee33b5080f40986875b39f531de0a2d8200508",
+        "087291827cdcc7cb75d30221e11d1f74f3ce729586b53dc039de65c0c65e975f"
+      ]
+    },
+    {
+      "path": "lib/eventTicketDelivery.js",
+      "sha256": "8f5ee0232a62037fb50661ecd07c8d416053b0667f502e10e1f2d8349c2d2914",
+      "beforeSha256": [
+        null
+      ]
+    },
+    {
+      "path": "lib/ticketImage.js",
+      "sha256": "d902de030ecffe277ae2340dd7324c11266e8037106914bad2632e3360496c8c",
+      "beforeSha256": [
+        "d902de030ecffe277ae2340dd7324c11266e8037106914bad2632e3360496c8c",
+        "712b3342b685de287c28b00c36ab7838647653e036602734e5bd72b6cee21ad8",
+        "163c95e630ef2c337897ae650257e4e596815553028f35ee59038d14c2754609"
+      ]
+    },
+    {
+      "path": "lib/code128.js",
+      "sha256": "fc5eb8077d526e28e50a28bd3a8e85ce13c27576041b50e7794ebd14072386a2",
+      "beforeSha256": [
+        "fc5eb8077d526e28e50a28bd3a8e85ce13c27576041b50e7794ebd14072386a2"
+      ]
+    },
+    {
+      "path": "lib/simplePdf.js",
+      "sha256": "a908cf8904445635278ea4b2c366a99625caf93a4e7f114f719ddd0ae9e08f39",
+      "beforeSha256": [
+        "a908cf8904445635278ea4b2c366a99625caf93a4e7f114f719ddd0ae9e08f39"
+      ]
+    }
+  ],
+  "assets": [
+    {
+      "path": "assets/tickets/legal-night-jazz-2.png",
+      "sha256": "fd90b444d5e8f9a435a76ee9c239c1d4ff098315edf38a6392a9d21c618f7060"
+    },
+    {
+      "path": "assets/fonts/ibm-plex-mono-cyrillic-500-normal.woff2",
+      "sha256": "1d89462e86cb8e87e7e9d6f6635605bd7c3081baca6caaecee84916bf7b60edc"
+    },
+    {
+      "path": "assets/fonts/ibm-plex-mono-cyrillic-600-normal.woff2",
+      "sha256": "2b05a8695c7f9f4abd7178b279646a3b005a8ce57546bef6fd145f25d131e0aa"
+    },
+    {
+      "path": "assets/fonts/ibm-plex-mono-latin-500-normal.woff2",
+      "sha256": "01d285447409c8a588692162439a038b8cbd7871309ee20267b0d2d91c6e8e22"
+    },
+    {
+      "path": "assets/fonts/ibm-plex-mono-latin-600-normal.woff2",
+      "sha256": "0d1f0b8d0722224e32e9f28261bdc86c79115be73444ae5eceb73976a1bcdf83"
+    },
+    {
+      "path": "assets/fonts/playfair-display-cyrillic-700-italic.woff2",
+      "sha256": "125eeaf2b6aee540df095c6ae939a9ca42075983708ffd234d858727b1864f2e"
+    },
+    {
+      "path": "assets/fonts/playfair-display-latin-700-italic.woff2",
+      "sha256": "de2f4041e7ef84f418bd0144484e521e8df849aff47762230c981704b9661877"
+    }
+  ]
+}

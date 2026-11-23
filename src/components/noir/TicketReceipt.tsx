@@ -249,6 +249,8 @@ export default function TicketReceipt({ state, ticket, event, downloadUrl, onClo
                     </a>
                   )}
 
+                  {ticket.botUrl && <a className="rc-download" href={ticket.botUrl} target="_blank" rel="noopener noreferrer">Получить билет в Telegram</a>}
+
                   {event.chat && (
                     <a className="rc-chat" href={event.chat} target="_blank" rel="noopener noreferrer">
                       <span>Чат участников вечера</span>

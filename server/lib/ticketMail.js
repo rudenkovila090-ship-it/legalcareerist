@@ -1,6 +1,7 @@
 // Письмо участнику об оплате билета: тема, текст и вёрстка. Общее для настоящей отправки (sendTicketMail в index.js)
 // и тестовой (scripts/test-ticket.mjs), чтобы тест показывал ровно то, что получит покупатель.
 import { tidyName } from './ticketImage.js'
+import { ticketBotLink } from './eventTicketDelivery.js'
 
 const MSK = 'Europe/Moscow'
 const clock = (iso) => new Date(iso).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: MSK })
@@ -13,7 +14,8 @@ export const CONTACTS = { phone: '+7 932 262 13 44', email: 'info@legalcareerist
  * hasTicket — приложен ли билет, supportHandle — контакт поддержки (@ник).
  * Возвращает { subject, text, html }: html с выделением, text — то же простым текстом.
  */
-export function composeTicketMail({ lead, amount, event, hasTicket, supportHandle }) {
+export function composeTicketMail({ lead, amount, event, hasTicket, supportHandle, botUsername }) {
+  const botUrl = ticketBotLink(botUsername, lead.token)
   const greetName = tidyName(lead.name) || lead.name
   const hello = greetName ? `Здравствуйте, ${greetName}!` : 'Здравствуйте!'
   const paid = `Оплата получена — вы зарегистрированы на мероприятие «${lead.eventTitle}».`
@@ -40,6 +42,7 @@ export function composeTicketMail({ lead, amount, event, hasTicket, supportHandl
     chat ? `Чат участников в Telegram: ${chat}` : null,
     ticketLine ? '' : null,
     ticketLine || null,
+    botUrl ? `Получить билет в Telegram: ${botUrl}` : null,
     '',
     reminder,
     '',
@@ -63,6 +66,7 @@ export function composeTicketMail({ lead, amount, event, hasTicket, supportHandl
     p(`<b>${esc(hello)}<br>${esc(paid)}</b>`),
     p(details.join('<br>')),
     ticketLine && p(esc(ticketLine)),
+    botUrl && p(link(botUrl, 'Получить билет в Telegram')),
     p(`За день до мероприятия пришлём напоминание на эту почту. Вопросы — ${link(supportUrl, supportHandle)}`),
     p('Карьерный юрист<br>Мероприятия'),
     p(`${link(`tel:${CONTACTS.phone.replace(/[^\d+]/g, '')}`, CONTACTS.phone)} | ${link(`mailto:${CONTACTS.email}`, CONTACTS.email)} | ${link(CONTACTS.site, 'сайт')}`),

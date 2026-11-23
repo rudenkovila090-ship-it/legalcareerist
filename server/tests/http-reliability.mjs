@@ -19,6 +19,7 @@ const completionFollowupMode = process.argv.includes('--completion-followup')
 const automationMode = process.argv.includes('--automation')
 const rescueMode = process.argv.includes('--access-rescue')
 const completionMode = process.argv.includes('--payment-completion')
+const eventTicketsMode = process.argv.includes('--event-tickets')
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'legalcareerist-http-'))
 fs.cpSync(path.join(source, 'lib'), path.join(root, 'lib'), { recursive: true })
 for (const file of ['index.js', 'package.json']) fs.copyFileSync(path.join(source, file), path.join(root, file))
@@ -35,9 +36,17 @@ env.PRODAMUS_MATERIALS_SECRET_KEY = ''
 env.PRODAMUS_EVENTS_SECRET_KEY = ''
 env.COMMUNITY_INVITE_LINK = 'https://t.me/+SYNTHETIC_INVITE'
 if (noPaymentKeys) env.PRODAMUS_SECRET_KEY = ''
+if(eventTicketsMode)Object.assign(env,{SMTP_HOST:'smtp.synthetic.invalid',SMTP_USER:'test@example.invalid',SMTP_PASS:'synthetic',BOT_USERNAME:'synthetic_bot',EVENT_TICKET_TEST:'1'})
 fs.writeFileSync(path.join(root, 'bootstrap.mjs'), `
 import fs from 'node:fs';
 import crypto from 'node:crypto';
+if(process.env.EVENT_TICKET_TEST==='1'){
+ const {default:nodemailer}=await import('nodemailer');
+ nodemailer.createTransport=()=>({sendMail:async data=>{
+  if(fs.existsSync(new URL('./smtp-fail',import.meta.url)))throw Object.assign(Error('TEST connection refused'),{command:'CONN',code:'ECONNECTION'});
+  fs.appendFileSync(new URL('./ticket-mails.jsonl',import.meta.url),JSON.stringify({to:data.to,messageId:data.messageId,subject:data.subject,attachments:(data.attachments||[]).map(a=>({filename:a.filename,size:a.content.length,pdf:a.content.subarray(0,5).toString()==='%PDF-'}))})+'\\n');return {accepted:[data.to]};
+ }});
+}
 async function telegramPayload(init){if(init.body instanceof FormData){const out={};for(const [key,value]of init.body.entries())out[key]=typeof value==='string'?value:{filename:value.name,size:value.size,sha256:crypto.createHash('sha256').update(Buffer.from(await value.arrayBuffer())).digest('hex')};return out}try{return JSON.parse(init.body||'{}')}catch{return {}}}
 let clock = null; const realNow = Date.now; Date.now = () => clock ?? realNow();
 const nativeFetch=globalThis.fetch;
@@ -107,6 +116,10 @@ try {
     const r = await request('/api/prodamus/webhook', { payment_status: 'success', subscription: { id: '2854597' }, sum: '690' }, { sign: 'synthetic-signature' })
     check('missing verification keys reject payment before storage or accepted-event logging', () => { assert.equal(r.status, 503); assert.equal(fs.existsSync(path.join(root, 'data/pending-joins.json')), false); assert.equal(fs.existsSync(path.join(root, 'data/prodamus-webhooks.jsonl')), false) })
     console.log(`${count} missing-key check passed; no outbound provider calls`)
+  } else if (eventTicketsMode) {
+    const {runEventTickets}=await import('./event-ticket-delivery-http.mjs')
+    await runEventTickets({root,request,hook,read,check,wait,pathToFileURL})
+    console.log(`${count} event ticket delivery checks passed; SMTP, Telegram and payments synthetic`)
   } else if (completionFollowupMode) {
     const {runCommunityFollowup}=await import('./community-completion-http.mjs')
     await runCommunityFollowup({root,request,hook,read,check,wait,pathToFileURL})
