@@ -7,9 +7,9 @@ import type { PdfFile } from '../../components/PdfDocument'
 // Чтобы заменить файл: положите новый в public/documents/ и поменяйте version.
 const OFFER: PdfFile = {
   file: '/documents/oferta-legal-night-jazz-2.pdf',
-  version: '2026-10-18',
-  pages: 3,
-  sizeKb: 100,
+  version: '2026-11-23-890399a4537b',
+  pages: 5,
+  sizeKb: 117,
   downloadName: 'oferta-legal-night-jazz-2.pdf',
 }
 
