@@ -13,6 +13,7 @@ import alexandraPhoto from '../../assets/ambassadors/alexandra-barbusova.png'
 import valeriaPhoto from '../../assets/ambassadors/valeria-tretyakova.png'
 import angelinaPhoto from '../../assets/ambassadors/angelina-kandu.png'
 import alenaPhoto from '../../assets/ambassadors/alena-romanova.png'
+import arinaPhoto from '../../assets/ambassadors/arina-bachina.png'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import { tariffs } from '../../data/tariffs'
 import CommunityFooter from './CommunityFooter'
@@ -78,7 +79,7 @@ const ambassadors: Ambassador[] = [
   { id: 3, lastName: 'Канду', firstName: 'Ангелина', university: 'СПбГУ', photo: angelinaPhoto },
   { id: 4, lastName: 'Романова', firstName: 'Алена', university: 'СПбГЭУ', role: 'Младший юрист в банкротстве', photo: alenaPhoto },
   { id: 5, lastName: 'Доманова', firstName: 'Анастасия', role: 'Младший юрист' },
-  { id: 6, lastName: 'Бачина', firstName: 'Арина', university: 'МГИМО' },
+  { id: 6, lastName: 'Бачина', firstName: 'Арина', university: 'МГИМО', photo: arinaPhoto },
   { id: 8, lastName: 'Гранкина', firstName: 'Юлия', university: 'Университет прокуратуры' },
   { id: 9, lastName: 'Дюскина', firstName: 'Анастасия', university: 'МГЮА' },
 ]
