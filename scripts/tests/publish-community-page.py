@@ -77,7 +77,7 @@ globalThis.fetch=async(input,options={})=>{
     assert (first[0]/'index.html').read_text()==oldhtml
     assert json.loads((first[0]/'verified.json').read_text())['faqQuestions']==11
     assert json.loads((first[0]/'verified.json').read_text())['achievementOriginals']==3
-    assert json.loads((first[0]/'verified.json').read_text())['portraitFiles']==6
+    assert json.loads((first[0]/'verified.json').read_text())['portraitFiles']==7
     assert json.loads((first[0]/'verified.json').read_text())['noirOriginalPhotos'][0]['sha256']=='b20aeef1eb725dec0ba6d3a9f409dfcdfbcf2ed66730b7e6ff1d1678317b8be5'
     assert {r['url'] for r in json.loads((first[0]/'verified.json').read_text())['officialPartnerLogos']}=={'https://strizh-legal.ru/','https://legalstudy.ru/'}
     print('PASS: actual reviewed build published, all current JS/CSS and quotes verified, old assets/private data preserved')
