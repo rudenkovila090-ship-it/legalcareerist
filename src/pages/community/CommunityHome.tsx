@@ -78,10 +78,9 @@ const ambassadors: Ambassador[] = [
   { id: 3, lastName: 'Канду', firstName: 'Ангелина', university: 'СПбГУ', photo: angelinaPhoto },
   { id: 4, lastName: 'Романова', firstName: 'Алена', university: 'СПбГЭУ', role: 'Младший юрист в банкротстве', photo: alenaPhoto },
   { id: 5, lastName: 'Доманова', firstName: 'Анастасия', role: 'Младший юрист' },
-  { id: 6, lastName: 'Батчина', firstName: 'Арина', university: 'МГИМО' },
+  { id: 6, lastName: 'Бачина', firstName: 'Арина', university: 'МГИМО' },
   { id: 8, lastName: 'Гранкина', firstName: 'Юлия', university: 'Университет прокуратуры' },
   { id: 9, lastName: 'Дюскина', firstName: 'Анастасия', university: 'МГЮА' },
-  { id: 10, lastName: 'Аверьянова', firstName: 'Анна', university: 'СПбГУ' },
 ]
 
 // Мозаичная (пиксельная) карта РФ — сетка квадратов-«блоков», как на
